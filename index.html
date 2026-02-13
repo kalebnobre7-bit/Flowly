@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Week - To-Do Kaleb</title>
+    <title>Flowly - To-Do Inteligente</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -95,6 +95,7 @@
         .task-item {
             cursor: grab;
             transition: all 0.2s;
+            position: relative;
         }
         .task-item:active {
             cursor: grabbing;
@@ -102,6 +103,12 @@
         }
         .task-item.dragging {
             opacity: 0.3;
+        }
+        .task-item.is-habit::before {
+            content: '🔄';
+            position: absolute;
+            left: -20px;
+            font-size: 12px;
         }
         .task-label {
             user-select: none;
@@ -168,10 +175,6 @@
             background: #2a2a2a;
             color: #fff;
         }
-        .toolbar-btn.active {
-            background: #2a2a2a;
-            color: #3b82f6;
-        }
         .floating-add-btn {
             position: fixed;
             bottom: 30px;
@@ -218,6 +221,47 @@
         .quick-add-option:hover {
             background: #2a2a2a;
         }
+        .habit-card {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #252525;
+        }
+        .habit-card:hover {
+            border-color: #333;
+        }
+        .streak-badge {
+            background: linear-gradient(135deg, #f97316, #fb923c);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .stat-card {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #252525;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #252525;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            transition: width 0.3s;
+        }
         
         /* Notion color classes */
         .color-default { color: #e5e5e5; }
@@ -252,14 +296,25 @@
                     <button id="btnWeek" class="px-6 py-2 rounded-md text-sm font-medium transition-all bg-[#2a2a2a] text-white">
                         Semana
                     </button>
+                    <button id="btnHabits" class="px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">
+                        Hábitos
+                    </button>
                 </div>
             </div>
             <p class="text-gray-400 text-lg">Só existe o hoje, foco no que traz grana.</p>
         </div>
 
-        <!-- Week Grid -->
-        <div id="weekGrid" class="grid grid-cols-7 gap-0">
-            <!-- Days will be inserted here -->
+        <!-- Content Area -->
+        <div id="contentArea">
+            <!-- Week Grid -->
+            <div id="weekGrid" class="grid grid-cols-7 gap-0">
+                <!-- Days will be inserted here -->
+            </div>
+
+            <!-- Habits View -->
+            <div id="habitsView" class="hidden">
+                <!-- Habits content will be inserted here -->
+            </div>
         </div>
     </div>
 
@@ -277,7 +332,7 @@
         <div class="quick-add-option" data-type="custom">✏️ Nova tarefa customizada</div>
     </div>
 
-    <!-- Color Menu (floating) -->
+    <!-- Color Menu -->
     <div id="colorMenu" class="color-menu">
         <div class="color-swatch" style="background: #e5e5e5;" data-color="default" title="Default"></div>
         <div class="color-swatch" style="background: #9b9a97;" data-color="gray" title="Gray"></div>
@@ -291,9 +346,10 @@
         <div class="color-swatch" style="background: #d44c47;" data-color="red" title="Red"></div>
     </div>
 
-    <!-- Edit Toolbar (floating) -->
+    <!-- Edit Toolbar -->
     <div id="editToolbar" class="edit-toolbar">
         <button class="toolbar-btn" data-action="color" title="Cor do texto">🎨</button>
+        <button class="toolbar-btn" data-action="habit" title="Marcar como hábito">🔄</button>
         <div style="width: 1px; background: #333; margin: 0 2px;"></div>
         <button class="toolbar-btn" data-action="delete" title="Deletar">🗑️</button>
     </div>
@@ -304,124 +360,290 @@
         let currentEditingTask = null;
         
         const dailyRoutine = [
-            { text: "Oração e Salmo", completed: false, color: "default" },
-            { text: "Venvanse", completed: false, color: "default" },
-            { text: "Ler metas e mantra; celular na gaveta", completed: false, color: "default" }
+            { text: "Oração e Salmo", completed: false, color: "default", isHabit: false },
+            { text: "Venvanse", completed: false, color: "default", isHabit: false },
+            { text: "Ler metas e mantra; celular na gaveta", completed: false, color: "default", isHabit: false }
         ];
         
         const weekData = {
             "Segunda": {
                 "Manhã (8h-12h)": [
-                    { text: "Oração e Salmo", completed: true, color: "default" },
-                    { text: "Venva + Cetoconazol", completed: true, color: "default" },
-                    { text: "Ler metas e mantra; celular na gaveta", completed: true, color: "default" },
-                    { text: "Finalizar com leo", completed: true, color: "default" },
-                    { text: "cobrar leo e bless", completed: true, color: "default" }
+                    { text: "Oração e Salmo", completed: true, color: "default", isHabit: true },
+                    { text: "Venva + Cetoconazol", completed: true, color: "default", isHabit: false },
+                    { text: "Ler metas e mantra; celular na gaveta", completed: true, color: "default", isHabit: true },
+                    { text: "Finalizar com leo", completed: true, color: "default", isHabit: false },
+                    { text: "cobrar leo e bless", completed: true, color: "default", isHabit: false }
                 ]
             },
             "Terça": {
                 "Manhã (8h-12h)": [
-                    { text: "Oração e Salmo", completed: true, color: "default" },
-                    { text: "Venva + Cetoconazol", completed: true, color: "default" },
-                    { text: "Ler metas e mantra; celular na gaveta", completed: true, color: "default" },
-                    { text: "Deixar destaques na mesma cor", completed: true, color: "default" },
-                    { text: "Prospecção no Threads", completed: true, color: "default" },
-                    { text: "Follow-up de propostas enviadas (15min)", completed: true, color: "default" },
-                    { text: "Link Pagamento Léo + Bless", completed: true, color: "default" }
+                    { text: "Oração e Salmo", completed: true, color: "default", isHabit: true },
+                    { text: "Venva + Cetoconazol", completed: true, color: "default", isHabit: false },
+                    { text: "Ler metas e mantra; celular na gaveta", completed: true, color: "default", isHabit: true },
+                    { text: "Deixar destaques na mesma cor", completed: true, color: "default", isHabit: false },
+                    { text: "Prospecção no Threads", completed: true, color: "default", isHabit: false },
+                    { text: "Follow-up de propostas enviadas (15min)", completed: true, color: "default", isHabit: false },
+                    { text: "Link Pagamento Léo + Bless", completed: true, color: "default", isHabit: false }
                 ],
                 "Tarde (14h-18h)": [
-                    { text: "Call Semanal com Fred (14h30)", completed: true, color: "default" },
-                    { text: "[QCS] Página de Vendas (2h)", completed: true, color: "default" }
+                    { text: "Call Semanal com Fred (14h30)", completed: true, color: "default", isHabit: false },
+                    { text: "[QCS] Página de Vendas (2h)", completed: true, color: "default", isHabit: false }
                 ]
             },
             "Quarta": {
                 "Manhã (8h-12h)": [
-                    { text: "Oração e Salmo", completed: true, color: "default" },
-                    { text: "Ler metas e mantra", completed: true, color: "default" },
-                    { text: "Cobrar a cara", completed: true, color: "default" },
-                    { text: "2 posts no Threads + Prospecção", completed: true, color: "default" }
+                    { text: "Oração e Salmo", completed: true, color: "default", isHabit: true },
+                    { text: "Ler metas e mantra", completed: true, color: "default", isHabit: true },
+                    { text: "Cobrar a cara", completed: true, color: "default", isHabit: false },
+                    { text: "2 posts no Threads + Prospecção", completed: true, color: "default", isHabit: false }
                 ],
                 "Tarde (14h-18h)": [
-                    { text: "Postar +1 Avaliação no Storie (10min)", completed: false, color: "default" },
-                    { text: "Copiar a Jéssica jessicacostaft", completed: false, color: "default" },
-                    { text: "Story + Frase", completed: false, color: "default" }
+                    { text: "Postar +1 Avaliação no Storie (10min)", completed: false, color: "default", isHabit: false },
+                    { text: "Copiar a Jéssica jessicacostaft", completed: false, color: "default", isHabit: false },
+                    { text: "Story + Frase", completed: false, color: "default", isHabit: false }
                 ]
             },
             "Quinta": {
                 "Manhã (8h-12h)": [
-                    { text: "Oração e Salmo", completed: true, color: "default" },
-                    { text: "Venvanse", completed: true, color: "default" },
-                    { text: "Ler metas e mantra", completed: true, color: "default" },
-                    { text: "Responder DMs/emails clientes (10min)", completed: true, color: "default" },
-                    { text: "Videozão pro Raul", completed: true, color: "default" },
-                    { text: "[QCS] Página de Obrigado (1h)", completed: true, color: "default" },
-                    { text: "Postar página de obrigado e do ebook", completed: true, color: "default" }
+                    { text: "Oração e Salmo", completed: true, color: "default", isHabit: true },
+                    { text: "Venvanse", completed: true, color: "default", isHabit: true },
+                    { text: "Ler metas e mantra", completed: true, color: "default", isHabit: true },
+                    { text: "Responder DMs/emails clientes (10min)", completed: true, color: "default", isHabit: false },
+                    { text: "Videozão pro Raul", completed: true, color: "default", isHabit: false },
+                    { text: "[QCS] Página de Obrigado (1h)", completed: true, color: "default", isHabit: false },
+                    { text: "Postar página de obrigado e do ebook", completed: true, color: "default", isHabit: false }
                 ],
                 "Tarde (14h-18h)": [
-                    { text: "Portfólio Sabor Energético (2h)", completed: false, color: "default" }
+                    { text: "Portfólio Sabor Energético (2h)", completed: false, color: "default", isHabit: false }
                 ],
                 "Noite": [
-                    { text: "Corridinha ou 25 Flexões", completed: false, color: "default" },
-                    { text: "Atualizar links lizdesign.com.br (30min)", completed: false, color: "default" },
-                    { text: "[Mawi] Finalizar ajustes do site (1h)", completed: false, color: "default" },
-                    { text: "SITE PRO WILL MEIO URGENTE", completed: false, color: "red" }
+                    { text: "Corridinha ou 25 Flexões", completed: false, color: "default", isHabit: true },
+                    { text: "Atualizar links lizdesign.com.br (30min)", completed: false, color: "default", isHabit: false },
+                    { text: "[Mawi] Finalizar ajustes do site (1h)", completed: false, color: "default", isHabit: false },
+                    { text: "SITE PRO WILL MEIO URGENTE", completed: false, color: "red", isHabit: false }
                 ]
             },
             "Sexta": {
                 "Manhã (8h-12h)": [
-                    { text: "Oração e Salmo", completed: false, color: "default" },
-                    { text: "Venva, Ler metas e mantra", completed: false, color: "default" },
-                    { text: "SEGUIR PLANO DA IA", completed: false, color: "default" }
+                    { text: "Oração e Salmo", completed: false, color: "default", isHabit: true },
+                    { text: "Venva, Ler metas e mantra", completed: false, color: "default", isHabit: true },
+                    { text: "SEGUIR PLANO DA IA", completed: false, color: "default", isHabit: false }
                 ],
                 "Tarde (14h-18h)": [
-                    { text: "postar status no Zap", completed: false, color: "default" },
-                    { text: "postar Carrosselzinho", completed: false, color: "default" },
-                    { text: "Atualizar seção de portfólio no site com trabalhos", completed: false, color: "default" },
-                    { text: "Perguntar em SUBS de DEV sobre app (30min)", completed: false, color: "default" }
+                    { text: "postar status no Zap", completed: false, color: "default", isHabit: false },
+                    { text: "postar Carrosselzinho", completed: false, color: "default", isHabit: false },
+                    { text: "Atualizar seção de portfólio no site com trabalhos", completed: false, color: "default", isHabit: false },
+                    { text: "Perguntar em SUBS de DEV sobre app (30min)", completed: false, color: "default", isHabit: false }
                 ],
                 "Noite": [
-                    { text: "[BATCH] Posts pra 7 dias insta Viviane (2h)", completed: false, color: "default" },
-                    { text: "Ler Livro", completed: false, color: "default" }
+                    { text: "[BATCH] Posts pra 7 dias insta Viviane (2h)", completed: false, color: "default", isHabit: false },
+                    { text: "Ler Livro", completed: false, color: "default", isHabit: true }
                 ]
             },
             "Sábado": {
                 "Manhã (8h-12h)": [
-                    { text: "Oração e Salmo", completed: false, color: "default" },
-                    { text: "Buscar verdola", completed: false, color: "default" },
-                    { text: "Postar Storie (10min)", completed: false, color: "default" },
-                    { text: "Networking: msg pra 3 pessoas (30min)", completed: false, color: "default" },
-                    { text: "Fred e Kaleb Reunião Presencial", completed: false, color: "pink" }
+                    { text: "Oração e Salmo", completed: false, color: "default", isHabit: true },
+                    { text: "Buscar verdola", completed: false, color: "default", isHabit: false },
+                    { text: "Postar Storie (10min)", completed: false, color: "default", isHabit: false },
+                    { text: "Networking: msg pra 3 pessoas (30min)", completed: false, color: "default", isHabit: false },
+                    { text: "Fred e Kaleb Reunião Presencial", completed: false, color: "pink", isHabit: false }
                 ],
                 "Tarde (14h-18h)": [
-                    { text: "Prospectar no Threads (30min)", completed: false, color: "default" },
-                    { text: "Revisar finanças + organizar pagamentos (1h)", completed: false, color: "default" }
+                    { text: "Prospectar no Threads (30min)", completed: false, color: "default", isHabit: false },
+                    { text: "Revisar finanças + organizar pagamentos (1h)", completed: false, color: "default", isHabit: false }
                 ],
                 "Noite": [
-                    { text: "Pensar: A QCS tem um funil, e a minha operação? (1h)", completed: false, color: "default" },
-                    { text: "Post insta Viviane", completed: false, color: "default" },
-                    { text: "Ler Livro", completed: false, color: "default" }
+                    { text: "Pensar: A QCS tem um funil, e a minha operação? (1h)", completed: false, color: "default", isHabit: false },
+                    { text: "Post insta Viviane", completed: false, color: "default", isHabit: false },
+                    { text: "Ler Livro", completed: false, color: "default", isHabit: true }
                 ]
             },
             "Domingo": {
                 "Manhã (8h-12h)": [
-                    { text: "Oração e Salmo", completed: false, color: "default" },
-                    { text: "Ler metas e mantra", completed: false, color: "default" },
-                    { text: "Backup semanal arquivos (15min)", completed: false, color: "default" }
+                    { text: "Oração e Salmo", completed: false, color: "default", isHabit: true },
+                    { text: "Ler metas e mantra", completed: false, color: "default", isHabit: true },
+                    { text: "Backup semanal arquivos (15min)", completed: false, color: "default", isHabit: true }
                 ],
                 "Tarde (14h-18h)": [
-                    { text: "Post insta Viviane", completed: false, color: "default" },
-                    { text: "Ritual semanal: Revisão + Planejar próxima (1h)", completed: false, color: "default" }
+                    { text: "Post insta Viviane", completed: false, color: "default", isHabit: false },
+                    { text: "Ritual semanal: Revisão + Planejar próxima (1h)", completed: false, color: "default", isHabit: true }
                 ],
                 "Noite": [
-                    { text: "Ler Livro", completed: false, color: "default" },
-                    { text: "Comprar perfil pra tráfego (15min)", completed: false, color: "default" }
+                    { text: "Ler Livro", completed: false, color: "default", isHabit: true },
+                    { text: "Comprar perfil pra tráfego (15min)", completed: false, color: "default", isHabit: false }
                 ]
             }
         };
 
+        // Habits tracking data
+        let habitsHistory = JSON.parse(localStorage.getItem('habitsHistory') || '{}');
+
+        function getAllHabits() {
+            const habits = [];
+            const habitMap = new Map();
+            
+            Object.entries(weekData).forEach(([day, periods]) => {
+                Object.entries(periods).forEach(([period, tasks]) => {
+                    tasks.forEach(task => {
+                        if (task.isHabit && !habitMap.has(task.text)) {
+                            habitMap.set(task.text, {
+                                text: task.text,
+                                color: task.color,
+                                completedToday: task.completed
+                            });
+                        }
+                    });
+                });
+            });
+            
+            return Array.from(habitMap.values());
+        }
+
+        function getHabitStreak(habitText) {
+            if (!habitsHistory[habitText]) return 0;
+            
+            const today = new Date();
+            let streak = 0;
+            let currentDate = new Date(today);
+            
+            while (true) {
+                const dateKey = currentDate.toISOString().split('T')[0];
+                if (habitsHistory[habitText][dateKey]) {
+                    streak++;
+                    currentDate.setDate(currentDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            
+            return streak;
+        }
+
+        function getHabitCompletionRate(habitText, days = 30) {
+            if (!habitsHistory[habitText]) return 0;
+            
+            const today = new Date();
+            let completed = 0;
+            
+            for (let i = 0; i < days; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateKey = date.toISOString().split('T')[0];
+                if (habitsHistory[habitText][dateKey]) {
+                    completed++;
+                }
+            }
+            
+            return Math.round((completed / days) * 100);
+        }
+
+        function markHabitCompleted(habitText, completed) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (!habitsHistory[habitText]) {
+                habitsHistory[habitText] = {};
+            }
+            
+            if (completed) {
+                habitsHistory[habitText][today] = true;
+            } else {
+                delete habitsHistory[habitText][today];
+            }
+            
+            localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
+        }
+
+        function renderHabitsView() {
+            const view = document.getElementById('habitsView');
+            const habits = getAllHabits();
+            
+            if (habits.length === 0) {
+                view.innerHTML = '<p class="text-gray-400 text-center py-20">Nenhum hábito cadastrado ainda. Marque tasks como hábitos clicando com o botão direito!</p>';
+                return;
+            }
+            
+            let html = `
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-2xl font-bold mb-6">Meus Hábitos 🔄</h2>
+                    
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-3 gap-4 mb-8">
+                        <div class="stat-card">
+                            <div class="text-gray-400 text-sm mb-1">Total de Hábitos</div>
+                            <div class="text-3xl font-bold">${habits.length}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="text-gray-400 text-sm mb-1">Concluídos Hoje</div>
+                            <div class="text-3xl font-bold text-green-400">${habits.filter(h => h.completedToday).length}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="text-gray-400 text-sm mb-1">Taxa Hoje</div>
+                            <div class="text-3xl font-bold text-blue-400">${habits.length > 0 ? Math.round((habits.filter(h => h.completedToday).length / habits.length) * 100) : 0}%</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Habits List -->
+                    <div class="space-y-3">
+            `;
+            
+            habits.forEach((habit, index) => {
+                const streak = getHabitStreak(habit.text);
+                const completionRate = getHabitCompletionRate(habit.text, 30);
+                
+                html += `
+                    <div class="habit-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-start gap-3 flex-1">
+                                <input 
+                                    type="checkbox" 
+                                    class="checkbox-custom mt-1" 
+                                    ${habit.completedToday ? 'checked' : ''}
+                                    onchange="toggleHabitToday('${habit.text.replace(/'/g, "\\'")}', this.checked)"
+                                >
+                                <div class="flex-1">
+                                    <div class="color-${habit.color} font-medium mb-2">${habit.text}</div>
+                                    <div class="flex items-center gap-3">
+                                        ${streak > 0 ? `<span class="streak-badge">🔥 ${streak} ${streak === 1 ? 'dia' : 'dias'}</span>` : ''}
+                                        <span class="text-xs text-gray-400">${completionRate}% nos últimos 30 dias</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${completionRate}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            view.innerHTML = html;
+        }
+
+        function toggleHabitToday(habitText, completed) {
+            // Update in weekData
+            Object.entries(weekData).forEach(([day, periods]) => {
+                Object.entries(periods).forEach(([period, tasks]) => {
+                    tasks.forEach(task => {
+                        if (task.isHabit && task.text === habitText) {
+                            task.completed = completed;
+                        }
+                    });
+                });
+            });
+            
+            markHabitCompleted(habitText, completed);
+            saveToLocalStorage();
+            renderHabitsView();
+        }
+
         function createTaskElement(day, period, task, index) {
             const taskDiv = document.createElement('div');
-            taskDiv.className = 'task-item flex items-start gap-2 mb-2';
+            taskDiv.className = `task-item flex items-start gap-2 mb-2 ${task.isHabit ? 'is-habit' : ''}`;
             taskDiv.draggable = true;
             taskDiv.dataset.day = day;
             taskDiv.dataset.period = period;
@@ -435,6 +657,11 @@
                 e.stopPropagation();
                 taskLabel.classList.toggle('task-completed');
                 task.completed = checkbox.checked;
+                
+                if (task.isHabit) {
+                    markHabitCompleted(task.text, task.completed);
+                }
+                
                 saveToLocalStorage();
             });
             
@@ -493,7 +720,8 @@
                     weekData[day][period].push({
                         text: text,
                         completed: false,
-                        color: 'default'
+                        color: 'default',
+                        isHabit: false
                     });
                     saveToLocalStorage();
                 }
@@ -593,6 +821,11 @@
                     
                     if (action === 'color') {
                         showColorMenu(e, task, label);
+                    } else if (action === 'habit') {
+                        task.isHabit = !task.isHabit;
+                        saveToLocalStorage();
+                        toolbar.classList.remove('show');
+                        renderView();
                     } else if (action === 'delete') {
                         deleteTask(toolbar.dataset.taskDay, toolbar.dataset.taskPeriod, toolbar.dataset.taskIndex);
                         toolbar.classList.remove('show');
@@ -788,7 +1021,7 @@
                 
                 tasks.forEach((task, index) => {
                     const taskDiv = createTaskElement(today, period, task, index);
-                    taskDiv.className = 'task-item flex items-start gap-3 mb-3 p-3 bg-[#1a1a1a] rounded-lg hover:bg-[#252525] transition-all';
+                    taskDiv.className = `task-item flex items-start gap-3 mb-3 p-3 bg-[#1a1a1a] rounded-lg hover:bg-[#252525] transition-all ${task.isHabit ? 'is-habit' : ''}`;
                     periodDiv.appendChild(taskDiv);
                 });
                 
@@ -802,10 +1035,22 @@
         }
 
         function renderView() {
-            if (currentView === 'week') {
-                renderWeek();
+            const weekGrid = document.getElementById('weekGrid');
+            const habitsView = document.getElementById('habitsView');
+            
+            if (currentView === 'habits') {
+                weekGrid.classList.add('hidden');
+                habitsView.classList.remove('hidden');
+                renderHabitsView();
             } else {
-                renderToday();
+                weekGrid.classList.remove('hidden');
+                habitsView.classList.add('hidden');
+                
+                if (currentView === 'week') {
+                    renderWeek();
+                } else {
+                    renderToday();
+                }
             }
         }
 
@@ -814,15 +1059,21 @@
             
             const btnToday = document.getElementById('btnToday');
             const btnWeek = document.getElementById('btnWeek');
+            const btnHabits = document.getElementById('btnHabits');
             const viewTitle = document.getElementById('viewTitle');
+            
+            btnToday.className = 'px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white';
+            btnWeek.className = 'px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white';
+            btnHabits.className = 'px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white';
             
             if (view === 'today') {
                 btnToday.className = 'px-6 py-2 rounded-md text-sm font-medium transition-all bg-[#2a2a2a] text-white';
-                btnWeek.className = 'px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white';
                 viewTitle.textContent = 'Hoje';
+            } else if (view === 'habits') {
+                btnHabits.className = 'px-6 py-2 rounded-md text-sm font-medium transition-all bg-[#2a2a2a] text-white';
+                viewTitle.textContent = 'Hábitos';
             } else {
                 btnWeek.className = 'px-6 py-2 rounded-md text-sm font-medium transition-all bg-[#2a2a2a] text-white';
-                btnToday.className = 'px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white';
                 viewTitle.textContent = 'Week';
             }
             
@@ -845,13 +1096,11 @@
             }
         }
 
-        // Floating add button
         document.getElementById('floatingAddBtn').addEventListener('click', () => {
             const menu = document.getElementById('quickAddMenu');
             menu.classList.toggle('show');
         });
 
-        // Quick add menu options
         document.querySelectorAll('.quick-add-option').forEach(option => {
             option.addEventListener('click', () => {
                 const type = option.dataset.type;
@@ -861,7 +1110,6 @@
                 if (type === 'routine') {
                     addDailyRoutine(today);
                 } else if (type === 'custom') {
-                    // Focus on first add button
                     setTimeout(() => {
                         const firstAddBtn = document.querySelector('.add-task-btn');
                         if (firstAddBtn) firstAddBtn.click();
@@ -884,6 +1132,7 @@
 
         document.getElementById('btnToday').addEventListener('click', () => setView('today'));
         document.getElementById('btnWeek').addEventListener('click', () => setView('week'));
+        document.getElementById('btnHabits').addEventListener('click', () => setView('habits'));
 
         loadFromLocalStorage();
         renderWeek();
