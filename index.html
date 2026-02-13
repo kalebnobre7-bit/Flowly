@@ -34,8 +34,8 @@
         .auth-btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; }
         .auth-btn-primary { background: linear-gradient(135deg, #3b82f6, #60a5fa); color: white; margin-bottom: 8px; }
         .auth-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
-        .auth-btn-secondary { background: transparent; color: #888; border: 1px solid #333; }
-        .auth-btn-secondary:hover { background: #2a2a2a; color: #e5e5e5; }
+        .auth-btn-secondary { background: transparent; color: #aaa; border: 1px solid #444; }
+        .auth-btn-secondary:hover { background: #2a2a2a; color: #fff; border-color: #555; }
         .user-menu { position: relative; }
         .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 8px; min-width: 200px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
         .user-dropdown.show { display: block; }
@@ -217,7 +217,8 @@
                 <input type="email" id="loginEmail" class="auth-input" placeholder="Email">
                 <input type="password" id="loginPassword" class="auth-input" placeholder="Senha">
                 <button id="btnLogin" class="auth-btn auth-btn-primary">Entrar</button>
-                <button id="btnShowSignup" class="auth-btn auth-btn-secondary">Criar conta</button>
+                <div style="text-align: center; margin: 12px 0; color: #666; font-size: 12px;">ou</div>
+                <button id="btnShowSignup" class="auth-btn auth-btn-secondary">Criar nova conta</button>
             </div>
             <div id="authSignup" style="display:none;">
                 <input type="email" id="signupEmail" class="auth-input" placeholder="Email">
