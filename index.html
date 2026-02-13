@@ -27,6 +27,14 @@
         .task-item:active { cursor: grabbing; opacity: 0.5; }
         .task-item.dragging { opacity: 0.3; }
         .task-item.is-habit::before { content: '🔄'; position: absolute; left: -20px; font-size: 12px; }
+        .drop-indicator { height: 3px; background: linear-gradient(90deg, transparent, #3b82f6, transparent); margin: 2px 0; opacity: 0; transition: opacity 0.15s; border-radius: 2px; }
+        .drop-indicator.show { opacity: 1; box-shadow: 0 0 8px rgba(59, 130, 246, 0.6); }
+        .empty-line { min-height: 20px; border-radius: 4px; transition: all 0.2s; position: relative; margin: 2px 0; }
+        .empty-line:hover { background: rgba(59, 130, 246, 0.1); }
+        .empty-line-actions { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; display: flex; gap: 4px; }
+        .empty-line:hover .empty-line-actions { opacity: 1; }
+        .empty-line-btn { width: 16px; height: 16px; border-radius: 3px; background: #2a2a2a; border: 1px solid #404040; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #888; transition: all 0.15s; }
+        .empty-line-btn:hover { background: #333; color: #fff; border-color: #555; }
         .task-label { user-select: none; }
         .task-label[contenteditable="true"] { user-select: text; outline: 2px solid #3b82f6; outline-offset: 2px; border-radius: 3px; padding: 2px 4px; margin: -2px -4px; }
         .color-menu, .edit-toolbar { position: absolute; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 8px; display: none; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
@@ -55,6 +63,20 @@
         .big-number { font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, #3b82f6, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .trend-up { color: #10b981; }
         .trend-down { color: #ef4444; }
+        .backup-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 9999; }
+        .backup-modal.show { display: flex; }
+        .backup-content { background: #1a1a1a; border-radius: 16px; padding: 32px; max-width: 500px; width: 90%; border: 1px solid #333; }
+        .backup-btn { padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; }
+        .backup-btn-primary { background: linear-gradient(135deg, #3b82f6, #60a5fa); color: white; }
+        .backup-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
+        .backup-btn-danger { background: linear-gradient(135deg, #ef4444, #f87171); color: white; }
+        .backup-btn-danger:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239,68,68,0.4); }
+        .backup-btn-secondary { background: #2a2a2a; color: #e5e5e5; }
+        .backup-btn-secondary:hover { background: #333; }
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .file-input-wrapper input[type=file] { position: absolute; left: -9999px; }
+        .file-input-label { display: block; padding: 12px 24px; background: #2a2a2a; color: #e5e5e5; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px dashed #404040; }
+        .file-input-label:hover { background: #333; border-color: #555; }
         .color-default { color: #e5e5e5; } .color-gray { color: #9b9a97; } .color-brown { color: #937264; } .color-orange { color: #d9730d; } .color-yellow { color: #cb912f; } .color-green { color: #448361; } .color-blue { color: #337ea9; } .color-purple { color: #9065b0; } .color-pink { color: #c14c8a; } .color-red { color: #d44c47; }
     </style>
 </head>
@@ -66,11 +88,14 @@
                     <img src="logo_flowly.png" alt="Flowly" class="h-10">
                     <h1 class="text-4xl font-bold" id="viewTitle">Week</h1>
                 </div>
-                <div class="flex gap-2 bg-[#1a1a1a] p-1 rounded-lg">
-                    <button id="btnToday" class="px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">Hoje</button>
-                    <button id="btnWeek" class="px-6 py-2 rounded-md text-sm font-medium transition-all bg-[#2a2a2a] text-white">Semana</button>
-                    <button id="btnHabits" class="px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">Hábitos</button>
-                    <button id="btnAnalytics" class="px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">Analytics</button>
+                <div class="flex items-center gap-4">
+                    <div class="flex gap-2 bg-[#1a1a1a] p-1 rounded-lg">
+                        <button id="btnToday" class="px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">Hoje</button>
+                        <button id="btnWeek" class="px-6 py-2 rounded-md text-sm font-medium transition-all bg-[#2a2a2a] text-white">Semana</button>
+                        <button id="btnHabits" class="px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">Hábitos</button>
+                        <button id="btnAnalytics" class="px-6 py-2 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">Analytics</button>
+                    </div>
+                    <button id="btnBackup" class="px-4 py-2 rounded-md text-sm font-medium transition-all bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#2a2a2a] border border-[#333]">💾 Backup</button>
                 </div>
             </div>
             <p class="text-gray-400 text-lg">Só existe o hoje, foco no que traz grana.</p>
@@ -84,11 +109,56 @@
     <div id="floatingAddBtn" class="floating-add-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
     <div id="quickAddMenu" class="quick-add-menu"><div class="quick-add-option" data-type="routine">📋 Adicionar rotina diária</div><div class="quick-add-option" data-type="custom">✏️ Nova tarefa customizada</div></div>
     <div id="colorMenu" class="color-menu"><div class="color-swatch" style="background: #e5e5e5;" data-color="default"></div><div class="color-swatch" style="background: #9b9a97;" data-color="gray"></div><div class="color-swatch" style="background: #937264;" data-color="brown"></div><div class="color-swatch" style="background: #d9730d;" data-color="orange"></div><div class="color-swatch" style="background: #cb912f;" data-color="yellow"></div><div class="color-swatch" style="background: #448361;" data-color="green"></div><div class="color-swatch" style="background: #337ea9;" data-color="blue"></div><div class="color-swatch" style="background: #9065b0;" data-color="purple"></div><div class="color-swatch" style="background: #c14c8a;" data-color="pink"></div><div class="color-swatch" style="background: #d44c47;" data-color="red"></div></div>
-    <div id="editToolbar" class="edit-toolbar"><button class="toolbar-btn" data-action="color">🎨</button><button class="toolbar-btn" data-action="habit">🔄</button><div style="width: 1px; background: #333; margin: 0 2px;"></div><button class="toolbar-btn" data-action="delete">🗑️</button></div>
+    <div id="editToolbar" class="edit-toolbar">
+        <button class="toolbar-btn" data-action="bold" title="Negrito (Ctrl+B)"><strong>B</strong></button>
+        <button class="toolbar-btn" data-action="italic" title="Itálico (Ctrl+I)"><em>I</em></button>
+        <button class="toolbar-btn" data-action="strikethrough" title="Riscado"><s>S</s></button>
+        <div style="width: 1px; background: #333; margin: 0 2px;"></div>
+        <button class="toolbar-btn" data-action="color">🎨</button>
+        <button class="toolbar-btn" data-action="habit">🔄</button>
+        <div style="width: 1px; background: #333; margin: 0 2px;"></div>
+        <button class="toolbar-btn" data-action="delete">🗑️</button>
+    </div>
+    
+    <!-- Backup Modal -->
+    <div id="backupModal" class="backup-modal">
+        <div class="backup-content">
+            <h2 class="text-2xl font-bold mb-6">💾 Backup & Dados</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <button id="btnExport" class="backup-btn backup-btn-primary w-full mb-2">
+                        📥 Exportar Dados (JSON)
+                    </button>
+                    <p class="text-xs text-gray-400">Baixa todas as suas tasks e hábitos</p>
+                </div>
+                
+                <div>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="fileImport" accept=".json">
+                        <label for="fileImport" class="file-input-label">
+                            📤 Importar Backup
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">Restaura dados de um arquivo JSON</p>
+                </div>
+                
+                <div class="border-t border-[#333] pt-4 mt-4">
+                    <button id="btnClearAll" class="backup-btn backup-btn-danger w-full mb-2">
+                        🗑️ Limpar Todos os Dados
+                    </button>
+                    <p class="text-xs text-gray-400">Remove tudo e começa do zero</p>
+                </div>
+            </div>
+            
+            <button id="btnCloseBackup" class="backup-btn backup-btn-secondary w-full mt-6">Fechar</button>
+        </div>
+    </div>
+    
     <script>
 let currentView='week',draggedTask=null,currentEditingTask=null;
 const dailyRoutine=[{text:"Oração e Salmo",completed:false,color:"default",isHabit:false},{text:"Venvanse",completed:false,color:"default",isHabit:false},{text:"Ler metas e mantra; celular na gaveta",completed:false,color:"default",isHabit:false}];
-const weekData={"Segunda":{"Manhã (8h-12h)":[{text:"Oração e Salmo",completed:true,color:"default",isHabit:true},{text:"Venva + Cetoconazol",completed:true,color:"default",isHabit:false},{text:"Ler metas e mantra; celular na gaveta",completed:true,color:"default",isHabit:true},{text:"Finalizar com leo",completed:true,color:"default",isHabit:false},{text:"cobrar leo e bless",completed:true,color:"default",isHabit:false}]},"Terça":{"Manhã (8h-12h)":[{text:"Oração e Salmo",completed:true,color:"default",isHabit:true},{text:"Venva + Cetoconazol",completed:true,color:"default",isHabit:false},{text:"Ler metas e mantra; celular na gaveta",completed:true,color:"default",isHabit:true},{text:"Deixar destaques na mesma cor",completed:true,color:"default",isHabit:false},{text:"Prospecção no Threads",completed:true,color:"default",isHabit:false},{text:"Follow-up de propostas enviadas (15min)",completed:true,color:"default",isHabit:false},{text:"Link Pagamento Léo + Bless",completed:true,color:"default",isHabit:false}],"Tarde (14h-18h)":[{text:"Call Semanal com Fred (14h30)",completed:true,color:"default",isHabit:false},{text:"[QCS] Página de Vendas (2h)",completed:true,color:"default",isHabit:false}]},"Quarta":{"Manhã (8h-12h)":[{text:"Oração e Salmo",completed:true,color:"default",isHabit:true},{text:"Ler metas e mantra",completed:true,color:"default",isHabit:true},{text:"Cobrar a cara",completed:true,color:"default",isHabit:false},{text:"2 posts no Threads + Prospecção",completed:true,color:"default",isHabit:false}],"Tarde (14h-18h)":[{text:"Postar +1 Avaliação no Storie (10min)",completed:false,color:"default",isHabit:false},{text:"Copiar a Jéssica jessicacostaft",completed:false,color:"default",isHabit:false},{text:"Story + Frase",completed:false,color:"default",isHabit:false}]},"Quinta":{"Manhã (8h-12h)":[{text:"Oração e Salmo",completed:true,color:"default",isHabit:true},{text:"Venvanse",completed:true,color:"default",isHabit:true},{text:"Ler metas e mantra",completed:true,color:"default",isHabit:true},{text:"Responder DMs/emails clientes (10min)",completed:true,color:"default",isHabit:false},{text:"Videozão pro Raul",completed:true,color:"default",isHabit:false},{text:"[QCS] Página de Obrigado (1h)",completed:true,color:"default",isHabit:false},{text:"Postar página de obrigado e do ebook",completed:true,color:"default",isHabit:false}],"Tarde (14h-18h)":[{text:"Portfólio Sabor Energético (2h)",completed:false,color:"default",isHabit:false}],"Noite":[{text:"Corridinha ou 25 Flexões",completed:false,color:"default",isHabit:true},{text:"Atualizar links lizdesign.com.br (30min)",completed:false,color:"default",isHabit:false},{text:"[Mawi] Finalizar ajustes do site (1h)",completed:false,color:"default",isHabit:false},{text:"SITE PRO WILL MEIO URGENTE",completed:false,color:"red",isHabit:false}]},"Sexta":{"Manhã (8h-12h)":[{text:"Oração e Salmo",completed:false,color:"default",isHabit:true},{text:"Venva, Ler metas e mantra",completed:false,color:"default",isHabit:true},{text:"SEGUIR PLANO DA IA",completed:false,color:"default",isHabit:false}],"Tarde (14h-18h)":[{text:"postar status no Zap",completed:false,color:"default",isHabit:false},{text:"postar Carrosselzinho",completed:false,color:"default",isHabit:false},{text:"Atualizar seção de portfólio no site com trabalhos",completed:false,color:"default",isHabit:false},{text:"Perguntar em SUBS de DEV sobre app (30min)",completed:false,color:"default",isHabit:false}],"Noite":[{text:"[BATCH] Posts pra 7 dias insta Viviane (2h)",completed:false,color:"default",isHabit:false},{text:"Ler Livro",completed:false,color:"default",isHabit:true}]},"Sábado":{"Manhã (8h-12h)":[{text:"Oração e Salmo",completed:false,color:"default",isHabit:true},{text:"Buscar verdola",completed:false,color:"default",isHabit:false},{text:"Postar Storie (10min)",completed:false,color:"default",isHabit:false},{text:"Networking: msg pra 3 pessoas (30min)",completed:false,color:"default",isHabit:false},{text:"Fred e Kaleb Reunião Presencial",completed:false,color:"pink",isHabit:false}],"Tarde (14h-18h)":[{text:"Prospectar no Threads (30min)",completed:false,color:"default",isHabit:false},{text:"Revisar finanças + organizar pagamentos (1h)",completed:false,color:"default",isHabit:false}],"Noite":[{text:"Pensar: A QCS tem um funil, e a minha operação? (1h)",completed:false,color:"default",isHabit:false},{text:"Post insta Viviane",completed:false,color:"default",isHabit:false},{text:"Ler Livro",completed:false,color:"default",isHabit:true}]},"Domingo":{"Manhã (8h-12h)":[{text:"Oração e Salmo",completed:false,color:"default",isHabit:true},{text:"Ler metas e mantra",completed:false,color:"default",isHabit:true},{text:"Backup semanal arquivos (15min)",completed:false,color:"default",isHabit:true}],"Tarde (14h-18h)":[{text:"Post insta Viviane",completed:false,color:"default",isHabit:false},{text:"Ritual semanal: Revisão + Planejar próxima (1h)",completed:false,color:"default",isHabit:true}],"Noite":[{text:"Ler Livro",completed:false,color:"default",isHabit:true},{text:"Comprar perfil pra tráfego (15min)",completed:false,color:"default",isHabit:false}]}};
+const weekData={"Segunda":{},"Terça":{},"Quarta":{},"Quinta":{},"Sexta":{},"Sábado":{},"Domingo":{}};
 let habitsHistory=JSON.parse(localStorage.getItem('habitsHistory')||'{}');
 
 function getAllHabits(){const habits=[],habitMap=new Map();Object.entries(weekData).forEach(([day,periods])=>{Object.entries(periods).forEach(([period,tasks])=>{tasks.forEach(task=>{if(task.isHabit&&!habitMap.has(task.text)){habitMap.set(task.text,{text:task.text,color:task.color,completedToday:task.completed})}})})});return Array.from(habitMap.values())}
@@ -105,7 +175,7 @@ function renderHabitsView(){const view=document.getElementById('habitsView'),hab
 
 function toggleHabitToday(habitText,completed){Object.entries(weekData).forEach(([day,periods])=>{Object.entries(periods).forEach(([period,tasks])=>{tasks.forEach(task=>{if(task.isHabit&&task.text===habitText){task.completed=completed}})})});markHabitCompleted(habitText,completed);saveToLocalStorage();renderHabitsView()}
 
-function createTaskElement(day,period,task,index){const taskDiv=document.createElement('div');taskDiv.className=`task-item flex items-start gap-2 mb-2 ${task.isHabit?'is-habit':''}`;taskDiv.draggable=true;taskDiv.dataset.day=day;taskDiv.dataset.period=period;taskDiv.dataset.index=index;const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.className='checkbox-custom mt-1';checkbox.checked=task.completed;checkbox.addEventListener('change',(e)=>{e.stopPropagation();taskLabel.classList.toggle('task-completed');task.completed=checkbox.checked;if(task.isHabit){markHabitCompleted(task.text,task.completed)}saveToLocalStorage()});const taskLabel=document.createElement('span');taskLabel.className=`task-label text-sm cursor-pointer color-${task.color} ${task.completed?'task-completed':''}`;taskLabel.textContent=task.text;taskLabel.addEventListener('dblclick',(e)=>{e.stopPropagation();startEditing(taskLabel,task,taskDiv)});taskLabel.addEventListener('contextmenu',(e)=>{e.preventDefault();e.stopPropagation();showEditToolbar(e,task,taskLabel)});taskDiv.addEventListener('dragstart',handleDragStart);taskDiv.addEventListener('dragend',handleDragEnd);taskDiv.appendChild(checkbox);taskDiv.appendChild(taskLabel);return taskDiv}
+function createTaskElement(day,period,task,index){const wrapper=document.createElement('div');const dropIndicator=document.createElement('div');dropIndicator.className='drop-indicator';dropIndicator.dataset.day=day;dropIndicator.dataset.period=period;dropIndicator.dataset.insertIndex=index;dropIndicator.addEventListener('dragover',(e)=>{e.preventDefault();dropIndicator.classList.add('show')});dropIndicator.addEventListener('dragleave',()=>{dropIndicator.classList.remove('show')});dropIndicator.addEventListener('drop',(e)=>{e.preventDefault();e.stopPropagation();dropIndicator.classList.remove('show');if(!draggedTask)return;if(draggedTask.day===day&&draggedTask.period===period&&draggedTask.index===index){return}const originalTasks=weekData[draggedTask.day][draggedTask.period];const taskToMove=originalTasks.splice(draggedTask.index,1)[0];if(!weekData[day][period]){weekData[day][period]=[]}let insertIdx=parseInt(dropIndicator.dataset.insertIndex);if(draggedTask.day===day&&draggedTask.period===period&&draggedTask.index<insertIdx){insertIdx--}weekData[day][period].splice(insertIdx,0,taskToMove);saveToLocalStorage();renderView()});const taskDiv=document.createElement('div');taskDiv.className=`task-item flex items-start gap-2 mb-2 ${task.isHabit?'is-habit':''}`;taskDiv.draggable=true;taskDiv.dataset.day=day;taskDiv.dataset.period=period;taskDiv.dataset.index=index;const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.className='checkbox-custom mt-1';checkbox.checked=task.completed;checkbox.addEventListener('change',(e)=>{e.stopPropagation();taskLabel.classList.toggle('task-completed');task.completed=checkbox.checked;if(task.isHabit){markHabitCompleted(task.text,task.completed)}saveToLocalStorage()});const taskLabel=document.createElement('span');taskLabel.className=`task-label text-sm cursor-pointer color-${task.color} ${task.completed?'task-completed':''}`;taskLabel.innerHTML=task.text;taskLabel.addEventListener('dblclick',(e)=>{e.stopPropagation();startEditing(taskLabel,task,taskDiv)});taskLabel.addEventListener('contextmenu',(e)=>{e.preventDefault();e.stopPropagation();showEditToolbar(e,task,taskLabel)});taskLabel.addEventListener('keydown',(e)=>{if(e.ctrlKey||e.metaKey){if(e.key==='b'){e.preventDefault();document.execCommand('bold',false,null)}else if(e.key==='i'){e.preventDefault();document.execCommand('italic',false,null)}}});taskDiv.addEventListener('dragstart',handleDragStart);taskDiv.addEventListener('dragend',handleDragEnd);taskDiv.appendChild(checkbox);taskDiv.appendChild(taskLabel);wrapper.appendChild(dropIndicator);wrapper.appendChild(taskDiv);return wrapper}
 
 function createAddTaskButton(day,period){const btn=document.createElement('div');btn.className='add-task-btn';btn.innerHTML='<span style="font-size: 16px;">+</span> Adicionar tarefa';btn.addEventListener('click',(e)=>{e.stopPropagation();showTaskInput(btn,day,period)});return btn}
 
@@ -113,11 +183,11 @@ function showTaskInput(button,day,period){const input=document.createElement('in
 
 function addDailyRoutine(day){const morningPeriod="Manhã (8h-12h)";if(!weekData[day][morningPeriod]){weekData[day][morningPeriod]=[]}dailyRoutine.forEach(task=>{weekData[day][morningPeriod].push({...task})});saveToLocalStorage();renderView()}
 
-function startEditing(label,task,taskDiv){if(currentEditingTask){finishEditing()}currentEditingTask={label,task,originalText:task.text};label.contentEditable=true;label.focus();const range=document.createRange();range.selectNodeContents(label);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);taskDiv.draggable=false;label.addEventListener('blur',finishEditing);label.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();finishEditing()}else if(e.key==='Escape'){task.text=currentEditingTask.originalText;label.textContent=task.text;finishEditing()}})}
+function startEditing(label,task,taskDiv){if(currentEditingTask){finishEditing()}currentEditingTask={label,task,originalText:task.text,taskDiv};label.contentEditable=true;label.focus();const range=document.createRange();range.selectNodeContents(label);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);taskDiv.draggable=false;const handleKeyDown=(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();finishEditing();const day=taskDiv.dataset.day,period=taskDiv.dataset.period,index=parseInt(taskDiv.dataset.index);setTimeout(()=>{if(!weekData[day][period]){weekData[day][period]=[]}weekData[day][period].splice(index+1,0,{text:'',completed:false,color:'default',isHabit:false});saveToLocalStorage();renderView();setTimeout(()=>{const allTasks=document.querySelectorAll('.task-item');const nextTask=allTasks[Array.from(allTasks).findIndex(t=>t===taskDiv)+1];if(nextTask){const nextLabel=nextTask.querySelector('.task-label');if(nextLabel){startEditing(nextLabel,weekData[day][period][index+1],nextTask)}}},50)},10)}else if(e.key==='Escape'){task.text=currentEditingTask.originalText;label.innerHTML=task.text;finishEditing()}else if((e.key==='Backspace'||e.key==='Delete')&&label.textContent.trim()===''){e.preventDefault();const day=taskDiv.dataset.day,period=taskDiv.dataset.period,index=parseInt(taskDiv.dataset.index);deleteTask(day,period,index);finishEditing();renderView()}else if(e.key==='Tab'){e.preventDefault();const currentText=label.textContent;label.textContent='    '+currentText;const range=document.createRange();range.selectNodeContents(label);range.collapse(false);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range)}};label.addEventListener('keydown',handleKeyDown);label.addEventListener('blur',finishEditing)}
 
-function finishEditing(){if(!currentEditingTask)return;const{label,task}=currentEditingTask;label.contentEditable=false;task.text=label.textContent.trim();const taskDiv=label.closest('.task-item');if(taskDiv)taskDiv.draggable=true;saveToLocalStorage();currentEditingTask=null}
+function finishEditing(){if(!currentEditingTask)return;const{label,task}=currentEditingTask;label.contentEditable=false;task.text=label.innerHTML.trim();const taskDiv=label.closest('.task-item');if(taskDiv)taskDiv.draggable=true;saveToLocalStorage();currentEditingTask=null}
 
-function showEditToolbar(e,task,label){const toolbar=document.getElementById('editToolbar'),colorMenu=document.getElementById('colorMenu');colorMenu.classList.remove('show');toolbar.style.left=e.pageX+'px';toolbar.style.top=e.pageY+'px';toolbar.classList.add('show');toolbar.dataset.taskDay=label.closest('.task-item').dataset.day;toolbar.dataset.taskPeriod=label.closest('.task-item').dataset.period;toolbar.dataset.taskIndex=label.closest('.task-item').dataset.index;const buttons=toolbar.querySelectorAll('.toolbar-btn');buttons.forEach(btn=>{btn.onclick=(e)=>{e.stopPropagation();const action=btn.dataset.action;if(action==='color'){showColorMenu(e,task,label)}else if(action==='habit'){task.isHabit=!task.isHabit;saveToLocalStorage();toolbar.classList.remove('show');renderView()}else if(action==='delete'){deleteTask(toolbar.dataset.taskDay,toolbar.dataset.taskPeriod,toolbar.dataset.taskIndex);toolbar.classList.remove('show');renderView()}}})}
+function showEditToolbar(e,task,label){const toolbar=document.getElementById('editToolbar'),colorMenu=document.getElementById('colorMenu');colorMenu.classList.remove('show');toolbar.style.left=e.pageX+'px';toolbar.style.top=e.pageY+'px';toolbar.classList.add('show');toolbar.dataset.taskDay=label.closest('.task-item').dataset.day;toolbar.dataset.taskPeriod=label.closest('.task-item').dataset.period;toolbar.dataset.taskIndex=label.closest('.task-item').dataset.index;const buttons=toolbar.querySelectorAll('.toolbar-btn');buttons.forEach(btn=>{btn.onclick=(e)=>{e.stopPropagation();const action=btn.dataset.action;if(action==='bold'){document.execCommand('bold',false,null);label.focus()}else if(action==='italic'){document.execCommand('italic',false,null);label.focus()}else if(action==='strikethrough'){document.execCommand('strikeThrough',false,null);label.focus()}else if(action==='color'){showColorMenu(e,task,label)}else if(action==='habit'){task.isHabit=!task.isHabit;saveToLocalStorage();toolbar.classList.remove('show');renderView()}else if(action==='delete'){deleteTask(toolbar.dataset.taskDay,toolbar.dataset.taskPeriod,toolbar.dataset.taskIndex);toolbar.classList.remove('show');renderView()}}})}
 
 function showColorMenu(e,task,label){const colorMenu=document.getElementById('colorMenu'),toolbar=document.getElementById('editToolbar');const rect=toolbar.getBoundingClientRect();colorMenu.style.left=rect.left+'px';colorMenu.style.top=(rect.bottom+5)+'px';colorMenu.classList.add('show');const swatches=colorMenu.querySelectorAll('.color-swatch');swatches.forEach(swatch=>{swatch.onclick=()=>{const color=swatch.dataset.color;task.color=color;label.className=label.className.replace(/color-\w+/,`color-${color}`);saveToLocalStorage();colorMenu.classList.remove('show');toolbar.classList.remove('show')}})}
 
@@ -133,9 +203,9 @@ function handleDragEnter(e){this.classList.add('drag-over')}
 
 function handleDragLeave(e){this.classList.remove('drag-over')}
 
-function handleDrop(e){if(e.stopPropagation){e.stopPropagation()}this.classList.remove('drag-over');if(!draggedTask)return;const targetDay=this.dataset.day,targetPeriod=this.dataset.period||Object.keys(weekData[targetDay])[0];const originalTasks=weekData[draggedTask.day][draggedTask.period];originalTasks.splice(draggedTask.index,1);if(!weekData[targetDay][targetPeriod]){weekData[targetDay][targetPeriod]=[]}weekData[targetDay][targetPeriod].push(draggedTask.task);saveToLocalStorage();renderView();draggedTask=null;return false}
+function handleDrop(e){if(e.stopPropagation){e.stopPropagation()}this.classList.remove('drag-over');if(!draggedTask)return;const targetDay=this.dataset.day,targetPeriod=this.dataset.period||Object.keys(weekData[targetDay])[0];if(draggedTask.day===targetDay&&draggedTask.period===targetPeriod){draggedTask=null;return false}const originalTasks=weekData[draggedTask.day][draggedTask.period];originalTasks.splice(draggedTask.index,1);if(!weekData[targetDay][targetPeriod]){weekData[targetDay][targetPeriod]=[]}weekData[targetDay][targetPeriod].push(draggedTask.task);saveToLocalStorage();renderView();draggedTask=null;return false}
 
-function renderWeek(){const grid=document.getElementById('weekGrid');grid.innerHTML='';grid.className='grid grid-cols-7 gap-0';Object.entries(weekData).forEach(([day,periods])=>{const dayColumn=document.createElement('div');dayColumn.className='day-column p-4 min-h-[600px]';dayColumn.dataset.day=day;dayColumn.addEventListener('dragover',handleDragOver);dayColumn.addEventListener('dragenter',handleDragEnter);dayColumn.addEventListener('dragleave',handleDragLeave);dayColumn.addEventListener('drop',handleDrop);const dayHeader=document.createElement('h2');dayHeader.className='text-xl font-bold mb-4';dayHeader.textContent=day;dayColumn.appendChild(dayHeader);Object.entries(periods).forEach(([period,tasks])=>{const periodDiv=document.createElement('div');periodDiv.className='period-section mb-6';periodDiv.dataset.period=period;const periodLabel=document.createElement('div');periodLabel.className='period-badge';periodLabel.textContent=period;periodDiv.appendChild(periodLabel);tasks.forEach((task,index)=>{const taskDiv=createTaskElement(day,period,task,index);periodDiv.appendChild(taskDiv)});const addBtn=createAddTaskButton(day,period);periodDiv.appendChild(addBtn);dayColumn.appendChild(periodDiv)});grid.appendChild(dayColumn)})}
+function renderWeek(){const grid=document.getElementById('weekGrid');grid.innerHTML='';grid.className='grid grid-cols-7 gap-0';Object.entries(weekData).forEach(([day,periods])=>{const dayColumn=document.createElement('div');dayColumn.className='day-column p-4 min-h-[600px]';dayColumn.dataset.day=day;dayColumn.addEventListener('dragover',handleDragOver);dayColumn.addEventListener('dragenter',handleDragEnter);dayColumn.addEventListener('dragleave',handleDragLeave);dayColumn.addEventListener('drop',handleDrop);const dayHeader=document.createElement('h2');dayHeader.className='text-xl font-bold mb-4';dayHeader.textContent=day;dayColumn.appendChild(dayHeader);Object.entries(periods).forEach(([period,tasks])=>{const periodDiv=document.createElement('div');periodDiv.className='period-section mb-6';periodDiv.dataset.period=period;const periodLabel=document.createElement('div');periodLabel.className='period-badge';periodLabel.textContent=period;periodDiv.appendChild(periodLabel);const tasksContainer=document.createElement('div');tasks.forEach((task,index)=>{const taskWrapper=createTaskElement(day,period,task,index);tasksContainer.appendChild(taskWrapper)});const finalDropIndicator=document.createElement('div');finalDropIndicator.className='drop-indicator';finalDropIndicator.dataset.day=day;finalDropIndicator.dataset.period=period;finalDropIndicator.dataset.insertIndex=tasks.length;finalDropIndicator.addEventListener('dragover',(e)=>{e.preventDefault();finalDropIndicator.classList.add('show')});finalDropIndicator.addEventListener('dragleave',()=>{finalDropIndicator.classList.remove('show')});finalDropIndicator.addEventListener('drop',(e)=>{e.preventDefault();e.stopPropagation();finalDropIndicator.classList.remove('show');if(!draggedTask)return;const targetDay=finalDropIndicator.dataset.day;const targetPeriod=finalDropIndicator.dataset.period;const insertIdx=parseInt(finalDropIndicator.dataset.insertIndex);if(draggedTask.day===targetDay&&draggedTask.period===targetPeriod&&draggedTask.index===insertIdx-1){return}const originalTasks=weekData[draggedTask.day][draggedTask.period];const taskToMove=originalTasks.splice(draggedTask.index,1)[0];if(!weekData[targetDay][targetPeriod]){weekData[targetDay][targetPeriod]=[]}let finalInsertIdx=insertIdx;if(draggedTask.day===targetDay&&draggedTask.period===targetPeriod&&draggedTask.index<insertIdx){finalInsertIdx--}weekData[targetDay][targetPeriod].splice(finalInsertIdx,0,taskToMove);saveToLocalStorage();renderView()});tasksContainer.appendChild(finalDropIndicator);periodDiv.appendChild(tasksContainer);const addBtn=createAddTaskButton(day,period);periodDiv.appendChild(addBtn);dayColumn.appendChild(periodDiv)});grid.appendChild(dayColumn)})}
 
 function renderToday(){const grid=document.getElementById('weekGrid');grid.innerHTML='';grid.className='max-w-2xl mx-auto';const days=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],today=days[new Date().getDay()],todayData=weekData[today];if(!todayData){grid.innerHTML='<p class="text-gray-400 text-center py-20">Nenhuma tarefa para hoje!</p>';return}const dayContainer=document.createElement('div');dayContainer.className='p-6';dayContainer.dataset.day=today;dayContainer.addEventListener('dragover',handleDragOver);dayContainer.addEventListener('drop',handleDrop);const dateStr=new Date().toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'}),todayHeader=document.createElement('h2');todayHeader.className='text-3xl font-bold mb-2 capitalize';todayHeader.textContent=today;dayContainer.appendChild(todayHeader);const dateSubtitle=document.createElement('p');dateSubtitle.className='text-gray-400 mb-8 capitalize';dateSubtitle.textContent=dateStr;dayContainer.appendChild(dateSubtitle);Object.entries(todayData).forEach(([period,tasks])=>{const periodDiv=document.createElement('div');periodDiv.className='period-section mb-8';periodDiv.dataset.period=period;const periodHeader=document.createElement('h3');periodHeader.className='text-xl font-semibold mb-4 text-gray-300';periodHeader.textContent=period;periodDiv.appendChild(periodHeader);tasks.forEach((task,index)=>{const taskDiv=createTaskElement(today,period,task,index);taskDiv.className=`task-item flex items-start gap-3 mb-3 p-3 bg-[#1a1a1a] rounded-lg hover:bg-[#252525] transition-all ${task.isHabit?'is-habit':''}`;periodDiv.appendChild(taskDiv)});const addBtn=createAddTaskButton(today,period);periodDiv.appendChild(addBtn);dayContainer.appendChild(periodDiv)});grid.appendChild(dayContainer)}
 
@@ -147,7 +217,71 @@ function saveToLocalStorage(){localStorage.setItem('weekData',JSON.stringify(wee
 
 function loadFromLocalStorage(){const saved=localStorage.getItem('weekData');if(saved){const savedData=JSON.parse(saved);Object.keys(weekData).forEach(day=>{if(savedData[day]){weekData[day]=savedData[day]}})}}
 
-document.getElementById('floatingAddBtn').addEventListener('click',()=>{const menu=document.getElementById('quickAddMenu');menu.classList.toggle('show')});document.querySelectorAll('.quick-add-option').forEach(option=>{option.addEventListener('click',()=>{const type=option.dataset.type,days=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],today=days[new Date().getDay()];if(type==='routine'){addDailyRoutine(today)}else if(type==='custom'){setTimeout(()=>{const firstAddBtn=document.querySelector('.add-task-btn');if(firstAddBtn)firstAddBtn.click()},100)}document.getElementById('quickAddMenu').classList.remove('show')})});document.addEventListener('click',(e)=>{if(!e.target.closest('#editToolbar')&&!e.target.closest('#colorMenu')){document.getElementById('editToolbar').classList.remove('show');document.getElementById('colorMenu').classList.remove('show')}if(!e.target.closest('#floatingAddBtn')&&!e.target.closest('#quickAddMenu')){document.getElementById('quickAddMenu').classList.remove('show')}});document.getElementById('btnToday').addEventListener('click',()=>setView('today'));document.getElementById('btnWeek').addEventListener('click',()=>setView('week'));document.getElementById('btnHabits').addEventListener('click',()=>setView('habits'));document.getElementById('btnAnalytics').addEventListener('click',()=>setView('analytics'));loadFromLocalStorage();renderWeek();
+document.getElementById('floatingAddBtn').addEventListener('click',()=>{const menu=document.getElementById('quickAddMenu');menu.classList.toggle('show')});document.querySelectorAll('.quick-add-option').forEach(option=>{option.addEventListener('click',()=>{const type=option.dataset.type,days=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],today=days[new Date().getDay()];if(type==='routine'){addDailyRoutine(today)}else if(type==='custom'){setTimeout(()=>{const firstAddBtn=document.querySelector('.add-task-btn');if(firstAddBtn)firstAddBtn.click()},100)}document.getElementById('quickAddMenu').classList.remove('show')})});document.addEventListener('click',(e)=>{if(!e.target.closest('#editToolbar')&&!e.target.closest('#colorMenu')){document.getElementById('editToolbar').classList.remove('show');document.getElementById('colorMenu').classList.remove('show')}if(!e.target.closest('#floatingAddBtn')&&!e.target.closest('#quickAddMenu')){document.getElementById('quickAddMenu').classList.remove('show')}});document.getElementById('btnToday').addEventListener('click',()=>setView('today'));document.getElementById('btnWeek').addEventListener('click',()=>setView('week'));document.getElementById('btnHabits').addEventListener('click',()=>setView('habits'));document.getElementById('btnAnalytics').addEventListener('click',()=>setView('analytics'));
+
+// Backup System
+document.getElementById('btnBackup').addEventListener('click',()=>{document.getElementById('backupModal').classList.add('show')});
+document.getElementById('btnCloseBackup').addEventListener('click',()=>{document.getElementById('backupModal').classList.remove('show')});
+document.getElementById('backupModal').addEventListener('click',(e)=>{if(e.target.id==='backupModal'){document.getElementById('backupModal').classList.remove('show')}});
+
+document.getElementById('btnExport').addEventListener('click',()=>{
+    const data={weekData:weekData,habitsHistory:habitsHistory,exportDate:new Date().toISOString(),version:'1.0'};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`flowly-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('✅ Backup exportado com sucesso!');
+});
+
+document.getElementById('fileImport').addEventListener('change',(e)=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=(event)=>{
+        try{
+            const data=JSON.parse(event.target.result);
+            if(data.weekData&&data.habitsHistory){
+                if(confirm('⚠️ Isso vai SUBSTITUIR todos os dados atuais. Tem certeza?')){
+                    Object.keys(weekData).forEach(day=>{weekData[day]=data.weekData[day]||{}});
+                    habitsHistory=data.habitsHistory;
+                    saveToLocalStorage();
+                    localStorage.setItem('habitsHistory',JSON.stringify(habitsHistory));
+                    alert('✅ Backup importado com sucesso!');
+                    document.getElementById('backupModal').classList.remove('show');
+                    renderView();
+                }
+            }else{
+                alert('❌ Arquivo inválido! Use um backup exportado pelo Flowly.');
+            }
+        }catch(err){
+            alert('❌ Erro ao ler arquivo: '+err.message);
+        }
+        e.target.value='';
+    };
+    reader.readAsText(file);
+});
+
+document.getElementById('btnClearAll').addEventListener('click',()=>{
+    if(confirm('⚠️ ATENÇÃO! Isso vai apagar TUDO permanentemente.\n\nTem certeza absoluta?')){
+        if(confirm('🚨 ÚLTIMA CONFIRMAÇÃO!\n\nVocê vai perder todas as tasks e hábitos. Continuar?')){
+            localStorage.clear();
+            habitsHistory={};
+            Object.keys(weekData).forEach(day=>{
+                weekData[day]={};
+            });
+            alert('✅ Todos os dados foram removidos!');
+            document.getElementById('backupModal').classList.remove('show');
+            renderView();
+        }
+    }
+});
+
+loadFromLocalStorage();renderWeek();
     </script>
 </body>
 </html>
