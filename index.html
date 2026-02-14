@@ -514,10 +514,7 @@
         <!-- Header -->
         <div class="nav-container">
             <div class="logo-area">
-                <div
-                    class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center font-bold text-white text-lg italic">
-                    F</div>
-                <span class="font-semibold text-xl tracking-tight">Flowly</span>
+                <img src="logo_flowly.png" alt="Flowly" class="h-8" style="filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));">
             </div>
 
             <div class="segmented-control">
@@ -611,9 +608,7 @@
     <div id="authModal" class="modal-overlay show">
         <div class="modal-content">
             <div class="text-center mb-6">
-                <div
-                    class="w-12 h-12 bg-blue-500 rounded-xl mx-auto flex items-center justify-center font-bold text-white text-2xl italic mb-4">
-                    F</div>
+                <img src="logo_flowly.png" alt="Flowly" class="h-12 mx-auto mb-4" style="filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4));">
                 <h2 class="text-2xl font-bold">Bem-vindo</h2>
             </div>
 
@@ -666,20 +661,13 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNncm9zeWp0dWpha2tiampubW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMTA0NzcsImV4cCI6MjA4NjU4NjQ3N30.MsDw0nSiLF1jHWMuVGRgTT6gNUeK328RvGBo-YcFG1A';
         const { createClient } = window.supabase;
 
-        const customStorage = {
-            getItem: (key) => localStorage.getItem(key) || sessionStorage.getItem(key),
-            setItem: (key, value) => {
-                if (localStorage.getItem('flowly_persist_session') === 'true') localStorage.setItem(key, value);
-                else sessionStorage.setItem(key, value);
-            },
-            removeItem: (key) => {
-                localStorage.removeItem(key);
-                sessionStorage.removeItem(key);
-            }
-        };
-
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
-            auth: { storage: customStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+            auth: { 
+                storage: window.localStorage,
+                autoRefreshToken: true, 
+                persistSession: true, 
+                detectSessionInUrl: true 
+            }
         });
 
         let currentUser = null;
