@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -514,7 +513,10 @@
         <!-- Header -->
         <div class="nav-container">
             <div class="logo-area">
-                <img src="logo_flowly.png" alt="Flowly" class="h-8" style="filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));">
+                <div
+                    class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center font-bold text-white text-lg italic">
+                    F</div>
+                <span class="font-semibold text-xl tracking-tight">Flowly</span>
             </div>
 
             <div class="segmented-control">
@@ -532,21 +534,13 @@
                     <button id="btnUser" class="utility-btn">👤</button>
                     <div id="userDropdown" class="context-menu"
                         style="top: 100%; right: 0; margin-top: 8px; min-width: 180px; display: none; flex-direction: column;">
-                        <div id="userEmail" class="p-3 text-xs text-gray-500 border-b border-[#333]"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6f1a1c0a1d2f0a020e0603410c0002">[email&#160;protected]</a>
+                        <div id="userEmail" class="p-3 text-xs text-gray-500 border-b border-[#333]">user@email.com
                         </div>
                         <div class="p-2 hover:bg-[#333] cursor-pointer rounded text-sm text-red-400" id="btnLogout">Sair
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Navegação de Semanas -->
-        <div id="weekNavigator" class="flex items-center justify-center gap-4 mb-6" style="display: none;">
-            <button id="btnPrevWeek" class="utility-btn" title="Semana Anterior">←</button>
-            <div class="text-sm text-gray-400" id="weekLabel">Semana Atual</div>
-            <button id="btnNextWeek" class="utility-btn" title="Próxima Semana">→</button>
-            <button id="btnCurrentWeek" class="btn-secondary text-xs px-3 py-1" style="margin-left: 12px;">Voltar pra Hoje</button>
         </div>
 
         <!-- Main Content -->
@@ -608,7 +602,9 @@
     <div id="authModal" class="modal-overlay show">
         <div class="modal-content">
             <div class="text-center mb-6">
-                <img src="logo_flowly.png" alt="Flowly" class="h-12 mx-auto mb-4" style="filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4));">
+                <div
+                    class="w-12 h-12 bg-blue-500 rounded-xl mx-auto flex items-center justify-center font-bold text-white text-2xl italic mb-4">
+                    F</div>
                 <h2 class="text-2xl font-bold">Bem-vindo</h2>
             </div>
 
@@ -655,19 +651,26 @@
         </div>
     </div>
 
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    <script>
         // --- Supabase & Storage Logic ---
         const SUPABASE_URL = 'https://cgrosyjtujakkbjjnmml.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNncm9zeWp0dWpha2tiampubW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMTA0NzcsImV4cCI6MjA4NjU4NjQ3N30.MsDw0nSiLF1jHWMuVGRgTT6gNUeK328RvGBo-YcFG1A';
         const { createClient } = window.supabase;
 
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
-            auth: { 
-                storage: window.localStorage,
-                autoRefreshToken: true, 
-                persistSession: true, 
-                detectSessionInUrl: true 
+        const customStorage = {
+            getItem: (key) => localStorage.getItem(key) || sessionStorage.getItem(key),
+            setItem: (key, value) => {
+                if (localStorage.getItem('flowly_persist_session') === 'true') localStorage.setItem(key, value);
+                else sessionStorage.setItem(key, value);
+            },
+            removeItem: (key) => {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
             }
+        };
+
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { storage: customStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
         });
 
         let currentUser = null;
@@ -675,11 +678,6 @@
         let draggedTask = null;
         let currentEditingTask = null;
         const width = 600;
-        
-        // Sistema de Semanas
-        let currentWeekOffset = 0; // 0 = semana atual, -1 = passada, +1 = próxima
-        let weekHistory = JSON.parse(localStorage.getItem('weekHistory') || '[]'); // Array de semanas arquivadas
-        let tasksHistory = JSON.parse(localStorage.getItem('tasksHistory') || '[]'); // Histórico de todas as tasks completadas
 
         // Data Structures
         const dailyRoutine = [
@@ -714,8 +712,13 @@
         }
 
         async function signIn(email, password) {
+            // Salvar preferência de "manter conectado" ANTES do login
+            const keepLoggedIn = document.getElementById('keepLoggedIn').checked;
+            localStorage.setItem('flowly_persist_session', keepLoggedIn.toString());
+
             const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) { showAuthMessage(error.message); return false; }
+
             currentUser = data.user;
             document.getElementById('authModal').classList.remove('show');
             document.getElementById('userEmail').textContent = data.user.email;
@@ -801,7 +804,7 @@
         }
 
         function saveToLocalStorage() {
-            saveCurrentWeek(); // Salva na semana correta baseada no offset
+            localStorage.setItem('weekData', JSON.stringify(weekData));
             if (currentUser) {
                 // Trigger sync
                 Object.entries(weekData).forEach(([day, periods]) => {
@@ -813,7 +816,11 @@
         }
 
         function loadFromLocalStorage() {
-            loadWeekData(); // Carrega dados da semana atual
+            const saved = localStorage.getItem('weekData');
+            if (saved) {
+                const savedData = JSON.parse(saved);
+                Object.keys(weekData).forEach(day => { if (savedData[day]) weekData[day] = savedData[day]; });
+            }
         }
 
         // --- Render Functions ---
@@ -955,9 +962,6 @@
             document.getElementById('habitsView').classList.add('hidden');
             document.getElementById('analyticsView').classList.add('hidden');
             document.getElementById('settingsView').classList.add('hidden');
-            
-            // Navegador de semanas só aparece na view Week
-            document.getElementById('weekNavigator').style.display = 'none';
 
             if (currentView === 'habits') {
                 document.getElementById('habitsView').classList.remove('hidden');
@@ -970,196 +974,8 @@
                 renderSettingsView();
             } else {
                 document.getElementById('weekGrid').classList.remove('hidden');
-                if (currentView === 'week') {
-                    document.getElementById('weekNavigator').style.display = 'flex';
-                    updateWeekLabel();
-                    renderWeek();
-                }
+                if (currentView === 'week') renderWeek();
                 else renderToday();
-            }
-        }
-
-        // Sistema de Navegação de Semanas
-        function updateWeekLabel() {
-            const label = document.getElementById('weekLabel');
-            if (currentWeekOffset === 0) {
-                label.textContent = 'Semana Atual';
-                label.style.color = '#3b82f6';
-            } else if (currentWeekOffset < 0) {
-                label.textContent = `${Math.abs(currentWeekOffset)} semana${Math.abs(currentWeekOffset) > 1 ? 's' : ''} atrás`;
-                label.style.color = '#888';
-            } else {
-                label.textContent = `Daqui a ${currentWeekOffset} semana${currentWeekOffset > 1 ? 's' : ''}`;
-                label.style.color = '#10b981';
-            }
-        }
-
-        function navigateWeek(offset) {
-            currentWeekOffset += offset;
-            updateWeekLabel();
-            loadWeekData();
-            renderView();
-        }
-
-        function goToCurrentWeek() {
-            currentWeekOffset = 0;
-            updateWeekLabel();
-            loadWeekData();
-            renderView();
-        }
-
-        function loadWeekData() {
-            // Carrega dados da semana baseado no offset
-            const weekKey = `week_offset_${currentWeekOffset}`;
-            const savedWeek = localStorage.getItem(weekKey);
-            
-            if (savedWeek) {
-                Object.assign(weekData, JSON.parse(savedWeek));
-            } else if (currentWeekOffset !== 0) {
-                // Semana futura/passada sem dados = limpa
-                Object.keys(weekData).forEach(day => {
-                    weekData[day] = {};
-                });
-            }
-        }
-
-        function saveCurrentWeek() {
-            const weekKey = `week_offset_${currentWeekOffset}`;
-            localStorage.setItem(weekKey, JSON.stringify(weekData));
-        }
-
-        function archiveCurrentWeek() {
-            // Arquiva semana atual no histórico
-            const archive = {
-                date: new Date().toISOString(),
-                weekNumber: getWeekNumber(new Date()),
-                data: JSON.parse(JSON.stringify(weekData)),
-                completionRate: calculateWeekCompletionRate()
-            };
-            
-            weekHistory.unshift(archive);
-            if (weekHistory.length > 52) weekHistory = weekHistory.slice(0, 52); // Mantém 1 ano
-            localStorage.setItem('weekHistory', JSON.stringify(weekHistory));
-            
-            // Move tasks não concluídas (não-hábitos) para próxima semana
-            processUncompletedTasks();
-        }
-
-        function getWeekNumber(date) {
-            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            const dayNum = d.getUTCDay() || 7;
-            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        }
-
-        function calculateWeekCompletionRate() {
-            let total = 0, completed = 0;
-            Object.values(weekData).forEach(periods => {
-                Object.values(periods).forEach(tasks => {
-                    tasks.forEach(task => {
-                        total++;
-                        if (task.completed) completed++;
-                    });
-                });
-            });
-            return total > 0 ? Math.round((completed / total) * 100) : 0;
-        }
-
-        function processUncompletedTasks() {
-            // Processa tasks não concluídas ao arquivar
-            const uncompletedNonHabits = [];
-            
-            Object.entries(weekData).forEach(([day, periods]) => {
-                Object.entries(periods).forEach(([period, tasks]) => {
-                    tasks.forEach(task => {
-                        if (!task.completed && !task.isHabit) {
-                            uncompletedNonHabits.push({
-                                task: {...task},
-                                originalDay: day,
-                                originalPeriod: period
-                            });
-                        }
-                    });
-                });
-            });
-            
-            if (uncompletedNonHabits.length > 0) {
-                showImportantTasksModal(uncompletedNonHabits);
-            } else {
-                // Nenhuma task pendente, só limpa
-                clearCurrentWeek();
-            }
-        }
-
-        function clearCurrentWeek() {
-            Object.keys(weekData).forEach(day => {
-                weekData[day] = {};
-            });
-            saveToLocalStorage();
-            renderView();
-        }
-
-        function showImportantTasksModal(tasks) {
-            // Modal para perguntar quais tasks são importantes
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay show';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <h2 class="text-2xl font-bold mb-4">Tasks Pendentes 📋</h2>
-                    <p class="text-gray-400 text-sm mb-6">Você tem ${tasks.length} tarefa${tasks.length > 1 ? 's' : ''} não concluída${tasks.length > 1 ? 's' : ''}. Quais são importantes?</p>
-                    <div class="space-y-2 max-h-96 overflow-y-auto mb-6" id="importantTasksList">
-                        ${tasks.map((item, idx) => `
-                            <div class="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-white/5">
-                                <input type="checkbox" id="important_${idx}" class="checkbox-custom" checked>
-                                <label for="important_${idx}" class="flex-1 text-sm cursor-pointer">${item.task.text}</label>
-                                <span class="text-xs text-gray-500">${item.originalDay} - ${item.originalPeriod}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="flex gap-3">
-                        <button id="btnMoveImportant" class="btn-primary flex-1">Mover Selecionadas</button>
-                        <button id="btnDiscardAll" class="btn-secondary flex-1">Descartar Todas</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            document.getElementById('btnMoveImportant').onclick = () => {
-                const nextWeekData = JSON.parse(localStorage.getItem('week_offset_1') || JSON.stringify({"Segunda": {}, "Terça": {}, "Quarta": {}, "Quinta": {}, "Sexta": {}, "Sábado": {}, "Domingo": {}}));
-                
-                tasks.forEach((item, idx) => {
-                    if (document.getElementById(`important_${idx}`).checked) {
-                        // Move pra segunda-feira da próxima semana
-                        if (!nextWeekData['Segunda'][item.originalPeriod]) {
-                            nextWeekData['Segunda'][item.originalPeriod] = [];
-                        }
-                        nextWeekData['Segunda'][item.originalPeriod].push(item.task);
-                    }
-                });
-                
-                localStorage.setItem('week_offset_1', JSON.stringify(nextWeekData));
-                document.body.removeChild(modal);
-                clearCurrentWeek();
-            };
-            
-            document.getElementById('btnDiscardAll').onclick = () => {
-                document.body.removeChild(modal);
-                clearCurrentWeek();
-            };
-        }
-
-        function checkSundayRotation() {
-            const today = new Date();
-            const dayOfWeek = today.getDay();
-            const lastRotation = localStorage.getItem('lastWeekRotation');
-            const todayStr = today.toISOString().split('T')[0];
-            
-            // Se é domingo E não rotacionou hoje ainda
-            if (dayOfWeek === 0 && lastRotation !== todayStr && currentWeekOffset === 0) {
-                archiveCurrentWeek();
-                localStorage.setItem('lastWeekRotation', todayStr);
             }
         }
 
@@ -1478,15 +1294,23 @@
             localStorage.setItem('showPeriods', (!current).toString());
             renderView();
         };
-        
-        // Event Listeners - Navegação de Semanas
-        document.getElementById('btnPrevWeek').onclick = () => navigateWeek(-1);
-        document.getElementById('btnNextWeek').onclick = () => navigateWeek(1);
-        document.getElementById('btnCurrentWeek').onclick = () => goToCurrentWeek();
 
         document.getElementById('floatingAddBtn').onclick = () => {
             const m = document.getElementById('quickAddMenu');
-            m.classList.toggle('show');
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        // Event listeners para autenticação
+        document.getElementById('btnLogin').onclick = async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            await signIn(email, password);
+        };
+
+        document.getElementById('btnSignup').onclick = async () => {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            await signUp(email, password);
         };
 
         document.getElementById('btnShowSignup').onclick = () => {
@@ -1499,36 +1323,10 @@
             document.getElementById('authLogin').style.display = 'block';
         };
 
-        document.getElementById('btnLogin').onclick = async () => {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            if (!email || !password) { showAuthMessage('Preencha email e senha'); return; }
-            await signIn(email, password);
-        };
-
-        document.getElementById('btnSignup').onclick = async () => {
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-            if (!email || !password) { showAuthMessage('Preencha email e senha'); return; }
-            if (password.length < 6) { showAuthMessage('Senha mínimo 6 caracteres'); return; }
-            await signUp(email, password);
-        };
-
-        document.getElementById('btnBackup').onclick = () => {
-            document.getElementById('backupModal').classList.add('show');
-        };
-
-        document.getElementById('btnCloseBackup').onclick = () => {
-            document.getElementById('backupModal').classList.remove('show');
-        };
-
-        document.getElementById('btnExport').onclick = exportData;
-
-        // Init
         loadFromLocalStorage();
-        checkAuth();
-        checkSundayRotation(); // Verifica se precisa arquivar semana
-        setInterval(checkSundayRotation, 60000 * 60); // Verifica a cada hora
+        setTimeout(checkAuth, 100);
+
     </script>
 </body>
+
 </html>
