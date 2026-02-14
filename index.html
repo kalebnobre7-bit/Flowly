@@ -1329,6 +1329,68 @@
             document.getElementById('authLogin').style.display = 'block';
         };
 
+        // Event listeners para o modal de backup
+        document.getElementById('btnBackup').onclick = () => {
+            document.getElementById('backupModal').classList.add('show');
+        };
+
+        document.getElementById('btnCloseBackup').onclick = () => {
+            document.getElementById('backupModal').classList.remove('show');
+        };
+
+        document.getElementById('btnExport').onclick = () => {
+            const data = {
+                weekData: weekData,
+                habitsHistory: habitsHistory,
+                exportDate: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `flowly-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        document.getElementById('fileImport').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (data.weekData) {
+                        Object.keys(weekData).forEach(day => {
+                            if (data.weekData[day]) weekData[day] = data.weekData[day];
+                        });
+                    }
+                    if (data.habitsHistory) {
+                        habitsHistory = data.habitsHistory;
+                        localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
+                    }
+                    saveToLocalStorage();
+                    renderView();
+                    alert('Backup importado com sucesso!');
+                } catch (error) {
+                    alert('Erro ao importar backup: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        document.getElementById('btnClearAll').onclick = () => {
+            if (confirm('Tem certeza que deseja limpar TODOS os dados? Esta ação não pode ser desfeita!')) {
+                Object.keys(weekData).forEach(day => weekData[day] = {});
+                habitsHistory = {};
+                localStorage.clear();
+                saveToLocalStorage();
+                renderView();
+                alert('Todos os dados foram limpos!');
+            }
+        };
+
         loadFromLocalStorage();
         setTimeout(checkAuth, 100);
 
