@@ -1239,11 +1239,17 @@
                 ev.stopPropagation();
                 showColorMenu(ev, task, label);
             }
-            toolbar.querySelector('[data-action="delete"]').onclick = () => {
+            toolbar.querySelector('[data-action="delete"]').onclick = async () => {
                 // Delete logic
                 const day = label.closest('.task-item').dataset.day;
                 const period = label.closest('.task-item').dataset.period;
                 const index = parseInt(label.closest('.task-item').dataset.index);
+                const taskToDelete = weekData[day][period][index];
+
+                // Deletar do Supabase primeiro
+                await deleteTaskFromSupabase(taskToDelete);
+
+                // Depois deletar localmente
                 weekData[day][period].splice(index, 1);
                 saveToLocalStorage();
                 renderView();
