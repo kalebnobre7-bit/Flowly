@@ -536,6 +536,110 @@
         .drag-handle:hover {
             color: #fff;
         }
+
+        /* Responsividade */
+        @media (max-width: 1024px) {
+            body {
+                padding: 16px;
+            }
+
+            .grid.grid-cols-7 {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+
+            .day-column h2 {
+                font-size: 14px;
+            }
+
+            .nav-container {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .logo-area {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .segmented-control {
+                width: 100%;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+
+            .segment-btn {
+                font-size: 11px;
+                padding: 5px 12px;
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .grid.grid-cols-7 {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .day-column {
+                min-height: 200px;
+            }
+
+            .task-item {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+
+            .task-label {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid.grid-cols-7 {
+                grid-template-columns: 1fr !important;
+            }
+
+            .day-column {
+                min-height: 150px;
+            }
+
+            .task-item {
+                padding: 8px 10px;
+            }
+
+            .checkbox-custom {
+                width: 16px;
+                height: 16px;
+            }
+
+            .drag-handle {
+                display: none;
+            }
+
+            .nav-container {
+                gap: 12px;
+            }
+
+            .segment-btn {
+                font-size: 10px;
+                padding: 4px 10px;
+            }
+
+            .logo-img {
+                height: 24px;
+            }
+        }
+
+        /* Ajuste de largura máxima para telas grandes */
+        @media (min-width: 1920px) {
+            body {
+                max-width: 1800px;
+                margin: 0 auto;
+            }
+        }
     </style>
 </head>
 
@@ -1733,10 +1837,22 @@
             weekDates.forEach(({ name: day, dateStr }) => {
                 // Buscar tarefas para esta data específica
                 const dayTasks = allTasksData[dateStr] || {};
+
+                // Inicializar tarefas de rotina para este dia se não existir
+                if (!dayTasks['Rotina']) {
+                    dayTasks['Rotina'] = dailyRoutine.map(t => ({
+                        ...t,
+                        isRoutine: true
+                    }));
+                    allTasksData[dateStr] = dayTasks;
+                    localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+                }
+
                 const periods = dayTasks;
                 const col = document.createElement('div');
                 col.className = 'day-column';
                 col.dataset.day = day;
+                col.dataset.date = dateStr;
                 // Drag Events
                 col.addEventListener('dragover', handleDragOver);
                 col.addEventListener('drop', handleDrop);
@@ -1748,33 +1864,16 @@
                 // Flatten all tasks from all periods into a continuous list
                 const allTasks = [];
 
-                // Adicionar tarefas de rotina diária primeiro (em azul)
-                if (dailyRoutine.length > 0) {
-                    dailyRoutine.forEach((routineTask, rIndex) => {
-                        allTasks.push({
-                            task: routineTask,
-                            day,
-                            period: 'routine',
-                            originalIndex: rIndex,
-                            isRoutine: true
-                        });
-                    });
-                }
-
-                // Adicionar tarefas normais
+                // Adicionar tarefas normais (incluindo Rotina que agora é salva por data)
                 Object.entries(periods).forEach(([period, tasks]) => {
                     tasks.forEach((task, index) => {
-                        allTasks.push({ task, day, period, originalIndex: index, isRoutine: false });
+                        allTasks.push({ task, day, dateStr, period, originalIndex: index });
                     });
                 });
 
                 // Render all tasks in sequence without period sections
-                allTasks.forEach(({ task, day, period, originalIndex, isRoutine }) => {
-                    if (isRoutine) {
-                        col.appendChild(createRoutineTaskElement(day, task, originalIndex));
-                    } else {
-                        col.appendChild(createTaskElement(day, period, task, originalIndex));
-                    }
+                allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
+                    col.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
                 });
 
                 // Adicionar área clicável para nova tarefa (estilo Notion)
@@ -1796,43 +1895,35 @@
 
             const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
             const today = days[new Date().getDay()];
+            const dateStr = new Date().toISOString().split('T')[0];
+
             const header = document.createElement('div');
             header.className = 'mb-8';
             header.innerHTML = `<h1 class="text-3xl font-bold mb-2">${today}</h1><p class="text-gray-500">${new Date().toLocaleDateString('pt-BR')}</p>`;
             grid.appendChild(header);
 
+            // Inicializar tarefas de rotina para hoje se não existir
+            const dayTasks = allTasksData[dateStr] || {};
+            if (!dayTasks['Rotina']) {
+                dayTasks['Rotina'] = dailyRoutine.map(t => ({
+                    ...t,
+                    isRoutine: true
+                }));
+                allTasksData[dateStr] = dayTasks;
+                localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+            }
+
             // Flatten all tasks into a continuous list
             const allTasks = [];
-
-            // Adicionar tarefas de rotina diária primeiro (em azul)
-            if (dailyRoutine.length > 0) {
-                dailyRoutine.forEach((routineTask, rIndex) => {
-                    allTasks.push({
-                        task: routineTask,
-                        day: today,
-                        period: 'routine',
-                        originalIndex: rIndex,
-                        isRoutine: true
-                    });
+            Object.entries(dayTasks).forEach(([period, tasks]) => {
+                tasks.forEach((task, index) => {
+                    allTasks.push({ task, day: today, dateStr, period, originalIndex: index });
                 });
-            }
-
-            // Adicionar tarefas normais
-            if (weekData[today]) {
-                Object.entries(weekData[today]).forEach(([period, tasks]) => {
-                    tasks.forEach((task, index) => {
-                        allTasks.push({ task, day: today, period, originalIndex: index, isRoutine: false });
-                    });
-                });
-            }
+            });
 
             // Render all tasks in a single continuous list
-            allTasks.forEach(({ task, day, period, originalIndex, isRoutine }) => {
-                if (isRoutine) {
-                    grid.appendChild(createRoutineTaskElement(day, task, originalIndex));
-                } else {
-                    grid.appendChild(createTaskElement(day, period, task, originalIndex));
-                }
+            allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
+                grid.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
             });
 
             // Adicionar área clicável para nova tarefa (estilo Notion)
@@ -1998,91 +2089,17 @@
             });
         }
 
-        function createRoutineTaskElement(day, task, routineIndex) {
-            const today = new Date().toISOString().split('T')[0];
-            const dateKey = `${day}_${today}`;
-
-            // Recuperar estado do checkbox para hoje
-            const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
-            if (!routineStates[task.text]) routineStates[task.text] = {};
-            const isCompleted = routineStates[task.text][dateKey] || false;
-
+        function createTaskElement(day, dateStr, period, task, index) {
             const container = document.createElement('div');
 
             // Top Drop Zone
-            container.appendChild(createDropZone(day, 'routine', routineIndex));
+            container.appendChild(createDropZone(day, dateStr, period, index));
 
             const el = document.createElement('div');
             el.className = `task-item ${task.isHabit ? 'is-habit' : ''}`;
             el.draggable = true;
             el.dataset.day = day;
-            el.dataset.period = 'routine';
-            el.dataset.index = routineIndex;
-
-            // Drag Handle
-            const handle = document.createElement('div');
-            handle.className = 'drag-handle';
-            handle.innerHTML = '⋮⋮';
-            el.appendChild(handle);
-
-            // Checkbox
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'checkbox-custom';
-            checkbox.checked = isCompleted;
-            checkbox.onchange = (e) => {
-                const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
-                if (!routineStates[task.text]) routineStates[task.text] = {};
-                routineStates[task.text][dateKey] = e.target.checked;
-                localStorage.setItem('routineStates', JSON.stringify(routineStates));
-
-                label.classList.toggle('task-completed', e.target.checked);
-
-                // Marcar como hábito completado
-                if (task.isHabit) {
-                    markHabitCompleted(task.text, e.target.checked);
-                }
-            };
-            el.appendChild(checkbox);
-
-            // Label
-            const label = document.createElement('span');
-            label.className = `task-label color-${task.color || 'default'} ${isCompleted ? 'task-completed' : ''}`;
-            label.style.color = 'var(--accent-blue)';
-            label.textContent = task.text;
-
-            // Single Click Edit
-            label.onclick = (e) => {
-                if (label.isContentEditable) return;
-                startEditingRoutine(label, task, el, routineIndex);
-            };
-
-            // Context Menu
-            label.oncontextmenu = (e) => {
-                e.preventDefault();
-                showEditToolbarRoutine(e, task, label, routineIndex);
-            }
-
-            el.appendChild(label);
-
-            // Drag Events
-            el.ondragstart = handleDragStart;
-            el.ondragend = handleDragEnd;
-
-            container.appendChild(el);
-            return container;
-        }
-
-        function createTaskElement(day, period, task, index) {
-            const container = document.createElement('div');
-
-            // Top Drop Zone
-            container.appendChild(createDropZone(day, period, index));
-
-            const el = document.createElement('div');
-            el.className = `task-item ${task.isHabit ? 'is-habit' : ''}`;
-            el.draggable = true;
-            el.dataset.day = day;
+            el.dataset.date = dateStr;
             el.dataset.period = period;
             el.dataset.index = index;
 
@@ -2109,6 +2126,10 @@
             // Label
             const label = document.createElement('span');
             label.className = `task-label color-${task.color || 'default'} ${task.completed ? 'task-completed' : ''}`;
+            // Aplicar cor azul se for tarefa de rotina
+            if (task.isRoutine || period === 'Rotina') {
+                label.style.color = 'var(--accent-blue)';
+            }
             label.textContent = task.text;
 
             // Single Click Edit
@@ -2133,10 +2154,11 @@
             return container;
         }
 
-        function createDropZone(day, period, index) {
+        function createDropZone(day, dateStr, period, index) {
             const dz = document.createElement('div');
             dz.className = 'task-drop-zone';
             dz.dataset.day = day;
+            dz.dataset.date = dateStr;
             dz.dataset.period = period;
             dz.dataset.insertAt = index;
 
@@ -2186,89 +2208,6 @@
             currentEditingTask = null;
         }
 
-        function startEditingRoutine(label, task, taskDiv, routineIndex) {
-            if (currentEditingTask) finishEditingRoutine();
-            currentEditingTask = { label, task, original: task.text, routineIndex };
-
-            label.contentEditable = true;
-            label.focus();
-            taskDiv.draggable = false;
-
-            // Select all text
-            const range = document.createRange();
-            range.selectNodeContents(label);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-
-            label.onkeydown = (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    finishEditingRoutine();
-                }
-                if (e.key === 'Escape') {
-                    label.textContent = currentEditingTask.original;
-                    finishEditingRoutine();
-                }
-            };
-            label.onblur = finishEditingRoutine;
-        }
-
-        function finishEditingRoutine() {
-            if (!currentEditingTask) return;
-            const { label, task, routineIndex } = currentEditingTask;
-            task.text = label.textContent.trim();
-            label.contentEditable = false;
-            label.closest('.task-item').draggable = true;
-
-            // Salvar na rotina diária
-            dailyRoutine[routineIndex].text = task.text;
-            localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
-
-            currentEditingTask = null;
-        }
-
-        function showEditToolbarRoutine(e, task, label, routineIndex) {
-            const toolbar = document.createElement('div');
-            toolbar.className = 'context-menu';
-            toolbar.style.left = e.pageX + 'px';
-            toolbar.style.top = e.pageY + 'px';
-
-            const actions = [
-                { icon: 'palette', label: 'Cor', action: 'color' },
-                { icon: task.isHabit ? 'x-circle' : 'check-circle', label: task.isHabit ? 'Remover Hábito' : 'Marcar como Hábito', action: 'habit' },
-                { icon: 'trash-2', label: 'Deletar', action: 'delete' }
-            ];
-
-            actions.forEach(({ icon, label: actionLabel, action }) => {
-                const btn = document.createElement('button');
-                btn.innerHTML = `<i data-lucide="${icon}"></i> ${actionLabel}`;
-                btn.onclick = () => {
-                    if (action === 'color') showColorPicker(task, label, toolbar);
-                    if (action === 'habit') {
-                        task.isHabit = !task.isHabit;
-                        dailyRoutine[routineIndex] = task;
-                        localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
-                        renderView();
-                    }
-                    if (action === 'delete') {
-                        dailyRoutine.splice(routineIndex, 1);
-                        localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
-                        renderView();
-                    }
-                };
-                toolbar.appendChild(btn);
-            });
-
-            document.body.appendChild(toolbar);
-            lucide.createIcons();
-
-            setTimeout(() => {
-                const close = () => { toolbar.remove(); document.removeEventListener('click', close); };
-                document.addEventListener('click', close);
-            }, 100);
-        }
-
         function showTaskInput(btn, day, period) {
             const input = document.createElement('input');
             input.className = 'task-input';
@@ -2293,25 +2232,20 @@
 
         function handleDragStart(e) {
             const period = this.dataset.period;
+            const dateStr = this.dataset.date;
             const index = parseInt(this.dataset.index);
 
-            if (period === 'routine') {
-                draggedTask = {
-                    day: this.dataset.day,
-                    period: 'routine',
-                    index: index,
-                    task: dailyRoutine[index],
-                    isRoutine: true
-                };
-            } else {
-                draggedTask = {
-                    day: this.dataset.day,
-                    period: period,
-                    index: index,
-                    task: weekData[this.dataset.day][period][index],
-                    isRoutine: false
-                };
-            }
+            // Usar allTasksData para buscar a tarefa
+            const dayData = allTasksData[dateStr] || {};
+            const task = (dayData[period] || [])[index];
+
+            draggedTask = {
+                day: this.dataset.day,
+                dateStr: dateStr,
+                period: period,
+                index: index,
+                task: task
+            };
 
             document.body.classList.add('dragging-active');
             setTimeout(() => this.classList.add('opacity-50'), 0);
@@ -2330,47 +2264,33 @@
             dz.classList.remove('show');
             if (!draggedTask) return;
 
-            const targetDay = dz.dataset.day;
+            const targetDateStr = dz.dataset.date;
             const targetPeriod = dz.dataset.period;
             let insertAt = parseInt(dz.dataset.insertAt);
 
-            // Remove from old location
-            if (draggedTask.isRoutine) {
-                // Se for rotina, remover da rotina
-                dailyRoutine.splice(draggedTask.index, 1);
-                localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
+            const sourceDateStr = draggedTask.dateStr;
+            const sourcePeriod = draggedTask.period;
+            const sourceIndex = draggedTask.index;
 
-                // Se o destino for rotina também
-                if (targetPeriod === 'routine') {
-                    dailyRoutine.splice(insertAt, 0, draggedTask.task);
-                    localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
-                } else {
-                    // Mover para tarefa normal
-                    if (!weekData[targetDay][targetPeriod]) weekData[targetDay][targetPeriod] = [];
-                    weekData[targetDay][targetPeriod].splice(insertAt, 0, draggedTask.task);
-                    saveToLocalStorage();
-                }
-            } else {
-                // Tarefa normal
-                weekData[draggedTask.day][draggedTask.period].splice(draggedTask.index, 1);
+            // Garantir que as estruturas existem
+            if (!allTasksData[sourceDateStr]) allTasksData[sourceDateStr] = {};
+            if (!allTasksData[targetDateStr]) allTasksData[targetDateStr] = {};
+            if (!allTasksData[sourceDateStr][sourcePeriod]) allTasksData[sourceDateStr][sourcePeriod] = [];
+            if (!allTasksData[targetDateStr][targetPeriod]) allTasksData[targetDateStr][targetPeriod] = [];
 
-                // Ajustar index se for a mesma lista
-                if (draggedTask.day === targetDay && draggedTask.period === targetPeriod && draggedTask.index < insertAt) {
-                    insertAt--;
-                }
+            // Remover da posição antiga
+            allTasksData[sourceDateStr][sourcePeriod].splice(sourceIndex, 1);
 
-                // Se o destino for rotina
-                if (targetPeriod === 'routine') {
-                    dailyRoutine.splice(insertAt, 0, draggedTask.task);
-                    localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
-                } else {
-                    // Inserir em tarefa normal
-                    if (!weekData[targetDay][targetPeriod]) weekData[targetDay][targetPeriod] = [];
-                    weekData[targetDay][targetPeriod].splice(insertAt, 0, draggedTask.task);
-                }
-
-                saveToLocalStorage();
+            // Ajustar index se for a mesma lista
+            if (sourceDateStr === targetDateStr && sourcePeriod === targetPeriod && sourceIndex < insertAt) {
+                insertAt--;
             }
+
+            // Inserir na nova posição
+            allTasksData[targetDateStr][targetPeriod].splice(insertAt, 0, draggedTask.task);
+
+            // Salvar
+            localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
 
             renderView();
             draggedTask = null;
