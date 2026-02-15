@@ -1376,14 +1376,37 @@
             reader.readAsText(file);
         };
 
-        document.getElementById('btnClearAll').onclick = () => {
+        document.getElementById('btnClearAll').onclick = async () => {
             if (confirm('Tem certeza que deseja limpar TODOS os dados? Esta ação não pode ser desfeita!')) {
+                // Salvar dados de autenticação antes de limpar
+                const authKeys = Object.keys(localStorage).filter(key =>
+                    key.startsWith('sb-') || key === 'flowly_persist_session'
+                );
+                const authData = {};
+                authKeys.forEach(key => {
+                    authData[key] = localStorage.getItem(key);
+                });
+
+                // Limpar do Supabase
+                if (currentUser) {
+                    await supabaseClient.from('tasks').delete().eq('user_id', currentUser.id);
+                    await supabaseClient.from('habits_history').delete().eq('user_id', currentUser.id);
+                }
+
+                // Limpar localmente
                 Object.keys(weekData).forEach(day => weekData[day] = {});
                 habitsHistory = {};
                 localStorage.clear();
+
+                // Restaurar dados de autenticação
+                Object.entries(authData).forEach(([key, value]) => {
+                    localStorage.setItem(key, value);
+                });
+
                 saveToLocalStorage();
                 renderView();
                 alert('Todos os dados foram limpos!');
+                document.getElementById('backupModal').classList.remove('show');
             }
         };
 
