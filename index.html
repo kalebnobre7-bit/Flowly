@@ -136,6 +136,7 @@
             min-height: 70vh;
             padding: 0 16px 32px 16px;
             transition: background 0.2s;
+            cursor: text;
         }
 
         .day-column:last-child {
@@ -316,6 +317,36 @@
 
         .task-input:focus {
             box-shadow: 0 0 0 2px var(--accent-blue);
+        }
+
+        .quick-task-input {
+            background: transparent;
+            border: none;
+            padding: 6px 8px;
+            color: white;
+            width: 100%;
+            outline: none;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .quick-task-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .quick-task-container {
+            background: transparent;
+            border-radius: 4px;
+            padding: 0;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s ease;
+        }
+
+        .quick-task-container:hover {
+            background: rgba(255, 255, 255, 0.03);
         }
 
         /* Floating & Menus */
@@ -1169,6 +1200,14 @@
                     col.appendChild(createTaskElement(day, period, task, originalIndex));
                 });
 
+                // Adicionar área clicável para nova tarefa (estilo Notion)
+                col.addEventListener('click', (e) => {
+                    // Só adicionar se clicar na área vazia (não em tasks ou inputs existentes)
+                    if (e.target === col || e.target.tagName === 'H2' || e.target.tagName === 'H3') {
+                        addQuickTaskInput(col, day);
+                    }
+                });
+
                 grid.appendChild(col);
             });
         }
@@ -1219,6 +1258,158 @@
                     grid.appendChild(createTaskElement(day, period, task, originalIndex));
                 });
             }
+
+            // Adicionar área clicável para nova tarefa (estilo Notion)
+            grid.style.cursor = 'text';
+            grid.style.minHeight = '60vh';
+            grid.addEventListener('click', (e) => {
+                // Só adicionar se clicar na área vazia
+                if (e.target === grid || e.target.classList.contains('mb-8')) {
+                    addQuickTaskInputToday(grid, today);
+                }
+            });
+        }
+
+        function addQuickTaskInputToday(container, day) {
+            // Verificar se já existe um input ativo
+            const existingInput = container.querySelector('.quick-task-input');
+            if (existingInput) {
+                existingInput.focus();
+                return;
+            }
+
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'quick-task-container';
+
+            // Checkbox placeholder
+            const checkboxPlaceholder = document.createElement('div');
+            checkboxPlaceholder.style.width = '18px';
+            checkboxPlaceholder.style.height = '18px';
+            checkboxPlaceholder.style.borderRadius = '6px';
+            checkboxPlaceholder.style.border = '1.5px solid #555';
+            checkboxPlaceholder.style.flexShrink = '0';
+            checkboxPlaceholder.style.marginTop = '2px';
+            inputContainer.appendChild(checkboxPlaceholder);
+
+            // Input
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'quick-task-input';
+            input.placeholder = 'Digite para adicionar tarefa...';
+            inputContainer.appendChild(input);
+
+            container.appendChild(inputContainer);
+            input.focus();
+
+            // Salvar ao pressionar Enter
+            input.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter' && input.value.trim()) {
+                    e.preventDefault();
+
+                    const period = 'Tarefas';
+                    if (!weekData[day][period]) weekData[day][period] = [];
+
+                    const newTask = {
+                        text: input.value.trim(),
+                        completed: false,
+                        color: 'default',
+                        isHabit: false
+                    };
+
+                    weekData[day][period].push(newTask);
+
+                    await syncTaskToSupabase(day, period, newTask);
+                    saveToLocalStorage();
+
+                    renderView();
+                }
+
+                if (e.key === 'Escape') {
+                    inputContainer.remove();
+                }
+            });
+
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (!input.value.trim()) {
+                        inputContainer.remove();
+                    }
+                }, 100);
+            });
+        }
+
+        function addQuickTaskInput(column, day) {
+            // Verificar se já existe um input ativo
+            const existingInput = column.querySelector('.quick-task-input');
+            if (existingInput) {
+                existingInput.focus();
+                return;
+            }
+
+            const container = document.createElement('div');
+            container.className = 'quick-task-container';
+
+            // Checkbox placeholder (desabilitado)
+            const checkboxPlaceholder = document.createElement('div');
+            checkboxPlaceholder.style.width = '18px';
+            checkboxPlaceholder.style.height = '18px';
+            checkboxPlaceholder.style.borderRadius = '6px';
+            checkboxPlaceholder.style.border = '1.5px solid #555';
+            checkboxPlaceholder.style.flexShrink = '0';
+            checkboxPlaceholder.style.marginTop = '2px';
+            container.appendChild(checkboxPlaceholder);
+
+            // Input
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'quick-task-input';
+            input.placeholder = 'Digite para adicionar tarefa...';
+            container.appendChild(input);
+
+            // Adicionar ao final da coluna
+            column.appendChild(container);
+            input.focus();
+
+            // Salvar ao pressionar Enter
+            input.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter' && input.value.trim()) {
+                    e.preventDefault();
+
+                    // Criar tarefa no período "default" (pode ajustar depois)
+                    const period = 'Tarefas';
+                    if (!weekData[day][period]) weekData[day][period] = [];
+
+                    const newTask = {
+                        text: input.value.trim(),
+                        completed: false,
+                        color: 'default',
+                        isHabit: false
+                    };
+
+                    weekData[day][period].push(newTask);
+
+                    // Salvar e sincronizar
+                    await syncTaskToSupabase(day, period, newTask);
+                    saveToLocalStorage();
+
+                    // Re-renderizar a view
+                    renderView();
+                }
+
+                // Cancelar ao pressionar Escape
+                if (e.key === 'Escape') {
+                    container.remove();
+                }
+            });
+
+            // Remover se perder o foco e estiver vazio
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (!input.value.trim()) {
+                        container.remove();
+                    }
+                }, 100);
+            });
         }
 
         function createRoutineTaskElement(day, task, routineIndex) {
