@@ -2047,7 +2047,7 @@
 
             // Label
             const label = document.createElement('span');
-            label.className = `task-label color-${task.color} ${isCompleted ? 'task-completed' : ''}`;
+            label.className = `task-label color-${task.color || 'default'} ${isCompleted ? 'task-completed' : ''}`;
             label.textContent = task.text;
 
             // Single Click Edit
@@ -2107,7 +2107,7 @@
 
             // Label
             const label = document.createElement('span');
-            label.className = `task-label color-${task.color} ${task.completed ? 'task-completed' : ''}`;
+            label.className = `task-label color-${task.color || 'default'} ${task.completed ? 'task-completed' : ''}`;
             label.textContent = task.text;
 
             // Single Click Edit
