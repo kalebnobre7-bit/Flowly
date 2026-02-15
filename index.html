@@ -859,9 +859,11 @@
             if (tasks) {
                 Object.keys(weekData).forEach(day => weekData[day] = {});
                 tasks.forEach(task => {
+                    // Garantir que o dia existe em weekData
+                    if (!weekData[task.day]) weekData[task.day] = {};
                     if (!weekData[task.day][task.period]) weekData[task.day][task.period] = [];
                     weekData[task.day][task.period].push({
-                        text: task.text, completed: task.completed, color: task.color,
+                        text: task.text, completed: task.completed, color: task.color || 'default',
                         isHabit: task.is_habit, supabaseId: task.id
                     });
                 });
