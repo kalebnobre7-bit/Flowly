@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
             --bg-body: #000000;
@@ -520,14 +521,14 @@
                 <button id="btnToday" class="segment-btn" onclick="setView('today')">Hoje</button>
                 <button id="btnHabits" class="segment-btn" onclick="setView('habits')">Hábitos</button>
                 <button id="btnAnalytics" class="segment-btn" onclick="setView('analytics')">Analytics</button>
-                <button id="btnSettings" class="segment-btn" onclick="setView('settings')">⚙️</button>
+                <button id="btnSettings" class="segment-btn" onclick="setView('settings')"><i data-lucide="settings" style="width: 16px; height: 16px;"></i></button>
             </div>
 
             <div class="flex items-center gap-3">
-                <button id="btnTogglePeriods" class="utility-btn" title="Mostrar/Ocultar períodos">⋮⋮</button>
-                <button id="btnBackup" class="utility-btn" title="Backup">⟳</button>
+                <button id="btnTogglePeriods" class="utility-btn" title="Mostrar/Ocultar períodos"><i data-lucide="list" style="width: 18px; height: 18px;"></i></button>
+                <button id="btnBackup" class="utility-btn" title="Backup"><i data-lucide="database" style="width: 18px; height: 18px;"></i></button>
                 <div class="relative">
-                    <button id="btnUser" class="utility-btn">👤</button>
+                    <button id="btnUser" class="utility-btn"><i data-lucide="user" style="width: 18px; height: 18px;"></i></button>
                     <div id="userDropdown" class="context-menu"
                         style="top: 100%; right: 0; margin-top: 8px; min-width: 180px; display: none; flex-direction: column;">
                         <div id="userEmail" class="p-3 text-xs text-gray-500 border-b border-[#333]">user@email.com
@@ -562,22 +563,20 @@
     <!-- Quick Add Menu -->
     <div id="quickAddMenu" class="context-menu"
         style="position: fixed; bottom: 100px; right: 32px; min-width: 200px; flex-direction: column; gap: 4px;">
-        <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm" data-type="routine">↻ Adicionar
-            rotina diária</div>
-        <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm" data-type="custom">+ Nova
-            tarefa customizada</div>
+        <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm flex items-center gap-2" data-type="routine"><i data-lucide="repeat" style="width: 16px; height: 16px;"></i> Adicionar rotina diária</div>
+        <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm flex items-center gap-2" data-type="custom"><i data-lucide="plus" style="width: 16px; height: 16px;"></i> Nova tarefa customizada</div>
     </div>
 
     <!-- Edit Context Menu -->
     <div id="editToolbar" class="context-menu">
-        <button class="toolbar-btn" data-action="bold"><strong>B</strong></button>
-        <button class="toolbar-btn" data-action="italic"><em>I</em></button>
-        <button class="toolbar-btn" data-action="strikethrough"><s>S</s></button>
+        <button class="toolbar-btn" data-action="bold"><i data-lucide="bold" style="width: 16px; height: 16px;"></i></button>
+        <button class="toolbar-btn" data-action="italic"><i data-lucide="italic" style="width: 16px; height: 16px;"></i></button>
+        <button class="toolbar-btn" data-action="strikethrough"><i data-lucide="strikethrough" style="width: 16px; height: 16px;"></i></button>
         <div style="width: 1px; background: #333; margin: 0 4px;"></div>
-        <button class="toolbar-btn" data-action="color">●</button>
-        <button class="toolbar-btn" data-action="habit">↻</button>
+        <button class="toolbar-btn" data-action="color"><i data-lucide="palette" style="width: 16px; height: 16px;"></i></button>
+        <button class="toolbar-btn" data-action="habit"><i data-lucide="repeat" style="width: 16px; height: 16px;"></i></button>
         <div style="width: 1px; background: #333; margin: 0 4px;"></div>
-        <button class="toolbar-btn" data-action="delete" style="color: var(--accent-red)">×</button>
+        <button class="toolbar-btn" data-action="delete" style="color: var(--accent-red)"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i></button>
     </div>
 
     <!-- Color Picker -->
@@ -632,15 +631,15 @@
     <!-- Backup Modal -->
     <div id="backupModal" class="modal-overlay">
         <div class="modal-content">
-            <h2 class="text-xl font-bold mb-6">Backup & Dados</h2>
-            <button id="btnExport" class="btn-primary mb-4" style="background: #333;">↓ Exportar Dados (JSON)</button>
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="database" style="width: 22px; height: 22px;"></i> Backup & Dados</h2>
+            <button id="btnExport" class="btn-primary mb-4 flex items-center justify-center gap-2" style="background: #333;"><i data-lucide="download" style="width: 18px; height: 18px;"></i> Exportar Dados (JSON)</button>
             <div class="relative mb-6">
                 <input type="file" id="fileImport" accept=".json" class="hidden">
-                <label for="fileImport" class="btn-secondary block text-center cursor-pointer"
-                    style="padding: 12px; border: 1px dashed #555;">↑ Importar Backup</label>
+                <label for="fileImport" class="btn-secondary block text-center cursor-pointer flex items-center justify-center gap-2"
+                    style="padding: 12px; border: 1px dashed #555;"><i data-lucide="upload" style="width: 18px; height: 18px;"></i> Importar Backup</label>
             </div>
-            <button id="btnClearAll" class="btn-secondary"
-                style="color: #ff453a; background: rgba(255, 69, 58, 0.1);">Limpar Tudo</button>
+            <button id="btnClearAll" class="btn-secondary flex items-center justify-center gap-2"
+                style="color: #ff453a; background: rgba(255, 69, 58, 0.1);"><i data-lucide="trash-2" style="width: 18px; height: 18px;"></i> Limpar Tudo</button>
             <button id="btnCloseBackup" class="btn-secondary mt-6">Fechar</button>
         </div>
     </div>
@@ -835,7 +834,7 @@
             const view = document.getElementById('habitsView'), habits = getAllHabits();
             if (habits.length === 0) { view.innerHTML = '<div class="text-center py-20"><p class="text-gray-400 text-lg">Nenhum hábito rastreado ainda.</p><p class="text-gray-600 text-sm mt-2">Marque tasks como hábitos no menu de contexto (botão direito).</p></div>'; return; }
 
-            let html = `<div class="max-w-5xl mx-auto"><h2 class="text-3xl font-bold mb-8 text-white">Meus Hábitos 🔄</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            let html = `<div class="max-w-5xl mx-auto"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Meus Hábitos</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Total de Hábitos</div><div class="text-3xl font-bold text-white">${habits.length}</div></div>
             <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Concluídos Hoje</div><div class="text-3xl font-bold text-[#30d158]">${habits.filter(h => h.completedToday).length}</div></div>
             <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Taxa Hoje</div><div class="text-3xl font-bold text-[#0A84FF]">${habits.length > 0 ? Math.round((habits.filter(h => h.completedToday).length / habits.length) * 100) : 0}%</div></div></div><div class="space-y-3">`;
@@ -848,7 +847,7 @@
                     <div class="flex-1">
                         <div class="color-${habit.color} font-medium text-lg mb-1 group-hover:text-white transition-colors">${habit.text}</div>
                         <div class="flex items-center gap-3 text-xs text-gray-400">
-                            ${streak > 0 ? `<span class="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 font-medium">🔥 ${streak} dias</span>` : ''}
+                            ${streak > 0 ? `<span class="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 font-medium flex items-center gap-1"><i data-lucide="flame" style="width: 14px; height: 14px;"></i> ${streak} dias</span>` : ''}
                             <span>${completionRate}% consistency (30d)</span>
                         </div>
                     </div>
@@ -870,7 +869,7 @@
             const periodStats = { morning: 0, afternoon: 0, night: 0 };
             Object.values(weekData).forEach(periods => { Object.entries(periods).forEach(([period, tasks]) => { const completed = tasks.filter(t => t.completed).length; if (period.includes('Manhã')) periodStats.morning += completed; else if (period.includes('Tarde')) periodStats.afternoon += completed; else periodStats.night += completed; }) });
 
-            let html = `<div class="max-w-6xl mx-auto"><h2 class="text-3xl font-bold mb-8 text-white">Analytics 📊</h2><div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">`;
+            let html = `<div class="max-w-6xl mx-auto"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="bar-chart-3" style="width: 28px; height: 28px;"></i> Analytics</h2><div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">`;
 
             const card = (label, val, sub) => `<div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-2 uppercase tracking-wider font-semibold">${label}</div><div class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">${val}</div><div class="text-xs text-gray-500 mt-2">${sub}</div></div>`;
 
@@ -918,7 +917,7 @@
             const view = document.getElementById('settingsView');
             view.innerHTML = `
                 <div class="max-w-2xl mx-auto py-8">
-                    <h2 class="text-3xl font-bold mb-8 text-white">Configurações ⚙️</h2>
+                    <h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="settings" style="width: 28px; height: 28px;"></i> Configurações</h2>
                     
                     <div class="space-y-4">
                         <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
@@ -971,6 +970,9 @@
                 if (currentView === 'week') renderWeek();
                 else renderToday();
             }
+
+            // Renderizar ícones após atualizar a view
+            setTimeout(() => lucide.createIcons(), 0);
         }
 
         function renderWeek() {
@@ -1387,6 +1389,9 @@
 
         loadFromLocalStorage();
         setTimeout(checkAuth, 100);
+
+        // Inicializar ícones Lucide
+        lucide.createIcons();
 
     </script>
 </body>
