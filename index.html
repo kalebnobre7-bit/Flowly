@@ -1010,55 +1010,236 @@
 
         function renderAnalyticsView() {
             const view = document.getElementById('analyticsView');
-            let totalTasks = 0, completedTasks = 0, totalHabits = getAllHabits().length, completedHabitsToday = getAllHabits().filter(h => h.completedToday).length;
-            Object.values(weekData).forEach(periods => { Object.values(periods).forEach(tasks => { tasks.forEach(task => { totalTasks++; if (task.completed) completedTasks++; }) }) });
-            const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            // Calcular dados da semana atual
+            const weekDates = getWeekDates(0);
+            let totalTasksWeek = 0, completedTasksWeek = 0;
+            let totalTasksToday = 0, completedTasksToday = 0;
+            const today = new Date().toISOString().split('T')[0];
+
+            // Estatísticas por dia da semana
+            const dayStats = {};
+
+            // Contar tarefas de toda a semana
+            weekDates.forEach(({ name, dateStr }) => {
+                const dayTasks = allTasksData[dateStr] || {};
+                let dayTotal = 0, dayCompleted = 0;
+
+                Object.values(dayTasks).forEach(tasks => {
+                    if (Array.isArray(tasks)) {
+                        tasks.forEach(task => {
+                            dayTotal++;
+                            totalTasksWeek++;
+                            if (task.completed) {
+                                dayCompleted++;
+                                completedTasksWeek++;
+                            }
+
+                            if (dateStr === today) {
+                                totalTasksToday++;
+                                if (task.completed) completedTasksToday++;
+                            }
+                        });
+                    }
+                });
+
+                dayStats[name] = { total: dayTotal, completed: dayCompleted };
+            });
+
+            // Adicionar rotina diária
+            const totalHabits = getAllHabits().length;
+            const completedHabitsToday = getAllHabits().filter(h => h.completedToday).length;
+            totalTasksToday += dailyRoutine.length;
+            completedTasksToday += completedHabitsToday;
+
+            const todayRate = totalTasksToday > 0 ? Math.round((completedTasksToday / totalTasksToday) * 100) : 0;
+            const weekRate = totalTasksWeek > 0 ? Math.round((completedTasksWeek / totalTasksWeek) * 100) : 0;
             const habitRate = totalHabits > 0 ? Math.round((completedHabitsToday / totalHabits) * 100) : 0;
 
-            const periodStats = { morning: 0, afternoon: 0, night: 0 };
-            Object.values(weekData).forEach(periods => { Object.entries(periods).forEach(([period, tasks]) => { const completed = tasks.filter(t => t.completed).length; if (period.includes('Manhã')) periodStats.morning += completed; else if (period.includes('Tarde')) periodStats.afternoon += completed; else periodStats.night += completed; }) });
+            // Calcular streak (dias consecutivos com todas as tarefas completas)
+            let currentStreak = 0;
+            const checkDate = new Date();
+            for (let i = 0; i < 30; i++) {
+                const dateStr = checkDate.toISOString().split('T')[0];
+                const dayTasks = allTasksData[dateStr] || {};
+                let dayTotal = 0;
+                let dayCompleted = 0;
 
-            let html = `<div class="max-w-6xl mx-auto"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="bar-chart-3" style="width: 28px; height: 28px;"></i> Analytics</h2><div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">`;
+                Object.values(dayTasks).forEach(tasks => {
+                    if (Array.isArray(tasks)) {
+                        dayTotal += tasks.length;
+                        dayCompleted += tasks.filter(t => t.completed).length;
+                    }
+                });
 
-            const card = (label, val, sub) => `<div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-2 uppercase tracking-wider font-semibold">${label}</div><div class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">${val}</div><div class="text-xs text-gray-500 mt-2">${sub}</div></div>`;
+                if (dayTotal > 0 && dayCompleted === dayTotal) {
+                    currentStreak++;
+                } else if (i > 0 || (i === 0 && dayTotal > 0)) {
+                    break;
+                }
+                checkDate.setDate(checkDate.getDate() - 1);
+            }
 
-            html += card('Taxa Task', completionRate + '%', `${completedTasks}/${totalTasks} tasks`);
-            html += card('Taxa Hábito', habitRate + '%', `${completedHabitsToday}/${totalHabits} hábitos`);
-            html += card('Produtividade', completionRate >= 70 ? 'Alta' : (completionRate > 40 ? 'Média' : 'Baixa'), 'Baseado na conclusão');
+            let html = `<div class="max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold mb-2 text-white flex items-center gap-3">
+                    <i data-lucide="bar-chart-3" style="width: 28px; height: 28px;"></i> Analytics
+                </h2>
+                <p class="text-gray-400 text-sm mb-8">Acompanhe sua produtividade e evolução</p>
 
-            html += `</div><div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-8"><h3 class="text-lg font-semibold mb-6 text-gray-200">Produtividade por Período</h3><canvas id="periodChart"></canvas></div>
-            <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-8"><h3 class="text-lg font-semibold mb-6 text-gray-200">Status de Hábitos</h3><div class="h-64 flex items-center justify-center"><canvas id="habitsChart"></canvas></div></div>
-            </div></div>`;
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">`;
+
+            // Card customizado com cores dinâmicas
+            const card = (label, val, sub, gradient = 'from-blue-400 to-indigo-400', icon = '') => {
+                return `<div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+                    <div class="text-gray-400 text-sm mb-2 uppercase tracking-wider font-semibold">${label}</div>
+                    <div class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r ${gradient}">${icon}${val}</div>
+                    <div class="text-xs text-gray-500 mt-2">${sub}</div>
+                </div>`;
+            };
+
+            // Cards com cores dinâmicas
+            const todayGradient = todayRate >= 70 ? 'from-green-400 to-emerald-400' : todayRate >= 40 ? 'from-orange-400 to-yellow-400' : 'from-red-400 to-pink-400';
+            const todayIcon = todayRate >= 70 ? '🔥 ' : todayRate >= 40 ? '⚡ ' : '💤 ';
+
+            html += card('Hoje', `${todayIcon}${todayRate}%`, `${completedTasksToday}/${totalTasksToday} tarefas`, todayGradient);
+            html += card('Semana', `${weekRate}%`, `${completedTasksWeek}/${totalTasksWeek} tarefas`, 'from-blue-400 to-indigo-400');
+            html += card('Hábitos', `${habitRate}%`, `${completedHabitsToday}/${totalHabits} concluídos`, habitRate === 100 && totalHabits > 0 ? 'from-green-400 to-emerald-400' : 'from-purple-400 to-pink-400');
+            html += card('Streak', currentStreak > 0 ? `${currentStreak} ${currentStreak === 1 ? 'dia' : 'dias'}` : '0', currentStreak > 0 ? '🔥 Dias perfeitos' : 'Complete 100% hoje!', currentStreak >= 7 ? 'from-orange-400 to-red-400' : 'from-gray-400 to-gray-500');
+
+            html += `</div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+                    <h3 class="text-lg font-semibold mb-6 text-gray-200 flex items-center gap-2">
+                        <i data-lucide="calendar-days" style="width: 20px; height: 20px;"></i>
+                        Progresso da Semana
+                    </h3>
+                    <canvas id="weekChart"></canvas>
+                </div>
+                <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+                    <h3 class="text-lg font-semibold mb-6 text-gray-200 flex items-center gap-2">
+                        <i data-lucide="target" style="width: 20px; height: 20px;"></i>
+                        Status de Hábitos
+                    </h3>
+                    <div class="h-64 flex items-center justify-center"><canvas id="habitsChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Insights -->
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                ${totalTasksToday > 0 && completedTasksToday === totalTasksToday ? `
+                    <div class="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
+                        <div class="flex items-center gap-2 text-green-400 font-semibold mb-1">
+                            <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
+                            Dia Perfeito!
+                        </div>
+                        <p class="text-sm text-green-300/80">Você completou todas as tarefas de hoje! 🎉</p>
+                    </div>
+                ` : ''}
+                ${currentStreak >= 3 ? `
+                    <div class="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
+                        <div class="flex items-center gap-2 text-orange-400 font-semibold mb-1">
+                            <i data-lucide="flame" style="width: 18px; height: 18px;"></i>
+                            Streak Ativo!
+                        </div>
+                        <p class="text-sm text-orange-300/80">${currentStreak} dias consecutivos! Continue assim!</p>
+                    </div>
+                ` : ''}
+                ${habitRate === 100 && totalHabits > 0 ? `
+                    <div class="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
+                        <div class="flex items-center gap-2 text-purple-400 font-semibold mb-1">
+                            <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                            Hábitos 100%
+                        </div>
+                        <p class="text-sm text-purple-300/80">Todos os hábitos completados hoje!</p>
+                    </div>
+                ` : ''}
+            </div>
+            </div>`;
 
             view.innerHTML = html;
 
             setTimeout(() => {
-                const pCtx = document.getElementById('periodChart');
-                if (pCtx) {
-                    new Chart(pCtx, {
-                        type: 'bar',
+                // Gráfico de progresso semanal
+                const weekCtx = document.getElementById('weekChart');
+                if (weekCtx) {
+                    const dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+                    const dayData = weekDates.map(({ name }) => {
+                        const stats = dayStats[name] || { total: 0, completed: 0 };
+                        return stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+                    });
+
+                    new Chart(weekCtx, {
+                        type: 'line',
                         data: {
-                            labels: ['Manhã', 'Tarde', 'Noite'],
-                            datasets: [{ label: 'Tasks', data: [periodStats.morning, periodStats.afternoon, periodStats.night], backgroundColor: ['#0A84FF', '#5E5CE6', '#BF5AF2'], borderRadius: 6, barThickness: 40 }]
+                            labels: dayNames,
+                            datasets: [{
+                                label: 'Taxa de Conclusão (%)',
+                                data: dayData,
+                                borderColor: '#0A84FF',
+                                backgroundColor: 'rgba(10, 132, 255, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                borderWidth: 2,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                pointBackgroundColor: '#0A84FF'
+                            }]
                         },
                         options: {
-                            plugins: { legend: { display: false } },
-                            scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#888' } }, x: { grid: { display: false }, ticks: { color: '#888' } } }
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    grid: { color: 'rgba(255,255,255,0.1)' },
+                                    ticks: { color: '#888', callback: (value) => value + '%' }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: '#888' }
+                                }
+                            }
                         }
                     });
                 }
+
+                // Gráfico de hábitos
                 const hCtx = document.getElementById('habitsChart');
                 if (hCtx) {
                     new Chart(hCtx, {
                         type: 'doughnut',
                         data: {
                             labels: ['Concluídos', 'Pendentes'],
-                            datasets: [{ data: [completedHabitsToday, totalHabits - completedHabitsToday], backgroundColor: ['#30d158', '#2c2c2e'], borderWidth: 0 }]
+                            datasets: [{
+                                data: [completedHabitsToday, totalHabits - completedHabitsToday],
+                                backgroundColor: ['#30d158', '#2c2c2e'],
+                                borderWidth: 0
+                            }]
                         },
-                        options: { cutout: '75%', plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', usePointStyle: true, pointStyle: 'circle' } } } }
+                        options: {
+                            cutout: '75%',
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: '#9ca3af',
+                                        usePointStyle: true,
+                                        pointStyle: 'circle',
+                                        padding: 15
+                                    }
+                                }
+                            }
+                        }
                     });
                 }
+
+                lucide.createIcons();
             }, 100);
         }
 
