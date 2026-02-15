@@ -548,6 +548,7 @@
             </div>
 
             <div class="segmented-control">
+                <button id="btnMonth" class="segment-btn" onclick="setView('month')">Mês</button>
                 <button id="btnWeek" class="segment-btn active" onclick="setView('week')">Semana</button>
                 <button id="btnToday" class="segment-btn" onclick="setView('today')">Hoje</button>
                 <button id="btnRoutine" class="segment-btn" onclick="setView('routine')">Rotina</button>
@@ -572,8 +573,17 @@
             </div>
         </div>
 
+        <!-- Week Navigation -->
+        <div id="weekNav" class="hidden flex items-center justify-center gap-4 mb-6">
+            <button id="btnPrevWeek" class="utility-btn" onclick="changeWeek(-1)"><i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i></button>
+            <div class="text-sm text-gray-400" id="weekLabel">Semana Atual</div>
+            <button id="btnNextWeek" class="utility-btn" onclick="changeWeek(1)"><i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i></button>
+            <button id="btnCurrentWeek" class="btn-secondary text-xs px-3 py-1 ml-4" onclick="goToCurrentWeek()" style="width: auto; padding: 6px 12px;">Semana Atual</button>
+        </div>
+
         <!-- Main Content -->
         <div id="contentArea">
+            <div id="monthView" class="hidden"></div>
             <div id="weekGrid" class="grid grid-cols-7 gap-0">
                 <!-- Javascript will populate this -->
             </div>
@@ -704,6 +714,8 @@
         let draggedTask = null;
         let currentEditingTask = null;
         const width = 600;
+        let currentWeekOffset = 0; // 0 = semana atual, -1 = semana passada, +1 = próxima semana
+        let currentMonthOffset = 0; // 0 = mês atual
 
         // Data Structures
         let dailyRoutine = JSON.parse(localStorage.getItem('dailyRoutine') || JSON.stringify([
@@ -711,8 +723,71 @@
             { text: "Venvanse", completed: false, color: "default", isHabit: true },
             { text: "Ler metas e mantra; celular na gaveta", completed: false, color: "default", isHabit: true }
         ]));
+
+        // Estrutura expandida: armazena tarefas por data ISO (YYYY-MM-DD) e período
+        let allTasksData = JSON.parse(localStorage.getItem('allTasksData') || '{}');
+
+        // Compatibilidade: estrutura antiga para a semana atual
         const weekData = { "Segunda": {}, "Terça": {}, "Quarta": {}, "Quinta": {}, "Sexta": {}, "Sábado": {}, "Domingo": {} };
         let habitsHistory = JSON.parse(localStorage.getItem('habitsHistory') || '{}');
+
+        // Funções auxiliares de data
+        function getWeekDates(weekOffset = 0) {
+            const today = new Date();
+            const currentDay = today.getDay(); // 0 = Domingo
+            const diff = currentDay === 0 ? -6 : 1 - currentDay; // Ajustar para segunda-feira
+
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + diff + (weekOffset * 7));
+            monday.setHours(0, 0, 0, 0);
+
+            const dates = [];
+            const dayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(monday);
+                date.setDate(monday.getDate() + i);
+                dates.push({
+                    name: dayNames[i],
+                    date: date,
+                    dateStr: date.toISOString().split('T')[0]
+                });
+            }
+
+            return dates;
+        }
+
+        function getMonthDates(monthOffset = 0) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + monthOffset;
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+
+            return { firstDay, lastDay, month: firstDay.getMonth(), year: firstDay.getFullYear() };
+        }
+
+        function getWeekLabel(weekOffset) {
+            const dates = getWeekDates(weekOffset);
+            const firstDate = dates[0].date;
+            const lastDate = dates[6].date;
+
+            if (weekOffset === 0) return 'Semana Atual';
+
+            const format = (d) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+            return `${format(firstDate)} - ${format(lastDate)}`;
+        }
+
+        function changeWeek(direction) {
+            currentWeekOffset += direction;
+            renderView();
+        }
+
+        function goToCurrentWeek() {
+            currentWeekOffset = 0;
+            renderView();
+        }
 
         // --- Core Functions ---
 
@@ -830,12 +905,15 @@
         }
 
         function saveToLocalStorage() {
+            localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
             localStorage.setItem('weekData', JSON.stringify(weekData));
             if (currentUser) {
                 // Trigger sync
-                Object.entries(weekData).forEach(([day, periods]) => {
+                Object.entries(allTasksData).forEach(([dateStr, periods]) => {
                     Object.entries(periods).forEach(([period, tasks]) => {
-                        tasks.forEach(task => syncTaskToSupabase(day, period, task));
+                        if (Array.isArray(tasks)) {
+                            tasks.forEach(task => syncTaskToSupabase(dateStr, period, task));
+                        }
                     });
                 });
             }
@@ -984,6 +1062,131 @@
             }, 100);
         }
 
+        function renderMonth() {
+            const view = document.getElementById('monthView');
+            const { firstDay, lastDay, month, year } = getMonthDates(currentMonthOffset);
+
+            const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+            let html = `
+                <div class="max-w-[1400px] mx-auto">
+                    <div class="flex items-center justify-center gap-4 mb-6">
+                        <button onclick="currentMonthOffset--; renderView();" class="utility-btn">
+                            <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+                        </button>
+                        <h2 class="text-2xl font-bold text-white min-w-[200px] text-center">
+                            ${monthNames[month]} ${year}
+                        </h2>
+                        <button onclick="currentMonthOffset++; renderView();" class="utility-btn">
+                            <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+                        </button>
+                        <button onclick="currentMonthOffset = 0; renderView();" class="btn-secondary text-xs px-3 py-1 ml-4" style="width: auto; padding: 6px 12px;">
+                            Mês Atual
+                        </button>
+                    </div>
+
+                    <!-- Cabeçalho dos dias da semana -->
+                    <div class="grid grid-cols-7 gap-2 mb-2">
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Seg</div>
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Ter</div>
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Qua</div>
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Qui</div>
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Sex</div>
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Sáb</div>
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Dom</div>
+                    </div>
+
+                    <!-- Grid do calendário -->
+                    <div class="grid grid-cols-7 gap-2">
+            `;
+
+            // Calcular o primeiro dia da semana (segunda = 0)
+            const firstDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+
+            // Preencher dias vazios antes do primeiro dia
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                html += `<div class="min-h-[120px] bg-[#1c1c1e] bg-opacity-30 rounded-lg"></div>`;
+            }
+
+            // Preencher os dias do mês
+            const today = new Date().toISOString().split('T')[0];
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const date = new Date(year, month, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const isToday = dateStr === today;
+
+                const dayTasks = allTasksData[dateStr] || {};
+                let totalTasks = 0;
+                let completedTasks = 0;
+
+                Object.values(dayTasks).forEach(tasks => {
+                    if (Array.isArray(tasks)) {
+                        totalTasks += tasks.length;
+                        completedTasks += tasks.filter(t => t.completed).length;
+                    }
+                });
+
+                // Adicionar tarefas da rotina diária
+                totalTasks += dailyRoutine.length;
+                const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
+                const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                const dayName = dayNames[date.getDay()];
+                const routineKey = `${dayName}_${dateStr}`;
+
+                dailyRoutine.forEach(task => {
+                    if (routineStates[task.text] && routineStates[task.text][routineKey]) {
+                        completedTasks++;
+                    }
+                });
+
+                const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                html += `
+                    <div class="min-h-[120px] bg-[#1c1c1e] bg-opacity-40 rounded-lg p-3 hover:bg-opacity-60 transition-all cursor-pointer border ${isToday ? 'border-blue-500' : 'border-white/5'}"
+                         onclick="goToDate('${dateStr}')">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-sm font-semibold ${isToday ? 'text-blue-400' : 'text-white'}">${day}</div>
+                            ${totalTasks > 0 ? `
+                                <div class="text-xs text-gray-500">
+                                    ${completedTasks}/${totalTasks}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${totalTasks > 0 ? `
+                            <div class="w-full h-1 bg-gray-700/30 rounded-full overflow-hidden mb-2">
+                                <div class="h-full bg-blue-500 rounded-full transition-all" style="width: ${completionPercent}%"></div>
+                            </div>
+                        ` : ''}
+
+                        <div class="text-xs text-gray-600 space-y-1">
+                            ${totalTasks === 0 ? '<div class="text-center py-4 text-gray-700">Sem tarefas</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            view.innerHTML = html;
+        }
+
+        function goToDate(dateStr) {
+            // Calcular qual semana essa data está
+            const targetDate = new Date(dateStr);
+            const today = new Date();
+            const diffTime = targetDate - today;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            currentWeekOffset = Math.floor(diffDays / 7);
+
+            // Mudar para view semanal
+            setView('week');
+        }
+
         function renderRoutineView() {
             const view = document.getElementById('routineView');
 
@@ -1110,6 +1313,7 @@
         function setView(view) {
             currentView = view;
             document.querySelectorAll('.segment-btn').forEach(btn => btn.classList.remove('active'));
+            if (view === 'month') document.getElementById('btnMonth').classList.add('active');
             if (view === 'week') document.getElementById('btnWeek').classList.add('active');
             if (view === 'today') document.getElementById('btnToday').classList.add('active');
             if (view === 'routine') document.getElementById('btnRoutine').classList.add('active');
@@ -1120,13 +1324,24 @@
         }
 
         function renderView() {
+            // Ocultar todas as views
+            document.getElementById('monthView').classList.add('hidden');
             document.getElementById('weekGrid').classList.add('hidden');
             document.getElementById('routineView').classList.add('hidden');
             document.getElementById('habitsView').classList.add('hidden');
             document.getElementById('analyticsView').classList.add('hidden');
             document.getElementById('settingsView').classList.add('hidden');
+            document.getElementById('weekNav').classList.add('hidden');
 
-            if (currentView === 'routine') {
+            // Mostrar navegação de semana apenas na view semanal
+            if (currentView === 'week') {
+                document.getElementById('weekNav').classList.remove('hidden');
+            }
+
+            if (currentView === 'month') {
+                document.getElementById('monthView').classList.remove('hidden');
+                renderMonth();
+            } else if (currentView === 'routine') {
                 document.getElementById('routineView').classList.remove('hidden');
                 renderRoutineView();
             } else if (currentView === 'habits') {
@@ -1153,7 +1368,15 @@
             grid.className = 'grid grid-cols-7 gap-0';
             grid.innerHTML = '';
 
-            Object.entries(weekData).forEach(([day, periods]) => {
+            // Atualizar label da semana
+            document.getElementById('weekLabel').textContent = getWeekLabel(currentWeekOffset);
+
+            const weekDates = getWeekDates(currentWeekOffset);
+
+            weekDates.forEach(({ name: day, dateStr }) => {
+                // Buscar tarefas para esta data específica
+                const dayTasks = allTasksData[dateStr] || {};
+                const periods = dayTasks;
                 const col = document.createElement('div');
                 col.className = 'day-column';
                 col.dataset.day = day;
@@ -1306,8 +1529,11 @@
                 if (e.key === 'Enter' && input.value.trim()) {
                     e.preventDefault();
 
+                    const dateStr = new Date().toISOString().split('T')[0];
                     const period = 'Tarefas';
-                    if (!weekData[day][period]) weekData[day][period] = [];
+
+                    if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+                    if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
 
                     const newTask = {
                         text: input.value.trim(),
@@ -1316,9 +1542,9 @@
                         isHabit: false
                     };
 
-                    weekData[day][period].push(newTask);
+                    allTasksData[dateStr][period].push(newTask);
 
-                    await syncTaskToSupabase(day, period, newTask);
+                    await syncTaskToSupabase(dateStr, period, newTask);
                     saveToLocalStorage();
 
                     renderView();
@@ -1375,9 +1601,16 @@
                 if (e.key === 'Enter' && input.value.trim()) {
                     e.preventDefault();
 
-                    // Criar tarefa no período "default" (pode ajustar depois)
+                    // Encontrar a data correspondente ao dia da coluna
+                    const weekDates = getWeekDates(currentWeekOffset);
+                    const dayInfo = weekDates.find(d => d.name === day);
+                    if (!dayInfo) return;
+
+                    const dateStr = dayInfo.dateStr;
                     const period = 'Tarefas';
-                    if (!weekData[day][period]) weekData[day][period] = [];
+
+                    if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+                    if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
 
                     const newTask = {
                         text: input.value.trim(),
@@ -1386,10 +1619,10 @@
                         isHabit: false
                     };
 
-                    weekData[day][period].push(newTask);
+                    allTasksData[dateStr][period].push(newTask);
 
                     // Salvar e sincronizar
-                    await syncTaskToSupabase(day, period, newTask);
+                    await syncTaskToSupabase(dateStr, period, newTask);
                     saveToLocalStorage();
 
                     // Re-renderizar a view
