@@ -4,8 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0A84FF">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Flowly">
     <title>Flowly</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="logo_flowly.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2494,6 +2500,160 @@
 
         // Inicializar ícones Lucide
         lucide.createIcons();
+
+        // ========================================
+        // PWA - Service Worker & Notificações
+        // ========================================
+
+        let serviceWorkerRegistration = null;
+
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then((registration) => {
+                    console.log('✅ Service Worker registrado:', registration);
+                    serviceWorkerRegistration = registration;
+
+                    // Pedir permissão para notificações após 3 segundos
+                    setTimeout(() => {
+                        requestNotificationPermission();
+                    }, 3000);
+                })
+                .catch((error) => {
+                    console.error('❌ Erro ao registrar Service Worker:', error);
+                });
+
+            // Listener para mensagens do Service Worker
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'GET_DAILY_STATS') {
+                    sendDailyStats();
+                }
+            });
+        }
+
+        // Função para pedir permissão de notificações
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                console.log('Este navegador não suporta notificações');
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                console.log('✅ Permissão de notificações já concedida');
+                scheduleNotifications();
+                return;
+            }
+
+            if (Notification.permission !== 'denied') {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('✅ Permissão de notificações concedida!');
+                    scheduleNotifications();
+                    showWelcomeNotification();
+                }
+            }
+        }
+
+        // Agendar notificações através do Service Worker
+        function scheduleNotifications() {
+            if (serviceWorkerRegistration) {
+                serviceWorkerRegistration.active.postMessage({
+                    type: 'SCHEDULE_NOTIFICATIONS'
+                });
+            }
+        }
+
+        // Notificação de boas-vindas
+        function showWelcomeNotification() {
+            if (serviceWorkerRegistration) {
+                serviceWorkerRegistration.showNotification('🎉 Notificações ativadas!', {
+                    body: 'Você receberá lembretes e atualizações de progresso',
+                    icon: '/logo_flowly.png',
+                    badge: '/logo_flowly.png',
+                    vibrate: [200, 100, 200],
+                    tag: 'flowly-welcome'
+                });
+            }
+        }
+
+        // Enviar notificação de progresso
+        function sendProgressNotification() {
+            const today = new Date().toISOString().split('T')[0];
+            const dayData = allTasksData[today] || {};
+
+            let total = 0;
+            let completed = 0;
+
+            Object.values(dayData).forEach(period => {
+                if (Array.isArray(period)) {
+                    total += period.length;
+                    completed += period.filter(t => t.completed).length;
+                }
+            });
+
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            if (serviceWorkerRegistration && total > 0) {
+                serviceWorkerRegistration.active.postMessage({
+                    type: 'SEND_PROGRESS_NOTIFICATION',
+                    completed,
+                    total,
+                    percentage
+                });
+            }
+        }
+
+        // Enviar estatísticas diárias para o resumo da noite
+        function sendDailyStats() {
+            const today = new Date().toISOString().split('T')[0];
+            const dayData = allTasksData[today] || {};
+
+            let total = 0;
+            let completed = 0;
+
+            Object.values(dayData).forEach(period => {
+                if (Array.isArray(period)) {
+                    total += period.length;
+                    completed += period.filter(t => t.completed).length;
+                }
+            });
+
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            if (serviceWorkerRegistration) {
+                serviceWorkerRegistration.active.postMessage({
+                    type: 'DAILY_STATS',
+                    completed,
+                    total,
+                    percentage
+                });
+            }
+        }
+
+        // Enviar notificação de progresso quando tarefa é marcada
+        const originalSaveToLocalStorage = saveToLocalStorage;
+        saveToLocalStorage = function() {
+            originalSaveToLocalStorage();
+
+            // Enviar notificação a cada 3 tarefas completadas
+            const today = new Date().toISOString().split('T')[0];
+            const dayData = allTasksData[today] || {};
+            let completed = 0;
+            Object.values(dayData).forEach(period => {
+                if (Array.isArray(period)) {
+                    completed += period.filter(t => t.completed).length;
+                }
+            });
+
+            // Notificar a cada 3, 5, 8 e 10 tarefas completadas
+            if ([3, 5, 8, 10].includes(completed)) {
+                setTimeout(sendProgressNotification, 1000);
+            }
+        };
+
+        // ========================================
+        // Fim PWA
+        // ========================================
 
     </script>
 </body>
