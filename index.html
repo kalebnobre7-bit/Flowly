@@ -1101,8 +1101,35 @@
             const todayGradient = todayRate >= 70 ? 'from-green-400 to-emerald-400' : todayRate >= 40 ? 'from-orange-400 to-yellow-400' : 'from-red-400 to-pink-400';
             const todayIcon = todayRate >= 70 ? '🔥 ' : todayRate >= 40 ? '⚡ ' : '💤 ';
 
+            // Calcular semana passada para comparação
+            const lastWeekDates = getWeekDates(-1);
+            let lastWeekTotal = 0, lastWeekCompleted = 0;
+            lastWeekDates.forEach(({ dateStr }) => {
+                const dayTasks = allTasksData[dateStr] || {};
+                Object.values(dayTasks).forEach(tasks => {
+                    if (Array.isArray(tasks)) {
+                        lastWeekTotal += tasks.length;
+                        lastWeekCompleted += tasks.filter(t => t.completed).length;
+                    }
+                });
+            });
+            const lastWeekRate = lastWeekTotal > 0 ? Math.round((lastWeekCompleted / lastWeekTotal) * 100) : 0;
+            const weekDiff = weekRate - lastWeekRate;
+            const weekTrend = weekDiff > 0 ? '📈' : weekDiff < 0 ? '📉' : '➡️';
+            const weekCompare = weekDiff !== 0 ? `${weekTrend} ${Math.abs(weekDiff)}% vs semana anterior` : 'Mesmo que semana anterior';
+
+            // Melhor e pior dia
+            const dayRates = Object.entries(dayStats).map(([name, stats]) => ({
+                name,
+                rate: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
+                total: stats.total
+            })).filter(d => d.total > 0);
+
+            const bestDay = dayRates.reduce((best, day) => day.rate > best.rate ? day : best, { name: '-', rate: 0 });
+            const worstDay = dayRates.reduce((worst, day) => day.rate < worst.rate ? day : worst, { name: '-', rate: 100 });
+
             html += card('Hoje', `${todayIcon}${todayRate}%`, `${completedTasksToday}/${totalTasksToday} tarefas`, todayGradient);
-            html += card('Semana', `${weekRate}%`, `${completedTasksWeek}/${totalTasksWeek} tarefas`, 'from-blue-400 to-indigo-400');
+            html += card('Semana', `${weekRate}%`, weekCompare, weekDiff > 0 ? 'from-green-400 to-emerald-400' : weekDiff < 0 ? 'from-red-400 to-pink-400' : 'from-blue-400 to-indigo-400');
             html += card('Hábitos', `${habitRate}%`, `${completedHabitsToday}/${totalHabits} concluídos`, habitRate === 100 && totalHabits > 0 ? 'from-green-400 to-emerald-400' : 'from-purple-400 to-pink-400');
             html += card('Streak', currentStreak > 0 ? `${currentStreak} ${currentStreak === 1 ? 'dia' : 'dias'}` : '0', currentStreak > 0 ? '🔥 Dias perfeitos' : 'Complete 100% hoje!', currentStreak >= 7 ? 'from-orange-400 to-red-400' : 'from-gray-400 to-gray-500');
 
@@ -1123,6 +1150,153 @@
                         Status de Hábitos
                     </h3>
                     <div class="h-64 flex items-center justify-center"><canvas id="habitsChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Melhor e Pior Dia da Semana -->
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="trophy" style="width: 16px; height: 16px;"></i>
+                        Melhor Dia da Semana
+                    </h3>
+                    ${bestDay.name !== '-' ? `
+                        <div class="flex items-center justify-between">
+                            <div class="text-2xl font-bold text-green-400">${bestDay.name}</div>
+                            <div class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
+                                ${bestDay.rate}%
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Maior taxa de conclusão esta semana</p>
+                    ` : '<p class="text-gray-500 text-sm">Aguardando dados...</p>'}
+                </div>
+                <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="alert-circle" style="width: 16px; height: 16px;"></i>
+                        Dia que Precisa de Atenção
+                    </h3>
+                    ${worstDay.name !== '-' && dayRates.length > 1 ? `
+                        <div class="flex items-center justify-between">
+                            <div class="text-2xl font-bold text-orange-400">${worstDay.name}</div>
+                            <div class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400">
+                                ${worstDay.rate}%
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Menor taxa de conclusão esta semana</p>
+                    ` : '<p class="text-gray-500 text-sm">Aguardando dados...</p>'}
+                </div>
+            </div>
+
+            <!-- Ranking de Hábitos -->
+            <div class="mt-6 bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-200 flex items-center gap-2">
+                    <i data-lucide="award" style="width: 20px; height: 20px;"></i>
+                    Ranking de Hábitos (30 dias)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${(() => {
+                        const habits = getAllHabits();
+                        const habitRanking = habits.map(h => ({
+                            text: h.text,
+                            rate: getHabitCompletionRate(h.text, 30),
+                            streak: getHabitStreak(h.text)
+                        })).sort((a, b) => b.rate - a.rate);
+
+                        if (habitRanking.length === 0) {
+                            return '<p class="text-gray-500 text-sm col-span-2">Nenhum hábito rastreado ainda.</p>';
+                        }
+
+                        return habitRanking.slice(0, 6).map((habit, index) => {
+                            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}º`;
+                            const color = habit.rate >= 80 ? 'text-green-400' : habit.rate >= 60 ? 'text-blue-400' : 'text-gray-400';
+                            return `
+                                <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all">
+                                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                                        <span class="text-xl">${medal}</span>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-medium truncate">${habit.text}</div>
+                                            <div class="text-xs text-gray-500">
+                                                ${habit.streak > 0 ? `🔥 ${habit.streak} dias` : 'Sem streak'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-xl font-bold ${color}">${habit.rate}%</div>
+                                </div>
+                            `;
+                        }).join('');
+                    })()}
+                </div>
+            </div>
+
+            <!-- Heatmap Mensal -->
+            <div class="mt-6 bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-200 flex items-center gap-2">
+                    <i data-lucide="calendar-heart" style="width: 20px; height: 20px;"></i>
+                    Heatmap de Produtividade (Últimos 30 Dias)
+                </h3>
+                <div id="heatmapContainer" class="grid grid-cols-7 gap-2">
+                    ${(() => {
+                        let heatmapHtml = '';
+                        const endDate = new Date();
+                        const startDate = new Date();
+                        startDate.setDate(endDate.getDate() - 29);
+
+                        const currentDate = new Date(startDate);
+                        for (let i = 0; i < 30; i++) {
+                            const dateStr = currentDate.toISOString().split('T')[0];
+                            const dayTasks = allTasksData[dateStr] || {};
+                            let total = 0, completed = 0;
+
+                            Object.values(dayTasks).forEach(tasks => {
+                                if (Array.isArray(tasks)) {
+                                    total += tasks.length;
+                                    completed += tasks.filter(t => t.completed).length;
+                                }
+                            });
+
+                            const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+                            const intensity = rate >= 80 ? 'bg-green-500' : rate >= 60 ? 'bg-blue-500' : rate >= 40 ? 'bg-orange-500' : rate > 0 ? 'bg-red-500' : 'bg-gray-700';
+                            const dayNum = currentDate.getDate();
+                            const isToday = dateStr === new Date().toISOString().split('T')[0];
+
+                            heatmapHtml += `
+                                <div class="relative group">
+                                    <div class="${intensity} ${isToday ? 'ring-2 ring-blue-400' : ''} aspect-square rounded-lg flex items-center justify-center text-xs font-bold hover:scale-110 transition-all cursor-pointer"
+                                         title="${dateStr}: ${rate}% (${completed}/${total})">
+                                        ${dayNum}
+                                    </div>
+                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                        ${dateStr}<br>${rate}% (${completed}/${total})
+                                    </div>
+                                </div>
+                            `;
+
+                            currentDate.setDate(currentDate.getDate() + 1);
+                        }
+                        return heatmapHtml;
+                    })()}
+                </div>
+                <div class="mt-4 flex items-center justify-center gap-4 text-xs text-gray-500">
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-gray-700 rounded"></div>
+                        <span>Sem dados</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-red-500 rounded"></div>
+                        <span>&lt;40%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-orange-500 rounded"></div>
+                        <span>40-60%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-blue-500 rounded"></div>
+                        <span>60-80%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 bg-green-500 rounded"></div>
+                        <span>≥80%</span>
+                    </div>
                 </div>
             </div>
 
