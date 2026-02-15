@@ -2018,8 +2018,6 @@
             el.dataset.day = day;
             el.dataset.period = 'routine';
             el.dataset.index = routineIndex;
-            el.style.background = 'rgba(10, 132, 255, 0.12)';
-            el.style.borderLeft = '2px solid var(--accent-blue)';
 
             // Drag Handle
             const handle = document.createElement('div');
@@ -2050,6 +2048,7 @@
             // Label
             const label = document.createElement('span');
             label.className = `task-label color-${task.color || 'default'} ${isCompleted ? 'task-completed' : ''}`;
+            label.style.color = 'var(--accent-blue)';
             label.textContent = task.text;
 
             // Single Click Edit
