@@ -831,12 +831,14 @@
         });
 
         // Listener para mudanças de autenticação
-        supabaseClient.auth.onAuthStateChange((event, session) => {
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth state changed:', event, session);
             if (event === 'SIGNED_IN' && session) {
                 currentUser = session.user;
                 document.getElementById('authModal').classList.remove('show');
                 document.getElementById('userEmail').textContent = session.user.email;
+                // Não renderizar aqui se foi via signIn (evita duplicação)
+                // O signIn já chama renderView()
             } else if (event === 'SIGNED_OUT') {
                 currentUser = null;
                 document.getElementById('authModal').classList.add('show');
@@ -967,6 +969,7 @@
             document.getElementById('userEmail').textContent = data.user.email;
             await migrateLocalDataToSupabase();
             await loadDataFromSupabase();
+            renderView(); // Renderizar a view após login
             return true;
         }
 
