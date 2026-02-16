@@ -756,9 +756,9 @@
 
             <div id="authLogin">
                 <input type="email" id="loginEmail" class="task-input mb-3" style="background: rgba(0,0,0,0.3);"
-                    placeholder="Email">
+                    placeholder="Email" autocomplete="username">
                 <input type="password" id="loginPassword" class="task-input mb-4" style="background: rgba(0,0,0,0.3);"
-                    placeholder="Senha">
+                    placeholder="Senha" autocomplete="current-password">
 
                 <div class="flex items-center gap-2 mb-6">
                     <input type="checkbox" id="keepLoggedIn" class="checkbox-custom" checked>
@@ -1969,6 +1969,8 @@
             input.type = 'text';
             input.className = 'quick-task-input';
             input.placeholder = 'Digite para adicionar tarefa...';
+            input.autocomplete = 'off';
+            input.setAttribute('data-form-type', 'other');
             inputContainer.appendChild(input);
 
             container.appendChild(inputContainer);
@@ -1998,6 +2000,12 @@
                     saveToLocalStorage();
 
                     renderView();
+                }
+
+                // Deletar linha vazia ao pressionar Backspace/Delete
+                if ((e.key === 'Backspace' || e.key === 'Delete') && input.value.trim() === '') {
+                    e.preventDefault();
+                    inputContainer.remove();
                 }
 
                 if (e.key === 'Escape') {
@@ -2040,6 +2048,8 @@
             input.type = 'text';
             input.className = 'quick-task-input';
             input.placeholder = 'Digite para adicionar tarefa...';
+            input.autocomplete = 'off';
+            input.setAttribute('data-form-type', 'other');
             container.appendChild(input);
 
             // Adicionar ao final da coluna
@@ -2079,6 +2089,12 @@
                     renderView();
                 }
 
+                // Deletar linha vazia ao pressionar Backspace/Delete
+                if ((e.key === 'Backspace' || e.key === 'Delete') && input.value.trim() === '') {
+                    e.preventDefault();
+                    container.remove();
+                }
+
                 // Cancelar ao pressionar Escape
                 if (e.key === 'Escape') {
                     container.remove();
@@ -2108,6 +2124,11 @@
             el.dataset.date = dateStr;
             el.dataset.period = period;
             el.dataset.index = index;
+
+            // Aplicar indent se existir
+            if (task.indent && task.indent > 0) {
+                el.style.paddingLeft = `${task.indent * 24}px`;
+            }
 
             // Drag Handle
             const handle = document.createElement('div');
@@ -2199,6 +2220,28 @@
                 if (e.key === 'Escape') {
                     label.textContent = currentEditingTask.original;
                     finishEditing();
+                }
+                // TAB para indent (estilo Notion)
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const taskItem = label.closest('.task-item');
+                    const currentIndent = parseInt(task.indent || 0);
+
+                    if (e.shiftKey) {
+                        // Shift+Tab = desindentar
+                        if (currentIndent > 0) {
+                            task.indent = currentIndent - 1;
+                            taskItem.style.paddingLeft = `${task.indent * 24}px`;
+                        }
+                    } else {
+                        // Tab = indentar
+                        if (currentIndent < 3) { // Máximo 3 níveis
+                            task.indent = currentIndent + 1;
+                            taskItem.style.paddingLeft = `${task.indent * 24}px`;
+                        }
+                    }
+
+                    saveToLocalStorage();
                 }
             };
             label.onblur = finishEditing;
@@ -2292,8 +2335,21 @@
                 insertAt--;
             }
 
+            // Ajustar a flag isRoutine baseado no período de destino
+            const taskToMove = { ...draggedTask.task };
+            if (targetPeriod === 'Rotina') {
+                taskToMove.isRoutine = true;
+            } else {
+                taskToMove.isRoutine = false;
+            }
+
             // Inserir na nova posição
-            allTasksData[targetDateStr][targetPeriod].splice(insertAt, 0, draggedTask.task);
+            allTasksData[targetDateStr][targetPeriod].splice(insertAt, 0, taskToMove);
+
+            // Limpar períodos vazios
+            if (allTasksData[sourceDateStr][sourcePeriod].length === 0) {
+                delete allTasksData[sourceDateStr][sourcePeriod];
+            }
 
             // Salvar
             localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
@@ -2322,17 +2378,27 @@
             }
             toolbar.querySelector('[data-action="delete"]').onclick = async () => {
                 // Delete logic
-                const day = label.closest('.task-item').dataset.day;
-                const period = label.closest('.task-item').dataset.period;
-                const index = parseInt(label.closest('.task-item').dataset.index);
-                const taskToDelete = weekData[day][period][index];
+                const taskElement = label.closest('.task-item');
+                const dateStr = taskElement.dataset.date;
+                const period = taskElement.dataset.period;
+                const index = parseInt(taskElement.dataset.index);
+
+                // Buscar a tarefa
+                if (!allTasksData[dateStr] || !allTasksData[dateStr][period]) return;
+                const taskToDelete = allTasksData[dateStr][period][index];
 
                 // Deletar do Supabase primeiro
                 await deleteTaskFromSupabase(taskToDelete);
 
                 // Depois deletar localmente
-                weekData[day][period].splice(index, 1);
-                saveToLocalStorage();
+                allTasksData[dateStr][period].splice(index, 1);
+
+                // Limpar período vazio
+                if (allTasksData[dateStr][period].length === 0) {
+                    delete allTasksData[dateStr][period];
+                }
+
+                localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
                 renderView();
             }
         }
