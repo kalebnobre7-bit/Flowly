@@ -800,12 +800,13 @@
 
         const customStorage = {
             getItem: (key) => {
-                // Sempre tentar localStorage primeiro, depois sessionStorage
-                return localStorage.getItem(key) || sessionStorage.getItem(key);
+                const value = localStorage.getItem(key) || sessionStorage.getItem(key);
+                console.log('[Storage] getItem:', key, value ? 'found' : 'not found');
+                return value;
             },
             setItem: (key, value) => {
-                // Verificar se deve persistir (padrão: true)
                 const shouldPersist = localStorage.getItem('flowly_persist_session') !== 'false';
+                console.log('[Storage] setItem:', key, 'persist:', shouldPersist);
                 if (shouldPersist) {
                     localStorage.setItem(key, value);
                 } else {
@@ -813,13 +814,33 @@
                 }
             },
             removeItem: (key) => {
+                console.log('[Storage] removeItem:', key);
                 localStorage.removeItem(key);
                 sessionStorage.removeItem(key);
             }
         };
 
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
-            auth: { storage: customStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+            auth: {
+                storage: customStorage,
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true,
+                storageKey: 'flowly-auth'
+            }
+        });
+
+        // Listener para mudanças de autenticação
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event, session);
+            if (event === 'SIGNED_IN' && session) {
+                currentUser = session.user;
+                document.getElementById('authModal').classList.remove('show');
+                document.getElementById('userEmail').textContent = session.user.email;
+            } else if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                document.getElementById('authModal').classList.add('show');
+            }
         });
 
         let currentUser = null;
@@ -908,14 +929,19 @@
         // --- Core Functions ---
 
         async function checkAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
+            console.log('[Auth] Checking auth...');
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            console.log('[Auth] Session:', session ? 'found' : 'not found', error);
+
             if (session) {
+                console.log('[Auth] User logged in:', session.user.email);
                 currentUser = session.user;
                 document.getElementById('authModal').classList.remove('show');
                 document.getElementById('userEmail').textContent = session.user.email;
                 await loadDataFromSupabase();
                 renderView();
             } else {
+                console.log('[Auth] No session, showing login');
                 document.getElementById('authModal').classList.add('show');
             }
         }
