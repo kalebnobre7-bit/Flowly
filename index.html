@@ -793,11 +793,24 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNncm9zeWp0dWpha2tiampubW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMTA0NzcsImV4cCI6MjA4NjU4NjQ3N30.MsDw0nSiLF1jHWMuVGRgTT6gNUeK328RvGBo-YcFG1A';
         const { createClient } = window.supabase;
 
+        // Inicializar flowly_persist_session como true por padrão (checkbox vem marcado)
+        if (localStorage.getItem('flowly_persist_session') === null) {
+            localStorage.setItem('flowly_persist_session', 'true');
+        }
+
         const customStorage = {
-            getItem: (key) => localStorage.getItem(key) || sessionStorage.getItem(key),
+            getItem: (key) => {
+                // Sempre tentar localStorage primeiro, depois sessionStorage
+                return localStorage.getItem(key) || sessionStorage.getItem(key);
+            },
             setItem: (key, value) => {
-                if (localStorage.getItem('flowly_persist_session') === 'true') localStorage.setItem(key, value);
-                else sessionStorage.setItem(key, value);
+                // Verificar se deve persistir (padrão: true)
+                const shouldPersist = localStorage.getItem('flowly_persist_session') !== 'false';
+                if (shouldPersist) {
+                    localStorage.setItem(key, value);
+                } else {
+                    sessionStorage.setItem(key, value);
+                }
             },
             removeItem: (key) => {
                 localStorage.removeItem(key);
