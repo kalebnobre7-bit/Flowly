@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Flowly">
     <title>Flowly</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" href="logo_flowly.png">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="logo_flowly.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -245,6 +245,13 @@
             width: 100%;
             cursor: text;
             transition: opacity 0.2s;
+        }
+
+        /* Placeholder para tarefas vazias */
+        .task-label[data-placeholder]:empty::before {
+            content: attr(data-placeholder);
+            color: #666;
+            font-style: italic;
         }
 
         .task-completed {
@@ -530,9 +537,11 @@
             align-items: center;
             justify-content: center;
             opacity: 0;
-            cursor: grab;
+            cursor: pointer;
             color: #555;
             font-size: 12px;
+            pointer-events: all;
+            z-index: 10;
         }
 
         .task-item:hover .drag-handle {
@@ -540,7 +549,8 @@
         }
 
         .drag-handle:hover {
-            color: #fff;
+            color: #0A84FF;
+            transform: translateY(-50%) scale(1.2);
         }
 
         /* Responsividade */
@@ -669,7 +679,6 @@
 
             <div class="flex items-center gap-3">
                 <button id="btnTogglePeriods" class="utility-btn" title="Mostrar/Ocultar períodos"><i data-lucide="list" style="width: 18px; height: 18px;"></i></button>
-                <button id="btnBackup" class="utility-btn" title="Backup"><i data-lucide="database" style="width: 18px; height: 18px;"></i></button>
                 <div class="relative">
                     <button id="btnUser" class="utility-btn"><i data-lucide="user" style="width: 18px; height: 18px;"></i></button>
                     <div id="userDropdown" class="context-menu"
@@ -706,17 +715,14 @@
 
     <!-- Floating Action Button -->
     <div id="floatingAddBtn" class="floating-add-btn">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
+        <img src="logo_flowly.png" alt="Flowly" style="width: 32px; height: 32px; object-fit: contain;">
     </div>
 
     <!-- Quick Add Menu -->
     <div id="quickAddMenu" class="context-menu"
         style="position: fixed; bottom: 100px; right: 32px; min-width: 200px; flex-direction: column; gap: 4px;">
         <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm flex items-center gap-2" data-type="routine"><i data-lucide="repeat" style="width: 16px; height: 16px;"></i> Adicionar rotina diária</div>
+        <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm flex items-center gap-2" data-type="weekly"><i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Tarefa semanal recorrente</div>
         <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm flex items-center gap-2" data-type="custom"><i data-lucide="plus" style="width: 16px; height: 16px;"></i> Nova tarefa customizada</div>
     </div>
 
@@ -781,22 +787,6 @@
         </div>
     </div>
 
-    <!-- Backup Modal -->
-    <div id="backupModal" class="modal-overlay">
-        <div class="modal-content">
-            <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="database" style="width: 22px; height: 22px;"></i> Backup & Dados</h2>
-            <button id="btnExport" class="btn-primary mb-4 flex items-center justify-center gap-2" style="background: #333;"><i data-lucide="download" style="width: 18px; height: 18px;"></i> Exportar Dados (JSON)</button>
-            <div class="relative mb-6">
-                <input type="file" id="fileImport" accept=".json" class="hidden">
-                <label for="fileImport" class="btn-secondary block text-center cursor-pointer flex items-center justify-center gap-2"
-                    style="padding: 12px; border: 1px dashed #555;"><i data-lucide="upload" style="width: 18px; height: 18px;"></i> Importar Backup</label>
-            </div>
-            <button id="btnClearAll" class="btn-secondary flex items-center justify-center gap-2"
-                style="color: #ff453a; background: rgba(255, 69, 58, 0.1);"><i data-lucide="trash-2" style="width: 18px; height: 18px;"></i> Limpar Tudo</button>
-            <button id="btnCloseBackup" class="btn-secondary mt-6">Fechar</button>
-        </div>
-    </div>
-
     <script>
         // --- Supabase & Storage Logic ---
         const SUPABASE_URL = 'https://cgrosyjtujakkbjjnmml.supabase.co';
@@ -833,6 +823,9 @@
             { text: "Venvanse", completed: false, color: "default", isHabit: true },
             { text: "Ler metas e mantra; celular na gaveta", completed: false, color: "default", isHabit: true }
         ]));
+
+        // Tarefas semanais recorrentes: {text, daysOfWeek: [0,1,2...6], color, isHabit}
+        let weeklyRecurringTasks = JSON.parse(localStorage.getItem('weeklyRecurringTasks') || '[]');
 
         // Estrutura expandida: armazena tarefas por data ISO (YYYY-MM-DD) e período
         let allTasksData = JSON.parse(localStorage.getItem('allTasksData') || '{}');
@@ -1091,6 +1084,38 @@
 
         function toggleHabitToday(habitText, completed) { Object.entries(weekData).forEach(([day, periods]) => { Object.entries(periods).forEach(([period, tasks]) => { tasks.forEach(task => { if (task.isHabit && task.text === habitText) { task.completed = completed; } }) }) }); markHabitCompleted(habitText, completed); saveToLocalStorage(); renderHabitsView(); }
 
+        function removeHabit(habitText) {
+            if (!confirm(`Tem certeza que deseja remover "${habitText}" dos hábitos?\n\nIsso irá desmarcar esta tarefa como hábito em todas as ocorrências.`)) return;
+
+            // Remover da rotina diária se existir
+            const routineIndex = dailyRoutine.findIndex(t => t.text === habitText);
+            if (routineIndex !== -1) {
+                dailyRoutine.splice(routineIndex, 1);
+                localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
+            }
+
+            // Desmarcar como hábito em todas as tarefas existentes
+            Object.entries(allTasksData).forEach(([dateStr, periods]) => {
+                Object.entries(periods).forEach(([period, tasks]) => {
+                    tasks.forEach(task => {
+                        if (task.text === habitText && task.isHabit) {
+                            task.isHabit = false;
+                        }
+                    });
+                });
+            });
+
+            // Limpar histórico do hábito
+            if (habitsHistory[habitText]) {
+                delete habitsHistory[habitText];
+                localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
+            }
+
+            saveToLocalStorage();
+            renderHabitsView();
+            setTimeout(() => lucide.createIcons(), 0);
+        }
+
         function renderHabitsView() {
             const view = document.getElementById('habitsView'), habits = getAllHabits();
             if (habits.length === 0) { view.innerHTML = '<div class="text-center py-20"><p class="text-gray-400 text-lg">Nenhum hábito rastreado ainda.</p><p class="text-gray-600 text-sm mt-2">Marque tasks como hábitos no menu de contexto (botão direito).</p></div>'; return; }
@@ -1113,7 +1138,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="w-32 h-1.5 bg-gray-700/30 rounded-full overflow-hidden ml-4 flex-shrink-0"><div class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: ${completionRate}%"></div></div>
+                <div class="flex items-center gap-3">
+                    <div class="w-32 h-1.5 bg-gray-700/30 rounded-full overflow-hidden flex-shrink-0"><div class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: ${completionRate}%"></div></div>
+                    <button onclick="removeHabit('${habit.text.replace(/'/g, "\\'")}');" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg" title="Remover hábito">
+                        <i data-lucide="x" class="text-red-400" style="width: 18px; height: 18px;"></i>
+                    </button>
+                </div>
                 </div>`;
             });
             html += `</div></div>`;
@@ -1753,28 +1783,148 @@
 
         function renderSettingsView() {
             const view = document.getElementById('settingsView');
+
+            const weeklyTasksList = weeklyRecurringTasks.map((task, i) => {
+                const dayNames = task.daysOfWeek.map(d => ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][d]).join(', ');
+                return `
+                    <div class="flex items-center justify-between p-3 bg-[#111] rounded-lg mb-2">
+                        <div>
+                            <div class="text-white">${task.text}</div>
+                            <div class="text-xs text-gray-500">${dayNames}</div>
+                        </div>
+                        <button onclick="deleteWeeklyRecurringTask(${i})" class="text-red-400 hover:text-red-300">
+                            <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
             view.innerHTML = `
                 <div class="max-w-2xl mx-auto py-8">
                     <h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="settings" style="width: 28px; height: 28px;"></i> Configurações</h2>
 
                     <div class="space-y-4">
                         <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-white">Tarefas Semanais Recorrentes</h3>
+                                    <p class="text-gray-500 text-sm">Tarefas que aparecem automaticamente em dias específicos da semana</p>
+                                </div>
+                                <button onclick="showWeeklyRecurrenceDialog(); setTimeout(() => lucide.createIcons(), 0);" class="btn-primary px-4 py-2 text-sm" style="width: auto;">
+                                    <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                                </button>
+                            </div>
+                            ${weeklyTasksList || '<p class="text-gray-600 text-sm">Nenhuma tarefa recorrente criada ainda.</p>'}
+                        </div>
+
+                        <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
+                            <h3 class="text-lg font-semibold mb-4 text-white">Limpeza e Manutenção</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <button onclick="deleteEmptyTasks()" class="btn-secondary px-6 py-2 text-sm" style="width: auto;">
+                                        <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Excluir tarefas vazias
+                                    </button>
+                                    <p class="text-gray-500 text-xs mt-2">Remove todas as tarefas sem texto de todas as datas</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
+                            <h3 class="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+                                <i data-lucide="database" style="width: 20px; height: 20px;"></i> Backup e Dados
+                            </h3>
+                            <p class="text-gray-500 text-sm mb-4">Gerenciar backup e sincronização dos seus dados</p>
+
+                            <div class="space-y-3">
+                                <button id="btnExportSettings" class="btn-secondary w-full px-6 py-2 text-sm flex items-center justify-center gap-2">
+                                    <i data-lucide="download" style="width: 16px; height: 16px;"></i> Exportar Dados (JSON)
+                                </button>
+
+                                <div class="relative">
+                                    <input type="file" id="fileImportSettings" accept=".json" class="hidden">
+                                    <label for="fileImportSettings" class="btn-secondary w-full px-6 py-2 text-sm flex items-center justify-center gap-2 cursor-pointer border border-dashed border-gray-600">
+                                        <i data-lucide="upload" style="width: 16px; height: 16px;"></i> Importar Backup
+                                    </label>
+                                </div>
+
+                                <button id="btnClearAllSettings" class="btn-secondary w-full px-6 py-2 text-sm flex items-center justify-center gap-2" style="color: #ff453a; background: rgba(255, 69, 58, 0.1); border-color: rgba(255, 69, 58, 0.3);">
+                                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Limpar Todos os Dados
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
                             <h3 class="text-lg font-semibold mb-2 text-white">Aparência</h3>
-                            <p class="text-gray-500 text-sm">Configurações de tema e visualização</p>
+                            <p class="text-gray-500 text-sm">Configurações de tema e visualização (em breve)</p>
                         </div>
 
                         <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
                             <h3 class="text-lg font-semibold mb-2 text-white">Notificações</h3>
-                            <p class="text-gray-500 text-sm">Gerenciar lembretes e alertas</p>
-                        </div>
-
-                        <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
-                            <h3 class="text-lg font-semibold mb-2 text-white">Dados</h3>
-                            <p class="text-gray-500 text-sm">Backup e sincronização</p>
+                            <p class="text-gray-500 text-sm">Gerenciar lembretes e alertas (em breve)</p>
                         </div>
                     </div>
                 </div>
             `;
+
+            setTimeout(() => lucide.createIcons(), 0);
+        }
+
+        function deleteWeeklyRecurringTask(index) {
+            if (!confirm('Remover esta tarefa semanal recorrente?')) return;
+            weeklyRecurringTasks.splice(index, 1);
+            localStorage.setItem('weeklyRecurringTasks', JSON.stringify(weeklyRecurringTasks));
+            renderSettingsView();
+        }
+
+        async function deleteEmptyTasks() {
+            if (!confirm('Tem certeza que deseja excluir todas as tarefas vazias (sem texto)?\n\nEsta ação não pode ser desfeita!')) return;
+
+            let deletedCount = 0;
+
+            // Percorrer todas as datas
+            Object.entries(allTasksData).forEach(([dateStr, periods]) => {
+                Object.entries(periods).forEach(([period, tasks]) => {
+                    if (Array.isArray(tasks)) {
+                        // Filtrar tarefas vazias
+                        const beforeLength = tasks.length;
+                        const filteredTasks = tasks.filter(task => task.text && task.text.trim() !== '');
+                        const afterLength = filteredTasks.length;
+
+                        deletedCount += (beforeLength - afterLength);
+
+                        // Atualizar array
+                        allTasksData[dateStr][period] = filteredTasks;
+
+                        // Remover período se ficou vazio
+                        if (filteredTasks.length === 0) {
+                            delete allTasksData[dateStr][period];
+                        }
+                    }
+                });
+
+                // Remover data se não tem mais períodos
+                if (Object.keys(allTasksData[dateStr]).length === 0) {
+                    delete allTasksData[dateStr];
+                }
+            });
+
+            // Deletar tarefas vazias do Supabase
+            if (currentUser) {
+                try {
+                    await supabaseClient
+                        .from('tasks')
+                        .delete()
+                        .eq('user_id', currentUser.id)
+                        .or('text.is.null,text.eq.');
+                } catch (error) {
+                    console.error('Erro ao deletar tarefas vazias do Supabase:', error);
+                }
+            }
+
+            saveToLocalStorage();
+            renderView();
+
+            alert(`${deletedCount} tarefa(s) vazia(s) foram excluídas!`);
         }
 
         function setView(view) {
@@ -1788,6 +1938,57 @@
             if (view === 'analytics') document.getElementById('btnAnalytics').classList.add('active');
             if (view === 'settings') document.getElementById('btnSettings').classList.add('active');
             renderView();
+        }
+
+        // Função para mostrar diálogo de criação de tarefa semanal recorrente
+        function showWeeklyRecurrenceDialog() {
+            const text = prompt('Digite a tarefa recorrente:');
+            if (!text || !text.trim()) return;
+
+            const daysInput = prompt('Digite os dias da semana separados por vírgula (0=Domingo, 1=Segunda, 2=Terça, 3=Quarta, 4=Quinta, 5=Sexta, 6=Sábado):\n\nExemplos:\n"1,3,5" para Segunda, Quarta e Sexta\n"2,4" para Terça e Quinta');
+            if (!daysInput) return;
+
+            const daysOfWeek = daysInput.split(',').map(d => parseInt(d.trim())).filter(d => d >= 0 && d <= 6);
+            if (daysOfWeek.length === 0) {
+                alert('Nenhum dia válido foi especificado!');
+                return;
+            }
+
+            const newRecurringTask = {
+                text: text.trim(),
+                daysOfWeek: daysOfWeek,
+                color: 'default',
+                isHabit: false
+            };
+
+            weeklyRecurringTasks.push(newRecurringTask);
+            localStorage.setItem('weeklyRecurringTasks', JSON.stringify(weeklyRecurringTasks));
+
+            alert(`Tarefa "${text.trim()}" criada para os dias: ${daysOfWeek.map(d => ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][d]).join(', ')}`);
+            renderView();
+        }
+
+        // Função para aplicar tarefas recorrentes em um dia específico
+        function applyWeeklyRecurringTasks(dateStr, dayOfWeek) {
+            if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+            if (!allTasksData[dateStr]['Tarefas']) allTasksData[dateStr]['Tarefas'] = [];
+
+            const existingTexts = allTasksData[dateStr]['Tarefas'].map(t => t.text);
+
+            weeklyRecurringTasks.forEach(recurringTask => {
+                if (recurringTask.daysOfWeek.includes(dayOfWeek)) {
+                    // Só adicionar se ainda não existe
+                    if (!existingTexts.includes(recurringTask.text)) {
+                        allTasksData[dateStr]['Tarefas'].push({
+                            text: recurringTask.text,
+                            completed: false,
+                            color: recurringTask.color,
+                            isHabit: recurringTask.isHabit,
+                            isWeeklyRecurring: true
+                        });
+                    }
+                }
+            });
         }
 
         function renderView() {
@@ -1841,6 +2042,10 @@
             const weekDates = getWeekDates(currentWeekOffset);
 
             weekDates.forEach(({ name: day, dateStr }) => {
+                // Aplicar tarefas semanais recorrentes
+                const date = new Date(dateStr + 'T12:00:00');
+                applyWeeklyRecurringTasks(dateStr, date.getDay());
+
                 // Buscar tarefas para esta data específica
                 const dayTasks = allTasksData[dateStr] || {};
 
@@ -1902,6 +2107,9 @@
             const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
             const today = days[new Date().getDay()];
             const dateStr = new Date().toISOString().split('T')[0];
+
+            // Aplicar tarefas semanais recorrentes para hoje
+            applyWeeklyRecurringTasks(dateStr, new Date().getDay());
 
             const header = document.createElement('div');
             header.className = 'mb-8';
@@ -2134,6 +2342,12 @@
             const handle = document.createElement('div');
             handle.className = 'drag-handle';
             handle.innerHTML = '⋮⋮';
+            handle.style.cursor = 'pointer';
+            handle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                showEditToolbar(e, task, label);
+            });
             el.appendChild(handle);
 
             // Checkbox
@@ -2157,7 +2371,21 @@
             if (task.isRoutine || period === 'Rotina') {
                 label.style.color = 'var(--accent-blue)';
             }
-            label.textContent = task.text;
+
+            // Normalizar texto da tarefa (garantir que não seja undefined)
+            if (task.text === undefined || task.text === null) {
+                task.text = '';
+            }
+
+            // Se a tarefa está vazia, mostrar placeholder
+            if (task.text.trim() === '') {
+                label.textContent = '';
+                label.style.color = '#666';
+                label.setAttribute('data-placeholder', 'Clique para editar...');
+                label.style.position = 'relative';
+            } else {
+                label.textContent = task.text;
+            }
 
             // Single Click Edit
             label.onclick = (e) => {
@@ -2221,6 +2449,12 @@
                     label.textContent = currentEditingTask.original;
                     finishEditing();
                 }
+                // Delete ou Backspace em tarefa vazia = deletar a tarefa
+                if ((e.key === 'Backspace' || e.key === 'Delete') && label.textContent.trim() === '') {
+                    e.preventDefault();
+                    label.textContent = ''; // Garantir que está vazio
+                    finishEditing(); // Vai deletar a tarefa automaticamente
+                }
                 // TAB para indent (estilo Notion)
                 if (e.key === 'Tab') {
                     e.preventDefault();
@@ -2247,12 +2481,55 @@
             label.onblur = finishEditing;
         }
 
-        function finishEditing() {
+        async function finishEditing() {
             if (!currentEditingTask) return;
             const { label, task } = currentEditingTask;
-            task.text = label.textContent.trim();
+            const newText = label.textContent.trim();
+
+            // Se a tarefa ficou vazia, deletar
+            if (!newText || newText === '') {
+                const taskElement = label.closest('.task-item');
+                const dateStr = taskElement.dataset.date;
+                const period = taskElement.dataset.period;
+                const index = parseInt(taskElement.dataset.index);
+
+                if (allTasksData[dateStr] && allTasksData[dateStr][period]) {
+                    const taskToDelete = allTasksData[dateStr][period][index];
+
+                    // Deletar do Supabase
+                    await deleteTaskFromSupabase(taskToDelete);
+
+                    // Deletar localmente
+                    allTasksData[dateStr][period].splice(index, 1);
+
+                    // Limpar período vazio
+                    if (allTasksData[dateStr][period].length === 0) {
+                        delete allTasksData[dateStr][period];
+                    }
+
+                    // Limpar data vazia
+                    if (Object.keys(allTasksData[dateStr]).length === 0) {
+                        delete allTasksData[dateStr];
+                    }
+                }
+
+                localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+                currentEditingTask = null;
+                renderView();
+                return;
+            }
+
+            // Tarefa tem texto, salvar normalmente
+            task.text = newText;
             label.contentEditable = false;
             label.closest('.task-item').draggable = true;
+
+            // Remover placeholder se tinha
+            if (label.hasAttribute('data-placeholder')) {
+                label.removeAttribute('data-placeholder');
+                label.style.color = '';
+            }
+
             saveToLocalStorage();
             currentEditingTask = null;
         }
@@ -2376,6 +2653,18 @@
                 ev.stopPropagation();
                 showColorMenu(ev, task, label);
             }
+            toolbar.querySelector('[data-action="habit"]').onclick = () => {
+                task.isHabit = !task.isHabit;
+                saveToLocalStorage();
+                renderView();
+                toolbar.classList.remove('show');
+
+                if (task.isHabit) {
+                    alert(`"${task.text}" marcado como hábito! Agora você pode acompanhá-lo na aba Hábitos.`);
+                } else {
+                    alert(`"${task.text}" removido dos hábitos.`);
+                }
+            }
             toolbar.querySelector('[data-action="delete"]').onclick = async () => {
                 // Delete logic
                 const taskElement = label.closest('.task-item');
@@ -2453,6 +2742,52 @@
             m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
         }
 
+        // Event listeners para opções do quick add menu
+        document.querySelectorAll('.quick-add-option').forEach(option => {
+            option.onclick = () => {
+                const type = option.dataset.type;
+                document.getElementById('quickAddMenu').style.display = 'none';
+
+                if (type === 'routine') {
+                    const text = prompt('Digite a tarefa de rotina diária:');
+                    if (text && text.trim()) {
+                        dailyRoutine.push({
+                            text: text.trim(),
+                            completed: false,
+                            color: 'default',
+                            isHabit: true
+                        });
+                        localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
+                        renderView();
+                    }
+                } else if (type === 'weekly') {
+                    showWeeklyRecurrenceDialog();
+                } else if (type === 'custom') {
+                    // Abre um prompt para tarefa customizada (ex: adicionar em data específica)
+                    const text = prompt('Digite a tarefa:');
+                    if (text && text.trim()) {
+                        const dateStr = new Date().toISOString().split('T')[0];
+                        const period = 'Tarefas';
+
+                        if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+                        if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
+
+                        const newTask = {
+                            text: text.trim(),
+                            completed: false,
+                            color: 'default',
+                            isHabit: false
+                        };
+
+                        allTasksData[dateStr][period].push(newTask);
+                        syncTaskToSupabase(dateStr, period, newTask);
+                        saveToLocalStorage();
+                        renderView();
+                    }
+                }
+            };
+        });
+
         // Event listeners para autenticação
         document.getElementById('btnLogin').onclick = async () => {
             const email = document.getElementById('loginEmail').value;
@@ -2476,16 +2811,8 @@
             document.getElementById('authLogin').style.display = 'block';
         };
 
-        // Event listeners para o modal de backup
-        document.getElementById('btnBackup').onclick = () => {
-            document.getElementById('backupModal').classList.add('show');
-        };
-
-        document.getElementById('btnCloseBackup').onclick = () => {
-            document.getElementById('backupModal').classList.remove('show');
-        };
-
-        document.getElementById('btnExport').onclick = () => {
+        // Event listeners para backup nas configurações
+        document.getElementById('btnExportSettings').onclick = () => {
             const data = {
                 weekData: weekData,
                 habitsHistory: habitsHistory,
@@ -2500,7 +2827,7 @@
             URL.revokeObjectURL(url);
         };
 
-        document.getElementById('fileImport').onchange = async (e) => {
+        document.getElementById('fileImportSettings').onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -2527,7 +2854,7 @@
             reader.readAsText(file);
         };
 
-        document.getElementById('btnClearAll').onclick = async () => {
+        document.getElementById('btnClearAllSettings').onclick = async () => {
             if (confirm('Tem certeza que deseja limpar TODOS os dados? Esta ação não pode ser desfeita!')) {
                 // Salvar dados de autenticação antes de limpar
                 const authKeys = Object.keys(localStorage).filter(key =>
@@ -2557,11 +2884,32 @@
                 saveToLocalStorage();
                 renderView();
                 alert('Todos os dados foram limpos!');
-                document.getElementById('backupModal').classList.remove('show');
             }
         };
 
+        // Normalizar tarefas antigas (corrigir text: undefined)
+        function normalizeAllTasks() {
+            let hasChanges = false;
+            Object.entries(allTasksData).forEach(([dateStr, periods]) => {
+                Object.entries(periods).forEach(([period, tasks]) => {
+                    if (Array.isArray(tasks)) {
+                        tasks.forEach(task => {
+                            if (task.text === undefined || task.text === null) {
+                                task.text = '';
+                                hasChanges = true;
+                            }
+                        });
+                    }
+                });
+            });
+
+            if (hasChanges) {
+                localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+            }
+        }
+
         loadFromLocalStorage();
+        normalizeAllTasks(); // Normalizar tarefas antigas
         setTimeout(checkAuth, 100);
 
         // Inicializar ícones Lucide
