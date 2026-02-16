@@ -833,12 +833,19 @@
         // Listener para mudanças de autenticação
         supabaseClient.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth state changed:', event, session);
-            if (event === 'SIGNED_IN' && session) {
+
+            // INITIAL_SESSION acontece quando a página carrega com sessão salva
+            if (event === 'INITIAL_SESSION' && session) {
                 currentUser = session.user;
                 document.getElementById('authModal').classList.remove('show');
                 document.getElementById('userEmail').textContent = session.user.email;
-                // Não renderizar aqui se foi via signIn (evita duplicação)
-                // O signIn já chama renderView()
+                await loadDataFromSupabase();
+                renderView();
+            } else if (event === 'SIGNED_IN' && session) {
+                // SIGNED_IN acontece no login manual (já renderiza no signIn)
+                currentUser = session.user;
+                document.getElementById('authModal').classList.remove('show');
+                document.getElementById('userEmail').textContent = session.user.email;
             } else if (event === 'SIGNED_OUT') {
                 currentUser = null;
                 document.getElementById('authModal').classList.add('show');
@@ -2952,7 +2959,8 @@
 
         loadFromLocalStorage();
         normalizeAllTasks(); // Normalizar tarefas antigas
-        setTimeout(checkAuth, 100);
+        // checkAuth agora é chamado via onAuthStateChange (INITIAL_SESSION)
+        // setTimeout(checkAuth, 100);
 
         // Inicializar ícones Lucide
         lucide.createIcons();
