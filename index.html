@@ -3233,12 +3233,17 @@
                 .eq('day', dateStr);
 
             // Reinserir na ordem atual do allTasksData
+            // Nunca salvar tarefas recorrentes ou de rotina no banco
+            const weeklyTextsSet = new Set(weeklyRecurringTasks.map(rt => rt.text));
+            const routineTextsSet = new Set(dailyRoutine.map(rt => rt.text));
             const periods = allTasksData[dateStr] || {};
             const inserts = [];
             Object.entries(periods).forEach(([period, tasks]) => {
                 if (Array.isArray(tasks)) {
                     tasks.forEach(task => {
                         if (!task.text || task.text.trim() === '') return;
+                        if (task.isWeeklyRecurring || task.isRoutine) return;
+                        if (weeklyTextsSet.has(task.text) || routineTextsSet.has(task.text)) return;
                         inserts.push({
                             user_id: currentUser.id,
                             day: dateStr,
@@ -3495,90 +3500,23 @@
             document.getElementById('weeklyModal').classList.remove('show');
         };
 
-        // Event listeners para backup nas configurações
-        document.getElementById('btnExportSettings').onclick = () => {
-            const data = {
-                weekData: weekData,
-                habitsHistory: habitsHistory,
-                exportDate: new Date().toISOString()
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `flowly-backup-${localDateStr()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        };
+        // Handlers de export/import/clear estão dentro de renderSettingsView()
 
-        document.getElementById('fileImportSettings').onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    if (data.weekData) {
-                        Object.keys(weekData).forEach(day => {
-                            if (data.weekData[day]) weekData[day] = data.weekData[day];
-                        });
-                    }
-                    if (data.habitsHistory) {
-                        habitsHistory = data.habitsHistory;
-                        localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
-                    }
-                    saveToLocalStorage();
-                    renderView();
-                    alert('Backup importado com sucesso!');
-                } catch (error) {
-                    alert('Erro ao importar backup: ' + error.message);
-                }
-            };
-            reader.readAsText(file);
-        };
-
-        document.getElementById('btnClearAllSettings').onclick = async () => {
-            if (confirm('Tem certeza que deseja limpar TODOS os dados? Esta ação não pode ser desfeita!')) {
-                // Salvar dados de autenticação antes de limpar
-                const authKeys = Object.keys(localStorage).filter(key =>
-                    key.startsWith('sb-') || key === 'flowly_persist_session'
-                );
-                const authData = {};
-                authKeys.forEach(key => {
-                    authData[key] = localStorage.getItem(key);
-                });
-
-                // Limpar do Supabase
-                if (currentUser) {
-                    await supabaseClient.from('tasks').delete().eq('user_id', currentUser.id);
-                    await supabaseClient.from('habits_history').delete().eq('user_id', currentUser.id);
-                }
-
-                // Limpar localmente
-                Object.keys(weekData).forEach(day => weekData[day] = {});
-                habitsHistory = {};
-                localStorage.clear();
-
-                // Restaurar dados de autenticação
-                Object.entries(authData).forEach(([key, value]) => {
-                    localStorage.setItem(key, value);
-                });
-
-                saveToLocalStorage();
-                renderView();
-                alert('Todos os dados foram limpos!');
-            }
-        };
-
-        // Normalizar tarefas (corrigir text: undefined e remover recorrentes persistidas)
+        // Normalizar tarefas (corrigir text: undefined e remover recorrentes/rotina persistidas)
         function normalizeAllTasks() {
             let hasChanges = false;
+            const weeklyTextsSet = new Set(weeklyRecurringTasks.map(rt => rt.text));
+            const routineTextsSet = new Set(dailyRoutine.map(rt => rt.text));
+
             Object.entries(allTasksData).forEach(([dateStr, periods]) => {
                 Object.entries(periods).forEach(([period, tasks]) => {
                     if (Array.isArray(tasks)) {
-                        // Remover tarefas recorrentes semanais que foram salvas indevidamente
-                        const filtered = tasks.filter(task => !task.isWeeklyRecurring);
+                        // Remover tarefas recorrentes/rotina salvas indevidamente (por flag ou por texto)
+                        const filtered = tasks.filter(task => {
+                            if (task.isWeeklyRecurring || task.isRoutine) return false;
+                            if (task.text && weeklyTextsSet.has(task.text)) return false;
+                            return true;
+                        });
                         if (filtered.length !== tasks.length) {
                             allTasksData[dateStr][period] = filtered;
                             hasChanges = true;
