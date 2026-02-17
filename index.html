@@ -645,15 +645,33 @@
 
             .day-column {
                 min-height: 150px;
+                padding: 12px;
+            }
+
+            .day-column h2 {
+                font-size: 16px;
+                margin-bottom: 12px;
+                position: sticky;
+                top: 0;
+                background: var(--bg-card);
+                padding: 8px 0;
+                z-index: 10;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
             }
 
             .task-item {
-                padding: 8px 10px;
+                padding: 12px 14px;
+                font-size: 13px;
+                min-height: 48px;
+                /* Touch-friendly */
+                gap: 12px;
             }
 
             .checkbox-custom {
-                width: 16px;
-                height: 16px;
+                width: 20px !important;
+                height: 20px !important;
+                min-width: 20px !important;
             }
 
             .drag-handle {
@@ -665,14 +683,57 @@
             }
 
             .segment-btn {
-                font-size: 10px;
-                padding: 4px 10px;
+                font-size: 11px;
+                padding: 5px 12px;
+                min-height: 36px;
             }
 
             .logo-img {
                 height: 24px;
             }
+
+            /* FAB maior em mobile */
+            .fab {
+                width: 56px !important;
+                height: 56px !important;
+                bottom: 16px !important;
+                right: 16px !important;
+            }
+
+            .fab svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            /* Inputs touch-friendly */
+            input[type="text"],
+            textarea,
+            select {
+                font-size: 16px !important;
+                /* Previne zoom no iOS */
+                padding: 12px !important;
+                min-height: 44px;
+            }
+
+            /* Drop zones mais visíveis */
+            .drop-zone {
+                min-height: 48px !important;
+                border-width: 2px;
+            }
+
+            .drop-zone.active {
+                min-height: 56px !important;
+                background: rgba(10, 132, 255, 0.15) !important;
+            }
+
+            /* Botões touch-friendly */
+            .week-nav-btn {
+                min-width: 44px;
+                min-height: 44px;
+                padding: 12px;
+            }
         }
+
 
         /* Ajuste de largura máxima para telas grandes */
         @media (min-width: 1920px) {
