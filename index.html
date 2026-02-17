@@ -159,187 +159,227 @@
             border-color: var(--border-active);
         }
 
-        /* Layout Grid */
+        /* ====== NOTION-STYLE LAYOUT ====== */
+
+        /* Week Grid - Clean columns */
         #weekGrid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 16px;
-            /* Espaço entre colunas */
+            gap: 0;
             max-width: 1600px;
             margin: 0 auto;
         }
 
         .day-column {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            min-height: 500px;
-            padding: 20px 16px;
-            transition: all 0.2s ease;
+            background: transparent;
+            border: none;
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 0;
+            min-height: 65vh;
+            padding: 0 12px 20px 12px;
+            transition: background 0.15s ease;
             position: relative;
             display: flex;
             flex-direction: column;
         }
 
-        /* Remove border-right antiga */
-        .day-column {
-            border-right: 1px solid var(--border-subtle);
+        .day-column:last-child {
+            border-right: none;
         }
 
         .day-column:hover {
-            border-color: var(--border-active);
-            background: var(--bg-card-hover);
+            background: rgba(255, 255, 255, 0.015);
         }
 
         .day-column.drag-over {
-            background: rgba(10, 132, 255, 0.1);
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
+            background: rgba(10, 132, 255, 0.04);
         }
 
+        /* Day headers */
         h2 {
             font-family: var(--font-display);
-            font-weight: 600;
-            font-size: 15px;
-            color: var(--text-secondary);
-            margin-bottom: 20px;
-            padding-left: 4px;
-            letter-spacing: -0.01em;
+            font-weight: 500;
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            padding: 12px 4px 8px 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
         }
 
         h2.text-blue-400 {
             color: var(--accent-blue) !important;
-            font-weight: 700;
+            font-weight: 600;
         }
 
-        /* Task Items - CORREÇÃO DE ALINHAMENTO */
+        /* Task Items - Notion flat style */
         .task-item {
-            background: rgba(60, 60, 64, 0.4);
-            border: 1px solid transparent;
-            border-radius: 10px;
-            padding: 12px 14px;
-            /* Mais espaço interno */
-            margin-bottom: 8px;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 6px;
+            margin-bottom: 1px;
             display: flex;
             align-items: flex-start;
-            /* Alinhar checkbox ao topo do texto */
-            gap: 12px;
-            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            gap: 8px;
+            transition: background 0.1s ease;
             position: relative;
-            box-shadow: var(--shadow-sm);
             width: 100%;
-            /* Garantir largura total */
             box-sizing: border-box;
         }
 
         .task-item:hover {
-            background: rgba(70, 70, 75, 0.6);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-            border-color: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.04);
         }
 
-        /* Checkbox Moderno */
+        /* Checkbox - minimal */
         .checkbox-custom {
             appearance: none;
-            width: 20px;
-            height: 20px;
-            border: 1.5px solid #666;
-            border-radius: 6px;
-            /* Squirqle (Apple style) ao invés de círculo perfeito */
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            border-radius: 4px;
             cursor: pointer;
             flex-shrink: 0;
-            /* IMPEDIR QUE O BROWSER ESMAGUE O CHECKBOX */
-            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            margin-top: 1px;
+            transition: all 0.15s ease;
+            margin-top: 2px;
             background: transparent;
         }
 
         .checkbox-custom:hover {
-            border-color: #999;
-            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.45);
         }
 
         .checkbox-custom:checked {
             background: var(--accent-blue);
             border-color: var(--accent-blue);
-            box-shadow: 0 0 8px rgba(10, 132, 255, 0.4);
         }
 
         .checkbox-custom:checked::after {
             content: '';
             display: block;
-            width: 5px;
-            height: 9px;
+            width: 4px;
+            height: 8px;
             border: solid white;
-            border-width: 0 2px 2px 0;
-            margin: 4px auto 0;
+            border-width: 0 1.5px 1.5px 0;
+            margin: 2px auto 0;
             transform: rotate(45deg);
         }
 
-        /* Drop Zone Correção */
+        /* Drop Zone - subtle */
         .drop-zone {
             margin-top: auto;
-            /* Empurra para o final */
-            height: 40px;
-            border-radius: 8px;
+            height: 32px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--text-tertiary);
-            font-size: 24px;
-            font-weight: 200;
+            font-size: 18px;
+            font-weight: 300;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s;
             opacity: 0;
-            /* Invisível por padrão */
         }
 
         .day-column:hover .drop-zone {
-            opacity: 0.5;
+            opacity: 0.4;
         }
 
         .drop-zone:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--accent-blue);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
             opacity: 1;
         }
 
         .drop-zone.active {
-            background: rgba(10, 132, 255, 0.1);
-            border: 2px dashed var(--accent-blue);
+            background: rgba(10, 132, 255, 0.06);
+            border: 1.5px dashed rgba(10, 132, 255, 0.4);
             opacity: 1;
         }
 
-        /* Typography & Editing */
+        /* Typography - clean */
         .task-label {
             font-size: 14px;
-            line-height: 1.5;
-            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.55;
+            color: rgba(255, 255, 255, 0.85);
             width: 100%;
             cursor: text;
-            transition: opacity 0.2s;
+            transition: color 0.15s;
         }
 
-        /* Placeholder para tarefas vazias */
         .task-label[data-placeholder]:empty::before {
             content: attr(data-placeholder);
-            color: #666;
-            font-style: italic;
+            color: rgba(255, 255, 255, 0.2);
+            font-style: normal;
         }
 
         .task-completed {
-            color: var(--text-secondary);
+            color: rgba(255, 255, 255, 0.3);
             text-decoration: line-through;
-            opacity: 0.6;
         }
 
         .task-label[contenteditable="true"] {
             outline: none;
-            background: rgba(10, 132, 255, 0.15);
-            border-radius: 4px;
+            background: rgba(10, 132, 255, 0.08);
+            border-radius: 3px;
+            padding: 0 3px;
+            box-shadow: 0 0 0 1.5px rgba(10, 132, 255, 0.25);
+        }
+
+        /* ====== TODAY VIEW ====== */
+        .today-container {
+            max-width: 680px;
+            margin: 0 auto;
             padding: 0 4px;
-            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.3);
+        }
+
+        .today-header {
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .today-header h1 {
+            font-family: var(--font-display);
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin: 0 0 4px 0;
+        }
+
+        .today-header p {
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin: 0;
+        }
+
+        .today-task-list .task-item {
+            padding: 7px 8px;
+            margin-bottom: 0;
+            border-radius: 6px;
+        }
+
+        .today-task-list .task-item:hover {
+            background: rgba(255, 255, 255, 0.035);
+        }
+
+        .today-empty {
+            text-align: center;
+            padding: 48px 0;
+        }
+
+        .today-empty p:first-child {
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .today-empty p:last-child {
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 13px;
         }
 
         /* Drag & Drop Visuals */
@@ -627,20 +667,22 @@
 
         .drag-handle {
             position: absolute;
-            left: -8px;
+            left: -14px;
             top: 50%;
             transform: translateY(-50%);
-            width: 20px;
+            width: 14px;
             height: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
-            cursor: pointer;
-            color: #555;
-            font-size: 12px;
+            cursor: grab;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 10px;
+            letter-spacing: -2px;
             pointer-events: all;
             z-index: 10;
+            transition: opacity 0.1s;
         }
 
         .task-item:hover .drag-handle {
@@ -648,27 +690,26 @@
         }
 
         .drag-handle:hover {
-            color: #0A84FF;
-            transform: translateY(-50%) scale(1.2);
+            color: rgba(255, 255, 255, 0.5);
         }
 
-        /* Responsividade */
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        /* ====== RESPONSIVIDADE ====== */
+
         @media (max-width: 1024px) {
-            body {
-                padding: 16px;
-            }
+            body { padding: 16px; }
 
             .grid.grid-cols-7 {
                 grid-template-columns: repeat(3, 1fr) !important;
             }
 
-            .day-column h2 {
-                font-size: 14px;
-            }
-
             .nav-container {
                 flex-direction: column;
                 gap: 16px;
+                margin-bottom: 24px;
             }
 
             .logo-area {
@@ -689,30 +730,8 @@
             }
         }
 
-        /* Tablets e telas médias */
-        @media (max-width: 1024px) {
-            body {
-                padding: 16px;
-            }
-
-            .grid.grid-cols-7 {
-                grid-template-columns: repeat(3, 1fr) !important;
-                gap: 14px;
-            }
-
-            .nav-container {
-                margin-bottom: 24px;
-            }
-
-            .task-item {
-                padding: 12px 14px;
-            }
-        }
-
         @media (max-width: 768px) {
-            body {
-                padding: 12px;
-            }
+            body { padding: 12px; }
 
             .nav-container {
                 flex-direction: column;
@@ -733,105 +752,69 @@
                 -ms-overflow-style: none;
             }
 
-            .segmented-control::-webkit-scrollbar {
-                display: none;
-            }
+            .segmented-control::-webkit-scrollbar { display: none; }
 
             .grid.grid-cols-7 {
                 grid-template-columns: 1fr !important;
-                gap: 16px;
+                gap: 0;
             }
 
             .day-column {
                 min-height: auto;
-                padding: 16px;
+                padding: 0 12px 16px 12px;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             }
 
+            .day-column:last-child { border-bottom: none; }
+
             .day-column h2 {
-                font-size: 18px;
-                margin-bottom: 14px;
+                font-size: 13px;
                 position: sticky;
                 top: 0;
-                background: var(--bg-card);
-                padding: 10px 0;
+                background: var(--bg-body);
+                padding: 12px 4px 8px 4px;
                 z-index: 10;
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border-radius: var(--radius-sm);
             }
 
             .task-item {
-                font-size: 14px;
-                padding: 14px 16px;
-                min-height: 48px;
+                padding: 8px;
+                min-height: 40px;
             }
 
-            .task-label {
-                font-size: 14px;
-            }
+            .today-container { padding: 0; }
+            .today-header h1 { font-size: 26px; }
 
             .checkbox-custom {
-                width: 22px !important;
-                height: 22px !important;
-                min-width: 22px !important;
+                width: 18px !important;
+                height: 18px !important;
+                min-width: 18px !important;
             }
         }
 
-        /* Landscape mode em smartphones */
         @media (max-width: 768px) and (orientation: landscape) {
             .grid.grid-cols-7 {
                 grid-template-columns: repeat(2, 1fr) !important;
             }
-
-            .day-column {
-                min-height: auto;
-            }
         }
-
 
         @media (max-width: 480px) {
             .grid.grid-cols-7 {
                 grid-template-columns: 1fr !important;
             }
 
-            .day-column {
-                min-height: 150px;
-                padding: 12px;
-            }
-
             .day-column h2 {
-                font-size: 16px;
-                margin-bottom: 12px;
-                position: sticky;
-                top: 0;
-                background: var(--bg-card);
-                padding: 8px 0;
-                z-index: 10;
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
+                font-size: 12px;
             }
 
             .task-item {
-                padding: 12px 14px;
-                font-size: 13px;
-                min-height: 48px;
-                /* Touch-friendly */
-                gap: 12px;
+                padding: 7px 6px;
+                gap: 8px;
             }
 
-            .checkbox-custom {
-                width: 20px !important;
-                height: 20px !important;
-                min-width: 20px !important;
-            }
+            .drag-handle { display: none; }
 
-            .drag-handle {
-                display: none;
-            }
-
-            .nav-container {
-                gap: 12px;
-            }
+            .nav-container { gap: 12px; }
 
             .segment-btn {
                 font-size: 11px;
@@ -839,54 +822,19 @@
                 min-height: 36px;
             }
 
-            .logo-img {
-                height: 24px;
-            }
-
-            /* FAB maior em mobile */
-            .fab {
-                width: 56px !important;
-                height: 56px !important;
-                bottom: 16px !important;
-                right: 16px !important;
-            }
-
-            .fab svg {
-                width: 24px;
-                height: 24px;
-            }
-
-            /* Inputs touch-friendly */
-            input[type="text"],
-            textarea,
-            select {
+            input[type="text"], textarea, select {
                 font-size: 16px !important;
-                /* Previne zoom no iOS */
-                padding: 12px !important;
                 min-height: 44px;
             }
 
-            /* Drop zones mais visíveis */
-            .drop-zone {
-                min-height: 48px !important;
-                border-width: 2px;
-            }
+            .drop-zone { min-height: 40px !important; }
 
-            .drop-zone.active {
-                min-height: 56px !important;
-                background: rgba(10, 132, 255, 0.15) !important;
-            }
-
-            /* Botões touch-friendly */
             .week-nav-btn {
                 min-width: 44px;
                 min-height: 44px;
-                padding: 12px;
             }
         }
 
-
-        /* Ajuste de largura máxima para telas grandes */
         @media (min-width: 1920px) {
             body {
                 max-width: 1800px;
@@ -3561,7 +3509,8 @@
 
         function renderWeek() {
             const grid = document.getElementById('weekGrid');
-            grid.className = 'grid grid-cols-7 gap-0';
+            grid.className = '';
+            grid.style.cssText = '';
             grid.innerHTML = '';
 
             // Atualizar label da semana
@@ -3586,12 +3535,13 @@
                 col.addEventListener('drop', handleDrop);
 
                 const header = document.createElement('h2');
-                header.textContent = day;
-                // Highlight today
+                // Highlight today - add date number
                 const todayStr = localDateStr();
+                const dayNum = dateStr.split('-')[2].replace(/^0/, '');
                 if (dateStr === todayStr) {
-                    header.classList.add('text-blue-400');
-                    col.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+                    header.innerHTML = `<span style="color: var(--accent-blue); font-weight: 600;">${day}</span> <span style="color: var(--accent-blue); opacity: 0.6;">${dayNum}</span>`;
+                } else {
+                    header.innerHTML = `${day} <span style="opacity: 0.5;">${dayNum}</span>`;
                 }
                 col.appendChild(header);
 
@@ -3741,17 +3691,23 @@
 
         function renderToday() {
             const grid = document.getElementById('weekGrid');
-            grid.className = 'max-w-2xl mx-auto';
+            grid.className = 'today-container';
+            grid.style.display = 'block';
             grid.innerHTML = '';
 
             const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
             const today = days[new Date().getDay()];
             const dateStr = localDateStr();
 
+            // Header
             const header = document.createElement('div');
-            header.className = 'mb-8';
-            header.innerHTML = `<h1 class="text-3xl font-bold mb-2">${today}</h1><p class="text-gray-500">${new Date().toLocaleDateString('pt-BR')}</p>`;
+            header.className = 'today-header';
+            header.innerHTML = `<h1>${today}</h1><p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`;
             grid.appendChild(header);
+
+            // Task list container
+            const taskList = document.createElement('div');
+            taskList.className = 'today-task-list';
 
             // Buscar tarefas de hoje
             const dayTasks = allTasksData[dateStr] || {};
@@ -3759,13 +3715,13 @@
             // Flatten all tasks into a continuous list
             const allTasks = [];
 
-            // 1. Rotina diária + recorrentes semanais (geradas dinamicamente, index = -1)
+            // 1. Rotina diária + recorrentes semanais
             const routineTasks = getRoutineTasksForDate(dateStr);
             routineTasks.forEach((task) => {
                 allTasks.push({ task, day: today, dateStr, period: 'Rotina', originalIndex: -1 });
             });
 
-            // 2. Tarefas normais persistidas (excluindo período 'Rotina' se foi salvo indevidamente)
+            // 2. Tarefas normais persistidas
             Object.entries(dayTasks).forEach(([period, tasks]) => {
                 if (period === 'Rotina') return;
                 if (Array.isArray(tasks)) {
@@ -3777,29 +3733,30 @@
                 }
             });
 
-            // Render all tasks in a single continuous list
+            // Render all tasks
             allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
-                grid.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
+                taskList.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
             });
 
-            // Se não há tarefas, mostrar mensagem de boas-vindas
+            grid.appendChild(taskList);
+
+            // Empty state
             if (allTasks.length === 0) {
                 const empty = document.createElement('div');
-                empty.className = 'text-center py-12';
+                empty.className = 'today-empty';
                 empty.innerHTML = `
-                    <p class="text-gray-500 text-lg mb-2">Nenhuma tarefa para hoje</p>
-                    <p class="text-gray-600 text-sm">Clique abaixo para adicionar uma tarefa</p>
+                    <p>Nenhuma tarefa para hoje</p>
+                    <p>Clique para adicionar uma tarefa</p>
                 `;
                 grid.appendChild(empty);
             }
 
-            // Adicionar área clicável para nova tarefa (estilo Notion)
+            // Clickable area for quick add
             grid.style.cursor = 'text';
             grid.style.minHeight = '60vh';
             grid.addEventListener('click', (e) => {
-                // Só adicionar se clicar na área vazia
-                if (e.target === grid || e.target.classList.contains('mb-8') || e.target.closest('.text-center')) {
-                    addQuickTaskInputToday(grid, today);
+                if (e.target === grid || e.target.closest('.today-header') || e.target.closest('.today-empty')) {
+                    addQuickTaskInputToday(taskList || grid, today);
                 }
             });
         }
@@ -3814,13 +3771,14 @@
 
             const inputContainer = document.createElement('div');
             inputContainer.className = 'quick-task-container';
+            inputContainer.style.padding = '5px 6px';
 
             // Checkbox placeholder
             const checkboxPlaceholder = document.createElement('div');
-            checkboxPlaceholder.style.width = '18px';
-            checkboxPlaceholder.style.height = '18px';
-            checkboxPlaceholder.style.borderRadius = '6px';
-            checkboxPlaceholder.style.border = '1.5px solid #555';
+            checkboxPlaceholder.style.width = '16px';
+            checkboxPlaceholder.style.height = '16px';
+            checkboxPlaceholder.style.borderRadius = '4px';
+            checkboxPlaceholder.style.border = '1.5px solid rgba(255,255,255,0.15)';
             checkboxPlaceholder.style.flexShrink = '0';
             checkboxPlaceholder.style.marginTop = '2px';
             inputContainer.appendChild(checkboxPlaceholder);
@@ -3829,7 +3787,7 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'quick-task-input';
-            input.placeholder = 'Digite para adicionar tarefa...';
+            input.placeholder = 'Escreva aqui...';
             input.autocomplete = 'off';
             input.setAttribute('data-form-type', 'other');
             inputContainer.appendChild(input);
@@ -3893,13 +3851,14 @@
 
             const container = document.createElement('div');
             container.className = 'quick-task-container';
+            container.style.padding = '5px 6px';
 
-            // Checkbox placeholder (desabilitado)
+            // Checkbox placeholder
             const checkboxPlaceholder = document.createElement('div');
-            checkboxPlaceholder.style.width = '18px';
-            checkboxPlaceholder.style.height = '18px';
-            checkboxPlaceholder.style.borderRadius = '6px';
-            checkboxPlaceholder.style.border = '1.5px solid #555';
+            checkboxPlaceholder.style.width = '16px';
+            checkboxPlaceholder.style.height = '16px';
+            checkboxPlaceholder.style.borderRadius = '4px';
+            checkboxPlaceholder.style.border = '1.5px solid rgba(255,255,255,0.15)';
             checkboxPlaceholder.style.flexShrink = '0';
             checkboxPlaceholder.style.marginTop = '2px';
             container.appendChild(checkboxPlaceholder);
@@ -3908,7 +3867,7 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'quick-task-input';
-            input.placeholder = 'Digite para adicionar tarefa...';
+            input.placeholder = 'Escreva aqui...';
             input.autocomplete = 'off';
             input.setAttribute('data-form-type', 'other');
             container.appendChild(input);
