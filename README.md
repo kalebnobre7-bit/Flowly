@@ -1,17 +1,17 @@
-# Flowly ⚡
+# Flowly
 
 **To-Do inteligente e minimalista** criado por Kaleb para gerenciar tarefas, rotinas e produtividade.
 
-## ✨ Features
+##  Features
 
-- 📅 **Visualização Semanal** - Veja todas as tarefas da semana organizadas por dia
-- 🎯 **View Diária** - Foco total no que importa hoje
-- 🎨 **Cores Notion-style** - 10 cores para categorizar tarefas
-- ✏️ **Edição Inline** - Duplo clique pra editar qualquer tarefa
-- 🔄 **Drag & Drop** - Arraste tarefas entre dias e períodos
-- ➕ **Quick Add** - Hover nos períodos pra adicionar tarefas rapidamente
-- 📋 **Templates de Rotina** - Adicione rotinas diárias com um clique
-- 💾 **Auto-save** - Tudo salvo automaticamente no navegador
+-  **Visualização Semanal** - Veja todas as tarefas da semana organizadas por dia
+-  **View Diária** - Foco total no que importa hoje
+-  **Cores Notion-style** - 10 cores para categorizar tarefas
+-  **Edição Inline** - Duplo clique pra editar qualquer tarefa
+-  **Drag & Drop** - Arraste tarefas entre dias e períodos
+-  **Quick Add** - Hover nos períodos pra adicionar tarefas rapidamente
+-  **Templates de Rotina** - Adicione rotinas diárias com um clique
+-  **Auto-save** - Tudo salvo automaticamente no navegador
 
 ## 🚀 Como usar
 
