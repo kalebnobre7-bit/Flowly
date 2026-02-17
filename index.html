@@ -2348,156 +2348,230 @@
             });
             const rate = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
 
-            let html = `<div class="max-w-3xl mx-auto py-8">
-                <h2 class="text-3xl font-bold mb-2 text-white flex items-center gap-3">
-                    <i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Rotina
-                </h2>
-                <p class="text-gray-400 mb-6">Hábitos e tarefas recorrentes do seu dia</p>
-
-                <!-- Progresso de hoje -->
-                <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-8">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="text-sm text-gray-400 uppercase tracking-wider font-semibold">Hoje — ${dayNamesFull[todayDayOfWeek]}</div>
-                        <div class="text-2xl font-bold ${rate === 100 ? 'text-green-400' : rate >= 50 ? 'text-blue-400' : 'text-gray-400'}">${rate}%</div>
+            let html = `<div class="max-w-4xl mx-auto py-8 px-4">
+                <!-- Header Analytics -->
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-white flex items-center gap-3">
+                            <i data-lucide="activity" class="text-blue-500" style="width: 32px; height: 32px;"></i> 
+                            Analytics de Rotina
+                        </h2>
+                        <p class="text-gray-400 mt-1 text-sm">Acompanhe seu desempenho e constância.</p>
                     </div>
-                    <div class="w-full h-2 bg-gray-700/40 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full transition-all duration-500 ${rate === 100 ? 'bg-green-400' : 'bg-blue-500'}" style="width: ${rate}%"></div>
+                    <div class="bg-[#1c1c1e] px-4 py-2 rounded-lg border border-white/10 text-sm text-gray-300">
+                        ${dayNamesFull[todayDayOfWeek]}
                     </div>
-                    <div class="text-xs text-gray-500 mt-2">${completedToday} de ${totalToday} concluídos hoje</div>
                 </div>
 
-                <!-- Dashboard de Analytics -->
-                <div class="mb-8 space-y-4">
-                    <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                        <i data-lucide="trending-up" style="width: 20px; height: 20px;"></i>
-                        Análise da Rotina
-                    </h3>
+                <!-- Progresso de hoje (Card Principal) -->
+                <div class="bg-gradient-to-r from-[#1c1c1e] to-[#2c2c2e] border border-white/10 rounded-2xl p-6 mb-8 shadow-lg relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     
-                    <!-- Cards de Estatísticas -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <!-- Streak Atual -->
-                        <div class="bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30 rounded-xl p-5">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-semibold text-orange-300 uppercase tracking-wide">Sequência Atual</span>
-                                <i data-lucide="flame" style="width: 18px; height: 18px; color: #ff9500;"></i>
+                    <div class="flex items-end justify-between mb-4 relative z-10">
+                        <div>
+                            <div class="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-1">Status de Hoje</div>
+                            <div class="text-4xl font-bold text-white flex items-baseline gap-2">
+                                ${rate}%
+                                <span class="text-sm font-normal text-gray-500">concluído</span>
                             </div>
-                            <div class="text-3xl font-bold text-white mb-1" id="currentStreak">-</div>
-                            <div class="text-xs text-gray-400">dias consecutivos</div>
                         </div>
-                        
-                        <!-- Taxa Semanal -->
-                        <div class="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 rounded-xl p-5">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-semibold text-blue-300 uppercase tracking-wide">Taxa Semanal</span>
-                                <i data-lucide="calendar-check" style="width: 18px; height: 18px; color: #0A84FF;"></i>
-                            </div>
-                            <div class="text-3xl font-bold text-white mb-1" id="weeklyRate">-</div>
-                            <div class="text-xs text-gray-400">dos últimos 7 dias</div>
-                        </div>
-                        
-                        <!-- Melhor Dia -->
-                        <div class="bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 rounded-xl p-5">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-semibold text-green-300 uppercase tracking-wide">Melhor Dia</span>
-                                <i data-lucide="trophy" style="width: 18px; height: 18px; color: #30d158;"></i>
-                            </div>
-                            <div class="text-2xl font-bold text-white mb-1" id="bestDay">-</div>
-                            <div class="text-xs text-gray-400">da semana</div>
+                        <div class="text-right">
+                             <div class="text-2xl font-semibold text-gray-200">${completedToday}<span class="text-gray-500">/${totalToday}</span></div>
                         </div>
                     </div>
                     
-                    <!-- Gráfico de Tendência Semanal -->
-                    <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-                        <h4 class="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wide">Consistência Semanal</h4>
-                        <canvas id="routineWeekChart" style="max-height: 200px;"></canvas>
+                    <div class="w-full h-3 bg-gray-800 rounded-full overflow-hidden relative z-10">
+                        <div class="h-full rounded-full transition-all duration-700 ease-out ${rate === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'}" style="width: ${rate}%"></div>
+                    </div>
+                </div>
+
+                <!-- Grid de Métricas Principais -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Streak Atual -->
+                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-orange-500/30 transition-colors">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-orange-500/10 rounded-lg text-orange-500">
+                                <i data-lucide="flame" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <!-- Sparkline (simulado) -->
+                            <div class="flex gap-1 items-end h-8">
+                                <div class="w-1 h-3 bg-gray-700 rounded-sm"></div>
+                                <div class="w-1 h-5 bg-gray-700 rounded-sm"></div>
+                                <div class="w-1 h-full bg-orange-500 rounded-sm"></div>
+                            </div>
+                        </div>
+                        <div class="text-3xl font-bold text-white mb-1" id="currentStreak">-</div>
+                        <div class="text-xs text-gray-400 font-medium uppercase tracking-wide">Sequência Atual</div>
+                    </div>
+                    
+                    <!-- Taxa Semanal -->
+                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-blue-500/30 transition-colors">
+                        <div class="flex justify-between items-start mb-4">
+                             <div class="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                                <i data-lucide="bar-chart-2" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div class="flex gap-1 items-end h-8">
+                                <div class="w-1 h-4 bg-gray-700 rounded-sm"></div>
+                                <div class="w-1 h-6 bg-blue-500/50 rounded-sm"></div>
+                                <div class="w-1 h-full bg-blue-500 rounded-sm"></div>
+                            </div>
+                        </div>
+                        <div class="text-3xl font-bold text-white mb-1" id="weeklyRate">-</div>
+                        <div class="text-xs text-gray-400 font-medium uppercase tracking-wide">Taxa Semanal</div>
+                    </div>
+                    
+                    <!-- Melhor Dia -->
+                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-green-500/30 transition-colors">
+                        <div class="flex justify-between items-start mb-4">
+                             <div class="p-2 bg-green-500/10 rounded-lg text-green-500">
+                                <i data-lucide="trophy" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div class="flex gap-1 items-end h-8">
+                                <div class="w-1 h-3 bg-gray-700 rounded-sm"></div>
+                                <div class="w-1 h-8 bg-green-500 rounded-sm"></div>
+                                <div class="w-1 h-4 bg-gray-700 rounded-sm"></div>
+                            </div>
+                        </div>
+                        <div class="text-2xl font-bold text-white mb-1 truncate" id="bestDay">-</div>
+                        <div class="text-xs text-gray-400 font-medium uppercase tracking-wide">Melhor Performance</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Gráfico de Tendência -->
+                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                                <i data-lucide="line-chart" class="text-gray-500" style="width: 16px;"></i>
+                                Consistência (7 dias)
+                            </h4>
+                        </div>
+                        <div class="h-48 w-full">
+                            <canvas id="routineWeekChart"></canvas>
+                        </div>
                     </div>
                     
                     <!-- Heatmap Mensal -->
-                    <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-                        <h4 class="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wide">Mapa de Calor - Últimos 30 Dias</h4>
-                        <div id="routineHeatmap" class="grid grid-cols-10 gap-2"></div>
-                        <div class="flex items-center justify-center gap-4 mt-4 text-xs text-gray-500">
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-sm bg-[#2c2c2e]"></div>
-                                <span>0%</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-sm bg-[#ff453a]"></div>
-                                <span>1-40%</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-sm bg-[#ff9500]"></div>
-                                <span>41-60%</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-sm bg-[#0A84FF]"></div>
-                                <span>61-80%</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-sm bg-[#30d158]"></div>
-                                <span>81-100%</span>
-                            </div>
+                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-6">
+                             <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                                <i data-lucide="grid" class="text-gray-500" style="width: 16px;"></i>
+                                Histórico (30 dias)
+                            </h4>
+                        </div>
+                        <div id="routineHeatmap" class="grid grid-cols-10 gap-2 mb-4"></div>
+                        
+                        <!-- Legenda Heatmap -->
+                        <div class="flex items-center justify-end gap-3 text-[10px] text-gray-500 font-medium">
+                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-[#2c2c2e]"></div> 0%</div>
+                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-blue-900/40"></div> <40%</div>
+                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-blue-700/60"></div> 60%</div>
+                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-blue-500"></div> 80%</div>
+                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div> 100%</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- SEÇÃO: Todos os dias -->
-                <div class="mb-8">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-200 flex items-center gap-2">
-                            <i data-lucide="sun" style="width: 18px; height: 18px; color: #FF9F0A;"></i>
-                            Todos os dias
+                <!-- Lista Detalhada de Hábitos -->
+                <div class="mb-12">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i data-lucide="list-checks" class="text-gray-500" style="width: 20px; height: 20px;"></i>
+                            Detalhamento de Hábitos
                         </h3>
-                        <span class="text-xs text-gray-500">${dailyRoutine.length} tarefa${dailyRoutine.length !== 1 ? 's' : ''}</span>
+                        <div class="text-xs px-3 py-1 bg-white/5 rounded-full text-gray-400 border border-white/5">
+                            ${dailyRoutine.length} hábitos ativos
+                        </div>
                     </div>
-                    <div class="space-y-2">`;
+                    
+                    <div class="space-y-3">`;
 
             if (dailyRoutine.length === 0) {
-                html += `<div class="text-gray-500 text-sm py-4 text-center">Nenhuma tarefa diária ainda</div>`;
+                html += `
+                <div class="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/5">
+                    <div class="text-gray-500 mb-2">Nenhum hábito configurado</div>
+                    <button class="text-blue-500 text-sm hover:underline" onclick="showAddRoutineTask()">Configurar primeiro hábito</button>
+                </div>`;
             }
 
             dailyRoutine.forEach((task, index) => {
                 const isChecked = !!(routineStates[task.text]?.[dateKey]);
                 const streak = getHabitStreak(task.text);
                 const rate30 = getHabitCompletionRate(task.text, 30);
+
+                // Cor da barra baseada na taxa
+                let progressColor = 'bg-gray-600';
+                if (rate30 >= 80) progressColor = 'bg-green-500';
+                else if (rate30 >= 50) progressColor = 'bg-blue-500';
+                else if (rate30 >= 20) progressColor = 'bg-orange-500';
+
                 html += `
-                    <div class="bg-[#1c1c1e] bg-opacity-60 border border-white/8 rounded-xl p-4 flex items-center justify-between group hover:bg-opacity-80 transition-all">
-                        <div class="flex items-center gap-4 flex-1">
-                            <input type="checkbox" class="checkbox-custom" ${isChecked ? 'checked' : ''}
-                                onchange="toggleRoutineToday('${task.text.replace(/'/g, "\\'")}', this.checked)">
-                            <div class="flex-1">
-                                <div class="font-medium ${isChecked ? 'line-through text-gray-500' : 'text-white'}">${task.text}</div>
-                                <div class="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                                    ${streak > 0 ? `<span class="text-orange-400 flex items-center gap-1"><i data-lucide="flame" style="width:12px;height:12px;"></i> ${streak}d streak</span>` : ''}
-                                    <span>${rate30}% (30d)</span>
+                    <div class="group bg-[#1c1c1e] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all duration-200">
+                        <div class="flex items-start justify-between gap-4">
+                            <!-- Esquerda: Checkbox e Texto -->
+                            <div class="flex items-start gap-4 flex-1">
+                                <div class="mt-1">
+                                    <input type="checkbox" class="checkbox-custom appearance-none w-5 h-5 border-2 border-gray-600 rounded-md checked:bg-blue-500 checked:border-blue-500 transition-colors cursor-pointer relative" 
+                                        ${isChecked ? 'checked' : ''}
+                                        onchange="toggleRoutineToday('${task.text.replace(/'/g, "\\'")}', this.checked)">
+                                </div>
+                                
+                                <div class="flex-1">
+                                    <div class="font-medium text-[15px] ${isChecked ? 'text-gray-400 line-through decoration-gray-600' : 'text-gray-200'} mb-2 transition-colors">
+                                        ${task.text}
+                                    </div>
+                                    
+                                    <!-- Stats Mini -->
+                                    <div class="flex items-center gap-4 text-xs">
+                                        <div class="flex items-center gap-1.5 ${streak > 0 ? 'text-orange-400' : 'text-gray-600'}">
+                                            <i data-lucide="flame" style="width: 12px; height: 12px;"></i>
+                                            <span class="font-medium">${streak} dias</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 text-gray-500">
+                                            <i data-lucide="history" style="width: 12px; height: 12px;"></i>
+                                            <span>${rate30}% (30d)</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-20 h-1 bg-gray-700/40 rounded-full overflow-hidden">
-                                <div class="h-full bg-blue-500 rounded-full" style="width:${rate30}%"></div>
+                            
+                            <!-- Direita: Barra de Progresso e Ações -->
+                            <div class="flex flex-col items-end gap-2 min-w-[100px]">
+                                <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden w-24">
+                                    <div class="h-full rounded-full ${progressColor}" style="width: ${rate30}%"></div>
+                                </div>
+                                <button onclick="deleteRoutineTask(${index})" 
+                                    class="text-gray-600 hover:text-red-400 p-1.5 rounded-md hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100" 
+                                    title="Remover hábito">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                                </button>
                             </div>
-                            <button onclick="deleteRoutineTask(${index})" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg ml-1">
-                                <i data-lucide="trash-2" class="text-red-400" style="width: 16px; height: 16px;"></i>
-                            </button>
                         </div>
                     </div>`;
             });
 
             html += `
                     </div>
-                    <div id="addRoutineTaskContainer" class="mt-3 border border-dashed border-white/15 rounded-xl p-3 hover:border-blue-500/50 transition-all cursor-pointer text-center text-gray-500 hover:text-gray-300 text-sm flex items-center justify-center gap-2" onclick="showAddRoutineTask()">
-                        <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Adicionar tarefa diária
+                    
+                    <!-- Botão Adicionar -->
+                    <div id="addRoutineTaskContainer" 
+                        class="mt-4 border border-dashed border-white/10 rounded-xl p-4 flex items-center justify-center gap-2 cursor-pointer hover:bg-white/5 hover:border-blue-500/30 group transition-all" 
+                        onclick="showAddRoutineTask()">
+                        <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 text-blue-500 transition-colors">
+                            <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                        </div>
+                        <span class="text-sm text-gray-400 group-hover:text-blue-400 font-medium transition-colors">Adicionar novo hábito</span>
                     </div>
                 </div>
 
-                <!-- SEÇÃO: Dias específicos -->
-                <div class="mb-8">
+                <!-- Seção Dias Específicos (Mantida Oculta ou Simplificada se não usada) -->
+                 <div class="mb-12 pt-8 border-t border-white/5 opacity-60 hover:opacity-100 transition-opacity">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-200 flex items-center gap-2">
-                            <i data-lucide="calendar-days" style="width: 18px; height: 18px; color: #0A84FF;"></i>
-                            Dias específicos
+                        <h3 class="text-lg font-semibold text-gray-300 flex items-center gap-2">
+                             <i data-lucide="calendar" class="text-gray-500" style="width: 18px; height: 18px;"></i>
+                             Tarefas Recorrentes (Semanais)
                         </h3>
+                    </div>
                         <span class="text-xs text-gray-500">${weeklyRecurringTasks.length} tarefa${weeklyRecurringTasks.length !== 1 ? 's' : ''}</span>
                     </div>
                     <div class="space-y-2">`;
