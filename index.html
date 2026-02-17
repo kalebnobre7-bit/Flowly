@@ -330,30 +330,48 @@
 
         /* ====== TODAY VIEW ====== */
         .today-container {
-            max-width: 680px;
+            max-width: 1200px;
             margin: 0 auto;
+            display: flex;
+            gap: 48px;
             padding: 0 4px;
+            min-height: 70vh;
+        }
+
+        .today-main {
+            flex: 1;
+            max-width: 640px;
+            min-width: 0;
+        }
+
+        .today-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            padding-top: 72px;
         }
 
         .today-header {
-            margin-bottom: 32px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 28px;
+            padding-bottom: 0;
         }
 
         .today-header h1 {
             font-family: var(--font-display);
-            font-size: 32px;
+            font-size: 30px;
             font-weight: 700;
             color: var(--text-primary);
-            letter-spacing: -0.02em;
-            margin: 0 0 4px 0;
+            letter-spacing: -0.025em;
+            margin: 0 0 2px 0;
         }
 
         .today-header p {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-tertiary);
             margin: 0;
+        }
+
+        .today-task-list {
+            min-height: 200px;
         }
 
         .today-task-list .task-item {
@@ -380,6 +398,85 @@
         .today-empty p:last-child {
             color: rgba(255, 255, 255, 0.15);
             font-size: 13px;
+        }
+
+        /* Sidebar stats */
+        .stat-section {
+            margin-bottom: 28px;
+        }
+
+        .stat-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .stat-card:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-value.green { color: var(--accent-green); }
+        .stat-value.blue { color: var(--accent-blue); }
+        .stat-value.orange { color: var(--accent-orange); }
+        .stat-value.red { color: var(--accent-red); }
+
+        .progress-bar-mini {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-bar-mini-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+
+        .stat-ring {
+            width: 48px;
+            height: 48px;
+            position: relative;
+        }
+
+        .stat-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .stat-ring-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-primary);
         }
 
         /* Drag & Drop Visuals */
@@ -782,7 +879,23 @@
                 min-height: 40px;
             }
 
-            .today-container { padding: 0; }
+            .today-container {
+                flex-direction: column;
+                padding: 0;
+                gap: 32px;
+            }
+            .today-main { max-width: 100%; }
+            .today-sidebar {
+                width: 100%;
+                padding-top: 0;
+                display: flex;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .today-sidebar .stat-section {
+                flex: 1;
+                min-width: 200px;
+            }
             .today-header h1 { font-size: 26px; }
 
             .checkbox-custom {
@@ -3692,18 +3805,22 @@
         function renderToday() {
             const grid = document.getElementById('weekGrid');
             grid.className = 'today-container';
-            grid.style.display = 'block';
+            grid.style.cssText = '';
             grid.innerHTML = '';
 
             const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
             const today = days[new Date().getDay()];
             const dateStr = localDateStr();
 
+            // ===== LEFT: Main area =====
+            const main = document.createElement('div');
+            main.className = 'today-main';
+
             // Header
             const header = document.createElement('div');
             header.className = 'today-header';
             header.innerHTML = `<h1>${today}</h1><p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`;
-            grid.appendChild(header);
+            main.appendChild(header);
 
             // Task list container
             const taskList = document.createElement('div');
@@ -3711,8 +3828,6 @@
 
             // Buscar tarefas de hoje
             const dayTasks = allTasksData[dateStr] || {};
-
-            // Flatten all tasks into a continuous list
             const allTasks = [];
 
             // 1. Rotina diária + recorrentes semanais
@@ -3738,27 +3853,140 @@
                 taskList.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
             });
 
-            grid.appendChild(taskList);
+            main.appendChild(taskList);
 
             // Empty state
             if (allTasks.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'today-empty';
-                empty.innerHTML = `
-                    <p>Nenhuma tarefa para hoje</p>
-                    <p>Clique para adicionar uma tarefa</p>
-                `;
-                grid.appendChild(empty);
+                empty.innerHTML = `<p>Nenhuma tarefa para hoje</p><p>Clique para adicionar uma tarefa</p>`;
+                main.appendChild(empty);
             }
 
             // Clickable area for quick add
-            grid.style.cursor = 'text';
-            grid.style.minHeight = '60vh';
-            grid.addEventListener('click', (e) => {
-                if (e.target === grid || e.target.closest('.today-header') || e.target.closest('.today-empty')) {
-                    addQuickTaskInputToday(taskList || grid, today);
+            main.style.cursor = 'text';
+            main.style.minHeight = '50vh';
+            main.addEventListener('click', (e) => {
+                if (e.target === main || e.target.closest('.today-header') || e.target.closest('.today-empty')) {
+                    addQuickTaskInputToday(taskList, today);
                 }
             });
+
+            grid.appendChild(main);
+
+            // ===== RIGHT: Sidebar stats =====
+            const sidebar = document.createElement('div');
+            sidebar.className = 'today-sidebar';
+
+            // Calcular stats
+            const totalTasks = allTasks.length;
+            const completedTasks = allTasks.filter(t => t.task.completed).length;
+            const pendingTasks = totalTasks - completedTasks;
+            const todayRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            // Rotina stats
+            const routineTotal = routineTasks.length;
+            const routineCompleted = routineTasks.filter(t => t.completed).length;
+            const routineRate = routineTotal > 0 ? Math.round((routineCompleted / routineTotal) * 100) : 0;
+
+            // Streak
+            let streak = 0;
+            const checkD = new Date();
+            for (let i = 0; i < 60; i++) {
+                const cds = localDateStr(checkD);
+                const { total: sTotal, completed: sCompleted } = countDayTasks(cds);
+                if (sTotal > 0 && sCompleted === sTotal) {
+                    streak++;
+                } else if (i > 0 || (i === 0 && sTotal > 0)) {
+                    break;
+                }
+                checkD.setDate(checkD.getDate() - 1);
+            }
+
+            // Semana
+            const weekDates = getWeekDates(0);
+            let weekTotal = 0, weekCompleted = 0;
+            weekDates.forEach(({ dateStr: wds }) => {
+                const { total: wt, completed: wc } = countDayTasks(wds);
+                weekTotal += wt;
+                weekCompleted += wc;
+            });
+            const weekRate = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
+
+            // Ring color
+            const ringColor = todayRate >= 70 ? 'var(--accent-green)' : todayRate >= 40 ? 'var(--accent-orange)' : todayRate > 0 ? 'var(--accent-red)' : 'rgba(255,255,255,0.1)';
+            const ringPct = todayRate;
+            const circumference = 2 * Math.PI * 19;
+            const dashOffset = circumference - (circumference * ringPct / 100);
+
+            // Build sidebar HTML
+            sidebar.innerHTML = `
+                <!-- Progresso do dia -->
+                <div class="stat-section">
+                    <div class="stat-section-title">Progresso</div>
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+                        <div class="stat-ring">
+                            <svg width="48" height="48" viewBox="0 0 48 48">
+                                <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
+                                <circle cx="24" cy="24" r="19" fill="none" stroke="${ringColor}" stroke-width="3"
+                                    stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
+                                    stroke-linecap="round"/>
+                            </svg>
+                            <div class="stat-ring-text">${todayRate}%</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">${completedTasks} de ${totalTasks}</div>
+                            <div style="font-size: 11px; color: var(--text-tertiary);">tarefas concluídas</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-mini">
+                        <div class="progress-bar-mini-fill" style="width: ${todayRate}%; background: ${ringColor};"></div>
+                    </div>
+                </div>
+
+                <!-- Resumo -->
+                <div class="stat-section">
+                    <div class="stat-section-title">Resumo</div>
+                    <div class="stat-card">
+                        <span class="stat-label">Pendentes</span>
+                        <span class="stat-value ${pendingTasks > 0 ? 'orange' : 'green'}">${pendingTasks}</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Rotina</span>
+                        <span class="stat-value ${routineRate >= 80 ? 'green' : routineRate >= 50 ? 'blue' : ''}">${routineCompleted}/${routineTotal}</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Streak</span>
+                        <span class="stat-value ${streak >= 3 ? 'green' : ''}">${streak > 0 ? streak + ' dia' + (streak > 1 ? 's' : '') : '—'}</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Semana</span>
+                        <span class="stat-value ${weekRate >= 70 ? 'green' : weekRate >= 40 ? 'blue' : ''}">${weekRate}%</span>
+                    </div>
+                </div>
+
+                <!-- Mini semana -->
+                <div class="stat-section">
+                    <div class="stat-section-title">Esta semana</div>
+                    <div style="display: flex; gap: 6px; align-items: flex-end;">
+                        ${weekDates.map(({ name, dateStr: wds }) => {
+                            const { total: wt, completed: wc } = countDayTasks(wds);
+                            const pct = wt > 0 ? Math.round((wc / wt) * 100) : 0;
+                            const isToday = wds === dateStr;
+                            const barColor = pct >= 80 ? 'var(--accent-green)' : pct >= 50 ? 'var(--accent-blue)' : pct > 0 ? 'var(--accent-orange)' : 'rgba(255,255,255,0.06)';
+                            const barH = wt > 0 ? Math.max(6, pct * 0.4) : 4;
+                            return `<div style="flex: 1; text-align: center;">
+                                <div style="height: 40px; display: flex; align-items: flex-end; justify-content: center;">
+                                    <div style="width: 100%; max-width: 20px; height: ${barH}px; background: ${barColor}; border-radius: 2px; ${isToday ? 'box-shadow: 0 0 6px ' + barColor + ';' : ''}"></div>
+                                </div>
+                                <div style="font-size: 10px; color: ${isToday ? 'var(--accent-blue)' : 'var(--text-tertiary)'}; margin-top: 4px; font-weight: ${isToday ? '600' : '400'};">${name.slice(0, 3)}</div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            grid.appendChild(sidebar);
         }
 
         function addQuickTaskInputToday(container, day) {
