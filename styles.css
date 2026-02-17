@@ -1125,7 +1125,9 @@ body.dragging-active .task-drop-zone {
         padding: 16px 20px;
         background: rgba(28, 28, 30, 0.9);
     }
-}/* Modal Styles */
+}
+
+/* Modal Styles */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -1175,3 +1177,206 @@ body.dragging-active .task-drop-zone {
     font-size: 14px;
     min-height: 20px;
 }
+
+/* Priority Buttons */
+.priority-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: #aaa;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    justify-content: center;
+}
+
+.priority-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--p-color);
+    color: var(--p-color);
+}
+
+.priority-btn.active {
+    background: color-mix(in srgb, var(--p-color) 15%, transparent);
+    border-color: var(--p-color);
+    color: var(--p-color);
+    font-weight: 600;
+}
+
+.priority-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* Task Priority Colors (left border indicator) */
+.task-item.priority-urgent {
+    border-left: 3px solid #FF453A;
+}
+
+.task-item.priority-important {
+    border-left: 3px solid #FF9F0A;
+}
+
+.task-item.priority-simple {
+    border-left: 3px solid #FFD60A;
+}
+
+.task-item.priority-money {
+    border-left: 3px solid #30D158;
+}
+
+.task-item.is-recurring {
+    position: relative;
+}
+
+.task-item.is-recurring::after {
+    content: '⟳';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.2);
+}
+
+/* Btn Primary & Secondary for modals */
+.btn-primary {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #0A84FF;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background: #0070E0;
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: #aaa;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+/* --- FIXES 2026-02-17 --- */
+
+/* Priority Buttons Styling */
+.priority-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    color: #888;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    justify-content: center;
+}
+
+.priority-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-color: rgba(255,255,255,0.2);
+}
+
+.priority-btn.active {
+    background: rgba(255,255,255,0.15);
+    border-color: var(--p-color, #fff);
+    color: #fff;
+    box-shadow: 0 0 0 1px var(--p-color, #fff) inset;
+}
+
+.priority-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    /* background defined inline */
+}
+
+/* Edit Toolbar (Context Menu) Modernization */
+#editToolbar {
+    background: #1c1c1e !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    border-radius: 12px !important;
+    padding: 6px !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6) !important;
+    display: none;
+    align-items: center;
+    gap: 4px;
+    z-index: 10000;
+    backdrop-filter: blur(20px);
+}
+
+.toolbar-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toolbar-btn:hover {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+}
+
+/* Days of Week Buttons in Modal */
+.weekly-day-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #666;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.weekly-day-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+.weekly-day-btn.active {
+    background: #0A84FF;
+    border-color: #0A84FF;
+    color: white;
+}
+

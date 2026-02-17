@@ -76,8 +76,7 @@
             </div>
 
             <div class="utility-btns flex items-center gap-3">
-                <button id="btnTogglePeriods" class="utility-btn" title="Mostrar/Ocultar períodos"><i data-lucide="list"
-                        style="width: 18px; height: 18px;"></i></button>
+
                 <button id="btnUser" class="utility-btn"><i data-lucide="user"
                         style="width: 18px; height: 18px;"></i></button>
                 <!-- User Dropdown -->
@@ -139,8 +138,7 @@
                 <span class="text-[10px] font-medium">Rotina</span>
             </button>
 
-            <!-- SPACE FOR FAB -->
-            <div class="w-16"></div>
+
 
             <button class="flex flex-col items-center gap-1 w-14 text-gray-500 active:text-blue-500 transition-colors"
                 onclick="setView('today')">
@@ -156,10 +154,7 @@
     </nav>
 
     <!-- Floating Action Button (FAB) - Enhanced for Mobile -->
-    <button id="floatingAddBtn"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 w-14 h-14 bg-blue-600 rounded-full shadow-[0_4px_20px_rgba(37,99,235,0.5)] flex items-center justify-center text-white z-50 hover:scale-110 active:scale-95 transition-all md:bottom-8 md:right-8 md:left-auto md:translate-x-0">
-        <i data-lucide="zap" class="w-7 h-7 fill-current"></i>
-    </button>
+
 
     <!-- Original Quick Menu (Restored Structure) -->
     <div id="quickAddMenu" class="context-menu"
@@ -202,20 +197,38 @@
         </div>
     </div>
 
-    <!-- Weekly Task Modal -->
-    <div id="weeklyModal" class="modal-overlay" style="z-index: 9999;">
-        <div class="modal-content" style="max-width: 420px;">
-            <h2 class="text-xl font-bold mb-1 flex items-center gap-2">
-                <i data-lucide="calendar-repeat" style="width: 22px; height: 22px; color: #0A84FF;"></i>
-                Tarefa Semanal
-            </h2>
-            <p class="text-gray-500 text-sm mb-5">Recorrente nos dias selecionados</p>
+    <!-- Task Edit Modal (New System) -->
+    <div id="taskEditModal" class="modal-overlay" style="z-index: 9999;">
+        <div class="modal-content"
+            style="max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
+            <div class="mb-4">
+                <label class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold block">Nome da
+                    Tarefa</label>
+                <input type="text" id="taskEditInput"
+                    class="w-full bg-transparent text-lg font-bold text-white border-b border-white/10 focus:border-blue-500 outline-none pb-2 transition-colors"
+                    placeholder="Nome da tarefa">
+            </div>
 
-            <input type="text" id="weeklyTaskText" class="task-input mb-5" placeholder="Ex: Reunião, Academia..."
-                style="background: rgba(255,255,255,0.05);" autocomplete="off">
+            <!-- Priority Section -->
+            <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">Prioridade</p>
+            <div class="flex gap-2 mb-6" id="priorityButtons">
+                <button class="priority-btn" data-priority="urgent" style="--p-color: #FF453A;">
+                    <span class="priority-dot" style="background: #FF453A;"></span> Urgente
+                </button>
+                <button class="priority-btn" data-priority="important" style="--p-color: #FF9F0A;">
+                    <span class="priority-dot" style="background: #FF9F0A;"></span> Importante
+                </button>
+                <button class="priority-btn" data-priority="simple" style="--p-color: #FFD60A;">
+                    <span class="priority-dot" style="background: #FFD60A;"></span> Simples
+                </button>
+                <button class="priority-btn" data-priority="money" style="--p-color: #30D158;">
+                    <span class="priority-dot" style="background: #30D158;"></span> Dinheiro
+                </button>
+            </div>
 
-            <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">Dias da semana</p>
-            <div class="flex gap-2 mb-6" style="justify-content: space-between;">
+            <!-- Recurrence Section -->
+            <p class="text-xs text-gray-400 mb-3 uppercase tracking-wider font-semibold">Repetir nos dias</p>
+            <div class="flex gap-2 mb-6" style="justify-content: space-between;" id="recurrenceDays">
                 <button class="weekly-day-btn" data-day="0">Dom</button>
                 <button class="weekly-day-btn" data-day="1">Seg</button>
                 <button class="weekly-day-btn" data-day="2">Ter</button>
@@ -225,8 +238,17 @@
                 <button class="weekly-day-btn" data-day="6">Sáb</button>
             </div>
 
-            <button id="btnSaveWeekly" class="btn-primary mb-3">Salvar</button>
-            <button id="btnCancelWeekly" class="btn-secondary">Cancelar</button>
+            <!-- Actions -->
+            <button id="btnSaveTaskEdit" class="btn-primary mb-3">Salvar</button>
+            <button id="btnDeleteTaskEdit" class="btn-secondary mb-3"
+                style="color: #FF453A; border-color: rgba(255,69,58,0.3);">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px; display: inline;"></i> Excluir Tarefa
+            </button>
+            <button id="btnCancelTaskEdit" class="btn-secondary">Cancelar</button>
+
+            <button onclick="document.getElementById('taskEditModal').classList.remove('show')"
+                class="absolute top-4 right-4 p-2 text-gray-500 hover:text-white"><i data-lucide="x"
+                    class="w-5 h-5"></i></button>
         </div>
     </div>
 
@@ -260,7 +282,7 @@
             style="width: 20px; height: 20px; border-radius: 50%; background: #FF453A; cursor: pointer;"></div>
     </div>
 
-    <script src="js/app.js?v=12"></script>
+    <script src="js/app.js?v=13"></script>
 </body>
 
 </html>

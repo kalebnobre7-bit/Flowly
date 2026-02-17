@@ -1,4 +1,4 @@
-// --- Supabase & Storage Logic ---
+﻿// --- Supabase & Storage Logic ---
 const SUPABASE_URL = 'https://cgrosyjtujakkbjjnmml.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNncm9zeWp0dWpha2tiampubW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMTA0NzcsImV4cCI6MjA4NjU4NjQ3N30.MsDw0nSiLF1jHWMuVGRgTT6gNUeK328RvGBo-YcFG1A';
 const { createClient } = window.supabase;
@@ -159,13 +159,12 @@ function safeJSONParse(str, fallback) {
 }
 
 // Data Structures
-let dailyRoutine = safeJSONParse(localStorage.getItem('dailyRoutine'), [
-    { text: "Oração e Salmo", completed: false, color: "default", isHabit: true },
-    { text: "Venvanse", completed: false, color: "default", isHabit: true },
-    { text: "Ler metas e mantra; celular na gaveta", completed: false, color: "default", isHabit: true }
-]);
+// NOVO: Tarefas recorrentes unificadas (substituem dailyRoutine e weeklyRecurringTasks)
+// Formato: { text, daysOfWeek: [0-6], priority, createdAt }
+let allRecurringTasks = safeJSONParse(localStorage.getItem('allRecurringTasks'), []);
 
-// Tarefas semanais recorrentes: {text, daysOfWeek: [0,1,2...6], color, isHabit}
+// Compatibilidade: manter dailyRoutine para migração (será removido após migrar)
+let dailyRoutine = safeJSONParse(localStorage.getItem('dailyRoutine'), []);
 let weeklyRecurringTasks = safeJSONParse(localStorage.getItem('weeklyRecurringTasks'), []);
 
 // Estrutura expandida: armazena tarefas por data ISO (YYYY-MM-DD) e período
@@ -175,162 +174,229 @@ let allTasksData = safeJSONParse(localStorage.getItem('allTasksData'), {});
 const weekData = { "Segunda": {}, "Terça": {}, "Quarta": {}, "Quinta": {}, "Sexta": {}, "Sábado": {}, "Domingo": {} };
 let habitsHistory = safeJSONParse(localStorage.getItem('habitsHistory'), {});
 
-// Funções auxiliares de data
+// Estado de conclusão de tarefas recorrentes por data
+let routineCompletions = safeJSONParse(localStorage.getItem('routineCompletions'), {});
+// Formato: { "taskText": { "2026-02-17": true, "2026-02-18": false } }
+
+
+// FunÇÕES auxiliares de data
 function localDateStr(date = new Date()) {
     return date.toLocaleDateString('pt-BR').split('/').reverse().join('-');
 }
 
-// --- Funções Globais do Analytics e Rotina ---
+// --- FunÇÕES Globais do Analytics e Rotina ---
 
-// Função para alternar status de rotina em uma data específica
-function toggleRoutineDate(habitText, dateStr, completed) {
-    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    // Criar data segura (evitar fuso horário)
-    const parts = dateStr.split('-');
-    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-    const dayName = days[dateObj.getDay()];
-    const dateKey = `${dayName}_${dateStr}`;
+// --- FunÇÕES Globais do Analytics e Rotina (NOVO SISTEMA) ---
 
-    // Carregar e modificar routineStates
-    let routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
-    if (!routineStates[habitText]) routineStates[habitText] = {};
+// Variáveis para edição
+let currentEditingTaskRef = null;
 
-    if (completed) {
-        routineStates[habitText][dateKey] = true;
-    } else {
-        delete routineStates[habitText][dateKey];
+// Função para abrir o modal de edição
+window.openTaskEditModal = function (task, element) {
+    const modal = document.getElementById('taskEditModal');
+    const taskText = task.text || '';
+
+    // Guardar referência
+    currentEditingTaskRef = {
+        dateStr: element.dataset.date,
+        period: element.dataset.period,
+        index: parseInt(element.dataset.index),
+        isRecurring: element.dataset.index === '-1',
+        originalTask: task
+    };
+
+    // UI - Input
+    document.getElementById('taskEditInput').value = taskText;
+
+    // Resetar botões
+    document.querySelectorAll('.priority-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.weekly-day-btn').forEach(btn => btn.classList.remove('active'));
+
+    // --- RE-BIND LISTENERS (Critical Fix) ---
+    document.querySelectorAll('.priority-btn').forEach(btn => {
+        btn.onclick = () => {
+            const wasActive = btn.classList.contains('active');
+            document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+            if (!wasActive) btn.classList.add('active');
+        };
+    });
+    document.querySelectorAll('.weekly-day-btn').forEach(btn => {
+        btn.onclick = () => {
+            btn.classList.toggle('active');
+        };
+    });
+    const btnSave = document.getElementById('btnSaveTaskEdit');
+    if (btnSave) btnSave.onclick = window.saveTaskEdit;
+
+    // Deletar também
+    const btnDel = document.getElementById('btnDeleteTaskEdit');
+    if (btnDel) btnDel.onclick = window.deleteTaskEdit;
+    const btnCancel = document.getElementById('btnCancelTaskEdit');
+    if (btnCancel) btnCancel.onclick = () => document.getElementById('taskEditModal').classList.remove('show');
+    // ----------------------------------------
+
+    // Setar Prioridade (se existir na tarefa ou na definição de recorrência)
+    let priority = task.priority || 'none';
+
+    // Se for recorrente visual, tenta pegar a prioridade "real" da definição
+    if (currentEditingTaskRef.isRecurring) {
+        const recDefinition = allRecurringTasks.find(t => t.text === task.text);
+        if (recDefinition && recDefinition.priority) priority = recDefinition.priority;
     }
 
-    // Salvar routineStates atualizado
-    localStorage.setItem('routineStates', JSON.stringify(routineStates));
+    const pBtn = document.querySelector(`.priority-btn[data-priority="${priority}"]`);
+    if (pBtn) pBtn.classList.add('active');
 
-    // Também sincronizar com habitsHistory (backup histórico)
-    if (!habitsHistory[habitText]) habitsHistory[habitText] = {};
-    if (completed) habitsHistory[habitText][dateStr] = true;
-    else delete habitsHistory[habitText][dateStr];
+    // Setar Recorrência
+    // Procura na lista unificada de recorrentes
+    const recTask = allRecurringTasks.find(t => t.text === task.text);
+    if (recTask && recTask.daysOfWeek) {
+        recTask.daysOfWeek.forEach(day => {
+            const btn = document.querySelector(`.weekly-day-btn[data-day="${day}"]`);
+            if (btn) btn.classList.add('active');
+        });
+    }
+
+    modal.classList.add('show');
+
+    // Re-render icons if needed (lucide)
+    if (window.lucide) lucide.createIcons();
+}
+
+// Salvar Edição
+window.saveTaskEdit = function () {
+    if (!currentEditingTaskRef) return;
+    const { dateStr, period, index, isRecurring, originalTask } = currentEditingTaskRef;
+
+    const activePBtn = document.querySelector('.priority-btn.active');
+    const newPriority = activePBtn ? activePBtn.dataset.priority : 'none';
+
+    const activeDays = Array.from(document.querySelectorAll('.weekly-day-btn.active'))
+        .map(btn => parseInt(btn.dataset.day));
+
+    const newTaskText = document.getElementById('taskEditInput').value.trim();
+    if (!newTaskText) { alert("Nome da tarefa obrigatório!"); return; }
+
+    const oldText = originalTask.text;
+
+    // 1. Atualizar Tarefa Local (se não for visualização recorrente)
+    if (!isRecurring) {
+        if (allTasksData[dateStr] && allTasksData[dateStr][period]) {
+            const t = allTasksData[dateStr][period][index];
+            if (t) {
+                t.priority = newPriority;
+                t.text = newTaskText; // Renomear
+            }
+        }
+    }
+
+    // 2. Gerenciar Recorrência Unificada
+    let recIndex = allRecurringTasks.findIndex(t => t.text === oldText);
+
+    // Se não achou pelo antigo, tenta pelo novo.
+    if (recIndex === -1) recIndex = allRecurringTasks.findIndex(t => t.text === newTaskText);
+
+    if (activeDays.length > 0) {
+        // Criar ou Atualizar
+        const newRecTask = {
+            text: newTaskText,
+            daysOfWeek: activeDays,
+            priority: newPriority,
+            color: getPriorityColorName(newPriority), // fallback helper
+            createdAt: new Date().toISOString()
+        };
+
+        if (recIndex >= 0) {
+            allRecurringTasks[recIndex] = { ...allRecurringTasks[recIndex], ...newRecTask };
+        } else {
+            allRecurringTasks.push(newRecTask);
+        }
+        // Se virou recorrente, remove a original avulsa para evitar duplicação visual e lógica
+        if (!isRecurring && allTasksData[dateStr] && allTasksData[dateStr][period]) {
+            allTasksData[dateStr][period].splice(index, 1);
+        }
+
+    } else {
+        // Se desmarcou todos os dias, remove da recorrência
+        if (recIndex >= 0) {
+            if (confirm('Remover a recorrência automática desta tarefa?')) {
+                allRecurringTasks.splice(recIndex, 1);
+            }
+        }
+    }
 
     saveToLocalStorage();
-
-    // Tentar sincronizar com Supabase se possível
-    if (typeof syncDateToSupabase === 'function') {
-        syncDateToSupabase(dateStr);
-    }
+    document.getElementById('taskEditModal').classList.remove('show');
+    renderView();
 }
 
-// Wrapper para hoje (mantido para compatibilidade)
-function toggleRoutineToday(habitText, completed) {
-    const today = new Date();
-    const dateStr = localDateStr(today);
-    toggleRoutineDate(habitText, dateStr, completed);
+// Deletar via Modal
+window.deleteTaskEdit = function () {
+    if (!currentEditingTaskRef) return;
+    const { dateStr, period, index, isRecurring, originalTask } = currentEditingTaskRef;
 
-    // Atualizar dailyRoutine visualmente (apenas para UI imediata)
-    const routineItem = dailyRoutine.find(t => t.text === habitText);
-    if (routineItem) routineItem.completed = completed;
+    if (confirm('Excluir esta tarefa?')) {
+        let deleted = false;
 
-    // Re-renderizar a view de rotina para atualizar barras de progresso
-    if (document.getElementById('routineView') && !document.getElementById('routineView').classList.contains('hidden')) {
-        renderRoutineView();
-    }
-}
+        // Se for recorrente, deletar da lista global?
+        if (isRecurring || allRecurringTasks.some(t => t.text === originalTask.text)) {
+            if (confirm('Esta tarefa é recorrente. Deseja parar de repeti-la para sempre?')) {
+                const recIndex = allRecurringTasks.findIndex(t => t.text === originalTask.text);
+                if (recIndex >= 0) allRecurringTasks.splice(recIndex, 1);
+                deleted = true;
+            }
+        }
 
-// Função para adicionar nova tarefa de rotina
-function showAddRoutineTask() {
-    const text = prompt('Digite o nome do novo hábito diário:');
-    if (text && text.trim()) {
-        dailyRoutine.push({
-            text: text.trim(),
-            completed: false,
-            color: 'default',
-            isHabit: true
-        });
-        saveToLocalStorage();
-        renderRoutineView();
-    }
-}
+        // Se for tarefa local avulsa, deletar
+        if (!isRecurring && allTasksData[dateStr]?.[period]) {
+            allTasksData[dateStr][period].splice(index, 1);
+            if (allTasksData[dateStr][period].length === 0) delete allTasksData[dateStr][period];
+            deleted = true;
+        }
 
-// Função para deletar tarefa de rotina ou semanal
-function deleteRoutineTask(index, isWeekly = false) {
-    if (isWeekly) {
-        if (confirm('Remover esta tarefa recorrente semanal?')) {
-            weeklyRecurringTasks.splice(index, 1);
+        if (deleted) {
             saveToLocalStorage();
-            renderRoutineView();
-        }
-    } else {
-        if (confirm('Remover este hábito da rotina diária?')) {
-            dailyRoutine.splice(index, 1);
-            saveToLocalStorage();
-            renderRoutineView();
+            document.getElementById('taskEditModal').classList.remove('show');
+            renderView();
         }
     }
 }
 
-// Calcular streak (sequência de dias consecutivos)
-function getHabitStreak(habitText) {
-    const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
-    if (!routineStates[habitText]) return 0;
-
-    let streak = 0;
-    const today = new Date();
-    const daysKey = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-
-    // Verificar hoje e voltar para trás
-    let currentDate = new Date(today);
-    let dateStr = localDateStr(currentDate);
-    let dayName = daysKey[currentDate.getDay()];
-    let key = `${dayName}_${dateStr}`;
-
-    // Se hoje estiver marcado, começa com 1, senão 0 (mas verifica ontem)
-    if (routineStates[habitText][key]) {
-        streak++;
+function getPriorityColorName(priority) {
+    switch (priority) {
+        case 'urgent': return 'red';
+        case 'important': return 'orange';
+        case 'simple': return 'yellow';
+        case 'money': return 'green';
+        default: return 'default';
     }
-
-    // Loop para dias anteriores
-    while (true) {
-        currentDate.setDate(currentDate.getDate() - 1);
-        dateStr = localDateStr(currentDate);
-        dayName = daysKey[currentDate.getDay()];
-        key = `${dayName}_${dateStr}`;
-
-        if (routineStates[habitText][key]) {
-            streak++;
-        } else {
-            break;
-        }
-    }
-    return streak;
-}
-
-// Calcular taxa de conclusão nos últimos X dias
-function getHabitCompletionRate(habitText, daysCheck = 30) {
-    const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
-    if (!routineStates[habitText]) return 0;
-
-    let completedCount = 0;
-    const today = new Date();
-    const daysKey = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-
-    for (let i = 0; i < daysCheck; i++) {
-        const currentDate = new Date(today);
-        currentDate.setDate(currentDate.getDate() - i);
-        const dateStr = localDateStr(currentDate);
-        const dayName = daysKey[currentDate.getDay()];
-        const key = `${dayName}_${dateStr}`;
-
-        if (routineStates[habitText][key]) {
-            completedCount++;
-        }
-    }
-
-    return Math.round((completedCount / daysCheck) * 100);
 }
 
 // ===== FUNÇÕES DE SALVAMENTO =====
 function saveToLocalStorage() {
     localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
-    localStorage.setItem('weeklyRecurringTasks', JSON.stringify(weeklyRecurringTasks));
-    localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
-    localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
+    localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
+    localStorage.setItem('routineCompletions', JSON.stringify(routineCompletions));
+
+    // Manter dados antigos zerados/compatíveis para evitar erros em funcoes legadas até limparmos tudo
+    localStorage.setItem('dailyRoutine', JSON.stringify([]));
+    localStorage.setItem('weeklyRecurringTasks', JSON.stringify([]));
+
+    // Integrar lógica de sync legada (se existir)
+    if (typeof _isSyncingDate !== 'undefined' && currentUser && !_isSyncingDate) {
+        Object.entries(allTasksData).forEach(([dateStr, periods]) => {
+            Object.entries(periods).forEach(([period, tasks]) => {
+                if (Array.isArray(tasks)) {
+                    tasks.forEach(task => {
+                        // Garantir que syncTaskToSupabase exista
+                        if (!task.isRoutine && !task.isWeeklyRecurring && typeof syncTaskToSupabase === 'function') {
+                            syncTaskToSupabase(dateStr, period, task);
+                        }
+                    });
+                }
+            });
+        });
+    }
 }
 
 // ===== DRAG AND DROP =====
@@ -374,39 +440,49 @@ function handleDragOver(e) {
 
 // Retorna tarefas de rotina para exibição (NÃO persiste em allTasksData)
 function getRoutineTasksForDate(dateStr) {
-    const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
+    const routineStates = JSON.parse(localStorage.getItem('routineCompletions') || '{}');
     const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     const dateParts = dateStr.split('-');
     const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
     const dayOfWeek = dateObj.getDay();
     const dayName = dayNames[dayOfWeek];
-    const dateKey = `${dayName}_${dateStr}`;
+    const dateKey = `${dayName}_${dateStr}`; // Fallback key
 
     const tasks = [];
 
-    // 1. Rotina diária
-    dailyRoutine.forEach(habit => {
-        const isCompleted = !!(routineStates[habit.text]?.[dateKey]);
-        tasks.push({
-            text: habit.text,
-            completed: isCompleted,
-            color: habit.color || 'blue',
-            isRoutine: true,
-            isHabit: true
-        });
-    });
+    // Priorizar lista unificada (allRecurringTasks)
+    allRecurringTasks.forEach(habit => {
+        let isForToday = false;
 
-    // 2. Tarefas semanais recorrentes (apenas nos dias corretos)
-    weeklyRecurringTasks.forEach(task => {
-        if (task.daysOfWeek.includes(dayOfWeek)) {
-            const isCompleted = !!(routineStates[task.text]?.[dateKey]);
+        if (habit.daysOfWeek && Array.isArray(habit.daysOfWeek)) {
+            if (habit.daysOfWeek.includes(dayOfWeek)) isForToday = true;
+        } else if (habit.isHabit) { // Fallback para hábitos antigos
+            isForToday = true;
+        }
+
+        if (isForToday) {
+            let isCompleted = false;
+
+            // 1. Tentar routineCompletions (NOVO, por data exata "YYYY-MM-DD")
+            if (routineStates[habit.text] && routineStates[habit.text][dateStr]) {
+                isCompleted = true;
+            }
+            // 2. Tentar routineStates (ANTIGO, por key "Dia_YYYY-MM-DD")
+            else {
+                const oldStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
+                if (oldStates[habit.text] && oldStates[habit.text][dateKey]) {
+                    isCompleted = true;
+                }
+            }
+
             tasks.push({
-                text: task.text,
+                text: habit.text,
                 completed: isCompleted,
-                color: task.color || 'blue',
-                isRoutine: true,
+                color: habit.color || getPriorityColorName(habit.priority),
+                priority: habit.priority || 'none',
+                isRecurring: true,
                 isHabit: true,
-                isWeeklyRecurring: true
+                recurrence: habit.daysOfWeek
             });
         }
     });
@@ -416,7 +492,7 @@ function getRoutineTasksForDate(dateStr) {
 
 // Compatibilidade: manter hydrateRoutineForDate como no-op para não quebrar chamadas existentes
 function hydrateRoutineForDate(dateStr) {
-    // Não faz mais nada - rotinas são geradas dinamicamente por getRoutineTasksForDate()
+    // Não faz mais nada - rotinas são geradas dinamicamente
 }
 
 function handleDrop(e) {
@@ -861,7 +937,7 @@ async function loadDataFromSupabase() {
 
 async function syncDailyRoutineToSupabase() {
     if (!currentUser) return;
-    // Remove antigas definições
+    // Remove antigas definiÇÕES
     await supabaseClient.from('tasks').delete().eq('user_id', currentUser.id).eq('day', 'ROUTINE');
 
     // Insere novas
@@ -917,24 +993,7 @@ async function syncHabitToSupabase(habitText, date, completed) {
 
 let _isSyncingDate = false;
 
-function saveToLocalStorage() {
-    localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
-    localStorage.setItem('weekData', JSON.stringify(weekData));
-    if (currentUser && !_isSyncingDate) {
-        // Trigger sync (apenas tarefas normais, não rotina nem recorrentes)
-        Object.entries(allTasksData).forEach(([dateStr, periods]) => {
-            Object.entries(periods).forEach(([period, tasks]) => {
-                if (Array.isArray(tasks)) {
-                    tasks.forEach(task => {
-                        if (!task.isRoutine && !task.isWeeklyRecurring) {
-                            syncTaskToSupabase(dateStr, period, task);
-                        }
-                    });
-                }
-            });
-        });
-    }
-}
+
 
 function loadFromLocalStorage() {
     const saved = localStorage.getItem('weekData');
@@ -1161,7 +1220,7 @@ function renderAnalyticsView() {
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">`;
 
-    // Card customizado com cores dinâmicas
+    // Card customizado com cores dinÃ¢micas
     const card = (label, val, sub, gradient = 'from-blue-400 to-indigo-400', icon = '') => {
         return `<div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
                     <div class="text-gray-400 text-sm mb-2 uppercase tracking-wider font-semibold">${label}</div>
@@ -1170,9 +1229,9 @@ function renderAnalyticsView() {
                 </div>`;
     };
 
-    // Cards com cores dinâmicas
+    // Cards com cores dinÃ¢micas
     const todayGradient = todayRate >= 70 ? 'from-green-400 to-emerald-400' : todayRate >= 40 ? 'from-orange-400 to-yellow-400' : 'from-red-400 to-pink-400';
-    const todayIcon = todayRate >= 70 ? '🔥 ' : todayRate >= 40 ? '⚡ ' : '💤 ';
+    const todayIcon = todayRate >= 70 ? '&#128293; ' : todayRate >= 40 ? '&#9889; ' : '&#128164; ';
 
     // Calcular semana passada para comparação
     const lastWeekDates = getWeekDates(-1);
@@ -1193,7 +1252,7 @@ function renderAnalyticsView() {
     });
     const lastWeekRate = lastWeekTotal > 0 ? Math.round((lastWeekCompleted / lastWeekTotal) * 100) : 0;
     const weekDiff = weekRate - lastWeekRate;
-    const weekTrend = weekDiff > 0 ? '📈' : weekDiff < 0 ? '📉' : '➡️';
+    const weekTrend = weekDiff > 0 ? '&#128200;' : weekDiff < 0 ? '&#128201;' : '&#10145;';
     const weekCompare = weekDiff !== 0 ? `${weekTrend} ${Math.abs(weekDiff)}% vs semana anterior` : 'Mesmo que semana anterior';
 
     // Melhor e pior dia
@@ -1297,7 +1356,7 @@ function renderAnalyticsView() {
             }
 
             return habitRanking.slice(0, 6).map((habit, index) => {
-                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}º`;
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}Âº`;
                 const color = habit.rate >= 80 ? 'text-green-400' : habit.rate >= 60 ? 'text-blue-400' : 'text-gray-400';
                 return `
                                 <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all">
@@ -1391,7 +1450,7 @@ function renderAnalyticsView() {
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="w-4 h-4 bg-green-500 rounded"></div>
-                        <span>≥80%</span>
+                        <span>â‰¥80%</span>
                     </div>
                 </div>
             </div>
@@ -1404,7 +1463,7 @@ function renderAnalyticsView() {
                             <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
                             Dia Perfeito!
                         </div>
-                        <p class="text-sm text-green-300/80">Você completou todas as tarefas de hoje! 🎉</p>
+                        <p class="text-sm text-green-300/80">Você completou todas as tarefas de hoje! ðŸŽ‰</p>
                     </div>
                 ` : ''}
                 ${currentStreak >= 3 ? `
@@ -1747,507 +1806,229 @@ function goToDate(dateStr) {
 
 function renderRoutineView() {
     const view = document.getElementById('routineView');
-    const today = localDateStr();
-    const todayDayOfWeek = new Date().getDay();
-    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const dayNamesFull = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    if (!view) return;
+    view.innerHTML = '';
 
-    // Estado de conclusão da rotina hoje
-    const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
-    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const todayName = days[new Date().getDay()];
-    const dateKey = `${todayName}_${today}`;
+    // --- DATA CALCS ---
+    const routineCompletions = JSON.parse(localStorage.getItem('routineCompletions') || '{}');
+    const today = new Date();
+    const todayStr = localDateStr(today);
+    const dayName = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][today.getDay()];
+    
+    // 1. Today Stats
+    const todayTasks = getRoutineTasksForDate(todayStr); 
+    const totalToday = todayTasks.length;
+    let completedToday = 0;
+    todayTasks.forEach(t => { if (t.completed) completedToday++; });
+    const todayPercent = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
+    
+    // 2. Weekly & Graph
+    let totalWeekScheduled = 0;
+    let totalWeekCompleted = 0;
+    const consistencyData = []; 
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(); d.setDate(today.getDate() - i); const dStr = localDateStr(d);
+        const tasksForDay = getRoutineTasksForDate(dStr);
+        const count = tasksForDay.length;
+        let completed = 0;
+        if(count > 0) completed = tasksForDay.filter(t => t.completed).length; 
+        if (count > 0) { totalWeekScheduled += count; totalWeekCompleted += completed; consistencyData.push({ day: ['D','S','T','Q','Q','S','S'][d.getDay()], val: Math.round((completed/count)*100) }); } 
+        else { consistencyData.push({ day: ['D','S','T','Q','Q','S','S'][d.getDay()], val: 0 }); }
+    }
+    const weeklyRate = totalWeekScheduled > 0 ? Math.round((totalWeekCompleted / totalWeekScheduled) * 100) : 0;
+    
+    // 3. Streak
+    let currentStreak = 0;
+    let bestDayCounts = [0,0,0,0,0,0,0]; 
+    let tempStreak = 0;
+    for(let i = 0; i < 365; i++) {
+        const d = new Date(); d.setDate(today.getDate() - i); const dStr = localDateStr(d);
+        const tasks = getRoutineTasksForDate(dStr);
+        if(tasks.length > 0) {
+            const completed = tasks.filter(t => t.completed).length;
+             if (i < 30 && completed === tasks.length) bestDayCounts[d.getDay()]++;
+            if (completed === tasks.length) { if (d <= today) tempStreak++; } else { if (d < today) break; }
+        }
+    }
+    currentStreak = tempStreak;
+    let maxPerfect = -1; let bestDayIdx = 0;
+    bestDayCounts.forEach((count, idx) => { if(count > maxPerfect) { maxPerfect = count; bestDayIdx = idx; } });
+    const bestDayLabel = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][bestDayIdx];
 
-    // Stats de hoje
-    const totalToday = dailyRoutine.length + weeklyRecurringTasks.filter(rt => rt.daysOfWeek.includes(todayDayOfWeek)).length;
-    let completedToday = dailyRoutine.filter(t => routineStates[t.text]?.[dateKey]).length;
-    weeklyRecurringTasks.filter(rt => rt.daysOfWeek.includes(todayDayOfWeek)).forEach(rt => {
-        if (routineStates[rt.text]?.[dateKey]) completedToday++;
+    // Heatmap HTML (Standard Clean)
+    let htmlHeatmap = '';
+    for(let i = 27; i >= 0; i--) {
+        const d = new Date(); d.setDate(today.getDate() - i); const dStr = localDateStr(d);
+        const tasks = getRoutineTasksForDate(dStr);
+        let colorClass = 'bg-[#333]'; 
+        if (tasks.length > 0) {
+            const completed = tasks.filter(t => t.completed).length;
+            const rate = completed / tasks.length;
+            if (rate === 1) colorClass = 'bg-emerald-500';
+            else if (rate >= 0.5) colorClass = 'bg-emerald-500/50';
+            else if (rate > 0) colorClass = 'bg-red-500/50';
+            else if (d < today) colorClass = 'bg-red-900/30';
+        }
+        htmlHeatmap += `<div class="w-8 h-8 rounded-md ${colorClass} transition-all hover:opacity-80" title="${dStr}"></div>`;
+    }
+
+    // Chart SVG
+    let points = ''; const mapY = (val) => 90 - (val * 0.8); const stepX = 90 / 6; 
+    consistencyData.forEach((d, i) => { const x = 5 + (i * stepX); const y = mapY(d.val); points += `${x},${y} `; });
+    const areaPath = `5,100 ${points} 95,100`;
+
+
+    // --- LIST (Clean) ---
+    const activeRoutines = allRecurringTasks.filter(t => t.daysOfWeek && t.daysOfWeek.length > 0);
+    let habitsHTML = '';
+
+    activeRoutines.forEach((task, idx) => {
+        let itemTotal = 0; let itemCompleted = 0; let runningStreak = 0; let streakBroken = false;
+        for(let i=0; i<30; i++){
+            const d = new Date(); d.setDate(today.getDate() - i); const dStr = localDateStr(d);
+            const isScheduled = task.daysOfWeek.includes(d.getDay());
+            if(isScheduled) {
+                itemTotal++;
+                const isDone = routineCompletions[task.text] && routineCompletions[task.text][dStr];
+                if(isDone) { itemCompleted++; if(!streakBroken) runningStreak++; } else { if (d < today) streakBroken = true; }
+            }
+        }
+        const itemRate = itemTotal > 0 ? Math.round((itemCompleted/itemTotal)*100) : 0;
+        const isTodayDone = routineCompletions[task.text] && routineCompletions[task.text][todayStr];
+        const checkClass = isTodayDone ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-500 text-transparent';
+
+        habitsHTML += `
+        <div class="p-4 rounded-xl bg-[#18181b] border border-[#27272a] flex items-center gap-4">
+            <div class="w-6 h-6 rounded-lg border-2 ${checkClass} flex items-center justify-center transition-colors">
+                 <i data-lucide="check" class="w-4 h-4 stroke-[3]"></i>
+            </div>
+            
+            <div class="flex-1">
+                <h4 class="text-sm font-semibold text-gray-200 ${isTodayDone ? 'line-through text-gray-500' : ''}">${task.text}</h4>
+                <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                    <span class="flex items-center gap-1"><i data-lucide="flame" class="w-3 h-3 text-orange-500"></i> ${runningStreak} dias</span>
+                    <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                    <span>${itemRate}% mês</span>
+                </div>
+            </div>
+        </div>
+        `;
     });
-    const rate = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
 
-    let html = `<div class="max-w-4xl mx-auto py-8 px-4">
-                <!-- Header Analytics -->
-                <div class="flex items-center justify-between mb-8">
+
+    // --- RENDER HTML (Standard "Bonitinho") ---
+    view.innerHTML = `
+    <div class="max-w-3xl mx-auto space-y-6 pb-28 px-4 md:px-0 font-sans">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pt-2">
+            <div>
+                <h2 class="text-2xl font-bold text-white">Analytics</h2>
+                <p class="text-sm text-gray-400">Resumo da sua consistência</p>
+            </div>
+            <div class="bg-[#27272a] px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 uppercase tracking-wide">
+                ${dayName}
+            </div>
+        </div>
+
+        <!-- Main Progress Card -->
+        <div class="bg-[#18181b] border border-[#27272a] p-6 rounded-2xl shadow-lg relative overflow-hidden">
+            <div class="relative z-10 flex flex-col gap-4">
+                <div class="flex justify-between items-start">
                     <div>
-                        <h2 class="text-3xl font-bold text-white flex items-center gap-3">
-                            <i data-lucide="activity" class="text-blue-500" style="width: 32px; height: 32px;"></i> 
-                            Analytics de Rotina
-                        </h2>
-                        <p class="text-gray-400 mt-1 text-sm">Acompanhe seu desempenho e constância.</p>
+                        <span class="text-gray-400 text-xs font-bold uppercase tracking-wider">Progresso Hoje</span>
+                        <div class="text-4xl font-bold text-white mt-1">${todayPercent}%</div>
                     </div>
-                    <div class="bg-[#1c1c1e] px-4 py-2 rounded-lg border border-white/10 text-sm text-gray-300">
-                        ${dayNamesFull[todayDayOfWeek]}
+                    <div class="bg-[#27272a] w-12 h-12 rounded-full flex items-center justify-center">
+                         <span class="text-sm font-bold text-white">${completedToday}<span class="text-gray-500">/${totalToday}</span></span>
                     </div>
                 </div>
+                
+                <div class="w-full bg-[#27272a] h-3 rounded-full overflow-hidden">
+                    <div class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: ${todayPercent}%"></div>
+                </div>
+            </div>
+            <!-- BG Decor -->
+            <div class="absolute -right-6 -top-6 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl"></div>
+        </div>
 
-                <!-- Progresso de hoje (Card Principal) -->
-                <div class="bg-gradient-to-r from-[#1c1c1e] to-[#2c2c2e] border border-white/10 rounded-2xl p-6 mb-8 shadow-lg relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 p-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                    
-                    <div class="flex items-end justify-between mb-4 relative z-10">
-                        <div>
-                            <div class="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-1">Status de Hoje</div>
-                            <div class="text-4xl font-bold text-white flex items-baseline gap-2">
-                                ${rate}%
-                                <span class="text-sm font-normal text-gray-500">concluído</span>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                             <div class="text-2xl font-semibold text-gray-200">${completedToday}<span class="text-gray-500">/${totalToday}</span></div>
-                        </div>
-                    </div>
-                    
-                    <div class="w-full h-3 bg-gray-800 rounded-full overflow-hidden relative z-10">
-                        <div class="h-full rounded-full transition-all duration-700 ease-out ${rate === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'}" style="width: ${rate}%"></div>
+        <!-- 3 Stats Cards -->
+        <div class="grid grid-cols-3 gap-3">
+             <div class="bg-[#18181b] border border-[#27272a] p-4 rounded-xl flex flex-col items-center justify-center gap-2">
+                <i data-lucide="flame" class="text-orange-500 w-5 h-5"></i>
+                <div class="text-lg font-bold text-white">${currentStreak}</div>
+                <div class="text-[10px] text-gray-500 font-bold uppercase">Sequência</div>
+             </div>
+             <div class="bg-[#18181b] border border-[#27272a] p-4 rounded-xl flex flex-col items-center justify-center gap-2">
+                <i data-lucide="bar-chart-2" class="text-blue-500 w-5 h-5"></i>
+                <div class="text-lg font-bold text-white">${weeklyRate}%</div>
+                <div class="text-[10px] text-gray-500 font-bold uppercase">Semana</div>
+             </div>
+             <div class="bg-[#18181b] border border-[#27272a] p-4 rounded-xl flex flex-col items-center justify-center gap-2">
+                <i data-lucide="trophy" class="text-emerald-500 w-5 h-5"></i>
+                <div class="text-lg font-bold text-white truncate max-w-full">${bestDayLabel.substring(0,3)}</div>
+                <div class="text-[10px] text-gray-500 font-bold uppercase">Melhor Dia</div>
+             </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 gap-4">
+            <!-- Heatmap Row -->
+             <div class="bg-[#18181b] border border-[#27272a] p-5 rounded-xl">
+                 <div class="flex items-center gap-2 mb-4">
+                    <i data-lucide="layout-grid" class="w-4 h-4 text-gray-400"></i>
+                    <h3 class="text-sm font-bold text-gray-300">Histórico de 30 Dias</h3>
+                 </div>
+                 <div class="flex justify-center">
+                    <div class="grid grid-cols-7 gap-3">
+                        ${htmlHeatmap}
                     </div>
                 </div>
-
-                <!-- Grid de Métricas Principais -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <!-- Streak Atual -->
-                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-orange-500/30 transition-colors">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="p-2 bg-orange-500/10 rounded-lg text-orange-500">
-                                <i data-lucide="flame" style="width: 20px; height: 20px;"></i>
-                            </div>
-                            <!-- Sparkline (simulado) -->
-                            <div class="flex gap-1 items-end h-8">
-                                <div class="w-1 h-3 bg-gray-700 rounded-sm"></div>
-                                <div class="w-1 h-5 bg-gray-700 rounded-sm"></div>
-                                <div class="w-1 h-full bg-orange-500 rounded-sm"></div>
-                            </div>
-                        </div>
-                        <div class="text-3xl font-bold text-white mb-1" id="currentStreak">-</div>
-                        <div class="text-xs text-gray-400 font-medium uppercase tracking-wide">Sequência Atual</div>
-                    </div>
-                    
-                    <!-- Taxa Semanal -->
-                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-blue-500/30 transition-colors">
-                        <div class="flex justify-between items-start mb-4">
-                             <div class="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                                <i data-lucide="bar-chart-2" style="width: 20px; height: 20px;"></i>
-                            </div>
-                            <div class="flex gap-1 items-end h-8">
-                                <div class="w-1 h-4 bg-gray-700 rounded-sm"></div>
-                                <div class="w-1 h-6 bg-blue-500/50 rounded-sm"></div>
-                                <div class="w-1 h-full bg-blue-500 rounded-sm"></div>
-                            </div>
-                        </div>
-                        <div class="text-3xl font-bold text-white mb-1" id="weeklyRate">-</div>
-                        <div class="text-xs text-gray-400 font-medium uppercase tracking-wide">Taxa Semanal</div>
-                    </div>
-                    
-                    <!-- Melhor Dia -->
-                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-green-500/30 transition-colors">
-                        <div class="flex justify-between items-start mb-4">
-                             <div class="p-2 bg-green-500/10 rounded-lg text-green-500">
-                                <i data-lucide="trophy" style="width: 20px; height: 20px;"></i>
-                            </div>
-                            <div class="flex gap-1 items-end h-8">
-                                <div class="w-1 h-3 bg-gray-700 rounded-sm"></div>
-                                <div class="w-1 h-8 bg-green-500 rounded-sm"></div>
-                                <div class="w-1 h-4 bg-gray-700 rounded-sm"></div>
-                            </div>
-                        </div>
-                        <div class="text-2xl font-bold text-white mb-1 truncate" id="bestDay">-</div>
-                        <div class="text-xs text-gray-400 font-medium uppercase tracking-wide">Melhor Performance</div>
-                    </div>
+             </div>
+             
+             <!-- Line Chart Row -->
+             <div class="bg-[#18181b] border border-[#27272a] p-5 rounded-xl">
+                <div class="flex items-center gap-2 mb-4">
+                    <i data-lucide="trending-up" class="w-4 h-4 text-gray-400"></i>
+                    <h3 class="text-sm font-bold text-gray-300">Consistência Semanal</h3>
+                 </div>
+                <div class="h-32 w-full">
+                     <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="chartStandard" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.2"/>
+                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+                            </linearGradient>
+                        </defs>
+                        <line x1="0" y1="100" x2="100" y2="100" stroke="#333" stroke-width="1"/>
+                        <polygon points="${areaPath}" fill="url(#chartStandard)" />
+                        <polyline points="${points}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                         ${consistencyData.map((d, i) => {
+                             const x = 5 + (i * stepX); const y = mapY(d.val);
+                             return `<circle cx="${x}" cy="${y}" r="3" fill="#18181b" stroke="#3b82f6" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+                         }).join('')}
+                    </svg>
                 </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                    <!-- Gráfico de Tendência -->
-                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6">
-                        <div class="flex items-center justify-between mb-6">
-                            <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-2">
-                                <i data-lucide="line-chart" class="text-gray-500" style="width: 16px;"></i>
-                                Consistência (7 dias)
-                            </h4>
-                        </div>
-                        <div class="h-48 w-full">
-                            <canvas id="routineWeekChart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <!-- Heatmap Mensal -->
-                    <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6">
-                        <div class="flex items-center justify-between mb-6">
-                             <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-2">
-                                <i data-lucide="grid" class="text-gray-500" style="width: 16px;"></i>
-                                Histórico (30 dias)
-                            </h4>
-                        </div>
-                        <div id="routineHeatmap" class="grid grid-cols-10 gap-2 mb-4"></div>
-                        
-                        <!-- Legenda Heatmap -->
-                        <div class="flex items-center justify-end gap-3 text-[10px] text-gray-500 font-medium">
-                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-[#2c2c2e]"></div> 0%</div>
-                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-blue-900/40"></div> <40%</div>
-                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-blue-700/60"></div> 60%</div>
-                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-blue-500"></div> 80%</div>
-                            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div> 100%</div>
-                        </div>
-                    </div>
+                <div class="flex justify-between mt-2 px-2">
+                    ${consistencyData.map(d => `<span class="text-[10px] text-gray-500 font-bold">${d.day}</span>`).join('')}
                 </div>
+             </div>
+        </div>
 
-                <!-- Lista Detalhada de Hábitos -->
-                <div class="mb-12">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                            <i data-lucide="list-checks" class="text-gray-500" style="width: 20px; height: 20px;"></i>
-                            Detalhamento de Hábitos
-                        </h3>
-                        <div class="text-xs px-3 py-1 bg-white/5 rounded-full text-gray-400 border border-white/5">
-                            ${dailyRoutine.length} hábitos ativos
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-3">`;
-
-    if (dailyRoutine.length === 0) {
-        html += `
-                <div class="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/5">
-                    <div class="text-gray-500 mb-2">Nenhum hábito configurado</div>
-                    <button class="text-blue-500 text-sm hover:underline" onclick="showAddRoutineTask()">Configurar primeiro hábito</button>
-                </div>`;
-    }
-
-    dailyRoutine.forEach((task, index) => {
-        const isChecked = !!(routineStates[task.text]?.[dateKey]);
-        const streak = getHabitStreak(task.text);
-        const rate30 = getHabitCompletionRate(task.text, 30);
-
-        // Cor da barra baseada na taxa
-        let progressColor = 'bg-gray-600';
-        if (rate30 >= 80) progressColor = 'bg-green-500';
-        else if (rate30 >= 50) progressColor = 'bg-blue-500';
-        else if (rate30 >= 20) progressColor = 'bg-orange-500';
-
-        html += `
-                    <div class="group bg-[#1c1c1e] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all duration-200">
-                        <div class="flex items-start justify-between gap-4">
-                            <!-- Esquerda: Checkbox e Texto -->
-                            <div class="flex items-start gap-4 flex-1">
-                                <div class="mt-1">
-                                    <input type="checkbox" class="checkbox-custom appearance-none w-5 h-5 border-2 border-gray-600 rounded-md checked:bg-blue-500 checked:border-blue-500 transition-colors cursor-pointer relative" 
-                                        ${isChecked ? 'checked' : ''}
-                                        onchange="toggleRoutineToday('${task.text.replace(/'/g, "\\'")}', this.checked)">
-                                </div>
-                                
-                                <div class="flex-1">
-                                    <div class="font-medium text-[15px] ${isChecked ? 'text-gray-400 line-through decoration-gray-600' : 'text-gray-200'} mb-2 transition-colors">
-                                        ${task.text}
-                                    </div>
-                                    
-                                    <!-- Stats Mini -->
-                                    <div class="flex items-center gap-4 text-xs">
-                                        <div class="flex items-center gap-1.5 ${streak > 0 ? 'text-orange-400' : 'text-gray-600'}">
-                                            <i data-lucide="flame" style="width: 12px; height: 12px;"></i>
-                                            <span class="font-medium">${streak} dias</span>
-                                        </div>
-                                        <div class="flex items-center gap-1.5 text-gray-500">
-                                            <i data-lucide="history" style="width: 12px; height: 12px;"></i>
-                                            <span>${rate30}% (30d)</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Direita: Barra de Progresso e Ações -->
-                            <div class="flex flex-col items-end gap-2 min-w-[100px]">
-                                <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden w-24">
-                                    <div class="h-full rounded-full ${progressColor}" style="width: ${rate30}%"></div>
-                                </div>
-                                <button onclick="deleteRoutineTask(${index})" 
-                                    class="text-gray-600 hover:text-red-400 p-1.5 rounded-md hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100" 
-                                    title="Remover hábito">
-                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>`;
-    });
-
-    html += `
-                    </div>
-                    
-                    <!-- Botão Adicionar -->
-                    <div id="addRoutineTaskContainer" 
-                        class="mt-4 border border-dashed border-white/10 rounded-xl p-4 flex items-center justify-center gap-2 cursor-pointer hover:bg-white/5 hover:border-blue-500/30 group transition-all" 
-                        onclick="showAddRoutineTask()">
-                        <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 text-blue-500 transition-colors">
-                            <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
-                        </div>
-                        <span class="text-sm text-gray-400 group-hover:text-blue-400 font-medium transition-colors">Adicionar novo hábito</span>
-                    </div>
-
-                    <!-- Botão Tarefa Semanal -->
-                    <div class="mt-3 border border-dashed border-white/15 rounded-xl p-3 hover:border-blue-500/50 transition-all cursor-pointer text-center text-gray-500 hover:text-gray-300 text-sm flex items-center justify-center gap-2" onclick="document.getElementById('weeklyModal').classList.add('show')">
-                        <i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Configurar Tarefa Semanal
-                    </div>
-                </div>
-            </div>`;
-
-    view.innerHTML = html;
-
-    // Calcular estatísticas para o dashboard
-    if (dailyRoutine.length > 0) {
-        const stats = {
-            currentStreak: 0,
-            weeklyRate: 0,
-            bestDay: 'N/A',
-            weekData: [],
-            heatmapData: []
-        };
-
-        // Últimos 7 dias para gráfico semanal
-        const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-        const fullDayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-        const today = new Date();
-
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateStr = localDateStr(date);
-            const dayName = dayNames[date.getDay()];
-            const fullDayName = fullDayNames[date.getDay()];
-            const dateKey = `${fullDayName}_${dateStr}`;
-
-            let completed = 0;
-            let total = dailyRoutine.length;
-
-            dailyRoutine.forEach(task => {
-                if (routineStates[task.text]?.[dateKey]) {
-                    completed++;
-                }
-            });
-
-            const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-            stats.weekData.push({ day: dayName, rate });
-        }
-
-        // Últimos 30 dias para heatmap
-        for (let i = 29; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateStr = localDateStr(date);
-            const fullDayName = fullDayNames[date.getDay()];
-            const dateKey = `${fullDayName}_${dateStr}`;
-
-            let completed = 0;
-            let total = dailyRoutine.length;
-
-            dailyRoutine.forEach(task => {
-                if (routineStates[task.text]?.[dateKey]) {
-                    completed++;
-                }
-            });
-
-            const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-            stats.heatmapData.push({ date: dateStr, rate });
-        }
-
-        // Calcular streak (dias com ≥80% de conclusão)
-        let currentDate = new Date(today);
-        while (true) {
-            const dateStr = localDateStr(currentDate);
-            const fullDayName = fullDayNames[currentDate.getDay()];
-            const dateKey = `${fullDayName}_${dateStr}`;
-
-            let completed = 0;
-            dailyRoutine.forEach(task => {
-                if (routineStates[task.text]?.[dateKey]) completed++;
-            });
-
-            const rate = dailyRoutine.length > 0 ? (completed / dailyRoutine.length) * 100 : 0;
-            if (rate >= 80) {
-                stats.currentStreak++;
-                currentDate.setDate(currentDate.getDate() - 1);
-            } else {
-                break;
-            }
-        }
-
-        // Taxa semanal média
-        const weeklySum = stats.weekData.reduce((sum, d) => sum + d.rate, 0);
-        stats.weeklyRate = Math.round(weeklySum / stats.weekData.length);
-
-        // Melhor dia da semana (baseado nos últimos 4 ocorrências de cada dia)
-        const dayRates = {};
-        for (let i = 27; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const dateStr = localDateStr(date);
-            const dayName = dayNames[date.getDay()];
-            const fullDayName = fullDayNames[date.getDay()];
-            const dateKey = `${fullDayName}_${dateStr}`;
-
-            if (!dayRates[dayName]) dayRates[dayName] = [];
-
-            let completed = 0;
-            dailyRoutine.forEach(task => {
-                if (routineStates[task.text]?.[dateKey]) completed++;
-            });
-
-            const rate = dailyRoutine.length > 0 ? (completed / dailyRoutine.length) * 100 : 0;
-            dayRates[dayName].push(rate);
-        }
-
-        let maxAvg = 0;
-        Object.entries(dayRates).forEach(([day, rates]) => {
-            const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
-            if (avg > maxAvg) {
-                maxAvg = avg;
-                stats.bestDay = day;
-            }
-        });
-
-        // Atualizar cards
-        setTimeout(() => {
-            const streakEl = document.getElementById('currentStreak');
-            const weeklyRateEl = document.getElementById('weeklyRate');
-            const bestDayEl = document.getElementById('bestDay');
-
-            if (streakEl) streakEl.textContent = stats.currentStreak;
-            if (weeklyRateEl) weeklyRateEl.textContent = stats.weeklyRate + '%';
-            if (bestDayEl) bestDayEl.textContent = stats.bestDay;
-
-            // Renderizar gráfico semanal
-            const weekCtx = document.getElementById('routineWeekChart');
-            if (weekCtx && typeof Chart !== 'undefined') {
-                new Chart(weekCtx, {
-                    type: 'line',
-                    data: {
-                        labels: stats.weekData.map(d => d.day),
-                        datasets: [{
-                            label: 'Conclusão (%)',
-                            data: stats.weekData.map(d => d.rate),
-                            borderColor: '#0A84FF',
-                            backgroundColor: 'rgba(10, 132, 255, 0.1)',
-                            tension: 0.4,
-                            fill: true,
-                            borderWidth: 3,
-                            pointRadius: 5,
-                            pointHoverRadius: 7,
-                            pointBackgroundColor: '#0A84FF',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                padding: 12,
-                                titleFont: { size: 14 },
-                                bodyFont: { size: 13 },
-                                callbacks: {
-                                    label: (context) => `Conclusão: ${context.parsed.y}% `
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                grid: { color: 'rgba(255,255,255,0.08)' },
-                                ticks: {
-                                    color: '#888',
-                                    callback: (val) => val + '%',
-                                    font: { size: 11 }
-                                }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: {
-                                    color: '#888',
-                                    font: { size: 11 }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Renderizar heatmap
-            const heatmapEl = document.getElementById('routineHeatmap');
-            if (heatmapEl) {
-                heatmapEl.innerHTML = '';
-                stats.heatmapData.forEach(({ date, rate }) => {
-                    const cell = document.createElement('div');
-                    cell.className = 'aspect-square rounded-md transition-all hover:scale-110 cursor-pointer';
-                    cell.style.backgroundColor = rate >= 81 ? '#30d158' :
-                        rate >= 61 ? '#0A84FF' :
-                            rate >= 41 ? '#ff9500' :
-                                rate > 0 ? '#ff453a' : '#2c2c2e';
-                    cell.title = `${date}: ${rate}% `;
-                    heatmapEl.appendChild(cell);
-                });
-            }
-        }, 100);
-    }
-
-    setTimeout(() => lucide.createIcons(), 0);
-}
-
-function toggleRoutineToday(text, completed) {
-    const today = localDateStr();
-    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const todayName = days[new Date().getDay()];
-    const dateKey = `${todayName}_${today}`;
-    const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
-    if (!routineStates[text]) routineStates[text] = {};
-    if (completed) routineStates[text][dateKey] = true;
-    else delete routineStates[text][dateKey];
-    localStorage.setItem('routineStates', JSON.stringify(routineStates));
-    markHabitCompleted(text, completed);
-    renderRoutineView();
-    setTimeout(() => lucide.createIcons(), 0);
-}
-
-function showAddRoutineTask() {
-    const container = document.getElementById('addRoutineTaskContainer');
-    container.innerHTML = `
-                <div class="flex gap-2">
-                    <input type="text" id="newRoutineTaskInput" class="task-input flex-1" placeholder="Nome da tarefa..." autofocus>
-                    <button onclick="addRoutineTask()" class="btn-primary px-6" style="width: auto;">Adicionar</button>
-                    <button onclick="renderRoutineView(); setTimeout(() => lucide.createIcons(), 0);" class="btn-secondary px-4" style="width: auto;">Cancelar</button>
-                </div>
-            `;
-    document.getElementById('newRoutineTaskInput').focus();
-    document.getElementById('newRoutineTaskInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') addRoutineTask();
-        if (e.key === 'Escape') { renderRoutineView(); setTimeout(() => lucide.createIcons(), 0); }
-    });
-}
-
-function addRoutineTask() {
-    const input = document.getElementById('newRoutineTaskInput');
-    if (!input || !input.value.trim()) return;
-
-    dailyRoutine.push({
-        text: input.value.trim(),
-        completed: false,
-        color: 'default',
-        isHabit: true  // Tarefas da rotina são automaticamente hábitos
-    });
-
-    localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
-    syncDailyRoutineToSupabase(); // Sync agora
-    renderRoutineView();
-    setTimeout(() => lucide.createIcons(), 0);
-}
-
-function deleteRoutineTask(index) {
-    if (!confirm('Remover esta tarefa da rotina diária?')) return;
-    dailyRoutine.splice(index, 1);
-    localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
-    syncDailyRoutineToSupabase(); // Sync agora
-    renderRoutineView();
-    setTimeout(() => lucide.createIcons(), 0);
+        <!-- Habits List Standard -->
+        <div class="py-2">
+            <h3 class="text-sm font-bold text-gray-400 mb-4 px-1">Detalhamento</h3>
+            <div class="space-y-3">
+                ${habitsHTML}
+            </div>
+            
+            <button onclick="setView('week')" class="w-full py-3 mt-4 text-sm font-medium text-gray-400 hover:text-white bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] rounded-xl transition-colors flex items-center justify-center gap-2">
+                 Gerenciar Hábitos <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+    `;
+    if (window.lucide) lucide.createIcons();
 }
 
 function renderSettingsView() {
@@ -2270,12 +2051,12 @@ function renderSettingsView() {
 
     // Badge Notification
     const permBadge = notifPerm === 'granted'
-        ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 font-medium">Ativo</span>`
-        : `<span class="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 font-medium">Inativo</span>`;
+        ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 font-medium" > Ativo</span> `
+        : `<span class="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 font-medium" > Inativo</span> `;
 
     // Components
     const settingRow = (icon, title, desc, control) => `
-        <div class="flex items-center justify-between gap-4 py-4 border-b border-white/5 last:border-0 hover:bg-white/5 px-2 -mx-2 rounded-lg transition-colors">
+    <div class="flex items-center justify-between gap-4 py-4 border-b border-white/5 last:border-0 hover:bg-white/5 px-2 -mx-2 rounded-lg transition-colors" >
             <div class="flex items-center gap-3 flex-1 min-w-0">
                 <div class="w-8 h-8 rounded-lg bg-gray-800/50 flex items-center justify-center flex-shrink-0 text-gray-400">
                     <i data-lucide="${icon}" style="width:16px;height:16px;"></i>
@@ -2286,24 +2067,24 @@ function renderSettingsView() {
                 </div>
             </div>
             <div class="flex-shrink-0">${control}</div>
-        </div>`;
+        </div> `;
 
     const toggle = (id, checked) => `
-        <button id="${id}" role="switch" aria-checked="${checked}"
-            class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-blue-600' : 'bg-gray-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-[#050505]">
-            <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${checked ? 'translate-x-4' : 'translate-x-0'}"></span>
-        </button>`;
+    <button id = "${id}" role = "switch" aria - checked="${checked}"
+class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-blue-600' : 'bg-gray-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-[#050505]" >
+    <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${checked ? 'translate-x-4' : 'translate-x-0'}"></span>
+        </button> `;
 
     view.innerHTML = `
-        <div class="max-w-2xl mx-auto py-8 px-4 pb-24">
+    <div class="max-w-2xl mx-auto py-8 px-4 pb-24" >
             <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
                     <i data-lucide="settings-2" class="text-white" style="width:20px;height:20px;"></i>
                 </div>
-                Configurações
+                ConfiguraÇÕES
             </h2>
 
-            <!-- PERFIL -->
+            <!--PERFIL -->
             <section class="mb-8">
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Perfil</h3>
                 <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden p-4">
@@ -2333,9 +2114,9 @@ function renderSettingsView() {
                 </div>
             </section>
 
-            <!-- NOTIFICAÇÕES -->
+            <!--NOTIFICAÇÕES -->
             <section class="mb-8">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Notificações</h3>
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">NotificaÇÕES</h3>
                 <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden px-5 py-2">
                     <div class="flex items-center justify-between py-4 border-b border-white/5">
                         <div class="flex items-center gap-3">
@@ -2354,10 +2135,10 @@ function renderSettingsView() {
                     ${settingRow('moon', 'Resumo Noturno', 'Horário para revisar o progresso',
             `<input type="time" id="inputEveningTime" value="${eveningTime}" class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500">`)}
                 </div>
-                ${notifPerm === 'denied' ? `<p class="text-xs text-red-400 mt-2 px-2 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Notificações bloqueadas pelo navegador.</p>` : ''}
+                ${notifPerm === 'denied' ? `<p class="text-xs text-red-400 mt-2 px-2 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> NotificaÇÕES bloqueadas pelo navegador.</p>` : ''}
             </section>
 
-            <!-- PREFERÊNCIAS -->
+            <!--PREFERÊNCIAS -->
             <section class="mb-8">
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Preferências</h3>
                 <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden px-5 py-2">
@@ -2373,7 +2154,7 @@ function renderSettingsView() {
                 </div>
             </section>
 
-            <!-- DADOS -->
+            <!--DADOS -->
             <section class="mb-8">
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Gerenciamento de Dados</h3>
                 <div class="grid grid-cols-2 gap-3">
@@ -2404,7 +2185,7 @@ function renderSettingsView() {
                 <div class="text-xs text-gray-600 font-medium">FLOWLY v1.2</div>
                 <div class="text-[10px] text-gray-700 mt-1">Sincronizado via Supabase</div>
             </div>
-        </div>`;
+        </div> `;
 
     setTimeout(() => {
         lucide.createIcons();
@@ -2419,7 +2200,7 @@ function renderSettingsView() {
             };
         }
 
-        // Toggle Notificações
+        // Toggle NotificaÇÕES
         const toggleNotif = document.getElementById('toggleNotif');
         if (toggleNotif) {
             toggleNotif.onclick = async function () {
@@ -2739,11 +2520,11 @@ function renderWeek() {
         const header = document.createElement('h2');
         const dayNum = dateStr.split('-')[2].replace(/^0/, '');
 
-        header.className = `flex items-center justify-between mb-3 ${isToday ? 'text-blue-500 font-bold' : 'text-gray-400'}`;
+        header.className = `flex items-center justify-between mb-3 ${isToday ? 'text-blue-500 font-bold' : 'text-gray-400'} `;
         header.innerHTML = `
-            <span>${day}</span>
-            <span class="${isToday ? 'bg-blue-500/10 text-blue-400' : 'bg-white/5 text-gray-500'} text-xs px-2 py-0.5 rounded-full font-mono">${dayNum}</span>
-        `;
+    <span> ${day}</span>
+        <span class="${isToday ? 'bg-blue-500/10 text-blue-400' : 'bg-white/5 text-gray-500'} text-xs px-2 py-0.5 rounded-full font-mono">${dayNum}</span>
+`;
         col.appendChild(header);
 
         // Flatten all tasks
@@ -2907,7 +2688,7 @@ function renderToday() {
     // Header
     const header = document.createElement('div');
     header.className = 'today-header';
-    header.innerHTML = `<h1>${today}</h1><p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`;
+    header.innerHTML = `<h1> ${today}</h1> <p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`;
     main.appendChild(header);
 
     // Task list container
@@ -2947,7 +2728,7 @@ function renderToday() {
     if (allTasks.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'today-empty';
-        empty.innerHTML = `<p>Nenhuma tarefa para hoje</p><p>Clique para adicionar uma tarefa</p>`;
+        empty.innerHTML = `<p> Nenhuma tarefa para hoje</p> <p>Clique para adicionar uma tarefa</p>`;
         main.appendChild(empty);
     }
 
@@ -3009,7 +2790,7 @@ function renderToday() {
 
     // Build sidebar HTML
     sidebar.innerHTML = `
-                <!-- Progresso do dia -->
+    <!--Progresso do dia-->
                 <div class="stat-section">
                     <div class="stat-section-title">Progresso</div>
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
@@ -3032,7 +2813,7 @@ function renderToday() {
                     </div>
                 </div>
 
-                <!-- Resumo -->
+                <!--Resumo -->
                 <div class="stat-section">
                     <div class="stat-section-title">Resumo</div>
                     <div class="stat-card">
@@ -3053,11 +2834,11 @@ function renderToday() {
                     </div>
                 </div>
 
-                <!-- Mini semana -->
-                <div class="stat-section">
-                    <div class="stat-section-title">Esta semana</div>
-                    <div style="display: flex; gap: 6px; align-items: flex-end;">
-                        ${weekDates.map(({ name, dateStr: wds }) => {
+                <!--Mini semana-->
+    <div class="stat-section">
+        <div class="stat-section-title">Esta semana</div>
+        <div style="display: flex; gap: 6px; align-items: flex-end;">
+            ${weekDates.map(({ name, dateStr: wds }) => {
         const { total: wt, completed: wc } = countDayTasks(wds);
         const pct = wt > 0 ? Math.round((wc / wt) * 100) : 0;
         const isToday = wds === dateStr;
@@ -3070,9 +2851,9 @@ function renderToday() {
                                 <div style="font-size: 10px; color: ${isToday ? 'var(--accent-blue)' : 'var(--text-tertiary)'}; margin-top: 4px; font-weight: ${isToday ? '600' : '400'};">${name.slice(0, 3)}</div>
                             </div>`;
     }).join('')}
-                    </div>
-                </div>
-            `;
+        </div>
+    </div>
+`;
 
     grid.appendChild(sidebar);
 }
@@ -3256,7 +3037,7 @@ function createTaskElement(day, dateStr, period, task, index) {
     const isRecurring = index === -1; // tarefas recorrentes não persistidas
 
     const el = document.createElement('div');
-    el.className = `task-item ${task.isHabit ? 'is-habit' : ''}`;
+    el.className = `task-item ${task.isHabit ? 'is-habit' : ''} `;
     el.draggable = !isRecurring;
     el.dataset.day = day;
     el.dataset.date = dateStr;
@@ -3265,15 +3046,28 @@ function createTaskElement(day, dateStr, period, task, index) {
 
     // Aplicar indent se existir
     if (task.indent && task.indent > 0) {
-        el.style.paddingLeft = `${task.indent * 24}px`;
+        el.style.paddingLeft = `${task.indent * 24} px`;
     }
 
     // Label (criado primeiro para ser referenciado pelos callbacks)
     const label = document.createElement('span');
-    label.className = `task-label color-${task.color || 'default'} ${task.completed ? 'task-completed' : ''}`;
+    label.className = `task-label color - ${task.color || 'default'} ${task.completed ? 'task-completed' : ''} `;
     // Aplicar cor azul se for tarefa de rotina
     if (task.isRoutine || period === 'Rotina') {
         label.style.color = 'var(--accent-blue)';
+    }
+
+    // Cor da DIFICULDADE (Prioridade) - sobrepõe rotina se existir
+    if (task.priority && task.priority !== 'none') {
+        const pColors = {
+            'urgent': '#FF453A',   // Vermelho
+            'important': '#FF9F0A', // Laranja
+            'simple': '#FFD60A',   // Amarelo
+            'money': '#30D158'     // Verde
+        };
+        if (pColors[task.priority]) {
+            label.style.color = pColors[task.priority];
+        }
     }
 
     // Normalizar texto da tarefa (garantir que não seja undefined)
@@ -3291,10 +3085,10 @@ function createTaskElement(day, dateStr, period, task, index) {
         label.textContent = task.text;
     }
 
-    // Single Click Edit
+    // Single Click Edit - New Modal
     label.onclick = (e) => {
-        if (label.isContentEditable) return;
-        startEditing(label, task, el);
+        e.preventDefault();
+        if (window.openTaskEditModal) window.openTaskEditModal(task, el);
     };
 
     // Context Menu
@@ -3330,16 +3124,19 @@ function createTaskElement(day, dateStr, period, task, index) {
         }
         label.classList.toggle('task-completed', task.completed);
 
-        // Se for rotina, usar a função específica de data para persistência correta
+        // Se for rotina, usar a lógica unificada routineCompletions
         if (task.isRoutine || period === 'Rotina') {
-            toggleRoutineDate(task.text, dateStr, task.completed);
+            const completions = JSON.parse(localStorage.getItem('routineCompletions') || '{}');
+            if (!completions[task.text]) completions[task.text] = {};
+
+            if (task.completed) completions[task.text][dateStr] = true;
+            else delete completions[task.text][dateStr];
+
+            localStorage.setItem('routineCompletions', JSON.stringify(completions));
         }
 
         // Sempre salvar estado geral
         saveToLocalStorage();
-
-        // Habit logic (legado/redundante mas mantido por segurança)
-        if (task.isHabit) markHabitCompleted(task.text, task.completed);
 
         // Sincronizar com Supabase
         if (typeof syncDateToSupabase === 'function') {
@@ -3414,13 +3211,13 @@ function startEditing(label, task, taskDiv) {
                 // Shift+Tab = desindentar
                 if (currentIndent > 0) {
                     task.indent = currentIndent - 1;
-                    taskItem.style.paddingLeft = `${task.indent * 24}px`;
+                    taskItem.style.paddingLeft = `${task.indent * 24} px`;
                 }
             } else {
                 // Tab = indentar
                 if (currentIndent < 3) { // Máximo 3 níveis
                     task.indent = currentIndent + 1;
-                    taskItem.style.paddingLeft = `${task.indent * 24}px`;
+                    taskItem.style.paddingLeft = `${task.indent * 24} px`;
                 }
             }
 
@@ -3673,7 +3470,7 @@ function showEditToolbar(e, task, label) {
             const alreadyInRoutine = dailyRoutine.some(t => t.text === task.text);
 
             if (!alreadyInRoutine) {
-                // Adicionar à rotina diária
+                // Adicionar Ã  rotina diária
                 dailyRoutine.push({
                     text: task.text,
                     completed: false,
@@ -3683,7 +3480,7 @@ function showEditToolbar(e, task, label) {
                 localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
             }
 
-            alert(`"${task.text}" marcado como hábito e adicionado à Rotina!`);
+            alert(`"${task.text}" marcado como hábito e adicionado Ã  Rotina!`);
         } else {
             // Remover da rotina diária
             const routineIndex = dailyRoutine.findIndex(t => t.text === task.text);
@@ -3775,7 +3572,7 @@ document.getElementById('floatingAddBtn').onclick = () => {
     m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
 }
 
-// Event listeners para opções do quick add menu
+// Event listeners para opÇÕES do quick add menu
 document.querySelectorAll('.quick-add-option').forEach(option => {
     option.onclick = () => {
         const type = option.dataset.type;
@@ -3865,7 +3662,7 @@ document.getElementById('btnSaveWeekly').onclick = () => {
         .map(b => parseInt(b.dataset.day));
 
     if (selectedDays.length === 0) {
-        // Destacar os botões visualmente para indicar que precisa selecionar
+        // Destacar os botÃµes visualmente para indicar que precisa selecionar
         document.querySelectorAll('.weekly-day-btn').forEach(b => {
             b.style.borderColor = '#ff453a';
             setTimeout(() => b.style.borderColor = '', 1000);
@@ -3960,7 +3757,7 @@ if (window.lucide) {
 }
 
 // ========================================
-// PWA - Service Worker & Notificações
+// PWA - Service Worker & NotificaÇÕES
 // ========================================
 
 let serviceWorkerRegistration = null;
@@ -3969,16 +3766,16 @@ let serviceWorkerRegistration = null;
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js')
         .then((registration) => {
-            console.log('✅ Service Worker registrado:', registration);
+            console.log('âœ… Service Worker registrado:', registration);
             serviceWorkerRegistration = registration;
 
-            // Pedir permissão para notificações após 3 segundos
+            // Pedir permissão para notificaÇÕES após 3 segundos
             setTimeout(() => {
                 requestNotificationPermission();
             }, 3000);
         })
         .catch((error) => {
-            console.error('❌ Erro ao registrar Service Worker:', error);
+            console.error('âŒ Erro ao registrar Service Worker:', error);
         });
 
     // Listener para mensagens do Service Worker
@@ -3989,15 +3786,15 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// Função para pedir permissão de notificações
+// Função para pedir permissão de notificaÇÕES
 async function requestNotificationPermission() {
     if (!('Notification' in window)) {
-        console.log('Este navegador não suporta notificações');
+        console.log('Este navegador não suporta notificaÇÕES');
         return;
     }
 
     if (Notification.permission === 'granted') {
-        console.log('✅ Permissão de notificações já concedida');
+        console.log('âœ… Permissão de notificaÇÕES já concedida');
         scheduleNotifications();
         return;
     }
@@ -4005,14 +3802,14 @@ async function requestNotificationPermission() {
     if (Notification.permission !== 'denied') {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            console.log('✅ Permissão de notificações concedida!');
+            console.log('âœ… Permissão de notificaÇÕES concedida!');
             scheduleNotifications();
             showWelcomeNotification();
         }
     }
 }
 
-// Agendar notificações através do Service Worker
+// Agendar notificaÇÕES através do Service Worker
 function scheduleNotifications() {
     if (serviceWorkerRegistration) {
         const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
@@ -4027,8 +3824,8 @@ function scheduleNotifications() {
 // Notificação de boas-vindas
 function showWelcomeNotification() {
     if (serviceWorkerRegistration) {
-        serviceWorkerRegistration.showNotification('🎉 Notificações ativadas!', {
-            body: 'Você receberá lembretes e atualizações de progresso',
+        serviceWorkerRegistration.showNotification('ðŸŽ‰ NotificaÇÕES ativadas!', {
+            body: 'Você receberá lembretes e atualizaÇÕES de progresso',
             icon: '/logo_flowly.png',
             badge: '/logo_flowly.png',
             vibrate: [200, 100, 200],
@@ -4280,4 +4077,35 @@ window.goToDate = goToDate;
 window.changeWeek = changeWeek;
 window.goToCurrentWeek = goToCurrentWeek;
 window.signOut = signOut;
+
+// --- Event Listeners do Novo Modal de Tarefas ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Priority Buttons
+    document.querySelectorAll('.priority-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        };
+    });
+
+    // Week Day Buttons (Toggle)
+    document.querySelectorAll('.weekly-day-btn').forEach(btn => {
+        btn.onclick = () => {
+            btn.classList.toggle('active');
+        };
+    });
+
+    // Action Buttons
+    const btnSave = document.getElementById('btnSaveTaskEdit');
+    if (btnSave) btnSave.onclick = window.saveTaskEdit;
+
+    const btnDelete = document.getElementById('btnDeleteTaskEdit');
+    if (btnDelete) btnDelete.onclick = window.deleteTaskEdit;
+
+    const btnCancel = document.getElementById('btnCancelTaskEdit');
+    if (btnCancel) btnCancel.onclick = () => document.getElementById('taskEditModal').classList.remove('show');
+
+    // Refresh Icons
+    if (window.lucide) lucide.createIcons();
+});
 
