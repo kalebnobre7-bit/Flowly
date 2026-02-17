@@ -4035,6 +4035,141 @@ window.setView = setView;
 window.renderView = renderView;
 window.showWeeklyRecurrenceDialog = showWeeklyRecurrenceDialog;
 window.showAddRoutineTask = showAddRoutineTask;
+
+// Inicialização da Interface e Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Auth - Login
+    const btnLogin = document.getElementById('btnLogin');
+    if (btnLogin) {
+        btnLogin.onclick = async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            if (!email || !password) {
+                showAuthMessage('Preencha email e senha!', 'error');
+                return;
+            }
+            const btn = document.getElementById('btnLogin');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Entrando...';
+            btn.disabled = true;
+            try {
+                await signIn(email, password);
+            } catch (e) {
+                console.error(e);
+                showAuthMessage(e.message, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        };
+    }
+
+    // Auth - Signup
+    const btnSignup = document.getElementById('btnSignup');
+    if (btnSignup) {
+        btnSignup.onclick = async () => {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            if (!email || !password) {
+                showAuthMessage('Preencha email e senha!', 'error');
+                return;
+            }
+            const btn = document.getElementById('btnSignup');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Criando...';
+            btn.disabled = true;
+            try {
+                await signUp(email, password);
+            } catch (e) {
+                console.error(e);
+                showAuthMessage(e.message, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        };
+    }
+
+    // Auth - Toggles
+    const btnShowSignup = document.getElementById('btnShowSignup');
+    if (btnShowSignup) {
+        btnShowSignup.onclick = () => {
+            document.getElementById('authLogin').style.display = 'none';
+            document.getElementById('authSignup').style.display = 'block';
+        };
+    }
+
+    const btnShowLogin = document.getElementById('btnShowLogin');
+    if (btnShowLogin) {
+        btnShowLogin.onclick = () => {
+            document.getElementById('authSignup').style.display = 'none';
+            document.getElementById('authLogin').style.display = 'block';
+        };
+    }
+
+    // Header - User Dropdown
+    const btnUser = document.getElementById('btnUser');
+    if (btnUser) {
+        btnUser.onclick = (e) => {
+            e.stopPropagation();
+            const dd = document.getElementById('userDropdown');
+            if (dd) dd.style.display = dd.style.display === 'flex' ? 'none' : 'flex';
+        };
+    }
+
+    document.addEventListener('click', (e) => {
+        const dd = document.getElementById('userDropdown');
+        if (dd && dd.style.display === 'flex' && !dd.contains(e.target) && e.target !== btnUser) {
+            dd.style.display = 'none';
+        }
+        // Hide Quick Add Menu
+        const qm = document.getElementById('quickAddMenu');
+        const fab = document.getElementById('floatingAddBtn');
+        if (qm && qm.style.display === 'flex' && !qm.contains(e.target) && !fab.contains(e.target)) {
+            qm.style.display = 'none';
+            const fabIcon = fab.querySelector('i');
+            if (fabIcon) fabIcon.setAttribute('data-lucide', 'zap');
+            if (window.lucide) lucide.createIcons();
+        }
+    });
+
+    // FAB Logic
+    const fab = document.getElementById('floatingAddBtn');
+    if (fab) {
+        fab.onclick = (e) => {
+            e.stopPropagation();
+            const menu = document.getElementById('quickAddMenu');
+            if (menu) {
+                const isHidden = menu.style.display === 'none' || menu.style.display === '';
+                menu.style.display = isHidden ? 'flex' : 'none';
+
+                // Toggle Icon
+                const icon = fab.querySelector('i');
+                if (icon) {
+                    icon.setAttribute('data-lucide', isHidden ? 'x' : 'zap');
+                    if (window.lucide) lucide.createIcons();
+                }
+            }
+        };
+    }
+
+    // Quick Menu Actions (Add Task, Add Routine, Add Weekly)
+    const btnQuickTask = document.querySelector('[data-action="quick-task"]');
+    if (btnQuickTask) {
+        btnQuickTask.onclick = () => {
+            document.getElementById('quickAddMenu').style.display = 'none';
+            // Scroll to Today and Focus?
+            // Simple: Just focus first empty input of Today if exists?
+            // Or Add new input to Today.
+            const todayStr = localDateStr();
+            const container = document.querySelector(`.day-column[data-date="${todayStr}"]`);
+            if (container) addQuickTaskInput(container, 'Hoje');
+        };
+    }
+
+    // Refresh Icons
+    if (window.lucide) lucide.createIcons();
+});
 window.addRoutineTask = addRoutineTask;
 window.deleteRoutineTask = deleteRoutineTask;
 window.toggleRoutineToday = toggleRoutineToday;
