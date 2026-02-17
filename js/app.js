@@ -4036,6 +4036,23 @@ window.renderView = renderView;
 window.showWeeklyRecurrenceDialog = showWeeklyRecurrenceDialog;
 window.showAddRoutineTask = showAddRoutineTask;
 
+// Helper function to show auth messages
+function showAuthMessage(message, type = 'error') {
+    const msgEl = document.getElementById('authMessage');
+    if (!msgEl) return;
+
+    msgEl.textContent = message;
+    msgEl.style.display = 'block';
+    msgEl.style.background = type === 'error' ? 'rgba(255, 69, 58, 0.15)' : 'rgba(48, 209, 88, 0.15)';
+    msgEl.style.color = type === 'error' ? '#FF453A' : '#30D158';
+    msgEl.style.border = type === 'error' ? '1px solid rgba(255, 69, 58, 0.3)' : '1px solid rgba(48, 209, 88, 0.3)';
+
+    setTimeout(() => {
+        msgEl.style.display = 'none';
+        msgEl.textContent = '';
+    }, 5000);
+}
+
 // Inicialização da Interface e Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     // Auth - Login
