@@ -1402,6 +1402,18 @@
                 </div>
             </div>
 
+            <!-- Gráfico de Progresso Mensal -->
+            <div class="mt-6 bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                        <i data-lucide="trending-up" style="width: 20px; height: 20px;"></i>
+                        Progresso do Mês
+                    </h3>
+                    <span id="monthChartLabel" class="text-sm text-gray-400"></span>
+                </div>
+                <canvas id="monthChart"></canvas>
+            </div>
+
             <!-- Melhor e Pior Dia da Semana -->
             <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
@@ -1655,6 +1667,110 @@
                                         usePointStyle: true,
                                         pointStyle: 'circle',
                                         padding: 15
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico de progresso mensal
+                const monthCtx = document.getElementById('monthChart');
+                if (monthCtx) {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = now.getMonth();
+                    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const todayDay = now.getDate();
+
+                    const monthLabels = [];
+                    const monthData = [];
+                    const pointColors = [];
+
+                    for (let d = 1; d <= daysInMonth; d++) {
+                        monthLabels.push(d);
+                        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        const dayTasks = allTasksData[dateStr] || {};
+                        let total = 0, completed = 0;
+                        Object.values(dayTasks).forEach(tasks => {
+                            if (Array.isArray(tasks)) {
+                                total += tasks.length;
+                                completed += tasks.filter(t => t.completed).length;
+                            }
+                        });
+                        const rate = d <= todayDay ? (total > 0 ? Math.round((completed / total) * 100) : null) : null;
+                        monthData.push(rate);
+                        if (d === todayDay) pointColors.push('#30D158');
+                        else if (rate === null) pointColors.push('transparent');
+                        else if (rate >= 80) pointColors.push('#30D158');
+                        else if (rate >= 50) pointColors.push('#0A84FF');
+                        else pointColors.push('#FF453A');
+                    }
+
+                    // Atualiza label do mês
+                    const labelEl = document.getElementById('monthChartLabel');
+                    if (labelEl) labelEl.textContent = `${monthNames[month]} ${year}`;
+
+                    new Chart(monthCtx, {
+                        type: 'line',
+                        data: {
+                            labels: monthLabels,
+                            datasets: [{
+                                label: 'Conclusão diária (%)',
+                                data: monthData,
+                                borderColor: '#0A84FF',
+                                backgroundColor: 'rgba(10, 132, 255, 0.08)',
+                                tension: 0.35,
+                                fill: true,
+                                borderWidth: 2.5,
+                                pointRadius: monthData.map((v, i) => {
+                                    if (v === null) return 0;
+                                    return i + 1 === todayDay ? 7 : 4;
+                                }),
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: pointColors,
+                                pointBorderColor: pointColors,
+                                spanGaps: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0,0,0,0.85)',
+                                    titleColor: '#ccc',
+                                    bodyColor: '#fff',
+                                    callbacks: {
+                                        title: (items) => `Dia ${items[0].label}`,
+                                        label: (item) => item.raw !== null ? ` ${item.raw}% concluído` : ' Sem dados'
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    grid: { color: 'rgba(255,255,255,0.07)' },
+                                    ticks: {
+                                        color: '#888',
+                                        callback: (value) => value + '%',
+                                        stepSize: 25
+                                    }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: {
+                                        color: '#888',
+                                        maxTicksLimit: 15,
+                                        callback: function(val, index) {
+                                            const day = index + 1;
+                                            return day === 1 || day % 5 === 0 || day === daysInMonth ? day : '';
+                                        }
                                     }
                                 }
                             }
