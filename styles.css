@@ -993,15 +993,19 @@ body.dragging-active .task-drop-zone {
 @media (max-width: 768px) {
     .today-task-list .task-item {
         display: flex;
-        flex-wrap: wrap;
-        /* Permitir quebra se necessário */
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        /* Aligner topo se texto for longo */
+        gap: 12px;
     }
 
     .today-task-list .task-item .task-label {
         font-size: 16px;
-        /* Aumentar fonte para legibilidade */
-        width: calc(100% - 30px);
-        /* Ajustar largura considerando checkbox */
+        width: auto;
+        flex: 1;
+        margin-top: 2px;
+        /* Ajuste fino para alinhar com checkbox */
+        word-break: break-word;
     }
 
     .today-sidebar {
