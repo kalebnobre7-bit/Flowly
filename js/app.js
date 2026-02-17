@@ -680,22 +680,29 @@ async function migrateLocalDataToSupabase() {
 async function loadDataFromSupabase() {
     if (!currentUser) return;
     const { data: tasks, error } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
+
     if (tasks && tasks.length > 0) {
-        // IDs a deletar do Supabase (apenas datas inválidas)
         const idsToDelete = [];
-
-        // Limpa dados locais e reconstrói a partir do Supabase
         allTasksData = {};
-        tasks.forEach(task => {
-            const dateStr = task.day;
+        const remoteDailyRoutine = [];
 
-            // Ignorar datas inválidas (ex: nomes de dias antigos como "Segunda")
+        tasks.forEach(task => {
+            // Handle Routine Definitions
+            if (task.day === 'ROUTINE') {
+                remoteDailyRoutine.push({
+                    text: task.text,
+                    completed: false,
+                    color: task.color || 'default',
+                    isHabit: true
+                });
+                return;
+            }
+
+            const dateStr = task.day;
             if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !task.period) {
                 if (task.id) idsToDelete.push(task.id);
                 return;
             }
-
-            // Ignorar tarefas sem texto
             if (!task.text || task.text.trim() === '') {
                 if (task.id) idsToDelete.push(task.id);
                 return;
@@ -712,14 +719,20 @@ async function loadDataFromSupabase() {
             });
         });
 
-        // Deletar apenas registros com dados inválidos
+        // Sync Routine Remote -> Local
+        if (remoteDailyRoutine.length > 0) {
+            dailyRoutine = remoteDailyRoutine;
+            localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
+        }
+
         if (idsToDelete.length > 0) {
             await supabaseClient.from('tasks').delete().in('id', idsToDelete);
         }
 
-        normalizeAllTasks();
+        if (typeof normalizeAllTasks === 'function') normalizeAllTasks();
         localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
     }
+
     const { data: habits } = await supabaseClient.from('habits_history').select('*').eq('user_id', currentUser.id);
     if (habits) {
         habitsHistory = {};
@@ -727,6 +740,57 @@ async function loadDataFromSupabase() {
             if (!habitsHistory[h.habit_name]) habitsHistory[h.habit_name] = {};
             habitsHistory[h.habit_name][h.date] = h.completed;
         });
+    }
+
+    // Realtime Setup
+    if (!window._flowlySubscription) {
+        console.log('[Realtime] Iniciando subscrição...');
+        window._flowlySubscription = supabaseClient
+            .channel('flowly_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+                const uid = payload.new?.user_id || payload.old?.user_id;
+                if (uid === currentUser.id) {
+                    console.log('[Realtime] Tasks atualizadas.');
+                    if (window._rtTimeout) clearTimeout(window._rtTimeout);
+                    window._rtTimeout = setTimeout(async () => {
+                        await loadDataFromSupabase();
+                        renderView();
+                        if (typeof renderRoutineView === 'function') renderRoutineView();
+                    }, 500);
+                }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'habits_history' }, (payload) => {
+                const uid = payload.new?.user_id || payload.old?.user_id;
+                if (uid === currentUser.id) {
+                    console.log('[Realtime] Habits atualizados.');
+                    if (window._rtTimeout) clearTimeout(window._rtTimeout);
+                    window._rtTimeout = setTimeout(async () => {
+                        await loadDataFromSupabase();
+                        renderRoutineView();
+                    }, 500);
+                }
+            })
+            .subscribe();
+    }
+}
+
+async function syncDailyRoutineToSupabase() {
+    if (!currentUser) return;
+    // Remove antigas definições
+    await supabaseClient.from('tasks').delete().eq('user_id', currentUser.id).eq('day', 'ROUTINE');
+
+    // Insere novas
+    if (dailyRoutine.length > 0) {
+        const inserts = dailyRoutine.map(t => ({
+            user_id: currentUser.id,
+            day: 'ROUTINE',
+            period: 'daily',
+            text: t.text,
+            completed: false,
+            is_habit: true,
+            color: t.color || 'default'
+        }));
+        await supabaseClient.from('tasks').insert(inserts);
     }
 }
 
@@ -2087,6 +2151,7 @@ function addRoutineTask() {
     });
 
     localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
+    syncDailyRoutineToSupabase(); // Sync agora
     renderRoutineView();
     setTimeout(() => lucide.createIcons(), 0);
 }
@@ -2095,6 +2160,7 @@ function deleteRoutineTask(index) {
     if (!confirm('Remover esta tarefa da rotina diária?')) return;
     dailyRoutine.splice(index, 1);
     localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
+    syncDailyRoutineToSupabase(); // Sync agora
     renderRoutineView();
     setTimeout(() => lucide.createIcons(), 0);
 }
