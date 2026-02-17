@@ -1014,3 +1014,111 @@ body.dragging-active .task-drop-zone {
         /* Força largura total */
     }
 }
+
+/* ====== MOBILE OPTIMIZATIONS (NEW) ====== */
+
+/* Safe Area Utility */
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (max-width: 768px) {
+
+    /* Day Column as Card */
+    .day-column {
+        min-height: auto;
+        margin-bottom: 20px;
+        background: rgba(35, 35, 38, 0.4);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Today Highlight - Mobile */
+    .day-column.today-active {
+        background: rgba(10, 132, 255, 0.05);
+        /* Blue tint */
+        border: 1px solid rgba(10, 132, 255, 0.3);
+        box-shadow: 0 0 20px rgba(10, 132, 255, 0.1);
+        position: relative;
+        z-index: 5;
+    }
+
+    /* Sticky Headers within Columns */
+    .day-column h2 {
+        position: sticky;
+        top: 0;
+        background: inherit;
+        /* Matches column bg */
+        backdrop-filter: blur(10px);
+        margin: -16px -16px 12px -16px;
+        /* Negate padding */
+        padding: 16px 16px 12px 16px;
+        border-radius: 20px 20px 0 0;
+        z-index: 20;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .day-column.today-active h2 {
+        color: var(--accent-blue);
+    }
+
+    /* Better scrolling */
+    #weekGrid:not(.hidden) {
+        display: flex;
+        /* Stack vertically on mobile */
+        flex-direction: column;
+        padding-bottom: 1px;
+        /* Fix margin collapse */
+    }
+
+    /* Task Items - Better Touch Targets */
+    .task-item {
+        padding: 12px 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        margin-bottom: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.02);
+    }
+
+    .task-item:active {
+        transform: scale(0.98);
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .checkbox-custom {
+        width: 22px;
+        height: 22px;
+        border-width: 2px;
+    }
+
+    .task-label {
+        font-size: 15px;
+        line-height: 1.4;
+    }
+
+    /* Hide drag handles on mobile to clean up */
+    .drag-handle {
+        display: none !important;
+    }
+
+    /* Bottom Nav Fix */
+    nav.md\:hidden {
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        background: rgba(28, 28, 30, 0.85);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* FAB Position */
+    .nav-item {
+        padding-bottom: 4px;
+    }
+
+    /* Adjust Header */
+    header {
+        padding: 16px 20px;
+        background: rgba(28, 28, 30, 0.9);
+    }
+}

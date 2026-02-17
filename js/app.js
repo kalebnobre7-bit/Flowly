@@ -2577,15 +2577,22 @@ function renderWeek() {
         col.addEventListener('dragover', handleDragOver);
         col.addEventListener('drop', handleDrop);
 
-        const header = document.createElement('h2');
-        // Highlight today - add date number
         const todayStr = localDateStr();
+        const isToday = dateStr === todayStr;
+        const isPast = dateStr < todayStr;
+
+        if (isToday) col.classList.add('today-active');
+        if (isPast) col.classList.add('past-day');
+        if (dateStr > todayStr) col.classList.add('future-day');
+
+        const header = document.createElement('h2');
         const dayNum = dateStr.split('-')[2].replace(/^0/, '');
-        if (dateStr === todayStr) {
-            header.innerHTML = `<span style="color: var(--accent-blue); font-weight: 600;">${day}</span> <span style="color: var(--accent-blue); opacity: 0.6;">${dayNum}</span>`;
-        } else {
-            header.innerHTML = `${day} <span style="opacity: 0.5;">${dayNum}</span>`;
-        }
+
+        header.className = `flex items-center justify-between mb-3 ${isToday ? 'text-blue-500 font-bold' : 'text-gray-400'}`;
+        header.innerHTML = `
+            <span>${day}</span>
+            <span class="${isToday ? 'bg-blue-500/10 text-blue-400' : 'bg-white/5 text-gray-500'} text-xs px-2 py-0.5 rounded-full font-mono">${dayNum}</span>
+        `;
         col.appendChild(header);
 
         // Flatten all tasks
