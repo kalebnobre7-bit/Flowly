@@ -760,11 +760,11 @@ async function loadDataFromSupabase() {
     if (!currentUser) return;
     const { data: tasks, error } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
 
-    if (tasks && tasks.length > 0) {
-        const idsToDelete = [];
-        allTasksData = {};
-        const remoteDailyRoutine = [];
+    const idsToDelete = [];
+    allTasksData = {};
+    const remoteDailyRoutine = [];
 
+    if (tasks && tasks.length > 0) {
         tasks.forEach(task => {
             // Handle Routine Definitions
             if (task.day === 'ROUTINE') {
@@ -798,19 +798,25 @@ async function loadDataFromSupabase() {
             });
         });
 
-        // Sync Routine Remote -> Local
-        if (remoteDailyRoutine.length > 0) {
-            dailyRoutine = remoteDailyRoutine;
-            localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
-        }
-
         if (idsToDelete.length > 0) {
             await supabaseClient.from('tasks').delete().in('id', idsToDelete);
         }
-
-        if (typeof normalizeAllTasks === 'function') normalizeAllTasks();
-        localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
     }
+
+    // Sync rotinas - SEMPRE executa, independente de ter tasks ou não
+    if (remoteDailyRoutine.length > 0) {
+        // Supabase tem rotinas -> usar elas (fonte de verdade)
+        dailyRoutine = remoteDailyRoutine;
+        localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
+        console.log('[Sync] Rotinas carregadas do Supabase:', dailyRoutine.length);
+    } else if (dailyRoutine.length > 0) {
+        // Supabase NÃO tem rotinas, mas temos locais -> enviar para Supabase
+        console.log('[Sync] Enviando', dailyRoutine.length, 'rotinas locais para o Supabase...');
+        await syncDailyRoutineToSupabase();
+    }
+
+    if (typeof normalizeAllTasks === 'function') normalizeAllTasks();
+    localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
 
     const { data: habits } = await supabaseClient.from('habits_history').select('*').eq('user_id', currentUser.id);
     if (habits) {
