@@ -1113,12 +1113,19 @@
             if (!currentUser) return;
             const { data: tasks, error } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
             if (tasks && tasks.length > 0) {
+                // Coletar IDs de tarefas recorrentes para deletar do Supabase
+                const recurringIdsToDelete = [];
+
                 // Limpa dados locais e reconstrói a partir do Supabase
                 allTasksData = {};
                 tasks.forEach(task => {
                     // 'day' guarda a data ISO (YYYY-MM-DD)
                     const dateStr = task.day;
                     if (!dateStr || !task.period) return;
+
+                    // Ignorar tarefas inválidas (datas que não são ISO, ex: nomes de dias antigos)
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+
                     if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
                     if (!allTasksData[dateStr][task.period]) allTasksData[dateStr][task.period] = [];
                     allTasksData[dateStr][task.period].push({
@@ -1129,6 +1136,18 @@
                         supabaseId: task.id
                     });
                 });
+
+                normalizeAllTasks(); // Remove recorrentes persistidas indevidamente e coleta IDs
+
+                // Coletar IDs de tarefas recorrentes que ainda estão no Supabase para deletar
+                const weeklyTexts = weeklyRecurringTasks.map(rt => rt.text);
+                const idsToDelete = tasks
+                    .filter(t => weeklyTexts.includes(t.text))
+                    .map(t => t.id);
+                if (idsToDelete.length > 0) {
+                    await supabaseClient.from('tasks').delete().in('id', idsToDelete);
+                }
+
                 localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
             }
             const { data: habits } = await supabaseClient.from('habits_history').select('*').eq('user_id', currentUser.id);
@@ -2237,27 +2256,18 @@
             }, 100);
         }
 
-        // Função para aplicar tarefas recorrentes em um dia específico
-        function applyWeeklyRecurringTasks(dateStr, dayOfWeek) {
-            if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
-            if (!allTasksData[dateStr]['Tarefas']) allTasksData[dateStr]['Tarefas'] = [];
-
-            const existingTexts = allTasksData[dateStr]['Tarefas'].map(t => t.text);
-
-            weeklyRecurringTasks.forEach(recurringTask => {
-                if (recurringTask.daysOfWeek.includes(dayOfWeek)) {
-                    // Só adicionar se ainda não existe
-                    if (!existingTexts.includes(recurringTask.text)) {
-                        allTasksData[dateStr]['Tarefas'].push({
-                            text: recurringTask.text,
-                            completed: false,
-                            color: recurringTask.color,
-                            isHabit: recurringTask.isHabit,
-                            isWeeklyRecurring: true
-                        });
-                    }
-                }
-            });
+        // Retorna as tarefas recorrentes semanais de um dia (apenas para exibição, sem persistir)
+        function getWeeklyRecurringForDay(dateStr, dayOfWeek) {
+            const existingTexts = (allTasksData[dateStr]?.['Tarefas'] || []).map(t => t.text);
+            return weeklyRecurringTasks
+                .filter(rt => rt.daysOfWeek.includes(dayOfWeek) && !existingTexts.includes(rt.text))
+                .map(rt => ({
+                    text: rt.text,
+                    completed: false,
+                    color: rt.color,
+                    isHabit: rt.isHabit,
+                    isWeeklyRecurring: true
+                }));
         }
 
         function renderView() {
@@ -2311,10 +2321,6 @@
             const weekDates = getWeekDates(currentWeekOffset);
 
             weekDates.forEach(({ name: day, dateStr }) => {
-                // Aplicar tarefas semanais recorrentes
-                const date = new Date(dateStr + 'T12:00:00');
-                applyWeeklyRecurringTasks(dateStr, date.getDay());
-
                 // Buscar tarefas para esta data específica
                 const dayTasks = allTasksData[dateStr] || {};
 
@@ -2328,7 +2334,10 @@
                     localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
                 }
 
-                const periods = dayTasks;
+                // Tarefas recorrentes semanais (só exibição, não persistem)
+                const date = new Date(dateStr + 'T12:00:00');
+                const recurringTasks = getWeeklyRecurringForDay(dateStr, date.getDay());
+
                 const col = document.createElement('div');
                 col.className = 'day-column';
                 col.dataset.day = day;
@@ -2344,11 +2353,16 @@
                 // Flatten all tasks from all periods into a continuous list
                 const allTasks = [];
 
-                // Adicionar tarefas normais (incluindo Rotina que agora é salva por data)
-                Object.entries(periods).forEach(([period, tasks]) => {
+                // Adicionar tarefas normais salvas
+                Object.entries(dayTasks).forEach(([period, tasks]) => {
                     tasks.forEach((task, index) => {
                         allTasks.push({ task, day, dateStr, period, originalIndex: index });
                     });
+                });
+
+                // Adicionar recorrentes semanais no final (não persistidas)
+                recurringTasks.forEach((task) => {
+                    allTasks.push({ task, day, dateStr, period: 'Tarefas', originalIndex: -1 });
                 });
 
                 // Render all tasks in sequence without period sections
@@ -2377,9 +2391,6 @@
             const today = days[new Date().getDay()];
             const dateStr = localDateStr();
 
-            // Aplicar tarefas semanais recorrentes para hoje
-            applyWeeklyRecurringTasks(dateStr, new Date().getDay());
-
             const header = document.createElement('div');
             header.className = 'mb-8';
             header.innerHTML = `<h1 class="text-3xl font-bold mb-2">${today}</h1><p class="text-gray-500">${new Date().toLocaleDateString('pt-BR')}</p>`;
@@ -2396,12 +2407,20 @@
                 localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
             }
 
+            // Tarefas recorrentes semanais (só exibição, não persistem)
+            const recurringTasks = getWeeklyRecurringForDay(dateStr, new Date().getDay());
+
             // Flatten all tasks into a continuous list
             const allTasks = [];
             Object.entries(dayTasks).forEach(([period, tasks]) => {
                 tasks.forEach((task, index) => {
                     allTasks.push({ task, day: today, dateStr, period, originalIndex: index });
                 });
+            });
+
+            // Adicionar recorrentes semanais no final (não persistidas)
+            recurringTasks.forEach((task) => {
+                allTasks.push({ task, day: today, dateStr, period: 'Tarefas', originalIndex: -1 });
             });
 
             // Render all tasks in a single continuous list
@@ -3204,20 +3223,36 @@
             }
         };
 
-        // Normalizar tarefas antigas (corrigir text: undefined)
+        // Normalizar tarefas (corrigir text: undefined e remover recorrentes persistidas)
         function normalizeAllTasks() {
             let hasChanges = false;
             Object.entries(allTasksData).forEach(([dateStr, periods]) => {
                 Object.entries(periods).forEach(([period, tasks]) => {
                     if (Array.isArray(tasks)) {
-                        tasks.forEach(task => {
+                        // Remover tarefas recorrentes semanais que foram salvas indevidamente
+                        const filtered = tasks.filter(task => !task.isWeeklyRecurring);
+                        if (filtered.length !== tasks.length) {
+                            allTasksData[dateStr][period] = filtered;
+                            hasChanges = true;
+                        }
+                        allTasksData[dateStr][period].forEach(task => {
                             if (task.text === undefined || task.text === null) {
                                 task.text = '';
                                 hasChanges = true;
                             }
                         });
+                        // Limpar período vazio
+                        if (allTasksData[dateStr][period].length === 0) {
+                            delete allTasksData[dateStr][period];
+                            hasChanges = true;
+                        }
                     }
                 });
+                // Limpar data vazia
+                if (Object.keys(allTasksData[dateStr] || {}).length === 0) {
+                    delete allTasksData[dateStr];
+                    hasChanges = true;
+                }
             });
 
             if (hasChanges) {
