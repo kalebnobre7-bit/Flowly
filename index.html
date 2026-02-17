@@ -1113,18 +1113,34 @@
             if (!currentUser) return;
             const { data: tasks, error } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
             if (tasks && tasks.length > 0) {
-                // Coletar IDs de tarefas recorrentes para deletar do Supabase
-                const recurringIdsToDelete = [];
+                // Textos das tarefas recorrentes para filtrar
+                const weeklyTexts = new Set(weeklyRecurringTasks.map(rt => rt.text));
+
+                // IDs a deletar do Supabase (recorrentes + datas inválidas)
+                const idsToDelete = [];
 
                 // Limpa dados locais e reconstrói a partir do Supabase
                 allTasksData = {};
                 tasks.forEach(task => {
-                    // 'day' guarda a data ISO (YYYY-MM-DD)
                     const dateStr = task.day;
-                    if (!dateStr || !task.period) return;
 
-                    // Ignorar tarefas inválidas (datas que não são ISO, ex: nomes de dias antigos)
-                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+                    // Ignorar datas inválidas (ex: nomes de dias antigos como "Segunda")
+                    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !task.period) {
+                        if (task.id) idsToDelete.push(task.id);
+                        return;
+                    }
+
+                    // Ignorar tarefas recorrentes salvas indevidamente
+                    if (weeklyTexts.has(task.text)) {
+                        if (task.id) idsToDelete.push(task.id);
+                        return;
+                    }
+
+                    // Ignorar tarefas sem texto
+                    if (!task.text || task.text.trim() === '') {
+                        if (task.id) idsToDelete.push(task.id);
+                        return;
+                    }
 
                     if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
                     if (!allTasksData[dateStr][task.period]) allTasksData[dateStr][task.period] = [];
@@ -1137,18 +1153,15 @@
                     });
                 });
 
-                normalizeAllTasks(); // Remove recorrentes persistidas indevidamente e coleta IDs
-
-                // Coletar IDs de tarefas recorrentes que ainda estão no Supabase para deletar
-                const weeklyTexts = weeklyRecurringTasks.map(rt => rt.text);
-                const idsToDelete = tasks
-                    .filter(t => weeklyTexts.includes(t.text))
-                    .map(t => t.id);
+                // Deletar lixo do Supabase em lote
                 if (idsToDelete.length > 0) {
                     await supabaseClient.from('tasks').delete().in('id', idsToDelete);
                 }
 
+                normalizeAllTasks();
                 localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+            } else if (tasks && tasks.length === 0) {
+                // Supabase vazio mas temos dados locais — não apagar local
             }
             const { data: habits } = await supabaseClient.from('habits_history').select('*').eq('user_id', currentUser.id);
             if (habits) {
