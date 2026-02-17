@@ -1086,6 +1086,139 @@
         let habitsHistory = JSON.parse(localStorage.getItem('habitsHistory') || '{}');
 
         // Funções auxiliares de data
+        function localDateStr(date = new Date()) {
+            return date.toLocaleDateString('pt-BR').split('/').reverse().join('-');
+        }
+
+        // --- Funções Globais do Analytics e Rotina ---
+
+        // Função para alternar o status de conclusão de uma tarefa de rotina hoje
+        function toggleRoutineToday(habitText, completed) {
+            const today = new Date();
+            const dateStr = localDateStr(today);
+            const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            const dayName = days[today.getDay()];
+            const dateKey = `${dayName}_${dateStr}`;
+
+            // Carregar e modificar routineStates
+            let routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
+            if (!routineStates[habitText]) routineStates[habitText] = {};
+
+            if (completed) {
+                routineStates[habitText][dateKey] = true;
+            } else {
+                delete routineStates[habitText][dateKey];
+            }
+
+            // Salvar routineStates atualizado
+            localStorage.setItem('routineStates', JSON.stringify(routineStates));
+
+            // Também sincronizar com habitsHistory (backup histórico)
+            if (!habitsHistory[habitText]) habitsHistory[habitText] = {};
+            if (completed) habitsHistory[habitText][dateStr] = true;
+            else delete habitsHistory[habitText][dateStr];
+
+            // Atualizar dailyRoutine para refletir visualmente
+            const routineItem = dailyRoutine.find(t => t.text === habitText);
+            if (routineItem) routineItem.completed = completed;
+
+            saveToLocalStorage();
+
+            // Re-renderizar a view de rotina para atualizar barras de progresso
+            renderRoutineView();
+        }
+
+        // Função para adicionar nova tarefa de rotina
+        function showAddRoutineTask() {
+            const text = prompt('Digite o nome do novo hábito diário:');
+            if (text && text.trim()) {
+                dailyRoutine.push({
+                    text: text.trim(),
+                    completed: false,
+                    color: 'default',
+                    isHabit: true
+                });
+                saveToLocalStorage();
+                renderRoutineView();
+            }
+        }
+
+        // Função para deletar tarefa de rotina ou semanal
+        function deleteRoutineTask(index, isWeekly = false) {
+            if (isWeekly) {
+                if (confirm('Remover esta tarefa recorrente semanal?')) {
+                    weeklyRecurringTasks.splice(index, 1);
+                    saveToLocalStorage();
+                    renderRoutineView();
+                }
+            } else {
+                if (confirm('Remover este hábito da rotina diária?')) {
+                    dailyRoutine.splice(index, 1);
+                    saveToLocalStorage();
+                    renderRoutineView();
+                }
+            }
+        }
+
+        // Calcular streak (sequência de dias consecutivos)
+        function getHabitStreak(habitText) {
+            const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
+            if (!routineStates[habitText]) return 0;
+
+            let streak = 0;
+            const today = new Date();
+            const daysKey = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+            // Verificar hoje e voltar para trás
+            let currentDate = new Date(today);
+            let dateStr = localDateStr(currentDate);
+            let dayName = daysKey[currentDate.getDay()];
+            let key = `${dayName}_${dateStr}`;
+
+            // Se hoje estiver marcado, começa com 1, senão 0 (mas verifica ontem)
+            if (routineStates[habitText][key]) {
+                streak++;
+            }
+
+            // Loop para dias anteriores
+            while (true) {
+                currentDate.setDate(currentDate.getDate() - 1);
+                dateStr = localDateStr(currentDate);
+                dayName = daysKey[currentDate.getDay()];
+                key = `${dayName}_${dateStr}`;
+
+                if (routineStates[habitText][key]) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        // Calcular taxa de conclusão nos últimos X dias
+        function getHabitCompletionRate(habitText, daysCheck = 30) {
+            const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
+            if (!routineStates[habitText]) return 0;
+
+            let completedCount = 0;
+            const today = new Date();
+            const daysKey = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+            for (let i = 0; i < daysCheck; i++) {
+                const currentDate = new Date(today);
+                currentDate.setDate(currentDate.getDate() - i);
+                const dateStr = localDateStr(currentDate);
+                const dayName = daysKey[currentDate.getDay()];
+                const key = `${dayName}_${dateStr}`;
+
+                if (routineStates[habitText][key]) {
+                    completedCount++;
+                }
+            }
+
+            return Math.round((completedCount / daysCheck) * 100);
+        }
 
         // ===== FUNÇÕES DE SALVAMENTO =====
         function saveToLocalStorage() {
