@@ -3416,7 +3416,35 @@
             checkbox.onchange = (e) => {
                 task.completed = e.target.checked;
                 label.classList.toggle('task-completed', task.completed);
+
+                // Se for tarefa recorrente (index -1), precisamos persistir no allTasksData
+                if (isRecurring) {
+                    // Garantir estruturas
+                    if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+                    if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
+
+                    // Verificar se já existe persistida
+                    const existingIndex = allTasksData[dateStr][period].findIndex(t => t.text === task.text);
+
+                    if (existingIndex !== -1) {
+                        // Atualizar existente
+                        allTasksData[dateStr][period][existingIndex].completed = task.completed;
+                    } else {
+                        // Adicionar nova entrada persistida
+                        allTasksData[dateStr][period].push({
+                            text: task.text,
+                            completed: task.completed,
+                            color: task.color || 'default',
+                            isHabit: task.isHabit || false
+                        });
+                    }
+
+                    // Sincronizar com Supabase
+                    syncDateToSupabase(dateStr);
+                }
+
                 saveToLocalStorage();
+
                 // Habit logic
                 if (task.isHabit) markHabitCompleted(task.text, task.completed);
             }
