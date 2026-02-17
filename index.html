@@ -1055,29 +1055,81 @@
 
         async function migrateLocalDataToSupabase() {
             if (!currentUser) return;
-            const localData = localStorage.getItem('weekData');
-            if (!localData) return;
-            // Simplified migration logic retention
-            const data = JSON.parse(localData);
-            // Migration implementation details omitted for brevity but logic placeholder exists
+
+            // Verificar se já existem dados no Supabase para este usuário
+            const { data: existingTasks } = await supabaseClient.from('tasks').select('id').eq('user_id', currentUser.id).limit(1);
+            const hasSupabaseData = existingTasks && existingTasks.length > 0;
+
+            // Se já tem dados no Supabase, não sobrescreve (dados da nuvem têm prioridade)
+            if (hasSupabaseData) {
+                localStorage.removeItem('weekData');
+                return;
+            }
+
+            // Se não tem dados no Supabase, sobe os dados locais (allTasksData)
+            const localTasksData = JSON.parse(localStorage.getItem('allTasksData') || '{}');
+            const inserts = [];
+
+            Object.entries(localTasksData).forEach(([dateStr, periods]) => {
+                // Só migra datas no formato YYYY-MM-DD (ignora nomes de dias antigos)
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+                Object.entries(periods).forEach(([period, tasks]) => {
+                    if (Array.isArray(tasks)) {
+                        tasks.forEach(task => {
+                            if (!task.text) return;
+                            inserts.push({
+                                user_id: currentUser.id,
+                                day: dateStr,
+                                period: period,
+                                text: task.text,
+                                completed: task.completed || false,
+                                color: task.color || 'default',
+                                is_habit: task.isHabit || false
+                            });
+                        });
+                    }
+                });
+            });
+
+            if (inserts.length > 0) {
+                const { data: inserted } = await supabaseClient.from('tasks').insert(inserts).select();
+                // Atualizar supabaseId nas tarefas locais
+                if (inserted) {
+                    inserted.forEach(row => {
+                        const tasks = allTasksData[row.day]?.[row.period];
+                        if (tasks) {
+                            const match = tasks.find(t => t.text === row.text && !t.supabaseId);
+                            if (match) match.supabaseId = row.id;
+                        }
+                    });
+                    localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+                }
+            }
+
             localStorage.removeItem('weekData');
         }
 
         async function loadDataFromSupabase() {
             if (!currentUser) return;
-            const { data: tasks } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
-            if (tasks) {
-                Object.keys(weekData).forEach(day => weekData[day] = {});
+            const { data: tasks, error } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
+            if (tasks && tasks.length > 0) {
+                // Limpa dados locais e reconstrói a partir do Supabase
+                allTasksData = {};
                 tasks.forEach(task => {
-                    // Garantir que o dia existe em weekData
-                    if (!weekData[task.day]) weekData[task.day] = {};
-                    if (!weekData[task.day][task.period]) weekData[task.day][task.period] = [];
-                    weekData[task.day][task.period].push({
-                        text: task.text, completed: task.completed, color: task.color || 'default',
-                        isHabit: task.is_habit, supabaseId: task.id
+                    // 'day' guarda a data ISO (YYYY-MM-DD)
+                    const dateStr = task.day;
+                    if (!dateStr || !task.period) return;
+                    if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+                    if (!allTasksData[dateStr][task.period]) allTasksData[dateStr][task.period] = [];
+                    allTasksData[dateStr][task.period].push({
+                        text: task.text,
+                        completed: task.completed,
+                        color: task.color || 'default',
+                        isHabit: task.is_habit,
+                        supabaseId: task.id
                     });
                 });
-                renderView();
+                localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
             }
             const { data: habits } = await supabaseClient.from('habits_history').select('*').eq('user_id', currentUser.id);
             if (habits) {
@@ -1089,16 +1141,25 @@
             }
         }
 
-        async function syncTaskToSupabase(day, period, task) {
+        async function syncTaskToSupabase(dateStr, period, task) {
             if (!currentUser) return;
-            // Upsert logic
             if (task.supabaseId) {
                 await supabaseClient.from('tasks').update({
-                    text: task.text, completed: task.completed, color: task.color, is_habit: task.isHabit, updated_at: new Date().toISOString()
+                    text: task.text,
+                    completed: task.completed,
+                    color: task.color,
+                    is_habit: task.isHabit,
+                    updated_at: new Date().toISOString()
                 }).eq('id', task.supabaseId);
             } else {
                 const { data } = await supabaseClient.from('tasks').insert({
-                    user_id: currentUser.id, day, period, text: task.text, completed: task.completed, color: task.color, is_habit: task.isHabit
+                    user_id: currentUser.id,
+                    day: dateStr,
+                    period: period,
+                    text: task.text,
+                    completed: task.completed,
+                    color: task.color,
+                    is_habit: task.isHabit
                 }).select();
                 if (data && data[0]) task.supabaseId = data[0].id;
             }
