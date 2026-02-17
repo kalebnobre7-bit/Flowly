@@ -3527,8 +3527,12 @@
                 task.completed = e.target.checked;
                 label.classList.toggle('task-completed', task.completed);
 
-                // Se for tarefa recorrente (index -1), precisamos persistir no allTasksData
-                if (isRecurring) {
+                console.log('[CHECKBOX] Mudou:', task.text, 'isRecurring:', isRecurring, 'period:', period, 'completed:', task.completed);
+
+                // Se for tarefa recorrente (index -1) OU tarefa de rotina
+                if (isRecurring || task.isRoutine) {
+                    console.log('[PERSIST] Persistindo tarefa de rotina/recorrente:', task.text);
+
                     // Garantir estruturas
                     if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
                     if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
@@ -3538,16 +3542,21 @@
 
                     if (existingIndex !== -1) {
                         // Atualizar existente
+                        console.log('[PERSIST] Atualizando tarefa existente no index:', existingIndex);
                         allTasksData[dateStr][period][existingIndex].completed = task.completed;
                     } else {
                         // Adicionar nova entrada persistida
+                        console.log('[PERSIST] Adicionando nova entrada');
                         allTasksData[dateStr][period].push({
                             text: task.text,
                             completed: task.completed,
                             color: task.color || 'default',
-                            isHabit: task.isHabit || false
+                            isHabit: task.isHabit || false,
+                            isRoutine: task.isRoutine || false
                         });
                     }
+
+                    console.log('[PERSIST] allTasksData após mudança:', JSON.stringify(allTasksData[dateStr]));
 
                     // Sincronizar com Supabase
                     syncDateToSupabase(dateStr);
