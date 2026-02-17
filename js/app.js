@@ -440,45 +440,25 @@ function handleDragOver(e) {
 
 // Retorna tarefas de rotina para exibição (NÃO persiste em allTasksData)
 function getRoutineTasksForDate(dateStr) {
-    const routineStates = JSON.parse(localStorage.getItem('routineCompletions') || '{}');
-    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const tasks = [];
     const dateParts = dateStr.split('-');
     const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
     const dayOfWeek = dateObj.getDay();
-    const dayName = dayNames[dayOfWeek];
-    const dateKey = `${dayName}_${dateStr}`; // Fallback key
 
-    const tasks = [];
-
-    // Priorizar lista unificada (allRecurringTasks)
     allRecurringTasks.forEach(habit => {
         let isForToday = false;
-
         if (habit.daysOfWeek && Array.isArray(habit.daysOfWeek)) {
             if (habit.daysOfWeek.includes(dayOfWeek)) isForToday = true;
-        } else if (habit.isHabit) { // Fallback para hábitos antigos
+        } else if (habit.isHabit) {
             isForToday = true;
         }
 
         if (isForToday) {
-            let isCompleted = false;
-
-            // 1. Tentar routineCompletions (NOVO, por data exata "YYYY-MM-DD")
-            if (routineStates[habit.text] && routineStates[habit.text][dateStr]) {
-                isCompleted = true;
-            }
-            // 2. Tentar routineStates (ANTIGO, por key "Dia_YYYY-MM-DD")
-            else {
-                const oldStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
-                if (oldStates[habit.text] && oldStates[habit.text][dateKey]) {
-                    isCompleted = true;
-                }
-            }
-
+            const isCompleted = habitsHistory[habit.text] && habitsHistory[habit.text][dateStr];
             tasks.push({
                 text: habit.text,
-                completed: isCompleted,
-                color: habit.color || getPriorityColorName(habit.priority),
+                completed: !!isCompleted,
+                color: habit.color || 'default',
                 priority: habit.priority || 'none',
                 isRecurring: true,
                 isHabit: true,
@@ -486,7 +466,6 @@ function getRoutineTasksForDate(dateStr) {
             });
         }
     });
-
     return tasks;
 }
 
@@ -1010,38 +989,26 @@ function loadFromLocalStorage() {
 function getAllHabits() {
     const habits = [], habitMap = new Map();
     const today = localDateStr();
-    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const todayName = days[new Date().getDay()];
-    const dateKey = `${todayName}_${today}`;
-    const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
 
-    // Adicionar tarefas da rotina diária
-    dailyRoutine.forEach(task => {
-        if (task.isHabit && !habitMap.has(task.text)) {
-            const isCompleted = routineStates[task.text] && routineStates[task.text][dateKey] || false;
+    // Adicionar todas recorrentes (inclui dailyRoutine e weeklyRecurring unificados)
+    allRecurringTasks.forEach(task => {
+        if ((task.isHabit || (task.daysOfWeek && task.daysOfWeek.length > 0)) && !habitMap.has(task.text)) {
+            const isCompleted = habitsHistory[task.text] && habitsHistory[task.text][today];
             habitMap.set(task.text, {
                 text: task.text,
                 color: task.color,
-                completedToday: isCompleted,
+                completedToday: !!isCompleted,
                 isHabit: true
             });
         }
     });
 
-    // Adicionar outras tarefas marcadas como hábitos
-    Object.entries(weekData).forEach(([day, periods]) => {
-        Object.entries(periods).forEach(([period, tasks]) => {
-            tasks.forEach(task => {
-                if (task.isHabit && !habitMap.has(task.text)) {
-                    habitMap.set(task.text, {
-                        text: task.text,
-                        color: task.color,
-                        completedToday: task.completed,
-                        isHabit: true
-                    });
-                }
-            });
-        });
+    // Fallback dailyRoutine legacy
+    dailyRoutine.forEach(task => {
+        if (!habitMap.has(task.text)) {
+            const isCompleted = habitsHistory[task.text] && habitsHistory[task.text][today];
+            habitMap.set(task.text, { text: task.text, color: task.color, completedToday: !!isCompleted, isHabit: true });
+        }
     });
 
     return Array.from(habitMap.values());
@@ -1053,7 +1020,11 @@ function getHabitCompletionRate(habitText, days = 30) { if (!habitsHistory[habit
 
 function markHabitCompleted(habitText, completed) { const today = localDateStr(); if (!habitsHistory[habitText]) { habitsHistory[habitText] = {}; } if (completed) { habitsHistory[habitText][today] = true; } else { delete habitsHistory[habitText][today]; } localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory)); syncHabitToSupabase(habitText, today, completed); }
 
-function toggleHabitToday(habitText, completed) { Object.entries(weekData).forEach(([day, periods]) => { Object.entries(periods).forEach(([period, tasks]) => { tasks.forEach(task => { if (task.isHabit && task.text === habitText) { task.completed = completed; } }) }) }); markHabitCompleted(habitText, completed); saveToLocalStorage(); }
+window.toggleHabitToday = function (habitText, completed) {
+    markHabitCompleted(habitText, completed);
+    renderView();
+    if (currentView === 'routine' && typeof renderRoutineView === 'function') renderRoutineView();
+}
 
 function removeHabit(habitText) {
     if (!confirm(`Tem certeza que deseja remover "${habitText}" dos hábitos?\n\nIsso irá desmarcar esta tarefa como hábito em todas as ocorrências.`)) return;
@@ -1889,16 +1860,16 @@ function renderRoutineView() {
             const isScheduled = task.daysOfWeek.includes(d.getDay());
             if (isScheduled) {
                 itemTotal++;
-                const isDone = routineCompletions[task.text] && routineCompletions[task.text][dStr];
+                const isDone = habitsHistory[task.text] && habitsHistory[task.text][dStr];
                 if (isDone) { itemCompleted++; if (!streakBroken) runningStreak++; } else { if (d < today) streakBroken = true; }
             }
         }
         const itemRate = itemTotal > 0 ? Math.round((itemCompleted / itemTotal) * 100) : 0;
-        const isTodayDone = routineCompletions[task.text] && routineCompletions[task.text][todayStr];
+        const isTodayDone = habitsHistory[task.text] && habitsHistory[task.text][todayStr];
         const checkClass = isTodayDone ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-500 text-transparent';
 
         habitsHTML += `
-        <div class="p-4 rounded-xl bg-[#18181b] border border-[#27272a] flex items-center gap-4">
+        <div class="p-4 rounded-xl bg-[#18181b] border border-[#27272a] flex items-center gap-4 cursor-pointer hover:bg-[#27272a]/50 transition-colors" onclick="window.toggleHabitToday('${task.text.replace(/'/g, "\\'")}', ${!isTodayDone})">
             <div class="w-6 h-6 rounded-lg border-2 ${checkClass} flex items-center justify-center transition-colors">
                  <i data-lucide="check" class="w-4 h-4 stroke-[3]"></i>
             </div>
