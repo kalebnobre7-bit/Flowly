@@ -112,7 +112,52 @@
             border: 1px solid var(--border-subtle);
         }
 
-        /* ... (restante do CSS de navegação mantém-se) ... */
+        .segment-btn {
+            padding: 7px 16px;
+            border-radius: 9px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .segment-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .segment-btn.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            font-weight: 600;
+        }
+
+        .utility-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-glass);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .utility-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-color: var(--border-active);
+        }
 
         /* Layout Grid */
         #weekGrid {
@@ -2891,7 +2936,7 @@
                 while (true) {
                     const dateStr = localDateStr(currentDate);
                     const fullDayName = fullDayNames[currentDate.getDay()];
-                    const dateKey = `${fullDayName}_${dateStr} `;
+                    const dateKey = `${fullDayName}_${dateStr}`;
 
                     let completed = 0;
                     dailyRoutine.forEach(task => {
@@ -2919,7 +2964,7 @@
                     const dateStr = localDateStr(date);
                     const dayName = dayNames[date.getDay()];
                     const fullDayName = fullDayNames[date.getDay()];
-                    const dateKey = `${fullDayName}_${dateStr} `;
+                    const dateKey = `${fullDayName}_${dateStr}`;
 
                     if (!dayRates[dayName]) dayRates[dayName] = [];
 
@@ -3036,7 +3081,7 @@
             const today = localDateStr();
             const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
             const todayName = days[new Date().getDay()];
-            const dateKey = `${todayName}_${today} `;
+            const dateKey = `${todayName}_${today}`;
             const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
             if (!routineStates[text]) routineStates[text] = {};
             if (completed) routineStates[text][dateKey] = true;
@@ -3050,11 +3095,11 @@
         function showAddRoutineTask() {
             const container = document.getElementById('addRoutineTaskContainer');
             container.innerHTML = `
-                < div class="flex gap-2" >
+                <div class="flex gap-2">
                     <input type="text" id="newRoutineTaskInput" class="task-input flex-1" placeholder="Nome da tarefa..." autofocus>
-                        <button onclick="addRoutineTask()" class="btn-primary px-6" style="width: auto;">Adicionar</button>
-                        <button onclick="renderRoutineView(); setTimeout(() => lucide.createIcons(), 0);" class="btn-secondary px-4" style="width: auto;">Cancelar</button>
-                    </div>
+                    <button onclick="addRoutineTask()" class="btn-primary px-6" style="width: auto;">Adicionar</button>
+                    <button onclick="renderRoutineView(); setTimeout(() => lucide.createIcons(), 0);" class="btn-secondary px-4" style="width: auto;">Cancelar</button>
+                </div>
             `;
             document.getElementById('newRoutineTaskInput').focus();
             document.getElementById('newRoutineTaskInput').addEventListener('keydown', (e) => {
@@ -3103,13 +3148,13 @@
 
             // Badge de status de notificação
             const permBadge = notifPerm === 'granted'
-                ? `< span class="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25" > Ativas</span > `
+                ? `<span class="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">Ativas</span>`
                 : notifPerm === 'denied'
-                    ? `< span class="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25" > Bloqueadas</span > `
-                    : `< span class="text-xs px-2 py-0.5 rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/25" > Não solicitado</span > `;
+                    ? `<span class="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">Bloqueadas</span>`
+                    : `<span class="text-xs px-2 py-0.5 rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/25">Não solicitado</span>`;
 
             const settingRow = (icon, title, desc, control) => `
-                < div class="flex items-center justify-between gap-4 py-4 border-b border-white/5 last:border-0" >
+                <div class="flex items-center justify-between gap-4 py-4 border-b border-white/5 last:border-0">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <div class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
                             <i data-lucide="${icon}" style="width:18px;height:18px;color:#86868b;"></i>
@@ -3120,25 +3165,25 @@
                         </div>
                     </div>
                     <div class="flex-shrink-0">${control}</div>
-                </div > `;
+                </div>`;
 
             const toggle = (id, checked) => `
-                < button id = "${id}" role = "switch" aria - checked="${checked}"
-            class="relative w-11 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-blue-500' : 'bg-gray-600'} focus:outline-none" >
+                <button id="${id}" role="switch" aria-checked="${checked}"
+            class="relative w-11 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-blue-500' : 'bg-gray-600'} focus:outline-none">
                 <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'}"></span>
-                </button > `;
+                </button>`;
 
             const timeInput = (id, val) => `
-                < input type = "time" id = "${id}" value = "${val}"
-            class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/60 w-28" > `;
+                <input type="time" id="${id}" value="${val}"
+            class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/60 w-28">`;
 
             const select = (id, options, selected) => `
-                < select id = "${id}" class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/60" >
+                <select id="${id}" class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/60">
                     ${options.map(o => `<option value="${o.v}" ${selected === o.v ? 'selected' : ''} style="background:#1c1c1e">${o.l}</option>`).join('')}
-                </select > `;
+                </select>`;
 
             view.innerHTML = `
-                < div class="max-w-xl mx-auto py-8 px-1" >
+                <div class="max-w-xl mx-auto py-8 px-1">
                 <h2 class="text-2xl font-bold mb-8 text-white flex items-center gap-3">
                     <i data-lucide="settings-2" style="width:26px;height:26px;color:#0A84FF;"></i> Configurações
                 </h2>
@@ -3226,7 +3271,7 @@
 
                 <!--VERSÃO -->
                 <p class="text-center text-xs text-gray-600 mt-8">Flowly v1.0 · Feito com ☕</p>
-            </div > `;
+            </div>`;
 
             setTimeout(() => {
                 lucide.createIcons();
@@ -3666,7 +3711,7 @@
 
             const header = document.createElement('div');
             header.className = 'mb-8';
-            header.innerHTML = `< h1 class="text-3xl font-bold mb-2" > ${today}</h1 > <p class="text-gray-500">${new Date().toLocaleDateString('pt-BR')}</p>`;
+            header.innerHTML = `<h1 class="text-3xl font-bold mb-2">${today}</h1><p class="text-gray-500">${new Date().toLocaleDateString('pt-BR')}</p>`;
             grid.appendChild(header);
 
             // Buscar tarefas de hoje
@@ -3895,7 +3940,7 @@
             const isRecurring = index === -1; // tarefas recorrentes não persistidas
 
             const el = document.createElement('div');
-            el.className = `task - item ${task.isHabit ? 'is-habit' : ''} `;
+            el.className = `task-item ${task.isHabit ? 'is-habit' : ''}`;
             el.draggable = !isRecurring;
             el.dataset.day = day;
             el.dataset.date = dateStr;
@@ -3904,7 +3949,42 @@
 
             // Aplicar indent se existir
             if (task.indent && task.indent > 0) {
-                el.style.paddingLeft = `${task.indent * 24} px`;
+                el.style.paddingLeft = `${task.indent * 24}px`;
+            }
+
+            // Label (criado primeiro para ser referenciado pelos callbacks)
+            const label = document.createElement('span');
+            label.className = `task-label color-${task.color || 'default'} ${task.completed ? 'task-completed' : ''}`;
+            // Aplicar cor azul se for tarefa de rotina
+            if (task.isRoutine || period === 'Rotina') {
+                label.style.color = 'var(--accent-blue)';
+            }
+
+            // Normalizar texto da tarefa (garantir que não seja undefined)
+            if (task.text === undefined || task.text === null) {
+                task.text = '';
+            }
+
+            // Se a tarefa está vazia, mostrar placeholder
+            if (task.text.trim() === '') {
+                label.textContent = '';
+                label.style.color = '#666';
+                label.setAttribute('data-placeholder', 'Clique para editar...');
+                label.style.position = 'relative';
+            } else {
+                label.textContent = task.text;
+            }
+
+            // Single Click Edit
+            label.onclick = (e) => {
+                if (label.isContentEditable) return;
+                startEditing(label, task, el);
+            };
+
+            // Context Menu
+            label.oncontextmenu = (e) => {
+                e.preventDefault();
+                showEditToolbar(e, task, label);
             }
 
             // Drag Handle (oculto para tarefas recorrentes)
@@ -3947,41 +4027,6 @@
                 }
             }
             el.appendChild(checkbox);
-
-            // Label
-            const label = document.createElement('span');
-            label.className = `task - label color - ${task.color || 'default'} ${task.completed ? 'task-completed' : ''} `;
-            // Aplicar cor azul se for tarefa de rotina
-            if (task.isRoutine || period === 'Rotina') {
-                label.style.color = 'var(--accent-blue)';
-            }
-
-            // Normalizar texto da tarefa (garantir que não seja undefined)
-            if (task.text === undefined || task.text === null) {
-                task.text = '';
-            }
-
-            // Se a tarefa está vazia, mostrar placeholder
-            if (task.text.trim() === '') {
-                label.textContent = '';
-                label.style.color = '#666';
-                label.setAttribute('data-placeholder', 'Clique para editar...');
-                label.style.position = 'relative';
-            } else {
-                label.textContent = task.text;
-            }
-
-            // Single Click Edit
-            label.onclick = (e) => {
-                if (label.isContentEditable) return;
-                startEditing(label, task, el);
-            };
-
-            // Context Menu
-            label.oncontextmenu = (e) => {
-                e.preventDefault();
-                showEditToolbar(e, task, label);
-            }
 
             el.appendChild(label);
 
@@ -4049,13 +4094,13 @@
                         // Shift+Tab = desindentar
                         if (currentIndent > 0) {
                             task.indent = currentIndent - 1;
-                            taskItem.style.paddingLeft = `${task.indent * 24} px`;
+                            taskItem.style.paddingLeft = `${task.indent * 24}px`;
                         }
                     } else {
                         // Tab = indentar
                         if (currentIndent < 3) { // Máximo 3 níveis
                             task.indent = currentIndent + 1;
-                            taskItem.style.paddingLeft = `${task.indent * 24} px`;
+                            taskItem.style.paddingLeft = `${task.indent * 24}px`;
                         }
                     }
 
