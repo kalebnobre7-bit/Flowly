@@ -133,6 +133,74 @@ const width = 600;
 let currentWeekOffset = 0; // 0 = semana atual, -1 = semana passada, +1 = próxima semana
 let currentMonthOffset = 0; // 0 = mês atual
 
+// View Management Functions
+function setView(view) {
+    currentView = view;
+
+    // Hide all views
+    const views = ['monthView', 'weekGrid', 'todayView', 'routineView', 'analyticsView', 'settingsView'];
+    views.forEach(v => {
+        const el = document.getElementById(v);
+        if (el) el.classList.add('hidden');
+    });
+
+    // Update navigation buttons
+    document.querySelectorAll('.segment-btn').forEach(btn => btn.classList.remove('active'));
+    const btnMap = {
+        'month': 'btnMonth',
+        'week': 'btnWeek',
+        'today': 'btnToday',
+        'routine': 'btnRoutine',
+        'analytics': 'btnAnalytics',
+        'settings': 'btnSettings'
+    };
+    const activeBtn = document.getElementById(btnMap[view]);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    // Show week navigation only for week view
+    const weekNav = document.getElementById('weekNav');
+    if (weekNav) {
+        weekNav.style.display = view === 'week' ? 'flex' : 'none';
+    }
+
+    renderView();
+}
+
+function renderView() {
+    if (!currentView) currentView = 'week';
+
+    // Show the appropriate view
+    const viewMap = {
+        'week': 'weekGrid',
+        'today': 'todayView',
+        'routine': 'routineView',
+        'analytics': 'analyticsView',
+        'settings': 'settingsView',
+        'month': 'monthView'
+    };
+
+    const viewId = viewMap[currentView];
+    if (viewId) {
+        const el = document.getElementById(viewId);
+        if (el) el.classList.remove('hidden');
+    }
+
+    // Call specific render functions if they exist
+    if (currentView === 'week' && typeof renderWeek === 'function') {
+        renderWeek();
+    } else if (currentView === 'routine' && typeof renderRoutineView === 'function') {
+        renderRoutineView();
+    } else if (currentView === 'analytics' && typeof renderAnalyticsView === 'function') {
+        renderAnalyticsView();
+    } else if (currentView === 'settings' && typeof renderSettingsView === 'function') {
+        renderSettingsView();
+    } else if (currentView === 'today' && typeof renderTodayView === 'function') {
+        renderTodayView();
+    } else if (currentView === 'month' && typeof renderMonthView === 'function') {
+        renderMonthView();
+    }
+}
+
 // Helper para JSON seguro
 function safeJSONParse(str, fallback) {
     try {
