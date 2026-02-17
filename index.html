@@ -697,7 +697,6 @@
                 <button id="btnWeek" class="segment-btn active" onclick="setView('week')">Semana</button>
                 <button id="btnToday" class="segment-btn" onclick="setView('today')">Hoje</button>
                 <button id="btnRoutine" class="segment-btn" onclick="setView('routine')">Rotina</button>
-                <button id="btnHabits" class="segment-btn" onclick="setView('habits')">Hábitos</button>
                 <button id="btnAnalytics" class="segment-btn" onclick="setView('analytics')">Analytics</button>
                 <button id="btnSettings" class="segment-btn" onclick="setView('settings')"><i data-lucide="settings" style="width: 16px; height: 16px;"></i></button>
             </div>
@@ -732,7 +731,6 @@
                 <!-- Javascript will populate this -->
             </div>
             <div id="routineView" class="hidden"></div>
-            <div id="habitsView" class="hidden"></div>
             <div id="analyticsView" class="hidden"></div>
             <div id="settingsView" class="hidden"></div>
         </div>
@@ -1282,7 +1280,7 @@
 
         function markHabitCompleted(habitText, completed) { const today = localDateStr(); if (!habitsHistory[habitText]) { habitsHistory[habitText] = {}; } if (completed) { habitsHistory[habitText][today] = true; } else { delete habitsHistory[habitText][today]; } localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory)); syncHabitToSupabase(habitText, today, completed); }
 
-        function toggleHabitToday(habitText, completed) { Object.entries(weekData).forEach(([day, periods]) => { Object.entries(periods).forEach(([period, tasks]) => { tasks.forEach(task => { if (task.isHabit && task.text === habitText) { task.completed = completed; } }) }) }); markHabitCompleted(habitText, completed); saveToLocalStorage(); renderHabitsView(); }
+        function toggleHabitToday(habitText, completed) { Object.entries(weekData).forEach(([day, periods]) => { Object.entries(periods).forEach(([period, tasks]) => { tasks.forEach(task => { if (task.isHabit && task.text === habitText) { task.completed = completed; } }) }) }); markHabitCompleted(habitText, completed); saveToLocalStorage(); }
 
         function removeHabit(habitText) {
             if (!confirm(`Tem certeza que deseja remover "${habitText}" dos hábitos?\n\nIsso irá desmarcar esta tarefa como hábito em todas as ocorrências.`)) return;
@@ -1312,7 +1310,7 @@
             }
 
             saveToLocalStorage();
-            renderHabitsView();
+            if (currentView === 'routine') renderRoutineView();
             setTimeout(() => lucide.createIcons(), 0);
         }
 
@@ -2002,59 +2000,164 @@
 
         function renderRoutineView() {
             const view = document.getElementById('routineView');
+            const today = localDateStr();
+            const todayDayOfWeek = new Date().getDay();
+            const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const dayNamesFull = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
-            let html = `
-                <div class="max-w-3xl mx-auto py-8">
-                    <h2 class="text-3xl font-bold mb-4 text-white flex items-center gap-3">
-                        <i data-lucide="calendar-check" style="width: 28px; height: 28px;"></i> Rotina Diária
-                    </h2>
-                    <p class="text-gray-400 mb-8">Essas tarefas aparecem automaticamente todos os dias da semana</p>
+            // Estado de conclusão da rotina hoje
+            const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
+            const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            const todayName = days[new Date().getDay()];
+            const dateKey = `${todayName}_${today}`;
 
-                    <div class="space-y-3 mb-6">
-            `;
+            // Stats de hoje
+            const totalToday = dailyRoutine.length + weeklyRecurringTasks.filter(rt => rt.daysOfWeek.includes(todayDayOfWeek)).length;
+            let completedToday = dailyRoutine.filter(t => routineStates[t.text]?.[dateKey]).length;
+            weeklyRecurringTasks.filter(rt => rt.daysOfWeek.includes(todayDayOfWeek)).forEach(rt => {
+                if (routineStates[rt.text]?.[dateKey]) completedToday++;
+            });
+            const rate = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
+
+            let html = `<div class="max-w-3xl mx-auto py-8">
+                <h2 class="text-3xl font-bold mb-2 text-white flex items-center gap-3">
+                    <i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Rotina
+                </h2>
+                <p class="text-gray-400 mb-6">Hábitos e tarefas recorrentes do seu dia</p>
+
+                <!-- Progresso de hoje -->
+                <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-8">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="text-sm text-gray-400 uppercase tracking-wider font-semibold">Hoje — ${dayNamesFull[todayDayOfWeek]}</div>
+                        <div class="text-2xl font-bold ${rate === 100 ? 'text-green-400' : rate >= 50 ? 'text-blue-400' : 'text-gray-400'}">${rate}%</div>
+                    </div>
+                    <div class="w-full h-2 bg-gray-700/40 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500 ${rate === 100 ? 'bg-green-400' : 'bg-blue-500'}" style="width: ${rate}%"></div>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-2">${completedToday} de ${totalToday} concluídos hoje</div>
+                </div>
+
+                <!-- SEÇÃO: Todos os dias -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                            <i data-lucide="sun" style="width: 18px; height: 18px; color: #FF9F0A;"></i>
+                            Todos os dias
+                        </h3>
+                        <span class="text-xs text-gray-500">${dailyRoutine.length} tarefa${dailyRoutine.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="space-y-2">`;
+
+            if (dailyRoutine.length === 0) {
+                html += `<div class="text-gray-500 text-sm py-4 text-center">Nenhuma tarefa diária ainda</div>`;
+            }
 
             dailyRoutine.forEach((task, index) => {
+                const isChecked = !!(routineStates[task.text]?.[dateKey]);
+                const streak = getHabitStreak(task.text);
+                const rate30 = getHabitCompletionRate(task.text, 30);
                 html += `
-                    <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex items-center justify-between group hover:bg-opacity-80 transition-all">
+                    <div class="bg-[#1c1c1e] bg-opacity-60 border border-white/8 rounded-xl p-4 flex items-center justify-between group hover:bg-opacity-80 transition-all">
                         <div class="flex items-center gap-4 flex-1">
-                            <i data-lucide="grip-vertical" class="text-gray-600" style="width: 18px; height: 18px;"></i>
+                            <input type="checkbox" class="checkbox-custom" ${isChecked ? 'checked' : ''}
+                                onchange="toggleRoutineToday('${task.text.replace(/'/g, "\\'")}', this.checked)">
                             <div class="flex-1">
-                                <div class="color-${task.color} font-medium text-base">${task.text}</div>
-                                <div class="text-xs text-gray-500 mt-1">
-                                    ${task.isHabit ? '<span class="text-blue-400">• Marcado como hábito</span>' : ''}
+                                <div class="font-medium ${isChecked ? 'line-through text-gray-500' : 'text-white'}">${task.text}</div>
+                                <div class="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                                    ${streak > 0 ? `<span class="text-orange-400 flex items-center gap-1"><i data-lucide="flame" style="width:12px;height:12px;"></i> ${streak}d streak</span>` : ''}
+                                    <span>${rate30}% (30d)</span>
                                 </div>
                             </div>
                         </div>
-                        <button onclick="deleteRoutineTask(${index})" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg">
-                            <i data-lucide="trash-2" class="text-red-400" style="width: 18px; height: 18px;"></i>
-                        </button>
-                    </div>
-                `;
+                        <div class="flex items-center gap-2">
+                            <div class="w-20 h-1 bg-gray-700/40 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 rounded-full" style="width:${rate30}%"></div>
+                            </div>
+                            <button onclick="deleteRoutineTask(${index})" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg ml-1">
+                                <i data-lucide="trash-2" class="text-red-400" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                    </div>`;
             });
 
             html += `
                     </div>
-
-                    <div id="addRoutineTaskContainer" class="bg-[#1c1c1e] bg-opacity-40 border border-dashed border-white/20 rounded-xl p-4 hover:border-blue-500/50 hover:bg-opacity-60 transition-all cursor-pointer" onclick="showAddRoutineTask()">
-                        <div class="flex items-center justify-center gap-2 text-gray-400 hover:text-white transition-colors">
-                            <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
-                            <span>Adicionar nova tarefa à rotina</span>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                        <div class="flex items-start gap-3">
-                            <i data-lucide="info" class="text-blue-400 mt-0.5" style="width: 18px; height: 18px;"></i>
-                            <div class="text-sm text-blue-200">
-                                <p class="font-semibold mb-1">Como funciona?</p>
-                                <p class="text-blue-300/80">As tarefas da rotina diária aparecem automaticamente em todos os dias da semana. Marque-as como hábitos para rastrear no painel de Analytics!</p>
-                            </div>
-                        </div>
+                    <div id="addRoutineTaskContainer" class="mt-3 border border-dashed border-white/15 rounded-xl p-3 hover:border-blue-500/50 transition-all cursor-pointer text-center text-gray-500 hover:text-gray-300 text-sm flex items-center justify-center gap-2" onclick="showAddRoutineTask()">
+                        <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Adicionar tarefa diária
                     </div>
                 </div>
-            `;
+
+                <!-- SEÇÃO: Dias específicos -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                            <i data-lucide="calendar-days" style="width: 18px; height: 18px; color: #0A84FF;"></i>
+                            Dias específicos
+                        </h3>
+                        <span class="text-xs text-gray-500">${weeklyRecurringTasks.length} tarefa${weeklyRecurringTasks.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="space-y-2">`;
+
+            if (weeklyRecurringTasks.length === 0) {
+                html += `<div class="text-gray-500 text-sm py-4 text-center">Nenhuma tarefa semanal ainda</div>`;
+            }
+
+            weeklyRecurringTasks.forEach((task, index) => {
+                const isActiveToday = task.daysOfWeek.includes(todayDayOfWeek);
+                const isChecked = isActiveToday && !!(routineStates[task.text]?.[dateKey]);
+                const streak = getHabitStreak(task.text);
+                const rate30 = getHabitCompletionRate(task.text, 30);
+                const daysLabel = task.daysOfWeek.map(d => dayNames[d]).join(', ');
+                html += `
+                    <div class="bg-[#1c1c1e] bg-opacity-60 border ${isActiveToday ? 'border-blue-500/20' : 'border-white/8'} rounded-xl p-4 flex items-center justify-between group hover:bg-opacity-80 transition-all">
+                        <div class="flex items-center gap-4 flex-1">
+                            <input type="checkbox" class="checkbox-custom" ${isChecked ? 'checked' : ''} ${!isActiveToday ? 'disabled style="opacity:0.3"' : ''}
+                                onchange="toggleRoutineToday('${task.text.replace(/'/g, "\\'")}', this.checked)">
+                            <div class="flex-1">
+                                <div class="font-medium ${isChecked ? 'line-through text-gray-500' : isActiveToday ? 'text-white' : 'text-gray-500'}">${task.text}</div>
+                                <div class="flex items-center gap-3 mt-1 text-xs">
+                                    <span class="${isActiveToday ? 'text-blue-400' : 'text-gray-600'}">${daysLabel}</span>
+                                    ${streak > 0 ? `<span class="text-orange-400 flex items-center gap-1"><i data-lucide="flame" style="width:12px;height:12px;"></i> ${streak}d</span>` : ''}
+                                    <span class="text-gray-500">${rate30}% (30d)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-20 h-1 bg-gray-700/40 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 rounded-full" style="width:${rate30}%"></div>
+                            </div>
+                            <button onclick="deleteWeeklyRecurringTask(${index})" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg ml-1">
+                                <i data-lucide="trash-2" class="text-red-400" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                    </div>`;
+            });
+
+            html += `
+                    </div>
+                    <div class="mt-3 border border-dashed border-white/15 rounded-xl p-3 hover:border-blue-500/50 transition-all cursor-pointer text-center text-gray-500 hover:text-gray-300 text-sm flex items-center justify-center gap-2" onclick="showWeeklyRecurrenceDialog()">
+                        <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Adicionar tarefa semanal
+                    </div>
+                </div>
+            </div>`;
 
             view.innerHTML = html;
+            setTimeout(() => lucide.createIcons(), 0);
+        }
+
+        function toggleRoutineToday(text, completed) {
+            const today = localDateStr();
+            const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            const todayName = days[new Date().getDay()];
+            const dateKey = `${todayName}_${today}`;
+            const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
+            if (!routineStates[text]) routineStates[text] = {};
+            if (completed) routineStates[text][dateKey] = true;
+            else delete routineStates[text][dateKey];
+            localStorage.setItem('routineStates', JSON.stringify(routineStates));
+            markHabitCompleted(text, completed);
+            renderRoutineView();
+            setTimeout(() => lucide.createIcons(), 0);
         }
 
         function showAddRoutineTask() {
@@ -2300,7 +2403,6 @@
             if (view === 'week') document.getElementById('btnWeek').classList.add('active');
             if (view === 'today') document.getElementById('btnToday').classList.add('active');
             if (view === 'routine') document.getElementById('btnRoutine').classList.add('active');
-            if (view === 'habits') document.getElementById('btnHabits').classList.add('active');
             if (view === 'analytics') document.getElementById('btnAnalytics').classList.add('active');
             if (view === 'settings') document.getElementById('btnSettings').classList.add('active');
             renderView();
@@ -2338,7 +2440,6 @@
             document.getElementById('monthView').classList.add('hidden');
             document.getElementById('weekGrid').classList.add('hidden');
             document.getElementById('routineView').classList.add('hidden');
-            document.getElementById('habitsView').classList.add('hidden');
             document.getElementById('analyticsView').classList.add('hidden');
             document.getElementById('settingsView').classList.add('hidden');
             document.getElementById('weekNav').classList.add('hidden');
@@ -2354,9 +2455,6 @@
             } else if (currentView === 'routine') {
                 document.getElementById('routineView').classList.remove('hidden');
                 renderRoutineView();
-            } else if (currentView === 'habits') {
-                document.getElementById('habitsView').classList.remove('hidden');
-                renderHabitsView();
             } else if (currentView === 'analytics') {
                 document.getElementById('analyticsView').classList.remove('hidden');
                 renderAnalyticsView();
@@ -3201,9 +3299,9 @@
             localStorage.setItem('weeklyRecurringTasks', JSON.stringify(weeklyRecurringTasks));
             document.getElementById('weeklyModal').classList.remove('show');
 
-            // Se estiver nas configurações, re-renderizar para mostrar a nova tarefa
             if (currentView === 'settings') renderSettingsView();
-            renderView();
+            if (currentView === 'routine') renderRoutineView();
+            else renderView();
         };
 
         document.getElementById('btnCancelWeekly').onclick = () => {
