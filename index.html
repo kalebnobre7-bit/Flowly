@@ -2052,6 +2052,81 @@
                     <div class="text-xs text-gray-500 mt-2">${completedToday} de ${totalToday} concluídos hoje</div>
                 </div>
 
+                <!-- Dashboard de Analytics -->
+                <div class="mb-8 space-y-4">
+                    <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="trending-up" style="width: 20px; height: 20px;"></i>
+                        Análise da Rotina
+                    </h3>
+                    
+                    <!-- Cards de Estatísticas -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <!-- Streak Atual -->
+                        <div class="bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/30 rounded-xl p-5">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold text-orange-300 uppercase tracking-wide">Sequência Atual</span>
+                                <i data-lucide="flame" style="width: 18px; height: 18px; color: #ff9500;"></i>
+                            </div>
+                            <div class="text-3xl font-bold text-white mb-1" id="currentStreak">-</div>
+                            <div class="text-xs text-gray-400">dias consecutivos</div>
+                        </div>
+                        
+                        <!-- Taxa Semanal -->
+                        <div class="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 rounded-xl p-5">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold text-blue-300 uppercase tracking-wide">Taxa Semanal</span>
+                                <i data-lucide="calendar-check" style="width: 18px; height: 18px; color: #0A84FF;"></i>
+                            </div>
+                            <div class="text-3xl font-bold text-white mb-1" id="weeklyRate">-</div>
+                            <div class="text-xs text-gray-400">dos últimos 7 dias</div>
+                        </div>
+                        
+                        <!-- Melhor Dia -->
+                        <div class="bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 rounded-xl p-5">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold text-green-300 uppercase tracking-wide">Melhor Dia</span>
+                                <i data-lucide="trophy" style="width: 18px; height: 18px; color: #30d158;"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-white mb-1" id="bestDay">-</div>
+                            <div class="text-xs text-gray-400">da semana</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Tendência Semanal -->
+                    <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+                        <h4 class="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wide">Consistência Semanal</h4>
+                        <canvas id="routineWeekChart" style="max-height: 200px;"></canvas>
+                    </div>
+                    
+                    <!-- Heatmap Mensal -->
+                    <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+                        <h4 class="text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wide">Mapa de Calor - Últimos 30 Dias</h4>
+                        <div id="routineHeatmap" class="grid grid-cols-10 gap-2"></div>
+                        <div class="flex items-center justify-center gap-4 mt-4 text-xs text-gray-500">
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-4 h-4 rounded-sm bg-[#2c2c2e]"></div>
+                                <span>0%</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-4 h-4 rounded-sm bg-[#ff453a]"></div>
+                                <span>1-40%</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-4 h-4 rounded-sm bg-[#ff9500]"></div>
+                                <span>41-60%</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-4 h-4 rounded-sm bg-[#0A84FF]"></div>
+                                <span>61-80%</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-4 h-4 rounded-sm bg-[#30d158]"></div>
+                                <span>81-100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- SEÇÃO: Todos os dias -->
                 <div class="mb-8">
                     <div class="flex items-center justify-between mb-4">
@@ -2157,6 +2232,207 @@
             </div>`;
 
             view.innerHTML = html;
+
+            // Calcular estatísticas para o dashboard
+            if (dailyRoutine.length > 0) {
+                const stats = {
+                    currentStreak: 0,
+                    weeklyRate: 0,
+                    bestDay: 'N/A',
+                    weekData: [],
+                    heatmapData: []
+                };
+
+                // Últimos 7 dias para gráfico semanal
+                const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                const fullDayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                const today = new Date();
+
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dateStr = localDateStr(date);
+                    const dayName = dayNames[date.getDay()];
+                    const fullDayName = fullDayNames[date.getDay()];
+                    const dateKey = `${fullDayName}_${dateStr}`;
+
+                    let completed = 0;
+                    let total = dailyRoutine.length;
+
+                    dailyRoutine.forEach(task => {
+                        if (routineStates[task.text]?.[dateKey]) {
+                            completed++;
+                        }
+                    });
+
+                    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    stats.weekData.push({ day: dayName, rate });
+                }
+
+                // Últimos 30 dias para heatmap
+                for (let i = 29; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dateStr = localDateStr(date);
+                    const fullDayName = fullDayNames[date.getDay()];
+                    const dateKey = `${fullDayName}_${dateStr}`;
+
+                    let completed = 0;
+                    let total = dailyRoutine.length;
+
+                    dailyRoutine.forEach(task => {
+                        if (routineStates[task.text]?.[dateKey]) {
+                            completed++;
+                        }
+                    });
+
+                    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    stats.heatmapData.push({ date: dateStr, rate });
+                }
+
+                // Calcular streak (dias com ≥80% de conclusão)
+                let currentDate = new Date(today);
+                while (true) {
+                    const dateStr = localDateStr(currentDate);
+                    const fullDayName = fullDayNames[currentDate.getDay()];
+                    const dateKey = `${fullDayName}_${dateStr}`;
+
+                    let completed = 0;
+                    dailyRoutine.forEach(task => {
+                        if (routineStates[task.text]?.[dateKey]) completed++;
+                    });
+
+                    const rate = dailyRoutine.length > 0 ? (completed / dailyRoutine.length) * 100 : 0;
+                    if (rate >= 80) {
+                        stats.currentStreak++;
+                        currentDate.setDate(currentDate.getDate() - 1);
+                    } else {
+                        break;
+                    }
+                }
+
+                // Taxa semanal média
+                const weeklySum = stats.weekData.reduce((sum, d) => sum + d.rate, 0);
+                stats.weeklyRate = Math.round(weeklySum / stats.weekData.length);
+
+                // Melhor dia da semana (baseado nos últimos 4 ocorrências de cada dia)
+                const dayRates = {};
+                for (let i = 27; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dateStr = localDateStr(date);
+                    const dayName = dayNames[date.getDay()];
+                    const fullDayName = fullDayNames[date.getDay()];
+                    const dateKey = `${fullDayName}_${dateStr}`;
+
+                    if (!dayRates[dayName]) dayRates[dayName] = [];
+
+                    let completed = 0;
+                    dailyRoutine.forEach(task => {
+                        if (routineStates[task.text]?.[dateKey]) completed++;
+                    });
+
+                    const rate = dailyRoutine.length > 0 ? (completed / dailyRoutine.length) * 100 : 0;
+                    dayRates[dayName].push(rate);
+                }
+
+                let maxAvg = 0;
+                Object.entries(dayRates).forEach(([day, rates]) => {
+                    const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
+                    if (avg > maxAvg) {
+                        maxAvg = avg;
+                        stats.bestDay = day;
+                    }
+                });
+
+                // Atualizar cards
+                setTimeout(() => {
+                    const streakEl = document.getElementById('currentStreak');
+                    const weeklyRateEl = document.getElementById('weeklyRate');
+                    const bestDayEl = document.getElementById('bestDay');
+
+                    if (streakEl) streakEl.textContent = stats.currentStreak;
+                    if (weeklyRateEl) weeklyRateEl.textContent = stats.weeklyRate + '%';
+                    if (bestDayEl) bestDayEl.textContent = stats.bestDay;
+
+                    // Renderizar gráfico semanal
+                    const weekCtx = document.getElementById('routineWeekChart');
+                    if (weekCtx && typeof Chart !== 'undefined') {
+                        new Chart(weekCtx, {
+                            type: 'line',
+                            data: {
+                                labels: stats.weekData.map(d => d.day),
+                                datasets: [{
+                                    label: 'Conclusão (%)',
+                                    data: stats.weekData.map(d => d.rate),
+                                    borderColor: '#0A84FF',
+                                    backgroundColor: 'rgba(10, 132, 255, 0.1)',
+                                    tension: 0.4,
+                                    fill: true,
+                                    borderWidth: 3,
+                                    pointRadius: 5,
+                                    pointHoverRadius: 7,
+                                    pointBackgroundColor: '#0A84FF',
+                                    pointBorderColor: '#fff',
+                                    pointBorderWidth: 2
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                        padding: 12,
+                                        titleFont: { size: 14 },
+                                        bodyFont: { size: 13 },
+                                        callbacks: {
+                                            label: (context) => `Conclusão: ${context.parsed.y}%`
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        max: 100,
+                                        grid: { color: 'rgba(255,255,255,0.08)' },
+                                        ticks: {
+                                            color: '#888',
+                                            callback: (val) => val + '%',
+                                            font: { size: 11 }
+                                        }
+                                    },
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: {
+                                            color: '#888',
+                                            font: { size: 11 }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    // Renderizar heatmap
+                    const heatmapEl = document.getElementById('routineHeatmap');
+                    if (heatmapEl) {
+                        heatmapEl.innerHTML = '';
+                        stats.heatmapData.forEach(({ date, rate }) => {
+                            const cell = document.createElement('div');
+                            cell.className = 'aspect-square rounded-md transition-all hover:scale-110 cursor-pointer';
+                            cell.style.backgroundColor = rate >= 81 ? '#30d158' :
+                                rate >= 61 ? '#0A84FF' :
+                                    rate >= 41 ? '#ff9500' :
+                                        rate > 0 ? '#ff453a' : '#2c2c2e';
+                            cell.title = `${date}: ${rate}%`;
+                            heatmapEl.appendChild(cell);
+                        });
+                    }
+                }, 100);
+            }
+
             setTimeout(() => lucide.createIcons(), 0);
         }
 
@@ -3324,15 +3600,36 @@
             }
             toolbar.querySelector('[data-action="habit"]').onclick = () => {
                 task.isHabit = !task.isHabit;
+
+                if (task.isHabit) {
+                    // Verificar se já existe na rotina
+                    const alreadyInRoutine = dailyRoutine.some(t => t.text === task.text);
+
+                    if (!alreadyInRoutine) {
+                        // Adicionar à rotina diária
+                        dailyRoutine.push({
+                            text: task.text,
+                            completed: false,
+                            color: task.color || 'default',
+                            isHabit: true
+                        });
+                        localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
+                    }
+
+                    alert(`"${task.text}" marcado como hábito e adicionado à Rotina!`);
+                } else {
+                    // Remover da rotina diária
+                    const routineIndex = dailyRoutine.findIndex(t => t.text === task.text);
+                    if (routineIndex !== -1) {
+                        dailyRoutine.splice(routineIndex, 1);
+                        localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine));
+                    }
+                    alert(`"${task.text}" removido dos hábitos e da Rotina.`);
+                }
+
                 saveToLocalStorage();
                 renderView();
                 toolbar.classList.remove('show');
-
-                if (task.isHabit) {
-                    alert(`"${task.text}" marcado como hábito! Agora você pode acompanhá-lo na aba Hábitos.`);
-                } else {
-                    alert(`"${task.text}" removido dos hábitos.`);
-                }
             }
             toolbar.querySelector('[data-action="delete"]').onclick = async () => {
                 // Delete logic
