@@ -878,6 +878,12 @@
         let habitsHistory = JSON.parse(localStorage.getItem('habitsHistory') || '{}');
 
         // Funções auxiliares de data
+
+        // Retorna a data local no formato YYYY-MM-DD (sem bug de fuso horário UTC)
+        function localDateStr(date = new Date()) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
         function getWeekDates(weekOffset = 0) {
             const today = new Date();
             const currentDay = today.getDay(); // 0 = Domingo
@@ -896,7 +902,7 @@
                 dates.push({
                     name: dayNames[i],
                     date: date,
-                    dateStr: date.toISOString().split('T')[0]
+                    dateStr: localDateStr(date)
                 });
             }
 
@@ -1087,7 +1093,7 @@
 
         function getAllHabits() {
             const habits = [], habitMap = new Map();
-            const today = new Date().toISOString().split('T')[0];
+            const today = localDateStr();
             const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
             const todayName = days[new Date().getDay()];
             const dateKey = `${todayName}_${today}`;
@@ -1125,11 +1131,11 @@
             return Array.from(habitMap.values());
         }
 
-        function getHabitStreak(habitText) { if (!habitsHistory[habitText]) return 0; const today = new Date(); let streak = 0, currentDate = new Date(today); while (true) { const dateKey = currentDate.toISOString().split('T')[0]; if (habitsHistory[habitText][dateKey]) { streak++; currentDate.setDate(currentDate.getDate() - 1); } else { break; } } return streak; }
+        function getHabitStreak(habitText) { if (!habitsHistory[habitText]) return 0; const today = new Date(); let streak = 0, currentDate = new Date(today); while (true) { const dateKey = localDateStr(currentDate); if (habitsHistory[habitText][dateKey]) { streak++; currentDate.setDate(currentDate.getDate() - 1); } else { break; } } return streak; }
 
-        function getHabitCompletionRate(habitText, days = 30) { if (!habitsHistory[habitText]) return 0; const today = new Date(); let completed = 0; for (let i = 0; i < days; i++) { const date = new Date(today); date.setDate(date.getDate() - i); const dateKey = date.toISOString().split('T')[0]; if (habitsHistory[habitText][dateKey]) { completed++; } } return Math.round((completed / days) * 100); }
+        function getHabitCompletionRate(habitText, days = 30) { if (!habitsHistory[habitText]) return 0; const today = new Date(); let completed = 0; for (let i = 0; i < days; i++) { const date = new Date(today); date.setDate(date.getDate() - i); const dateKey = localDateStr(date); if (habitsHistory[habitText][dateKey]) { completed++; } } return Math.round((completed / days) * 100); }
 
-        function markHabitCompleted(habitText, completed) { const today = new Date().toISOString().split('T')[0]; if (!habitsHistory[habitText]) { habitsHistory[habitText] = {}; } if (completed) { habitsHistory[habitText][today] = true; } else { delete habitsHistory[habitText][today]; } localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory)); syncHabitToSupabase(habitText, today, completed); }
+        function markHabitCompleted(habitText, completed) { const today = localDateStr(); if (!habitsHistory[habitText]) { habitsHistory[habitText] = {}; } if (completed) { habitsHistory[habitText][today] = true; } else { delete habitsHistory[habitText][today]; } localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory)); syncHabitToSupabase(habitText, today, completed); }
 
         function toggleHabitToday(habitText, completed) { Object.entries(weekData).forEach(([day, periods]) => { Object.entries(periods).forEach(([period, tasks]) => { tasks.forEach(task => { if (task.isHabit && task.text === habitText) { task.completed = completed; } }) }) }); markHabitCompleted(habitText, completed); saveToLocalStorage(); renderHabitsView(); }
 
@@ -1206,7 +1212,7 @@
             const weekDates = getWeekDates(0);
             let totalTasksWeek = 0, completedTasksWeek = 0;
             let totalTasksToday = 0, completedTasksToday = 0;
-            const today = new Date().toISOString().split('T')[0];
+            const today = localDateStr();
 
             // Estatísticas por dia da semana
             const dayStats = {};
@@ -1251,7 +1257,7 @@
             let currentStreak = 0;
             const checkDate = new Date();
             for (let i = 0; i < 30; i++) {
-                const dateStr = checkDate.toISOString().split('T')[0];
+                const dateStr = localDateStr(checkDate);
                 const dayTasks = allTasksData[dateStr] || {};
                 let dayTotal = 0;
                 let dayCompleted = 0;
@@ -1434,7 +1440,7 @@
 
                         const currentDate = new Date(startDate);
                         for (let i = 0; i < 30; i++) {
-                            const dateStr = currentDate.toISOString().split('T')[0];
+                            const dateStr = localDateStr(currentDate);
                             const dayTasks = allTasksData[dateStr] || {};
                             let total = 0, completed = 0;
 
@@ -1448,7 +1454,7 @@
                             const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
                             const intensity = rate >= 80 ? 'bg-green-500' : rate >= 60 ? 'bg-blue-500' : rate >= 40 ? 'bg-orange-500' : rate > 0 ? 'bg-red-500' : 'bg-gray-700';
                             const dayNum = currentDate.getDate();
-                            const isToday = dateStr === new Date().toISOString().split('T')[0];
+                            const isToday = dateStr === localDateStr();
 
                             heatmapHtml += `
                                 <div class="relative group">
@@ -1656,10 +1662,10 @@
             }
 
             // Preencher os dias do mês
-            const today = new Date().toISOString().split('T')[0];
+            const today = localDateStr();
             for (let day = 1; day <= lastDay.getDate(); day++) {
                 const date = new Date(year, month, day);
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = localDateStr(date);
                 const isToday = dateStr === today;
 
                 const dayTasks = allTasksData[dateStr] || {};
@@ -2155,7 +2161,7 @@
 
             const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
             const today = days[new Date().getDay()];
-            const dateStr = new Date().toISOString().split('T')[0];
+            const dateStr = localDateStr();
 
             // Aplicar tarefas semanais recorrentes para hoje
             applyWeeklyRecurringTasks(dateStr, new Date().getDay());
@@ -2238,7 +2244,7 @@
                 if (e.key === 'Enter' && input.value.trim()) {
                     e.preventDefault();
 
-                    const dateStr = new Date().toISOString().split('T')[0];
+                    const dateStr = localDateStr();
                     const period = 'Tarefas';
 
                     if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
@@ -2815,7 +2821,7 @@
                     // Abre um prompt para tarefa customizada (ex: adicionar em data específica)
                     const text = prompt('Digite a tarefa:');
                     if (text && text.trim()) {
-                        const dateStr = new Date().toISOString().split('T')[0];
+                        const dateStr = localDateStr();
                         const period = 'Tarefas';
 
                         if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
@@ -2871,7 +2877,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `flowly-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `flowly-backup-${localDateStr()}.json`;
             a.click();
             URL.revokeObjectURL(url);
         };
@@ -3042,7 +3048,7 @@
 
         // Enviar notificação de progresso
         function sendProgressNotification() {
-            const today = new Date().toISOString().split('T')[0];
+            const today = localDateStr();
             const dayData = allTasksData[today] || {};
 
             let total = 0;
@@ -3069,7 +3075,7 @@
 
         // Enviar estatísticas diárias para o resumo da noite
         function sendDailyStats() {
-            const today = new Date().toISOString().split('T')[0];
+            const today = localDateStr();
             const dayData = allTasksData[today] || {};
 
             let total = 0;
@@ -3100,7 +3106,7 @@
             originalSaveToLocalStorage();
 
             // Enviar notificação a cada 3 tarefas completadas
-            const today = new Date().toISOString().split('T')[0];
+            const today = localDateStr();
             const dayData = allTasksData[today] || {};
             let completed = 0;
             Object.values(dayData).forEach(period => {
