@@ -2771,12 +2771,14 @@
         function createTaskElement(day, dateStr, period, task, index) {
             const container = document.createElement('div');
 
-            // Top Drop Zone
-            container.appendChild(createDropZone(day, dateStr, period, index));
+            // Top Drop Zone (não mostrar para recorrentes)
+            if (index !== -1) container.appendChild(createDropZone(day, dateStr, period, index));
+
+            const isRecurring = index === -1; // tarefas recorrentes não persistidas
 
             const el = document.createElement('div');
             el.className = `task-item ${task.isHabit ? 'is-habit' : ''}`;
-            el.draggable = true;
+            el.draggable = !isRecurring;
             el.dataset.day = day;
             el.dataset.date = dateStr;
             el.dataset.period = period;
@@ -2787,12 +2789,14 @@
                 el.style.paddingLeft = `${task.indent * 24}px`;
             }
 
-            // Drag Handle
+            // Drag Handle (oculto para tarefas recorrentes)
             const handle = document.createElement('div');
             handle.className = 'drag-handle';
             handle.innerHTML = '⋮⋮';
-            handle.style.cursor = 'pointer';
+            handle.style.cursor = isRecurring ? 'default' : 'pointer';
+            if (isRecurring) handle.style.display = 'none';
             handle.addEventListener('click', (e) => {
+                if (isRecurring) return;
                 e.stopPropagation();
                 e.preventDefault();
                 showEditToolbar(e, task, label);
@@ -3010,9 +3014,13 @@
             const dateStr = this.dataset.date;
             const index = parseInt(this.dataset.index);
 
+            // Tarefas recorrentes (index = -1) não são arrastáveis
+            if (index === -1) { e.preventDefault(); return; }
+
             // Usar allTasksData para buscar a tarefa
             const dayData = allTasksData[dateStr] || {};
             const task = (dayData[period] || [])[index];
+            if (!task) { e.preventDefault(); return; }
 
             draggedTask = {
                 day: this.dataset.day,
