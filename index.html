@@ -1356,55 +1356,51 @@
             e.dataTransfer.dropEffect = 'move';
         }
 
-        function hydrateRoutineForDate(dateStr) {
-            if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+        // Retorna tarefas de rotina para exibição (NÃO persiste em allTasksData)
+        function getRoutineTasksForDate(dateStr) {
+            const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
+            const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            const dateParts = dateStr.split('-');
+            const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            const dayOfWeek = dateObj.getDay();
+            const dayName = dayNames[dayOfWeek];
+            const dateKey = `${dayName}_${dateStr}`;
 
-            // Se já foi hidratado hoje, ignora. (Flag de controle)
-            if (allTasksData[dateStr]._routineHydrated) return;
+            const tasks = [];
 
-            // Garantir que a seção 'Rotina' exista
-            if (!allTasksData[dateStr]['Rotina']) allTasksData[dateStr]['Rotina'] = [];
-
-            // 1. Injetar Rotina Diária
+            // 1. Rotina diária
             dailyRoutine.forEach(habit => {
-                // Verificar se já existe para não duplicar
-                const exists = allTasksData[dateStr]['Rotina'].some(t => t.text === habit.text);
-                if (!exists) {
-                    allTasksData[dateStr]['Rotina'].push({
-                        text: habit.text,
-                        completed: false,
-                        color: habit.color || 'blue',
+                const isCompleted = !!(routineStates[habit.text]?.[dateKey]);
+                tasks.push({
+                    text: habit.text,
+                    completed: isCompleted,
+                    color: habit.color || 'blue',
+                    isRoutine: true,
+                    isHabit: true
+                });
+            });
+
+            // 2. Tarefas semanais recorrentes (apenas nos dias corretos)
+            weeklyRecurringTasks.forEach(task => {
+                if (task.daysOfWeek.includes(dayOfWeek)) {
+                    const isCompleted = !!(routineStates[task.text]?.[dateKey]);
+                    tasks.push({
+                        text: task.text,
+                        completed: isCompleted,
+                        color: task.color || 'blue',
                         isRoutine: true,
-                        isHabit: true
+                        isHabit: true,
+                        isWeeklyRecurring: true
                     });
                 }
             });
 
-            // 2. Injetar Tarefas Semanais Recorrentes
-            const dateParts = dateStr.split('-');
-            const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-            const dayOfWeek = dateObj.getDay();
+            return tasks;
+        }
 
-            weeklyRecurringTasks.forEach(task => {
-                if (task.daysOfWeek.includes(dayOfWeek)) {
-                    // Adicionar na seção 'Tarefas' ou 'Rotina'? Vamos por em 'Rotina' para agrupar
-                    const exists = allTasksData[dateStr]['Rotina'].some(t => t.text === task.text);
-                    if (!exists) {
-                        allTasksData[dateStr]['Rotina'].push({
-                            text: task.text,
-                            completed: false,
-                            color: task.color || 'blue', // Forçar azul para padrão visual
-                            isRoutine: true,
-                            isHabit: true,
-                            isWeeklyRecurring: true
-                        });
-                    }
-                }
-            });
-
-            // Marcar como hidratado
-            allTasksData[dateStr]._routineHydrated = true;
-            saveToLocalStorage();
+        // Compatibilidade: manter hydrateRoutineForDate como no-op para não quebrar chamadas existentes
+        function hydrateRoutineForDate(dateStr) {
+            // Não faz mais nada - rotinas são geradas dinamicamente por getRoutineTasksForDate()
         }
 
         function handleDrop(e) {
@@ -1996,7 +1992,9 @@
                 const dayTasks = allTasksData[dateStr] || {};
                 let dayTotal = 0, dayCompleted = 0;
 
-                Object.values(dayTasks).forEach(tasks => {
+                // Contar apenas tarefas normais persistidas (excluir período 'Rotina')
+                Object.entries(dayTasks).forEach(([period, tasks]) => {
+                    if (period === 'Rotina') return;
                     if (Array.isArray(tasks)) {
                         tasks.forEach(task => {
                             dayTotal++;
@@ -2014,14 +2012,24 @@
                     }
                 });
 
+                // Adicionar rotina + recorrentes semanais (geradas dinamicamente)
+                const routineForDay = getRoutineTasksForDate(dateStr);
+                dayTotal += routineForDay.length;
+                totalTasksWeek += routineForDay.length;
+                dayCompleted += routineForDay.filter(t => t.completed).length;
+                completedTasksWeek += routineForDay.filter(t => t.completed).length;
+
+                if (dateStr === today) {
+                    totalTasksToday += routineForDay.length;
+                    completedTasksToday += routineForDay.filter(t => t.completed).length;
+                }
+
                 dayStats[name] = { total: dayTotal, completed: dayCompleted };
             });
 
-            // Adicionar rotina diária
+            // Dados de hábitos (para o card de hábitos)
             const totalHabits = getAllHabits().length;
             const completedHabitsToday = getAllHabits().filter(h => h.completedToday).length;
-            totalTasksToday += dailyRoutine.length;
-            completedTasksToday += completedHabitsToday;
 
             const todayRate = totalTasksToday > 0 ? Math.round((completedTasksToday / totalTasksToday) * 100) : 0;
             const weekRate = totalTasksWeek > 0 ? Math.round((completedTasksWeek / totalTasksWeek) * 100) : 0;
@@ -2031,17 +2039,24 @@
             let currentStreak = 0;
             const checkDate = new Date();
             for (let i = 0; i < 30; i++) {
-                const dateStr = localDateStr(checkDate);
-                const dayTasks = allTasksData[dateStr] || {};
+                const cDateStr = localDateStr(checkDate);
+                const cDayTasks = allTasksData[cDateStr] || {};
                 let dayTotal = 0;
                 let dayCompleted = 0;
 
-                Object.values(dayTasks).forEach(tasks => {
+                // Contar tarefas normais (excluir período 'Rotina')
+                Object.entries(cDayTasks).forEach(([period, tasks]) => {
+                    if (period === 'Rotina') return;
                     if (Array.isArray(tasks)) {
                         dayTotal += tasks.length;
                         dayCompleted += tasks.filter(t => t.completed).length;
                     }
                 });
+
+                // Contar rotina + recorrentes
+                const routineForCheck = getRoutineTasksForDate(cDateStr);
+                dayTotal += routineForCheck.length;
+                dayCompleted += routineForCheck.filter(t => t.completed).length;
 
                 if (dayTotal > 0 && dayCompleted === dayTotal) {
                     currentStreak++;
@@ -2077,12 +2092,17 @@
             let lastWeekTotal = 0, lastWeekCompleted = 0;
             lastWeekDates.forEach(({ dateStr }) => {
                 const dayTasks = allTasksData[dateStr] || {};
-                Object.values(dayTasks).forEach(tasks => {
+                Object.entries(dayTasks).forEach(([period, tasks]) => {
+                    if (period === 'Rotina') return;
                     if (Array.isArray(tasks)) {
                         lastWeekTotal += tasks.length;
                         lastWeekCompleted += tasks.filter(t => t.completed).length;
                     }
                 });
+                // Rotina + recorrentes
+                const routineForLW = getRoutineTasksForDate(dateStr);
+                lastWeekTotal += routineForLW.length;
+                lastWeekCompleted += routineForLW.filter(t => t.completed).length;
             });
             const lastWeekRate = lastWeekTotal > 0 ? Math.round((lastWeekCompleted / lastWeekTotal) * 100) : 0;
             const weekDiff = weekRate - lastWeekRate;
@@ -2230,12 +2250,18 @@
                         const dayTasks = allTasksData[dateStr] || {};
                         let total = 0, completed = 0;
 
-                        Object.values(dayTasks).forEach(tasks => {
+                        // Tarefas normais (excluir período 'Rotina')
+                        Object.entries(dayTasks).forEach(([period, tasks]) => {
+                            if (period === 'Rotina') return;
                             if (Array.isArray(tasks)) {
                                 total += tasks.length;
                                 completed += tasks.filter(t => t.completed).length;
                             }
                         });
+                        // Rotina + recorrentes
+                        const routineHM = getRoutineTasksForDate(dateStr);
+                        total += routineHM.length;
+                        completed += routineHM.filter(t => t.completed).length;
 
                         const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
                         const intensity = rate >= 80 ? 'bg-green-500' : rate >= 60 ? 'bg-blue-500' : rate >= 40 ? 'bg-orange-500' : rate > 0 ? 'bg-red-500' : 'bg-gray-700';
@@ -2416,12 +2442,18 @@
                         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                         const dayTasks = allTasksData[dateStr] || {};
                         let total = 0, completed = 0;
-                        Object.values(dayTasks).forEach(tasks => {
+                        // Tarefas normais (excluir período 'Rotina')
+                        Object.entries(dayTasks).forEach(([period, tasks]) => {
+                            if (period === 'Rotina') return;
                             if (Array.isArray(tasks)) {
                                 total += tasks.length;
                                 completed += tasks.filter(t => t.completed).length;
                             }
                         });
+                        // Rotina + recorrentes
+                        const routineMC = getRoutineTasksForDate(dateStr);
+                        total += routineMC.length;
+                        completed += routineMC.filter(t => t.completed).length;
                         const rate = d <= todayDay ? (total > 0 ? Math.round((completed / total) * 100) : null) : null;
                         monthData.push(rate);
                         if (d === todayDay) pointColors.push('#30D158');
@@ -2562,25 +2594,19 @@
                 let totalTasks = 0;
                 let completedTasks = 0;
 
-                Object.values(dayTasks).forEach(tasks => {
+                // Contar apenas tarefas normais persistidas (excluir período 'Rotina')
+                Object.entries(dayTasks).forEach(([period, tasks]) => {
+                    if (period === 'Rotina') return; // Não contar rotinas persistidas indevidamente
                     if (Array.isArray(tasks)) {
                         totalTasks += tasks.length;
                         completedTasks += tasks.filter(t => t.completed).length;
                     }
                 });
 
-                // Adicionar tarefas da rotina diária
-                totalTasks += dailyRoutine.length;
-                const routineStates = JSON.parse(localStorage.getItem('routineStates') || '{}');
-                const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-                const dayName = dayNames[date.getDay()];
-                const routineKey = `${dayName}_${dateStr}`;
-
-                dailyRoutine.forEach(task => {
-                    if (routineStates[task.text] && routineStates[task.text][routineKey]) {
-                        completedTasks++;
-                    }
-                });
+                // Adicionar rotina diária + recorrentes semanais (geradas dinamicamente)
+                const routineForDay = getRoutineTasksForDate(dateStr);
+                totalTasks += routineForDay.length;
+                completedTasks += routineForDay.filter(t => t.completed).length;
 
                 const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
@@ -3547,7 +3573,7 @@
             weekDates.forEach(({ dateStr }) => hydrateRoutineForDate(dateStr));
 
             weekDates.forEach(({ name: day, dateStr }) => {
-                // Agora é simples: ler tudo de allTasksData
+                // Ler tarefas persistidas (sem rotina/recorrentes)
                 const dayTasks = allTasksData[dateStr] || {};
 
                 const col = document.createElement('div');
@@ -3572,10 +3598,23 @@
                 // Flatten all tasks
                 const allTasks = [];
 
+                // 1. Adicionar tarefas de rotina e recorrentes semanais (geradas dinamicamente, index = -1)
+                const routineTasks = getRoutineTasksForDate(dateStr);
+                routineTasks.forEach((task) => {
+                    allTasks.push({
+                        task,
+                        day,
+                        dateStr,
+                        period: 'Rotina',
+                        originalIndex: -1
+                    });
+                });
+
+                // 2. Adicionar tarefas normais persistidas (excluindo período 'Rotina' se foi salvo indevidamente)
                 Object.entries(dayTasks).forEach(([period, tasks]) => {
+                    if (period === 'Rotina') return; // Pular - rotinas são geradas dinamicamente acima
                     if (Array.isArray(tasks)) {
                         tasks.forEach((task, index) => {
-                            // Ignorar propriedades internas como _routineHydrated (que não é array, mas safe check)
                             if (task && typeof task === 'object') {
                                 allTasks.push({
                                     task,
@@ -3599,9 +3638,9 @@
                         return taskA.completed ? 1 : -1;
                     }
 
-                    // 2. Rotinas (Azul) primeiro
-                    const isRoutineA = taskA.isRoutine || taskA.period === 'Rotina';
-                    const isRoutineB = taskB.isRoutine || taskB.period === 'Rotina';
+                    // 2. Rotinas primeiro
+                    const isRoutineA = taskA.isRoutine;
+                    const isRoutineB = taskB.isRoutine;
 
                     if (isRoutineA !== isRoutineB) return isRoutineA ? -1 : 1;
 
@@ -3717,34 +3756,25 @@
             // Buscar tarefas de hoje
             const dayTasks = allTasksData[dateStr] || {};
 
-            // Coletar tarefas de rotina apenas para exibição (sem persistir)
-            const routineTasks = dailyRoutine.map(t => ({
-                ...t,
-                isRoutine: true
-            }));
-
-            // Tarefas recorrentes semanais (só exibição, não persistem)
-            const recurringTasks = getWeeklyRecurringForDay(dateStr, new Date().getDay());
-
             // Flatten all tasks into a continuous list
             const allTasks = [];
 
-            // Adicionar tarefas de rotina no início (apenas para exibição, index = -1 para não serem arrastáveis)
+            // 1. Rotina diária + recorrentes semanais (geradas dinamicamente, index = -1)
+            const routineTasks = getRoutineTasksForDate(dateStr);
             routineTasks.forEach((task) => {
                 allTasks.push({ task, day: today, dateStr, period: 'Rotina', originalIndex: -1 });
             });
 
-            // Adicionar tarefas normais salvas (excluindo 'Rotina' se foi persistida indevidamente)
+            // 2. Tarefas normais persistidas (excluindo período 'Rotina' se foi salvo indevidamente)
             Object.entries(dayTasks).forEach(([period, tasks]) => {
-                if (period === 'Rotina') return; // Pular tarefas de rotina persistidas indevidamente
-                tasks.forEach((task, index) => {
-                    allTasks.push({ task, day: today, dateStr, period, originalIndex: index });
-                });
-            });
-
-            // Adicionar recorrentes semanais no final (não persistidas)
-            recurringTasks.forEach((task) => {
-                allTasks.push({ task, day: today, dateStr, period: 'Tarefas', originalIndex: -1 });
+                if (period === 'Rotina') return;
+                if (Array.isArray(tasks)) {
+                    tasks.forEach((task, index) => {
+                        if (task && typeof task === 'object') {
+                            allTasks.push({ task, day: today, dateStr, period, originalIndex: index });
+                        }
+                    });
+                }
             });
 
             // Render all tasks in a single continuous list
@@ -3752,12 +3782,23 @@
                 grid.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
             });
 
+            // Se não há tarefas, mostrar mensagem de boas-vindas
+            if (allTasks.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'text-center py-12';
+                empty.innerHTML = `
+                    <p class="text-gray-500 text-lg mb-2">Nenhuma tarefa para hoje</p>
+                    <p class="text-gray-600 text-sm">Clique abaixo para adicionar uma tarefa</p>
+                `;
+                grid.appendChild(empty);
+            }
+
             // Adicionar área clicável para nova tarefa (estilo Notion)
             grid.style.cursor = 'text';
             grid.style.minHeight = '60vh';
             grid.addEventListener('click', (e) => {
                 // Só adicionar se clicar na área vazia
-                if (e.target === grid || e.target.classList.contains('mb-8')) {
+                if (e.target === grid || e.target.classList.contains('mb-8') || e.target.closest('.text-center')) {
                     addQuickTaskInputToday(grid, today);
                 }
             });
@@ -4586,6 +4627,11 @@
                     delete periods['Rotina'];
                     hasChanges = true;
                 }
+                // Remover flag de hidratação antiga (não mais utilizado)
+                if (periods._routineHydrated) {
+                    delete periods._routineHydrated;
+                    hasChanges = true;
+                }
 
                 Object.entries(periods).forEach(([period, tasks]) => {
                     if (Array.isArray(tasks)) {
@@ -4711,20 +4757,29 @@
         }
 
         // Enviar notificação de progresso
-        function sendProgressNotification() {
-            const today = localDateStr();
-            const dayData = allTasksData[today] || {};
+        // Função helper para contar tarefas do dia (exclui rotinas persistidas)
+        function countDayTasks(dateStr) {
+            const dayData = allTasksData[dateStr] || {};
+            let total = 0, completed = 0;
 
-            let total = 0;
-            let completed = 0;
-
-            Object.values(dayData).forEach(period => {
-                if (Array.isArray(period)) {
-                    total += period.length;
-                    completed += period.filter(t => t.completed).length;
+            Object.entries(dayData).forEach(([period, tasks]) => {
+                if (period === 'Rotina') return;
+                if (Array.isArray(tasks)) {
+                    total += tasks.length;
+                    completed += tasks.filter(t => t.completed).length;
                 }
             });
 
+            // Rotina + recorrentes
+            const routine = getRoutineTasksForDate(dateStr);
+            total += routine.length;
+            completed += routine.filter(t => t.completed).length;
+
+            return { total, completed };
+        }
+
+        function sendProgressNotification() {
+            const { total, completed } = countDayTasks(localDateStr());
             const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
             if (serviceWorkerRegistration && total > 0) {
@@ -4739,19 +4794,7 @@
 
         // Enviar estatísticas diárias para o resumo da noite
         function sendDailyStats() {
-            const today = localDateStr();
-            const dayData = allTasksData[today] || {};
-
-            let total = 0;
-            let completed = 0;
-
-            Object.values(dayData).forEach(period => {
-                if (Array.isArray(period)) {
-                    total += period.length;
-                    completed += period.filter(t => t.completed).length;
-                }
-            });
-
+            const { total, completed } = countDayTasks(localDateStr());
             const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
             if (serviceWorkerRegistration) {
@@ -4770,14 +4813,7 @@
             originalSaveToLocalStorage();
 
             // Enviar notificação a cada 3 tarefas completadas
-            const today = localDateStr();
-            const dayData = allTasksData[today] || {};
-            let completed = 0;
-            Object.values(dayData).forEach(period => {
-                if (Array.isArray(period)) {
-                    completed += period.filter(t => t.completed).length;
-                }
-            });
+            const { completed } = countDayTasks(localDateStr());
 
             // Notificar a cada 3, 5, 8 e 10 tarefas completadas
             if ([3, 5, 8, 10].includes(completed)) {
