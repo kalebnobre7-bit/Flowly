@@ -1,0 +1,36 @@
+{
+  "name": "Flowly - Produtividade Inteligente",
+  "short_name": "Flowly",
+  "description": "Gerenciador de tarefas e hábitos com analytics e notificações inteligentes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#0A84FF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Hoje",
+      "short_name": "Hoje",
+      "description": "Ver tarefas de hoje",
+      "url": "/?view=today",
+      "icons": [{ "src": "logo_flowly.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Semana",
+      "short_name": "Semana",
+      "description": "Ver tarefas da semana",
+      "url": "/?view=week",
+      "icons": [{ "src": "logo_flowly.png", "sizes": "96x96" }]
+    }
+  ]
+}
