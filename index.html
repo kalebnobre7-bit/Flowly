@@ -1111,10 +1111,7 @@
             if (!currentUser) return;
             const { data: tasks, error } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
             if (tasks && tasks.length > 0) {
-                // Textos das tarefas recorrentes para filtrar
-                const weeklyTexts = new Set(weeklyRecurringTasks.map(rt => rt.text));
-
-                // IDs a deletar do Supabase (recorrentes + datas inválidas)
+                // IDs a deletar do Supabase (apenas datas inválidas)
                 const idsToDelete = [];
 
                 // Limpa dados locais e reconstrói a partir do Supabase
@@ -1124,12 +1121,6 @@
 
                     // Ignorar datas inválidas (ex: nomes de dias antigos como "Segunda")
                     if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !task.period) {
-                        if (task.id) idsToDelete.push(task.id);
-                        return;
-                    }
-
-                    // Ignorar tarefas recorrentes salvas indevidamente
-                    if (weeklyTexts.has(task.text)) {
                         if (task.id) idsToDelete.push(task.id);
                         return;
                     }
@@ -1151,15 +1142,13 @@
                     });
                 });
 
-                // Deletar lixo do Supabase em lote
+                // Deletar apenas registros com dados inválidos
                 if (idsToDelete.length > 0) {
                     await supabaseClient.from('tasks').delete().in('id', idsToDelete);
                 }
 
                 normalizeAllTasks();
                 localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
-            } else if (tasks && tasks.length === 0) {
-                // Supabase vazio mas temos dados locais — não apagar local
             }
             const { data: habits } = await supabaseClient.from('habits_history').select('*').eq('user_id', currentUser.id);
             if (habits) {
@@ -1207,15 +1196,21 @@
             }, { onConflict: 'user_id,habit_name,date' });
         }
 
+        let _isSyncingDate = false;
+
         function saveToLocalStorage() {
             localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
             localStorage.setItem('weekData', JSON.stringify(weekData));
-            if (currentUser) {
-                // Trigger sync
+            if (currentUser && !_isSyncingDate) {
+                // Trigger sync (apenas tarefas normais, não rotina nem recorrentes)
                 Object.entries(allTasksData).forEach(([dateStr, periods]) => {
                     Object.entries(periods).forEach(([period, tasks]) => {
                         if (Array.isArray(tasks)) {
-                            tasks.forEach(task => syncTaskToSupabase(dateStr, period, task));
+                            tasks.forEach(task => {
+                                if (!task.isRoutine && !task.isWeeklyRecurring) {
+                                    syncTaskToSupabase(dateStr, period, task);
+                                }
+                            });
                         }
                     });
                 });
@@ -2547,9 +2542,15 @@
 
         // Retorna as tarefas recorrentes semanais de um dia (apenas para exibição, sem persistir)
         function getWeeklyRecurringForDay(dateStr, dayOfWeek) {
-            const existingTexts = (allTasksData[dateStr]?.['Tarefas'] || []).map(t => t.text);
+            // Coletar todos os textos já existentes em qualquer período deste dia
+            const existingTexts = new Set();
+            Object.values(allTasksData[dateStr] || {}).forEach(tasks => {
+                if (Array.isArray(tasks)) tasks.forEach(t => { if (t.text) existingTexts.add(t.text); });
+            });
+            // Também incluir textos da rotina diária (não ficam em allTasksData)
+            dailyRoutine.forEach(t => { if (t.text) existingTexts.add(t.text); });
             return weeklyRecurringTasks
-                .filter(rt => rt.daysOfWeek.includes(dayOfWeek) && !existingTexts.includes(rt.text))
+                .filter(rt => rt.daysOfWeek.includes(dayOfWeek) && !existingTexts.has(rt.text))
                 .map(rt => ({
                     text: rt.text,
                     completed: false,
@@ -3213,8 +3214,8 @@
             localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
 
             // Sincronizar dias afetados com Supabase (mantém a ordem)
-            const datesToSync = new Set([sourceDateStr, targetDateStr]);
-            datesToSync.forEach(dateStr => syncDateToSupabase(dateStr));
+            const datesToSync = [...new Set([sourceDateStr, targetDateStr])];
+            (async () => { for (const d of datesToSync) await syncDateToSupabase(d); })();
 
             renderView();
             draggedTask = null;
@@ -3223,6 +3224,8 @@
         // Sincroniza todas as tarefas de uma data com o Supabase, preservando a ordem
         async function syncDateToSupabase(dateStr) {
             if (!currentUser) return;
+            _isSyncingDate = true;
+            try {
 
             // Deletar todos os registros desta data no Supabase
             await supabaseClient.from('tasks').delete()
@@ -3253,7 +3256,7 @@
                 const { data } = await supabaseClient.from('tasks').insert(inserts).select();
                 // Atualizar supabaseIds locais
                 if (data) {
-                    data.forEach((row, i) => {
+                    data.forEach((row) => {
                         const tasks = allTasksData[row.day]?.[row.period];
                         if (tasks) {
                             const match = tasks.find(t => t.text === row.text && !t.supabaseId);
@@ -3262,6 +3265,9 @@
                     });
                     localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
                 }
+            }
+            } finally {
+                _isSyncingDate = false;
             }
         }
 
