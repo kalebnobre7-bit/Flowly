@@ -18,37 +18,43 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --bg-body: #000000;
-            --bg-card: rgba(28, 28, 30, 0.6);
-            --bg-card-hover: rgba(44, 44, 46, 0.8);
-            --bg-elevated: rgba(44, 44, 46, 1);
+            --bg-body: #050505;
+            --bg-card: rgba(30, 30, 32, 0.7);
+            --bg-card-hover: rgba(45, 45, 48, 0.9);
+            --bg-glass: rgba(255, 255, 255, 0.05);
             --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-active: rgba(255, 255, 255, 0.15);
             --text-primary: #F5F5F7;
             --text-secondary: #86868b;
+            --text-tertiary: #58585e;
             --accent-blue: #0A84FF;
             --accent-green: #30D158;
             --accent-orange: #FF9F0A;
             --accent-red: #FF453A;
-            --radius-card: 18px;
-            --radius-sm: 8px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
             background-color: var(--bg-body);
             color: var(--text-primary);
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: var(--font-main);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             line-height: 1.5;
             overflow-x: hidden;
             margin: 0;
-            padding: 24px;
+            padding: 32px 40px;
         }
 
-        /* Scrollbar */
+        /* Scrollbar Premium */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
         }
 
         ::-webkit-scrollbar-track {
@@ -56,12 +62,13 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 5px;
+            border: 2px solid var(--bg-body);
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.25);
         }
 
         /* Navigation */
@@ -69,172 +76,200 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 32px;
-            padding: 0 4px;
+            margin-bottom: 48px;
+            padding: 0;
+            max-width: 1600px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .logo-area {
             display: flex;
             align-items: center;
             gap: 12px;
-        }
-
-        .logo-img {
-            height: 32px;
+            opacity: 0.9;
         }
 
         .segmented-control {
-            background: rgba(118, 118, 128, 0.24);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 2px;
-            border-radius: 9px;
+            background: rgba(44, 44, 46, 0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 3px;
+            border-radius: 12px;
             display: flex;
-            gap: 1px;
+            gap: 2px;
+            border: 1px solid var(--border-subtle);
         }
 
         .segment-btn {
             background: transparent;
             border: none;
             padding: 6px 16px;
-            border-radius: 7px;
-            color: var(--text-primary);
+            border-radius: 9px;
+            color: var(--text-secondary);
+            font-family: var(--font-main);
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
-            border: 0.5px solid transparent;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        .segment-btn:hover:not(.active) {
-            opacity: 0.8;
+        .segment-btn:hover {
+            color: var(--text-primary);
         }
 
         .segment-btn.active {
             background: #636366;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             font-weight: 600;
         }
 
-        .utility-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08);
-            border: none;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.2s;
-            font-size: 16px;
+        /* Layout Grid */
+        #weekGrid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 16px;
+            /* Espaço entre colunas */
+            max-width: 1600px;
+            margin: 0 auto;
         }
 
-        .utility-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        /* Grid & Cards */
         .day-column {
-            background: transparent;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            min-height: 500px;
+            padding: 20px 16px;
+            transition: all 0.2s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Remove border-right antiga */
+        .day-column {
             border-right: 1px solid var(--border-subtle);
-            min-height: 70vh;
-            padding: 0 16px 32px 16px;
-            transition: background 0.2s;
-            cursor: text;
         }
 
-        .day-column:last-child {
-            border-right: none;
+        .day-column:hover {
+            border-color: var(--border-active);
+            background: var(--bg-card-hover);
         }
 
-        /* Glass effect for active drag */
         .day-column.drag-over {
-            background: rgba(10, 132, 255, 0.05);
-            border-radius: 12px;
-            border-right-color: transparent;
+            background: rgba(10, 132, 255, 0.1);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
         }
 
         h2 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            padding-left: 4px;
+            letter-spacing: -0.01em;
+        }
+
+        h2.text-blue-400 {
+            color: var(--accent-blue) !important;
             font-weight: 700;
-            font-size: 17px;
-            letter-spacing: -0.02em;
-            margin-bottom: 24px;
-            opacity: 0.9;
         }
 
-        h3 {
-            font-weight: 500;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #6b7280;
-            margin-bottom: 8px;
-            opacity: 0.6;
-        }
-
-        h3.hidden {
-            display: none;
-        }
-
-        /* Task Items - Notion-style Minimal */
+        /* Task Items - Apple Reminders Style */
         .task-item {
-            background: transparent;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 8px;
-            margin-bottom: 2px;
+            background: rgba(60, 60, 64, 0.4);
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            /* Espaçamento entre tasks */
             display: flex;
             align-items: flex-start;
-            gap: 8px;
-            transition: background 0.15s ease;
+            gap: 12px;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
             position: relative;
+            box-shadow: var(--shadow-sm);
         }
 
         .task-item:hover {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(70, 70, 75, 0.6);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+            border-color: rgba(255, 255, 255, 0.05);
         }
 
-        .task-item.is-habit .task-label {
-            color: var(--accent-blue) !important;
-        }
-
-        /* Checkbox - Refined */
+        /* Checkbox Moderno */
         .checkbox-custom {
             appearance: none;
-            width: 18px;
-            height: 18px;
-            border: 1.5px solid #555;
-            border-radius: 6px;
+            width: 20px;
+            height: 20px;
+            border: 1.5px solid #666;
+            border-radius: 50%;
+            /* Circular Apple Style */
             cursor: pointer;
             flex-shrink: 0;
             transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.02);
-            margin-top: 2px;
+            margin-top: 1px;
+            background: transparent;
         }
 
         .checkbox-custom:hover {
-            border-color: #888;
-            background: rgba(255, 255, 255, 0.1);
+            border-color: #999;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .checkbox-custom:checked {
             background: var(--accent-blue);
             border-color: var(--accent-blue);
-            box-shadow: 0 2px 4px rgba(10, 132, 255, 0.3);
+            box-shadow: 0 0 8px rgba(10, 132, 255, 0.4);
         }
 
         .checkbox-custom:checked::after {
             content: '';
+            display: block;
             width: 5px;
             height: 9px;
             border: solid white;
             border-width: 0 2px 2px 0;
-            transform: rotate(45deg) translateY(-1px);
+            margin: 4px auto 0;
+            transform: rotate(45deg);
+        }
+
+        /* Drop Zone Correção */
+        .drop-zone {
+            margin-top: auto;
+            /* Empurra para o final */
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-tertiary);
+            font-size: 24px;
+            font-weight: 200;
+            cursor: pointer;
+            transition: all 0.2s;
+            opacity: 0;
+            /* Invisível por padrão */
+        }
+
+        .day-column:hover .drop-zone {
+            opacity: 0.5;
+        }
+
+        .drop-zone:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--accent-blue);
+            opacity: 1;
+        }
+
+        .drop-zone.active {
+            background: rgba(10, 132, 255, 0.1);
+            border: 2px dashed var(--accent-blue);
+            opacity: 1;
         }
 
         /* Typography & Editing */
@@ -1092,12 +1127,13 @@
 
         // --- Funções Globais do Analytics e Rotina ---
 
-        // Função para alternar o status de conclusão de uma tarefa de rotina hoje
-        function toggleRoutineToday(habitText, completed) {
-            const today = new Date();
-            const dateStr = localDateStr(today);
+        // Função para alternar status de rotina em uma data específica
+        function toggleRoutineDate(habitText, dateStr, completed) {
             const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-            const dayName = days[today.getDay()];
+            // Criar data segura (evitar fuso horário)
+            const parts = dateStr.split('-');
+            const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+            const dayName = days[dateObj.getDay()];
             const dateKey = `${dayName}_${dateStr}`;
 
             // Carregar e modificar routineStates
@@ -1118,14 +1154,28 @@
             if (completed) habitsHistory[habitText][dateStr] = true;
             else delete habitsHistory[habitText][dateStr];
 
-            // Atualizar dailyRoutine para refletir visualmente
+            saveToLocalStorage();
+
+            // Tentar sincronizar com Supabase se possível
+            if (typeof syncDateToSupabase === 'function') {
+                syncDateToSupabase(dateStr);
+            }
+        }
+
+        // Wrapper para hoje (mantido para compatibilidade)
+        function toggleRoutineToday(habitText, completed) {
+            const today = new Date();
+            const dateStr = localDateStr(today);
+            toggleRoutineDate(habitText, dateStr, completed);
+
+            // Atualizar dailyRoutine visualmente (apenas para UI imediata)
             const routineItem = dailyRoutine.find(t => t.text === habitText);
             if (routineItem) routineItem.completed = completed;
 
-            saveToLocalStorage();
-
             // Re-renderizar a view de rotina para atualizar barras de progresso
-            renderRoutineView();
+            if (document.getElementById('routineView') && !document.getElementById('routineView').classList.contains('hidden')) {
+                renderRoutineView();
+            }
         }
 
         // Função para adicionar nova tarefa de rotina
@@ -1267,53 +1317,100 @@
             e.dataTransfer.dropEffect = 'move';
         }
 
-        function handleDrop(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        function hydrateRoutineForDate(dateStr) {
+            if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
 
-            if (!dragState.taskData) return;
+            // Se já foi hidratado hoje, ignora. (Flag de controle)
+            if (allTasksData[dateStr]._routineHydrated) return;
 
-            // Determinar período de destino baseado na posição do mouse
-            const targetCol = e.currentTarget;
-            const targetDate = targetCol.dataset.date;
-            const targetPeriod = 'Tarefas'; // Por padrão coloca em "Tarefas"
+            // Garantir que a seção 'Rotina' exista
+            if (!allTasksData[dateStr]['Rotina']) allTasksData[dateStr]['Rotina'] = [];
 
-            // Remover da posição antiga
-            const sourceArray = allTasksData[dragState.sourceDate]?.[dragState.sourcePeriod];
-            if (sourceArray) {
-                sourceArray.splice(dragState.sourceIndex, 1);
-
-                // Limpar período vazio
-                if (sourceArray.length === 0) {
-                    delete allTasksData[dragState.sourceDate][dragState.sourcePeriod];
+            // 1. Injetar Rotina Diária
+            dailyRoutine.forEach(habit => {
+                // Verificar se já existe para não duplicar
+                const exists = allTasksData[dateStr]['Rotina'].some(t => t.text === habit.text);
+                if (!exists) {
+                    allTasksData[dateStr]['Rotina'].push({
+                        text: habit.text,
+                        completed: false,
+                        color: habit.color || 'blue',
+                        isRoutine: true,
+                        isHabit: true
+                    });
                 }
-            }
+            });
 
-            // Adicionar na nova posição
-            if (!allTasksData[targetDate]) allTasksData[targetDate] = {};
-            if (!allTasksData[targetDate][targetPeriod]) allTasksData[targetDate][targetPeriod] = [];
+            // 2. Injetar Tarefas Semanais Recorrentes
+            const dateParts = dateStr.split('-');
+            const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            const dayOfWeek = dateObj.getDay();
 
-            allTasksData[targetDate][targetPeriod].push(dragState.taskData);
+            weeklyRecurringTasks.forEach(task => {
+                if (task.daysOfWeek.includes(dayOfWeek)) {
+                    // Adicionar na seção 'Tarefas' ou 'Rotina'? Vamos por em 'Rotina' para agrupar
+                    const exists = allTasksData[dateStr]['Rotina'].some(t => t.text === task.text);
+                    if (!exists) {
+                        allTasksData[dateStr]['Rotina'].push({
+                            text: task.text,
+                            completed: false,
+                            color: task.color || 'blue', // Forçar azul para padrão visual
+                            isRoutine: true,
+                            isHabit: true,
+                            isWeeklyRecurring: true
+                        });
+                    }
+                }
+            });
 
-            // SALVAR!
+            // Marcar como hidratado
+            allTasksData[dateStr]._routineHydrated = true;
             saveToLocalStorage();
+        }
 
-            // Sincronizar com Supabase
-            syncDateToSupabase(dragState.sourceDate);
-            if (targetDate !== dragState.sourceDate) {
-                syncDateToSupabase(targetDate);
+        if (!dragState.taskData) return;
+
+        // Determinar período de destino baseado na posição do mouse
+        const targetCol = e.currentTarget;
+        const targetDate = targetCol.dataset.date;
+        const targetPeriod = 'Tarefas'; // Por padrão coloca em "Tarefas"
+
+        // Remover da posição antiga
+        const sourceArray = allTasksData[dragState.sourceDate]?.[dragState.sourcePeriod];
+        if (sourceArray) {
+            sourceArray.splice(dragState.sourceIndex, 1);
+
+            // Limpar período vazio
+            if (sourceArray.length === 0) {
+                delete allTasksData[dragState.sourceDate][dragState.sourcePeriod];
             }
+        }
 
-            // Limpar estado
-            dragState = {
-                sourceDate: null,
-                sourcePeriod: null,
-                sourceIndex: null,
-                taskData: null
-            };
+        // Adicionar na nova posição
+        if (!allTasksData[targetDate]) allTasksData[targetDate] = {};
+        if (!allTasksData[targetDate][targetPeriod]) allTasksData[targetDate][targetPeriod] = [];
 
-            // Re-renderizar
-            renderView();
+        allTasksData[targetDate][targetPeriod].push(dragState.taskData);
+
+        // SALVAR!
+        saveToLocalStorage();
+
+        // Sincronizar com Supabase
+        syncDateToSupabase(dragState.sourceDate);
+        if (targetDate !== dragState.sourceDate) {
+            syncDateToSupabase(targetDate);
+        }
+
+        // Limpar estado
+        dragState = {
+            sourceDate: null,
+            sourcePeriod: null,
+            sourceIndex: null,
+            taskData: null
+        };
+
+        // Re-renderizar
+        renderView();
         }
 
         function createDropZone(day, dateStr, period, index) {
@@ -3374,60 +3471,50 @@
 
             const weekDates = getWeekDates(currentWeekOffset);
 
+            // HIDRATAR A SEMANA: Garantir que as rotinas existam no banco para todos os dias visíveis
+            weekDates.forEach(({ dateStr }) => hydrateRoutineForDate(dateStr));
+
             weekDates.forEach(({ name: day, dateStr }) => {
-                // Buscar tarefas para esta data específica
+                // Agora é simples: ler tudo de allTasksData
                 const dayTasks = allTasksData[dateStr] || {};
-
-                // Coletar tarefas de rotina apenas para exibição (sem persistir)
-                // MAS: não mostrar se já existe versão persistida em allTasksData
-                const routineTasks = dailyRoutine
-                    .filter(routineTask => {
-                        // Verificar se existe versão persistida desta tarefa
-                        const hasPersisted = Object.values(dayTasks).some(periodTasks =>
-                            Array.isArray(periodTasks) && periodTasks.some(t => t.text === routineTask.text)
-                        );
-                        return !hasPersisted; // Só mostrar se NÃO existe persistida
-                    })
-                    .map(t => ({
-                        ...t,
-                        isRoutine: true
-                    }));
-
-                // Tarefas recorrentes semanais (só exibição, não persistem)
-                const date = new Date(dateStr + 'T12:00:00');
-                const recurringTasks = getWeeklyRecurringForDay(dateStr, date.getDay());
 
                 const col = document.createElement('div');
                 col.className = 'day-column';
                 col.dataset.day = day;
                 col.dataset.date = dateStr;
+
                 // Drag Events
                 col.addEventListener('dragover', handleDragOver);
                 col.addEventListener('drop', handleDrop);
 
                 const header = document.createElement('h2');
                 header.textContent = day;
+                // Highlight today
+                const todayStr = localDateStr();
+                if (dateStr === todayStr) {
+                    header.classList.add('text-blue-400');
+                    col.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+                }
                 col.appendChild(header);
 
-                // Flatten all tasks from all periods into a continuous list
+                // Flatten all tasks
                 const allTasks = [];
 
-                // Adicionar tarefas de rotina no início (apenas para exibição, index = -1 para não serem arrastáveis)
-                routineTasks.forEach((task) => {
-                    allTasks.push({ task, day, dateStr, period: 'Rotina', originalIndex: -1 });
-                });
-
-                // Adicionar tarefas normais salvas (excluindo 'Rotina' se foi persistida indevidamente)
                 Object.entries(dayTasks).forEach(([period, tasks]) => {
-                    if (period === 'Rotina') return; // Pular tarefas de rotina persistidas indevidamente
-                    tasks.forEach((task, index) => {
-                        allTasks.push({ task, day, dateStr, period, originalIndex: index });
-                    });
-                });
-
-                // Adicionar recorrentes semanais no final (não persistidas)
-                recurringTasks.forEach((task) => {
-                    allTasks.push({ task, day, dateStr, period: 'Tarefas', originalIndex: -1 });
+                    if (Array.isArray(tasks)) {
+                        tasks.forEach((task, index) => {
+                            // Ignorar propriedades internas como _routineHydrated (que não é array, mas safe check)
+                            if (task && typeof task === 'object') {
+                                allTasks.push({
+                                    task,
+                                    day,
+                                    dateStr,
+                                    period,
+                                    originalIndex: index
+                                });
+                            }
+                        });
+                    }
                 });
 
                 // ===== ORDENAR TAREFAS POR PRIORIDADE =====
@@ -3435,58 +3522,51 @@
                     const taskA = a.task;
                     const taskB = b.task;
 
-                    // Função para determinar prioridade da cor
-                    const getColorPriority = (task) => {
-                        const color = task.color || 'default';
-                        if (task.isRoutine || color === 'blue') return 1; // Azuis (rotina) no topo
-                        if (color === 'red') return 2; // Vermelhas
-                        if (color === 'orange') return 3; // Laranjas
-                        if (color === 'green') return 4; // Verdes
-                        return 5; // Outras cores
-                    };
-
-                    // Primeiro: ordenar por completado (completadas primeiro, não completadas embaixo)
+                    // 1. Completadas vão para o final
                     if (taskA.completed !== taskB.completed) {
-                        return taskA.completed ? -1 : 1;
+                        return taskA.completed ? 1 : -1;
                     }
 
-                    // Segundo: ordenar por cor/prioridade
-                    const priorityA = getColorPriority(taskA);
-                    const priorityB = getColorPriority(taskB);
+                    // 2. Rotinas (Azul) primeiro
+                    const isRoutineA = taskA.isRoutine || taskA.period === 'Rotina';
+                    const isRoutineB = taskB.isRoutine || taskB.period === 'Rotina';
 
-                    return priorityA - priorityB;
+                    if (isRoutineA !== isRoutineB) return isRoutineA ? -1 : 1;
+
+                    // 3. Cores
+                    const colors = { 'red': 1, 'orange': 2, 'yellow': 3, 'green': 4, 'blue': 5, 'purple': 6, 'default': 99 };
+                    const colorA = colors[taskA.color] || 99;
+                    const colorB = colors[taskB.color] || 99;
+
+                    return colorA - colorB;
                 });
 
-                // Render all tasks in sequence without period sections
+                // Renderizar
                 allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
                     col.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
                 });
 
-                // ===== DROP ZONE NO FINAL DA LISTA =====
+                // ===== DROP ZONE NO FINAL =====
                 const finalDropZone = document.createElement('div');
                 finalDropZone.className = 'drop-zone';
                 finalDropZone.dataset.date = dateStr;
-                finalDropZone.dataset.period = 'Tarefas';
-                finalDropZone.dataset.insertAt = '999999'; // Número alto para indicar "final"
-                finalDropZone.style.minHeight = '40px';
-                finalDropZone.style.marginTop = '8px';
+                finalDropZone.dataset.period = 'Tarefas'; // Default drop target
+                finalDropZone.dataset.insertAt = '999999';
+                finalDropZone.innerText = '+';
+                finalDropZone.onclick = () => addQuickTaskInput(col, day); // Atalho rápido
 
                 finalDropZone.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     finalDropZone.classList.add('active');
                 });
-
                 finalDropZone.addEventListener('dragleave', () => {
                     finalDropZone.classList.remove('active');
                 });
-
+                // Drop handler já está no evento global ou específico (mas createDropZone cuida disso?)
+                // createDropZone é para ENTRE tarefas. Esta é a final.
+                // Precisa de drop handler próprio se não for coberto pelo col
                 finalDropZone.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    finalDropZone.classList.remove('active');
-
-                    if (!dragState.taskData) return;
 
                     const targetDateStr = dateStr;
                     const targetPeriod = 'Tarefas';
@@ -3823,24 +3903,21 @@
                 task.completed = e.target.checked;
                 label.classList.toggle('task-completed', task.completed);
 
-
-                // SOLUÇÃO: Atualizar diretamente no dailyRoutine se for tarefa de rotina
-                if (task.isRoutine) {
-                    const routineIndex = dailyRoutine.findIndex(t => t.text === task.text);
-                    if (routineIndex !== -1) {
-                        dailyRoutine[routineIndex].completed = task.completed;
-                    }
+                // Se for rotina, usar a função específica de data para persistência correta
+                if (task.isRoutine || period === 'Rotina') {
+                    toggleRoutineDate(task.text, dateStr, task.completed);
                 }
 
-
-                // Sempre salvar
+                // Sempre salvar estado geral
                 saveToLocalStorage();
 
-                // Habit logic
+                // Habit logic (legado/redundante mas mantido por segurança)
                 if (task.isHabit) markHabitCompleted(task.text, task.completed);
 
                 // Sincronizar com Supabase
-                syncDateToSupabase(dateStr);
+                if (typeof syncDateToSupabase === 'function') {
+                    syncDateToSupabase(dateStr);
+                }
             }
             el.appendChild(checkbox);
 
