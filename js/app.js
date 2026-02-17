@@ -42,23 +42,32 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 // Listener para mudanças de autenticação
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    console.log('Auth state changed:', event, session);
+    console.log('Auth state changed:', event, session ? 'user active' : 'no session');
 
-    // INITIAL_SESSION acontece quando a página carrega com sessão salva
-    if (event === 'INITIAL_SESSION' && session) {
-        currentUser = session.user;
-        document.getElementById('authModal').classList.remove('show');
-        document.getElementById('userEmail').textContent = session.user.email;
-        await loadDataFromSupabase();
-        renderView();
+    if (event === 'INITIAL_SESSION') {
+        if (session) {
+            currentUser = session.user;
+            document.getElementById('authModal').classList.remove('show');
+            document.getElementById('userEmail').textContent = session.user.email;
+            await loadDataFromSupabase();
+            renderView();
+        } else {
+            // Sem sessão inicial -> Mostrar Login
+            document.getElementById('authModal').classList.add('show');
+        }
     } else if (event === 'SIGNED_IN' && session) {
-        // SIGNED_IN acontece no login manual (já renderiza no signIn)
         currentUser = session.user;
         document.getElementById('authModal').classList.remove('show');
         document.getElementById('userEmail').textContent = session.user.email;
+        // Garantir carregamento se vier de redirecionamento ou OAuth
+        if (!allTasksData || Object.keys(allTasksData).length === 0) {
+            await loadDataFromSupabase();
+            renderView();
+        }
     } else if (event === 'SIGNED_OUT') {
         currentUser = null;
         document.getElementById('authModal').classList.add('show');
+        location.reload();
     }
 });
 
