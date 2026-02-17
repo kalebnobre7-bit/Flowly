@@ -3083,10 +3083,19 @@
                 const dayTasks = allTasksData[dateStr] || {};
 
                 // Coletar tarefas de rotina apenas para exibição (sem persistir)
-                const routineTasks = dailyRoutine.map(t => ({
-                    ...t,
-                    isRoutine: true
-                }));
+                // MAS: não mostrar se já existe versão persistida em allTasksData
+                const routineTasks = dailyRoutine
+                    .filter(routineTask => {
+                        // Verificar se existe versão persistida desta tarefa
+                        const hasPersisted = Object.values(dayTasks).some(periodTasks =>
+                            Array.isArray(periodTasks) && periodTasks.some(t => t.text === routineTask.text)
+                        );
+                        return !hasPersisted; // Só mostrar se NÃO existe persistida
+                    })
+                    .map(t => ({
+                        ...t,
+                        isRoutine: true
+                    }));
 
                 // Tarefas recorrentes semanais (só exibição, não persistem)
                 const date = new Date(dateStr + 'T12:00:00');
@@ -3140,9 +3149,9 @@
                         return 5; // Outras cores
                     };
 
-                    // Primeiro: ordenar por completado (não completadas primeiro)
+                    // Primeiro: ordenar por completado (completadas primeiro, não completadas embaixo)
                     if (taskA.completed !== taskB.completed) {
-                        return taskA.completed ? 1 : -1;
+                        return taskA.completed ? -1 : 1;
                     }
 
                     // Segundo: ordenar por cor/prioridade
