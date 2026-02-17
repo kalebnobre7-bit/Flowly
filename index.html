@@ -2185,7 +2185,54 @@
                 </div>
             `;
 
-            setTimeout(() => lucide.createIcons(), 0);
+            setTimeout(() => {
+                lucide.createIcons();
+
+                document.getElementById('btnFixDuplicates').onclick = async () => {
+                    if (!currentUser) { alert('Faça login primeiro!'); return; }
+                    if (!confirm('Isso vai limpar duplicatas e tarefas corrompidas do banco. Suas tarefas normais serão mantidas. Continuar?')) return;
+
+                    const btn = document.getElementById('btnFixDuplicates');
+                    btn.textContent = 'Limpando...';
+                    btn.disabled = true;
+
+                    try {
+                        const { data: allTasks } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
+                        if (!allTasks) { alert('Erro ao buscar dados.'); return; }
+
+                        const weeklyTexts = new Set(weeklyRecurringTasks.map(rt => rt.text));
+                        const seen = new Map();
+                        const idsToDelete = [];
+
+                        allTasks.forEach(task => {
+                            const dateStr = task.day || '';
+                            if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !task.period || !task.text || task.text.trim() === '' || weeklyTexts.has(task.text)) {
+                                idsToDelete.push(task.id);
+                                return;
+                            }
+                            const key = `${dateStr}|${task.period}|${task.text}`;
+                            if (seen.has(key)) {
+                                idsToDelete.push(task.id);
+                            } else {
+                                seen.set(key, task.id);
+                            }
+                        });
+
+                        for (let i = 0; i < idsToDelete.length; i += 100) {
+                            const batch = idsToDelete.slice(i, i + 100);
+                            await supabaseClient.from('tasks').delete().in('id', batch);
+                        }
+
+                        allTasksData = {};
+                        localStorage.removeItem('allTasksData');
+                        await loadDataFromSupabase();
+                        renderView();
+                        alert(`Limpeza concluída! ${idsToDelete.length} registros removidos.`);
+                    } catch (e) {
+                        alert('Erro: ' + e.message);
+                    }
+                };
+            }, 0);
         }
 
         function deleteWeeklyRecurringTask(index) {
@@ -3236,63 +3283,6 @@
                 saveToLocalStorage();
                 renderView();
                 alert('Todos os dados foram limpos!');
-            }
-        };
-
-        document.getElementById('btnFixDuplicates').onclick = async () => {
-            if (!currentUser) { alert('Faça login primeiro!'); return; }
-            if (!confirm('Isso vai limpar duplicatas e tarefas corrompidas do banco. Suas tarefas normais serão mantidas. Continuar?')) return;
-
-            const btn = document.getElementById('btnFixDuplicates');
-            btn.textContent = 'Limpando...';
-            btn.disabled = true;
-
-            try {
-                // Buscar todos os registros do usuário
-                const { data: allTasks } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
-                if (!allTasks) { alert('Erro ao buscar dados.'); return; }
-
-                const weeklyTexts = new Set(weeklyRecurringTasks.map(rt => rt.text));
-                const seen = new Map(); // "dateStr|period|text" -> primeiro id
-                const idsToDelete = [];
-
-                allTasks.forEach(task => {
-                    const dateStr = task.day || '';
-
-                    // Deletar: data inválida, texto de recorrente, texto vazio
-                    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !task.period || !task.text || task.text.trim() === '' || weeklyTexts.has(task.text)) {
-                        idsToDelete.push(task.id);
-                        return;
-                    }
-
-                    // Deletar duplicatas (manter só o primeiro por combinação data+period+text)
-                    const key = `${dateStr}|${task.period}|${task.text}`;
-                    if (seen.has(key)) {
-                        idsToDelete.push(task.id);
-                    } else {
-                        seen.set(key, task.id);
-                    }
-                });
-
-                // Deletar em lotes de 100
-                for (let i = 0; i < idsToDelete.length; i += 100) {
-                    const batch = idsToDelete.slice(i, i + 100);
-                    await supabaseClient.from('tasks').delete().in('id', batch);
-                }
-
-                // Recarregar dados limpos
-                allTasksData = {};
-                localStorage.removeItem('allTasksData');
-                await loadDataFromSupabase();
-                renderView();
-
-                alert(`Limpeza concluída! ${idsToDelete.length} registros removidos.`);
-            } catch (e) {
-                alert('Erro: ' + e.message);
-            } finally {
-                btn.textContent = 'Corrigir duplicatas do banco';
-                btn.disabled = false;
-                lucide.createIcons();
             }
         };
 
