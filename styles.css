@@ -1,0 +1,1016 @@
+:root {
+    --bg-body: #050505;
+    --bg-card: rgba(30, 30, 32, 0.7);
+    --bg-card-hover: rgba(45, 45, 48, 0.9);
+    --bg-glass: rgba(255, 255, 255, 0.05);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-active: rgba(255, 255, 255, 0.15);
+    --text-primary: #F5F5F7;
+    --text-secondary: #86868b;
+    --text-tertiary: #58585e;
+    --accent-blue: #0A84FF;
+    --accent-green: #30D158;
+    --accent-orange: #FF9F0A;
+    --accent-red: #FF453A;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+    --radius-lg: 16px;
+    --radius-md: 10px;
+    --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 32px 40px;
+}
+
+/* Scrollbar Premium */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    border: 2px solid var(--bg-body);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Navigation */
+.nav-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    padding: 0;
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+    flex-wrap: wrap;
+    /* Permitir quebra em telas muito pequenas */
+    gap: 16px;
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0.9;
+}
+
+/* CORREÇÃO DA LOGO GIGANTE */
+.logo-area img {
+    height: 40px !important;
+    /* Forçar altura fixa */
+    width: auto !important;
+    object-fit: contain;
+}
+
+.segmented-control {
+    background: rgba(44, 44, 46, 0.5);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 3px;
+    border-radius: 12px;
+    display: flex;
+    gap: 2px;
+    border: 1px solid var(--border-subtle);
+}
+
+.segment-btn {
+    padding: 7px 16px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.segment-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.segment-btn.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    font-weight: 600;
+}
+
+.utility-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-glass);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.utility-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-color: var(--border-active);
+}
+
+/* ====== NOTION-STYLE LAYOUT ====== */
+
+/* Week Grid - Clean columns */
+/* Global hidden override */
+.hidden {
+    display: none !important;
+}
+
+/* Week Grid - Clean columns */
+#weekGrid:not(.hidden) {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.day-column {
+    background: transparent;
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0;
+    min-height: 65vh;
+    padding: 0 12px 20px 12px;
+    transition: background 0.15s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.day-column:last-child {
+    border-right: none;
+}
+
+.day-column:hover {
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.day-column.drag-over {
+    background: rgba(10, 132, 255, 0.04);
+}
+
+/* Day headers */
+h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    padding: 12px 4px 8px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+h2.text-blue-400 {
+    color: var(--accent-blue) !important;
+    font-weight: 600;
+}
+
+/* Task Items - Notion flat style */
+.task-item {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 6px;
+    margin-bottom: 1px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    transition: background 0.1s ease;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.task-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Checkbox - minimal */
+.checkbox-custom {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    margin-top: 2px;
+    background: transparent;
+}
+
+.checkbox-custom:hover {
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.checkbox-custom:checked {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+.checkbox-custom:checked::after {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 1.5px 1.5px 0;
+    margin: 2px auto 0;
+    transform: rotate(45deg);
+}
+
+/* Drop Zone - subtle */
+.drop-zone {
+    margin-top: auto;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 18px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all 0.15s;
+    opacity: 0;
+}
+
+.day-column:hover .drop-zone {
+    opacity: 0.4;
+}
+
+.drop-zone:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    opacity: 1;
+}
+
+.drop-zone.active {
+    background: rgba(10, 132, 255, 0.06);
+    border: 1.5px dashed rgba(10, 132, 255, 0.4);
+    opacity: 1;
+}
+
+/* Typography - clean */
+.task-label {
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.85);
+    width: 100%;
+    cursor: text;
+    transition: color 0.15s;
+}
+
+.task-label[data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(255, 255, 255, 0.2);
+    font-style: normal;
+}
+
+.task-completed {
+    color: rgba(255, 255, 255, 0.3);
+    text-decoration: line-through;
+}
+
+.task-label[contenteditable="true"] {
+    outline: none;
+    background: rgba(10, 132, 255, 0.08);
+    border-radius: 3px;
+    padding: 0 3px;
+    box-shadow: 0 0 0 1.5px rgba(10, 132, 255, 0.25);
+}
+
+/* ====== TODAY VIEW ====== */
+/* Usando ID para sobrescrever o display: grid do #weekGrid padrão */
+#weekGrid.today-container {
+    display: flex !important;
+    /* Forçar override do grid */
+    grid-template-columns: none !important;
+    gap: 64px;
+    /* Aproxima a sidebar das tarefas */
+    width: 100%;
+    max-width: 1050px;
+    /* Conteúdo mais compacto e centralizado */
+    margin: 0 auto;
+    padding: 40px 20px;
+    /* Mais respiro superior */
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 80vh;
+}
+
+.today-main {
+    flex: 1;
+    /* Ocupa o espaço restante */
+    min-width: 0;
+    padding-top: 0;
+}
+
+.today-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 40px;
+    padding-top: 10px;
+    /* Alinhar visualmente com o título */
+}
+
+/* Header alinhado à esquerda seguindo a coluna de tarefas */
+.today-header {
+    margin-bottom: 32px;
+    text-align: left;
+}
+
+.today-header h1 {
+    font-family: var(--font-display);
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    margin: 0 0 8px 0;
+}
+
+.today-header p {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.today-task-list {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* Itens bem próximos */
+}
+
+/* Task Item Minimalista (Notion Style) */
+.today-task-list .task-item {
+    padding: 8px 0;
+    /* Padding vertical leve, sem horizontal */
+    margin-bottom: 0;
+    background: transparent !important;
+    /* Sem fundo */
+    border: none !important;
+    /* Sem borda */
+    border-radius: 0;
+    transition: background 0.1s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.today-task-list .task-item:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+    /* Leve hover para feedback */
+    border-radius: 6px;
+    /* Cantos levemente arredondados no hover */
+    padding-left: 10px;
+    /* Indentação visual no hover */
+    padding-right: 10px;
+    margin-left: -10px;
+    /* Compensar o padding para manter alinhamento */
+    margin-right: -10px;
+}
+
+.today-task-list .task-item .task-label {
+    font-size: 17px;
+    /* Tamanho padrão Notion */
+    color: var(--text-primary);
+    line-height: 1.5;
+    margin-left: 0;
+}
+
+.today-task-list .task-item .checkbox-custom {
+    width: 18px;
+    height: 18px;
+    border-width: 1.5px;
+    border-radius: 3px;
+    margin-top: 3px;
+    /* Alinhar com a primeira linha de texto */
+}
+
+/* Empty State Minimalista */
+.today-empty {
+    text-align: left;
+    padding: 40px 0;
+    opacity: 0.5;
+}
+
+.today-empty p:first-child {
+    font-size: 16px;
+    font-weight: 400;
+}
+
+/* Estatísticas Limpas */
+.stat-section {
+    margin-bottom: 32px;
+}
+
+.stat-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+}
+
+.stat-card {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.stat-card:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Responsividade Mobile */
+@media (max-width: 1024px) {
+    .today-container {
+        flex-direction: column;
+        gap: 40px;
+        padding: 0 20px;
+    }
+
+    .today-sidebar {
+        width: 100%;
+        position: static;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 24px;
+    }
+}
+
+/* Drag & Drop Visuals */
+.task-drop-zone {
+    height: 12px;
+    margin: -6px 0;
+    position: relative;
+    z-index: 5;
+    pointer-events: none;
+}
+
+body.dragging-active .task-drop-zone {
+    pointer-events: all;
+}
+
+.task-drop-zone.show::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    right: 4px;
+    height: 2px;
+    background: var(--accent-blue);
+    box-shadow: 0 0 8px var(--accent-blue);
+    border-radius: 2px;
+    transform: translateY(-50%);
+}
+
+/* Add Task Button */
+.add-task-btn {
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed var(--border-subtle);
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    margin-top: 8px;
+    opacity: 0.6;
+}
+
+.add-task-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.task-input {
+    background: #1c1c1e;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: white;
+    width: 100%;
+    outline: none;
+    font-size: 14px;
+    box-shadow: 0 0 0 2px transparent;
+    transition: box-shadow 0.2s;
+}
+
+.task-input:focus {
+    box-shadow: 0 0 0 2px var(--accent-blue);
+}
+
+.quick-task-input {
+    background: transparent;
+    border: none;
+    padding: 6px 8px;
+    color: white;
+    width: 100%;
+    outline: none;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.quick-task-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.quick-task-container {
+    background: transparent;
+    border-radius: 4px;
+    padding: 0;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s ease;
+}
+
+.quick-task-container:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Floating & Menus */
+.floating-add-btn {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 56px;
+    height: 56px;
+    background: var(--accent-blue);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(10, 132, 255, 0.3);
+    cursor: pointer;
+    transition: transform 0.2s;
+    z-index: 100;
+}
+
+.floating-add-btn:hover {
+    transform: scale(1.08) rotate(90deg);
+}
+
+/* Botões dos dias da semana no modal */
+.weekly-day-btn {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: 10px;
+    border: 1.5px solid #333;
+    background: transparent;
+    color: #888;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.weekly-day-btn:hover {
+    border-color: #0A84FF;
+    color: #0A84FF;
+}
+
+.weekly-day-btn.selected {
+    background: #0A84FF;
+    border-color: #0A84FF;
+    color: white;
+}
+
+.context-menu {
+    position: absolute;
+    background: rgba(30, 30, 32, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    display: none;
+}
+
+.context-menu.show {
+    display: flex;
+    animation: scaleIn 0.1s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.toolbar-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+}
+
+.toolbar-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 9999;
+}
+
+.modal-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal-content {
+    background: #1c1c1e;
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    padding: 32px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    transform: scale(0.95);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-overlay.show .modal-content {
+    transform: scale(1);
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.1s;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.1s;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Color classes */
+.color-default {
+    color: #f5f5f7;
+}
+
+.color-green {
+    color: #30d158;
+}
+
+.color-yellow {
+    color: #ffd60a;
+}
+
+.color-orange {
+    color: #ff9f0a;
+}
+
+.color-red {
+    color: #ff453a;
+}
+
+.drag-handle {
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 10px;
+    letter-spacing: -2px;
+    pointer-events: all;
+    z-index: 10;
+    transition: opacity 0.1s;
+}
+
+.task-item:hover .drag-handle {
+    opacity: 1;
+}
+
+.drag-handle:hover {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* ====== RESPONSIVIDADE ====== */
+
+@media (max-width: 1024px) {
+    body {
+        padding: 16px;
+    }
+
+    .grid.grid-cols-7 {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    .nav-container {
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .logo-area {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .segmented-control {
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    .segment-btn {
+        font-size: 11px;
+        padding: 5px 12px;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+
+    .nav-container {
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .logo-area {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .segmented-control {
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .segmented-control::-webkit-scrollbar {
+        display: none;
+    }
+
+    .grid.grid-cols-7 {
+        grid-template-columns: 1fr !important;
+        gap: 0;
+    }
+
+    .day-column {
+        min-height: auto;
+        padding: 0 12px 16px 12px;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .day-column:last-child {
+        border-bottom: none;
+    }
+
+    .day-column h2 {
+        font-size: 13px;
+        position: sticky;
+        top: 0;
+        background: var(--bg-body);
+        padding: 12px 4px 8px 4px;
+        z-index: 10;
+    }
+
+    .task-item {
+        padding: 8px;
+        min-height: 40px;
+    }
+
+    .today-container {
+        flex-direction: column;
+        padding: 0;
+        gap: 32px;
+    }
+
+    .today-main {
+        max-width: 100%;
+    }
+
+    .today-sidebar {
+        width: 100%;
+        padding-top: 0;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .today-sidebar .stat-section {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .today-header h1 {
+        font-size: 26px;
+    }
+
+    .checkbox-custom {
+        width: 18px !important;
+        height: 18px !important;
+        min-width: 18px !important;
+    }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+    .grid.grid-cols-7 {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid.grid-cols-7 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .day-column h2 {
+        font-size: 12px;
+    }
+
+    .task-item {
+        padding: 7px 6px;
+        gap: 8px;
+    }
+
+    .drag-handle {
+        display: none;
+    }
+
+    .nav-container {
+        gap: 12px;
+    }
+
+    .segment-btn {
+        font-size: 11px;
+        padding: 5px 12px;
+        min-height: 36px;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+        font-size: 16px !important;
+        min-height: 44px;
+    }
+
+    .drop-zone {
+        min-height: 40px !important;
+    }
+
+    .week-nav-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+@media (min-width: 1920px) {
+    body {
+        max-width: 1800px;
+        margin: 0 auto;
+    }
+}
+
+/* Fixes for today view responsiveness */
+@media (max-width: 768px) {
+    .today-task-list .task-item {
+        display: flex;
+        flex-wrap: wrap;
+        /* Permitir quebra se necessário */
+    }
+
+    .today-task-list .task-item .task-label {
+        font-size: 16px;
+        /* Aumentar fonte para legibilidade */
+        width: calc(100% - 30px);
+        /* Ajustar largura considerando checkbox */
+    }
+
+    .today-sidebar {
+        flex-direction: column;
+        /* Em mobile, sidebar stacka */
+    }
+
+    .stat-section {
+        min-width: 100%;
+        /* Força largura total */
+    }
+}
