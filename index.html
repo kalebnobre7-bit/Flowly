@@ -1109,7 +1109,7 @@
 
         async function loadDataFromSupabase() {
             if (!currentUser) return;
-            const { data: tasks, error } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
+            const { data: tasks, error } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
             if (tasks && tasks.length > 0) {
                 // Textos das tarefas recorrentes para filtrar
                 const weeklyTexts = new Set(weeklyRecurringTasks.map(rt => rt.text));
@@ -3077,11 +3077,60 @@
                 delete allTasksData[sourceDateStr][sourcePeriod];
             }
 
-            // Salvar
+            // Salvar localmente
             localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+
+            // Sincronizar dias afetados com Supabase (mantém a ordem)
+            const datesToSync = new Set([sourceDateStr, targetDateStr]);
+            datesToSync.forEach(dateStr => syncDateToSupabase(dateStr));
 
             renderView();
             draggedTask = null;
+        }
+
+        // Sincroniza todas as tarefas de uma data com o Supabase, preservando a ordem
+        async function syncDateToSupabase(dateStr) {
+            if (!currentUser) return;
+
+            // Deletar todos os registros desta data no Supabase
+            await supabaseClient.from('tasks').delete()
+                .eq('user_id', currentUser.id)
+                .eq('day', dateStr);
+
+            // Reinserir na ordem atual do allTasksData
+            const periods = allTasksData[dateStr] || {};
+            const inserts = [];
+            Object.entries(periods).forEach(([period, tasks]) => {
+                if (Array.isArray(tasks)) {
+                    tasks.forEach(task => {
+                        if (!task.text || task.text.trim() === '') return;
+                        inserts.push({
+                            user_id: currentUser.id,
+                            day: dateStr,
+                            period: period,
+                            text: task.text,
+                            completed: task.completed || false,
+                            color: task.color || 'default',
+                            is_habit: task.isHabit || false
+                        });
+                    });
+                }
+            });
+
+            if (inserts.length > 0) {
+                const { data } = await supabaseClient.from('tasks').insert(inserts).select();
+                // Atualizar supabaseIds locais
+                if (data) {
+                    data.forEach((row, i) => {
+                        const tasks = allTasksData[row.day]?.[row.period];
+                        if (tasks) {
+                            const match = tasks.find(t => t.text === row.text && !t.supabaseId);
+                            if (match) match.supabaseId = row.id;
+                        }
+                    });
+                    localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+                }
+            }
         }
 
         function handleDrop(e) {
