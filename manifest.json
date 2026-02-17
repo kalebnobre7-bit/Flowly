@@ -9,13 +9,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "lightning.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "lifestyle"],
+  "categories": [
+    "productivity",
+    "lifestyle"
+  ],
   "screenshots": [],
   "shortcuts": [
     {
@@ -23,14 +26,24 @@
       "short_name": "Hoje",
       "description": "Ver tarefas de hoje",
       "url": "/?view=today",
-      "icons": [{ "src": "logo_flowly.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "logo_flowly.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "Semana",
       "short_name": "Semana",
       "description": "Ver tarefas da semana",
       "url": "/?view=week",
-      "icons": [{ "src": "logo_flowly.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "logo_flowly.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ]
 }
