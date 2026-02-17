@@ -3125,18 +3125,112 @@
                     allTasks.push({ task, day, dateStr, period: 'Tarefas', originalIndex: -1 });
                 });
 
+                // ===== ORDENAR TAREFAS POR PRIORIDADE =====
+                allTasks.sort((a, b) => {
+                    const taskA = a.task;
+                    const taskB = b.task;
+
+                    // Função para determinar prioridade da cor
+                    const getColorPriority = (task) => {
+                        const color = task.color || 'default';
+                        if (task.isRoutine || color === 'blue') return 1; // Azuis (rotina) no topo
+                        if (color === 'red') return 2; // Vermelhas
+                        if (color === 'orange') return 3; // Laranjas
+                        if (color === 'green') return 4; // Verdes
+                        return 5; // Outras cores
+                    };
+
+                    // Primeiro: ordenar por completado (não completadas primeiro)
+                    if (taskA.completed !== taskB.completed) {
+                        return taskA.completed ? 1 : -1;
+                    }
+
+                    // Segundo: ordenar por cor/prioridade
+                    const priorityA = getColorPriority(taskA);
+                    const priorityB = getColorPriority(taskB);
+
+                    return priorityA - priorityB;
+                });
+
                 // Render all tasks in sequence without period sections
                 allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
                     col.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
                 });
 
-                // Adicionar área clicável para nova tarefa (estilo Notion)
-                col.addEventListener('click', (e) => {
-                    // Só adicionar se clicar na área vazia (não em tasks ou inputs existentes)
-                    if (e.target === col || e.target.tagName === 'H2' || e.target.tagName === 'H3') {
-                        addQuickTaskInput(col, day);
-                    }
+                // ===== DROP ZONE NO FINAL DA LISTA =====
+                const finalDropZone = document.createElement('div');
+                finalDropZone.className = 'drop-zone';
+                finalDropZone.dataset.date = dateStr;
+                finalDropZone.dataset.period = 'Tarefas';
+                finalDropZone.dataset.insertAt = '999999'; // Número alto para indicar "final"
+                finalDropZone.style.minHeight = '40px';
+                finalDropZone.style.marginTop = '8px';
+
+                finalDropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    finalDropZone.classList.add('active');
                 });
+
+                finalDropZone.addEventListener('dragleave', () => {
+                    finalDropZone.classList.remove('active');
+                });
+
+                finalDropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    finalDropZone.classList.remove('active');
+
+                    if (!dragState.taskData) return;
+
+                    const targetDateStr = dateStr;
+                    const targetPeriod = 'Tarefas';
+
+                    const sourceDateStr = dragState.sourceDate;
+                    const sourcePeriod = dragState.sourcePeriod;
+                    const sourceIndex = dragState.sourceIndex;
+
+                    // Remover da posição antiga
+                    const sourceArray = allTasksData[sourceDateStr]?.[sourcePeriod];
+                    if (sourceArray) {
+                        sourceArray.splice(sourceIndex, 1);
+
+                        // Limpar período vazio
+                        if (sourceArray.length === 0) {
+                            delete allTasksData[sourceDateStr][sourcePeriod];
+                        }
+                    }
+
+                    // Garantir estruturas
+                    if (!allTasksData[targetDateStr]) allTasksData[targetDateStr] = {};
+                    if (!allTasksData[targetDateStr][targetPeriod]) allTasksData[targetDateStr][targetPeriod] = [];
+
+                    // Inserir no FINAL
+                    allTasksData[targetDateStr][targetPeriod].push(dragState.taskData);
+
+                    // SALVAR!
+                    saveToLocalStorage();
+
+                    // Sincronizar com Supabase
+                    syncDateToSupabase(sourceDateStr);
+                    if (targetDateStr !== sourceDateStr) {
+                        syncDateToSupabase(targetDateStr);
+                    }
+
+                    // Limpar estado
+                    dragState = {
+                        sourceDate: null,
+                        sourcePeriod: null,
+                        sourceIndex: null,
+                        taskData: null
+                    };
+
+                    // Re-renderizar
+                    renderView();
+                });
+
+                col.appendChild(finalDropZone);
+
 
                 grid.appendChild(col);
             });
