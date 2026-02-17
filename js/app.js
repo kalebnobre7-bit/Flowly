@@ -1813,54 +1813,54 @@ function renderRoutineView() {
     const routineCompletions = JSON.parse(localStorage.getItem('routineCompletions') || '{}');
     const today = new Date();
     const todayStr = localDateStr(today);
-    const dayName = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][today.getDay()];
-    
+    const dayName = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][today.getDay()];
+
     // 1. Today Stats
-    const todayTasks = getRoutineTasksForDate(todayStr); 
+    const todayTasks = getRoutineTasksForDate(todayStr);
     const totalToday = todayTasks.length;
     let completedToday = 0;
     todayTasks.forEach(t => { if (t.completed) completedToday++; });
     const todayPercent = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
-    
+
     // 2. Weekly & Graph
     let totalWeekScheduled = 0;
     let totalWeekCompleted = 0;
-    const consistencyData = []; 
+    const consistencyData = [];
     for (let i = 6; i >= 0; i--) {
         const d = new Date(); d.setDate(today.getDate() - i); const dStr = localDateStr(d);
         const tasksForDay = getRoutineTasksForDate(dStr);
         const count = tasksForDay.length;
         let completed = 0;
-        if(count > 0) completed = tasksForDay.filter(t => t.completed).length; 
-        if (count > 0) { totalWeekScheduled += count; totalWeekCompleted += completed; consistencyData.push({ day: ['D','S','T','Q','Q','S','S'][d.getDay()], val: Math.round((completed/count)*100) }); } 
-        else { consistencyData.push({ day: ['D','S','T','Q','Q','S','S'][d.getDay()], val: 0 }); }
+        if (count > 0) completed = tasksForDay.filter(t => t.completed).length;
+        if (count > 0) { totalWeekScheduled += count; totalWeekCompleted += completed; consistencyData.push({ day: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][d.getDay()], val: Math.round((completed / count) * 100) }); }
+        else { consistencyData.push({ day: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][d.getDay()], val: 0 }); }
     }
     const weeklyRate = totalWeekScheduled > 0 ? Math.round((totalWeekCompleted / totalWeekScheduled) * 100) : 0;
-    
+
     // 3. Streak
     let currentStreak = 0;
-    let bestDayCounts = [0,0,0,0,0,0,0]; 
+    let bestDayCounts = [0, 0, 0, 0, 0, 0, 0];
     let tempStreak = 0;
-    for(let i = 0; i < 365; i++) {
+    for (let i = 0; i < 365; i++) {
         const d = new Date(); d.setDate(today.getDate() - i); const dStr = localDateStr(d);
         const tasks = getRoutineTasksForDate(dStr);
-        if(tasks.length > 0) {
+        if (tasks.length > 0) {
             const completed = tasks.filter(t => t.completed).length;
-             if (i < 30 && completed === tasks.length) bestDayCounts[d.getDay()]++;
+            if (i < 30 && completed === tasks.length) bestDayCounts[d.getDay()]++;
             if (completed === tasks.length) { if (d <= today) tempStreak++; } else { if (d < today) break; }
         }
     }
     currentStreak = tempStreak;
     let maxPerfect = -1; let bestDayIdx = 0;
-    bestDayCounts.forEach((count, idx) => { if(count > maxPerfect) { maxPerfect = count; bestDayIdx = idx; } });
-    const bestDayLabel = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][bestDayIdx];
+    bestDayCounts.forEach((count, idx) => { if (count > maxPerfect) { maxPerfect = count; bestDayIdx = idx; } });
+    const bestDayLabel = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][bestDayIdx];
 
     // Heatmap HTML (Standard Clean)
     let htmlHeatmap = '';
-    for(let i = 27; i >= 0; i--) {
+    for (let i = 27; i >= 0; i--) {
         const d = new Date(); d.setDate(today.getDate() - i); const dStr = localDateStr(d);
         const tasks = getRoutineTasksForDate(dStr);
-        let colorClass = 'bg-[#333]'; 
+        let colorClass = 'bg-[#333]';
         if (tasks.length > 0) {
             const completed = tasks.filter(t => t.completed).length;
             const rate = completed / tasks.length;
@@ -1873,7 +1873,7 @@ function renderRoutineView() {
     }
 
     // Chart SVG
-    let points = ''; const mapY = (val) => 90 - (val * 0.8); const stepX = 90 / 6; 
+    let points = ''; const mapY = (val) => 90 - (val * 0.8); const stepX = 90 / 6;
     consistencyData.forEach((d, i) => { const x = 5 + (i * stepX); const y = mapY(d.val); points += `${x},${y} `; });
     const areaPath = `5,100 ${points} 95,100`;
 
@@ -1884,16 +1884,16 @@ function renderRoutineView() {
 
     activeRoutines.forEach((task, idx) => {
         let itemTotal = 0; let itemCompleted = 0; let runningStreak = 0; let streakBroken = false;
-        for(let i=0; i<30; i++){
+        for (let i = 0; i < 30; i++) {
             const d = new Date(); d.setDate(today.getDate() - i); const dStr = localDateStr(d);
             const isScheduled = task.daysOfWeek.includes(d.getDay());
-            if(isScheduled) {
+            if (isScheduled) {
                 itemTotal++;
                 const isDone = routineCompletions[task.text] && routineCompletions[task.text][dStr];
-                if(isDone) { itemCompleted++; if(!streakBroken) runningStreak++; } else { if (d < today) streakBroken = true; }
+                if (isDone) { itemCompleted++; if (!streakBroken) runningStreak++; } else { if (d < today) streakBroken = true; }
             }
         }
-        const itemRate = itemTotal > 0 ? Math.round((itemCompleted/itemTotal)*100) : 0;
+        const itemRate = itemTotal > 0 ? Math.round((itemCompleted / itemTotal) * 100) : 0;
         const isTodayDone = routineCompletions[task.text] && routineCompletions[task.text][todayStr];
         const checkClass = isTodayDone ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-500 text-transparent';
 
@@ -1966,7 +1966,7 @@ function renderRoutineView() {
              </div>
              <div class="bg-[#18181b] border border-[#27272a] p-4 rounded-xl flex flex-col items-center justify-center gap-2">
                 <i data-lucide="trophy" class="text-emerald-500 w-5 h-5"></i>
-                <div class="text-lg font-bold text-white truncate max-w-full">${bestDayLabel.substring(0,3)}</div>
+                <div class="text-lg font-bold text-white truncate max-w-full">${bestDayLabel.substring(0, 3)}</div>
                 <div class="text-[10px] text-gray-500 font-bold uppercase">Melhor Dia</div>
              </div>
         </div>
@@ -2004,9 +2004,9 @@ function renderRoutineView() {
                         <polygon points="${areaPath}" fill="url(#chartStandard)" />
                         <polyline points="${points}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
                          ${consistencyData.map((d, i) => {
-                             const x = 5 + (i * stepX); const y = mapY(d.val);
-                             return `<circle cx="${x}" cy="${y}" r="3" fill="#18181b" stroke="#3b82f6" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
-                         }).join('')}
+        const x = 5 + (i * stepX); const y = mapY(d.val);
+        return `<circle cx="${x}" cy="${y}" r="3" fill="#18181b" stroke="#3b82f6" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+    }).join('')}
                     </svg>
                 </div>
                 <div class="flex justify-between mt-2 px-2">
@@ -3560,17 +3560,6 @@ document.getElementById('btnUser').onclick = () => {
 };
 
 document.getElementById('btnLogout').onclick = signOut;
-
-document.getElementById('btnTogglePeriods').onclick = () => {
-    const current = localStorage.getItem('showPeriods') !== 'false';
-    localStorage.setItem('showPeriods', (!current).toString());
-    renderView();
-};
-
-document.getElementById('floatingAddBtn').onclick = () => {
-    const m = document.getElementById('quickAddMenu');
-    m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
-}
 
 // Event listeners para opÇÕES do quick add menu
 document.querySelectorAll('.quick-add-option').forEach(option => {
