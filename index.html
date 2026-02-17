@@ -3231,6 +3231,13 @@
 
                 col.appendChild(finalDropZone);
 
+                // Adicionar área clicável para nova tarefa (estilo Notion)
+                col.addEventListener('click', (e) => {
+                    // Só adicionar se clicar na área vazia (não em tasks ou inputs existentes)
+                    if (e.target === col || e.target.tagName === 'H2' || e.target.tagName === 'H3') {
+                        addQuickTaskInput(col, day);
+                    }
+                });
 
                 grid.appendChild(col);
             });
