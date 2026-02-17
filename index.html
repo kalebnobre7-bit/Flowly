@@ -1368,49 +1368,82 @@
             saveToLocalStorage();
         }
 
-        if (!dragState.taskData) return;
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
 
-        // Determinar período de destino baseado na posição do mouse
-        const targetCol = e.currentTarget;
-        const targetDate = targetCol.dataset.date;
-        const targetPeriod = 'Tarefas'; // Por padrão coloca em "Tarefas"
+            if (!dragState.taskData) return;
 
-        // Remover da posição antiga
-        const sourceArray = allTasksData[dragState.sourceDate]?.[dragState.sourcePeriod];
-        if (sourceArray) {
-            sourceArray.splice(dragState.sourceIndex, 1);
+            // Determinar período de destino
+            // Se dropped na coluna (currentTarget), usa dataset da coluna.
+            // Se dropped em dropZone específica, usa dataset dela.
+            let targetDate, targetPeriod, insertAt;
 
-            // Limpar período vazio
-            if (sourceArray.length === 0) {
-                delete allTasksData[dragState.sourceDate][dragState.sourcePeriod];
+            const dropZone = e.target.closest('.drop-zone');
+            const col = e.target.closest('.day-column');
+
+            if (dropZone) {
+                targetDate = dropZone.dataset.date;
+                targetPeriod = dropZone.dataset.period;
+                insertAt = parseInt(dropZone.dataset.insertAt);
+            } else if (col) {
+                targetDate = col.dataset.date;
+                targetPeriod = 'Tarefas';
+                insertAt = 999999;
+            } else {
+                return; // Drop inválido
             }
-        }
 
-        // Adicionar na nova posição
-        if (!allTasksData[targetDate]) allTasksData[targetDate] = {};
-        if (!allTasksData[targetDate][targetPeriod]) allTasksData[targetDate][targetPeriod] = [];
+            // Remover da posição antiga
+            const sourceArray = allTasksData[dragState.sourceDate]?.[dragState.sourcePeriod];
+            if (sourceArray) {
+                sourceArray.splice(dragState.sourceIndex, 1);
 
-        allTasksData[targetDate][targetPeriod].push(dragState.taskData);
+                // Ajustar index se for a mesma lista e moveu pra cima
+                if (dragState.sourceDate === targetDate && dragState.sourcePeriod === targetPeriod && dragState.sourceIndex < insertAt) {
+                    insertAt--;
+                }
 
-        // SALVAR!
-        saveToLocalStorage();
+                // Limpar período vazio
+                if (sourceArray.length === 0) {
+                    delete allTasksData[dragState.sourceDate][dragState.sourcePeriod];
+                }
+            }
 
-        // Sincronizar com Supabase
-        syncDateToSupabase(dragState.sourceDate);
-        if (targetDate !== dragState.sourceDate) {
-            syncDateToSupabase(targetDate);
-        }
+            // Adicionar na nova posição
+            if (!allTasksData[targetDate]) allTasksData[targetDate] = {};
+            if (!allTasksData[targetDate][targetPeriod]) allTasksData[targetDate][targetPeriod] = [];
 
-        // Limpar estado
-        dragState = {
-            sourceDate: null,
-            sourcePeriod: null,
-            sourceIndex: null,
-            taskData: null
-        };
+            // Inserir na posição correta (insertAt)
+            // Se insertAt for muito grande, splice coloca no final, que é o comportamento desejado para colunas
+            // Se insertAt for indefinido?
+            if (isNaN(insertAt)) insertAt = allTasksData[targetDate][targetPeriod].length;
 
-        // Re-renderizar
-        renderView();
+            allTasksData[targetDate][targetPeriod].splice(insertAt, 0, dragState.taskData);
+
+            // SALVAR!
+            saveToLocalStorage();
+
+            // Sincronizar com Supabase
+            if (typeof syncDateToSupabase === 'function') {
+                syncDateToSupabase(dragState.sourceDate);
+                if (targetDate !== dragState.sourceDate) {
+                    syncDateToSupabase(targetDate);
+                }
+            }
+
+            // Limpar estado
+            dragState = {
+                sourceDate: null,
+                sourcePeriod: null,
+                sourceIndex: null,
+                taskData: null
+            };
+
+            document.querySelectorAll('.day-column, .drop-zone').forEach(el => el.classList.remove('active', 'drag-over'));
+
+            // Re-renderizar
+            renderView();
         }
 
         function createDropZone(day, dateStr, period, index) {
