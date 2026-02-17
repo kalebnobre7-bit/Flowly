@@ -2203,137 +2203,261 @@
         function renderSettingsView() {
             const view = document.getElementById('settingsView');
 
-            const weeklyTasksList = weeklyRecurringTasks.map((task, i) => {
-                const dayNames = task.daysOfWeek.map(d => ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][d]).join(', ');
-                return `
-                    <div class="flex items-center justify-between p-3 bg-[#111] rounded-lg mb-2">
-                        <div>
-                            <div class="text-white">${task.text}</div>
-                            <div class="text-xs text-gray-500">${dayNames}</div>
+            // Carregar preferências salvas
+            const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+            const notifEnabled  = notifSettings.enabled !== false;
+            const morningTime   = notifSettings.morningTime  || '08:00';
+            const eveningTime   = notifSettings.eveningTime  || '21:00';
+            const notifPerm     = ('Notification' in window) ? Notification.permission : 'unsupported';
+
+            const viewSettings  = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
+            const weekStart     = viewSettings.weekStart    || 'mon'; // 'mon' | 'sun'
+            const showWeekends  = viewSettings.showWeekends !== false;
+
+            // Badge de status de notificação
+            const permBadge = notifPerm === 'granted'
+                ? `<span class="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">Ativas</span>`
+                : notifPerm === 'denied'
+                ? `<span class="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">Bloqueadas</span>`
+                : `<span class="text-xs px-2 py-0.5 rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/25">Não solicitado</span>`;
+
+            const settingRow = (icon, title, desc, control) => `
+                <div class="flex items-center justify-between gap-4 py-4 border-b border-white/5 last:border-0">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="${icon}" style="width:18px;height:18px;color:#86868b;"></i>
                         </div>
-                        <button onclick="deleteWeeklyRecurringTask(${i})" class="text-red-400 hover:text-red-300">
-                            <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
-                        </button>
+                        <div class="min-w-0">
+                            <div class="text-sm font-medium text-white">${title}</div>
+                            <div class="text-xs text-gray-500 mt-0.5">${desc}</div>
+                        </div>
                     </div>
-                `;
-            }).join('');
+                    <div class="flex-shrink-0">${control}</div>
+                </div>`;
+
+            const toggle = (id, checked) => `
+                <button id="${id}" role="switch" aria-checked="${checked}"
+                    class="relative w-11 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-blue-500' : 'bg-gray-600'} focus:outline-none">
+                    <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'}"></span>
+                </button>`;
+
+            const timeInput = (id, val) => `
+                <input type="time" id="${id}" value="${val}"
+                    class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/60 w-28">`;
+
+            const select = (id, options, selected) => `
+                <select id="${id}" class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/60">
+                    ${options.map(o => `<option value="${o.v}" ${selected === o.v ? 'selected' : ''} style="background:#1c1c1e">${o.l}</option>`).join('')}
+                </select>`;
 
             view.innerHTML = `
-                <div class="max-w-2xl mx-auto py-8">
-                    <h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="settings" style="width: 28px; height: 28px;"></i> Configurações</h2>
+            <div class="max-w-xl mx-auto py-8 px-1">
+                <h2 class="text-2xl font-bold mb-8 text-white flex items-center gap-3">
+                    <i data-lucide="settings-2" style="width:26px;height:26px;color:#0A84FF;"></i> Configurações
+                </h2>
 
-                    <div class="space-y-4">
-                        <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
-                            <div class="flex items-center justify-between mb-4">
+                <!-- CONTA -->
+                <div class="mb-3">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 px-1">Conta</p>
+                    <div class="bg-[#1c1c1e]/80 backdrop-blur-xl border border-white/8 rounded-2xl px-5 overflow-hidden">
+                        <div class="flex items-center justify-between gap-4 py-4 border-b border-white/5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="user" style="width:18px;height:18px;color:#0A84FF;"></i>
+                                </div>
                                 <div>
-                                    <h3 class="text-lg font-semibold text-white">Tarefas Semanais Recorrentes</h3>
-                                    <p class="text-gray-500 text-sm">Tarefas que aparecem automaticamente em dias específicos da semana</p>
+                                    <div class="text-sm font-medium text-white">${currentUser ? currentUser.email : 'Não logado'}</div>
+                                    <div class="text-xs text-gray-500">Conta Flowly</div>
                                 </div>
-                                <button onclick="showWeeklyRecurrenceDialog(); setTimeout(() => lucide.createIcons(), 0);" class="btn-primary px-4 py-2 text-sm" style="width: auto;">
-                                    <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
-                                </button>
                             </div>
-                            ${weeklyTasksList || '<p class="text-gray-600 text-sm">Nenhuma tarefa recorrente criada ainda.</p>'}
                         </div>
-
-                        <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
-                            <h3 class="text-lg font-semibold mb-4 text-white">Limpeza e Manutenção</h3>
-                            <div class="space-y-3">
+                        <div class="flex items-center justify-between gap-4 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="log-out" style="width:18px;height:18px;color:#86868b;"></i>
+                                </div>
                                 <div>
-                                    <button onclick="deleteEmptyTasks()" class="btn-secondary px-6 py-2 text-sm" style="width: auto;">
-                                        <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Excluir tarefas vazias
-                                    </button>
-                                    <p class="text-gray-500 text-xs mt-2">Remove todas as tarefas sem texto de todas as datas</p>
+                                    <div class="text-sm font-medium text-white">Sair da conta</div>
+                                    <div class="text-xs text-gray-500">Você precisará fazer login novamente</div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
-                            <h3 class="text-lg font-semibold mb-4 text-white flex items-center gap-2">
-                                <i data-lucide="database" style="width: 20px; height: 20px;"></i> Backup e Dados
-                            </h3>
-                            <p class="text-gray-500 text-sm mb-4">Gerenciar backup e sincronização dos seus dados</p>
-
-                            <div class="space-y-3">
-                                <button id="btnExportSettings" class="btn-secondary w-full px-6 py-2 text-sm flex items-center justify-center gap-2">
-                                    <i data-lucide="download" style="width: 16px; height: 16px;"></i> Exportar Dados (JSON)
-                                </button>
-
-                                <div class="relative">
-                                    <input type="file" id="fileImportSettings" accept=".json" class="hidden">
-                                    <label for="fileImportSettings" class="btn-secondary w-full px-6 py-2 text-sm flex items-center justify-center gap-2 cursor-pointer border border-dashed border-gray-600">
-                                        <i data-lucide="upload" style="width: 16px; height: 16px;"></i> Importar Backup
-                                    </label>
-                                </div>
-
-                                <button id="btnFixDuplicates" class="btn-secondary w-full px-6 py-2 text-sm flex items-center justify-center gap-2 mb-2" style="color: #FF9F0A; background: rgba(255, 159, 10, 0.1); border-color: rgba(255, 159, 10, 0.3);">
-                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> Corrigir duplicatas do banco
-                                </button>
-                                <button id="btnClearAllSettings" class="btn-secondary w-full px-6 py-2 text-sm flex items-center justify-center gap-2" style="color: #ff453a; background: rgba(255, 69, 58, 0.1); border-color: rgba(255, 69, 58, 0.3);">
-                                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Limpar Todos os Dados
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
-                            <h3 class="text-lg font-semibold mb-2 text-white">Aparência</h3>
-                            <p class="text-gray-500 text-sm">Configurações de tema e visualização (em breve)</p>
-                        </div>
-
-                        <div class="bg-[#1a1a1a] rounded-lg p-6 border border-white/5">
-                            <h3 class="text-lg font-semibold mb-2 text-white">Notificações</h3>
-                            <p class="text-gray-500 text-sm">Gerenciar lembretes e alertas (em breve)</p>
+                            <button onclick="signOut()" class="text-xs px-4 py-1.5 rounded-lg border border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors">Sair</button>
                         </div>
                     </div>
                 </div>
-            `;
+
+                <!-- NOTIFICAÇÕES -->
+                <div class="mb-3 mt-6">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 px-1">Notificações</p>
+                    <div class="bg-[#1c1c1e]/80 backdrop-blur-xl border border-white/8 rounded-2xl px-5 overflow-hidden">
+                        <div class="flex items-center justify-between gap-4 py-4 border-b border-white/5">
+                            <div class="flex items-center gap-3 flex-1">
+                                <div class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="bell" style="width:18px;height:18px;color:#86868b;"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-white flex items-center gap-2">Ativar notificações ${permBadge}</div>
+                                    <div class="text-xs text-gray-500 mt-0.5">${notifPerm === 'denied' ? 'Desbloqueie nas configurações do navegador' : 'Lembretes e resumo do dia'}</div>
+                                </div>
+                            </div>
+                            ${toggle('toggleNotif', notifEnabled && notifPerm === 'granted')}
+                        </div>
+                        ${settingRow('sunrise', 'Lembrete matinal', 'Hora para começar o dia com foco', timeInput('inputMorningTime', morningTime))}
+                        ${settingRow('sunset', 'Resumo noturno', 'Receba um resumo do que fez no dia', timeInput('inputEveningTime', eveningTime))}
+                    </div>
+                    ${notifPerm === 'denied' ? `
+                    <p class="text-xs text-red-400/70 mt-2 px-1 flex items-center gap-1">
+                        <i data-lucide="alert-circle" style="width:12px;height:12px;"></i>
+                        Notificações bloqueadas. Vá em Configurações do navegador → Site → Notificações e permita.
+                    </p>` : ''}
+                </div>
+
+                <!-- VISUALIZAÇÃO -->
+                <div class="mb-3 mt-6">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 px-1">Visualização</p>
+                    <div class="bg-[#1c1c1e]/80 backdrop-blur-xl border border-white/8 rounded-2xl px-5 overflow-hidden">
+                        ${settingRow('calendar', 'Início da semana', 'Primeiro dia exibido na visão semanal',
+                            select('selectWeekStart', [{v:'mon',l:'Segunda-feira'},{v:'sun',l:'Domingo'}], weekStart))}
+                        ${settingRow('calendar-x', 'Mostrar fins de semana', 'Exibir Sábado e Domingo na semana',
+                            toggle('toggleWeekends', showWeekends))}
+                    </div>
+                </div>
+
+                <!-- DADOS -->
+                <div class="mb-3 mt-6">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 px-1">Dados</p>
+                    <div class="bg-[#1c1c1e]/80 backdrop-blur-xl border border-white/8 rounded-2xl px-5 overflow-hidden">
+                        ${settingRow('download', 'Exportar dados', 'Baixe um backup completo em JSON', `<button id="btnExportSettings" class="text-xs px-4 py-1.5 rounded-lg border border-white/15 text-gray-300 bg-white/5 hover:bg-white/10 transition-colors">Exportar</button>`)}
+                        ${settingRow('upload', 'Importar backup', 'Restaure a partir de um arquivo JSON',
+                            `<label for="fileImportSettings" class="text-xs px-4 py-1.5 rounded-lg border border-white/15 text-gray-300 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">Importar</label><input type="file" id="fileImportSettings" accept=".json" class="hidden">`)}
+                        ${settingRow('wrench', 'Corrigir banco', 'Remove duplicatas e dados corrompidos',
+                            `<button id="btnFixDuplicates" class="text-xs px-4 py-1.5 rounded-lg border border-orange-500/30 text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 transition-colors">Corrigir</button>`)}
+                        ${settingRow('trash-2', 'Limpar todos os dados', 'Apaga tudo permanentemente',
+                            `<button id="btnClearAllSettings" class="text-xs px-4 py-1.5 rounded-lg border border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors">Limpar</button>`)}
+                    </div>
+                </div>
+
+                <!-- VERSÃO -->
+                <p class="text-center text-xs text-gray-600 mt-8">Flowly v1.0 · Feito com ☕</p>
+            </div>`;
 
             setTimeout(() => {
                 lucide.createIcons();
 
+                // --- Toggle Notificações ---
+                document.getElementById('toggleNotif').onclick = async function() {
+                    if (notifPerm === 'denied') return;
+                    if (notifPerm !== 'granted') {
+                        const perm = await Notification.requestPermission();
+                        if (perm !== 'granted') { renderSettingsView(); return; }
+                        scheduleNotifications();
+                        showWelcomeNotification();
+                    }
+                    const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+                    cur.enabled = !(cur.enabled !== false);
+                    localStorage.setItem('flowly_notif_settings', JSON.stringify(cur));
+                    renderSettingsView();
+                };
+
+                // --- Hora matinal ---
+                document.getElementById('inputMorningTime').onchange = function() {
+                    const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+                    cur.morningTime = this.value;
+                    localStorage.setItem('flowly_notif_settings', JSON.stringify(cur));
+                    if (Notification.permission === 'granted') scheduleNotifications();
+                };
+
+                // --- Hora noturna ---
+                document.getElementById('inputEveningTime').onchange = function() {
+                    const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+                    cur.eveningTime = this.value;
+                    localStorage.setItem('flowly_notif_settings', JSON.stringify(cur));
+                    if (Notification.permission === 'granted') scheduleNotifications();
+                };
+
+                // --- Início da semana ---
+                document.getElementById('selectWeekStart').onchange = function() {
+                    const cur = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
+                    cur.weekStart = this.value;
+                    localStorage.setItem('flowly_view_settings', JSON.stringify(cur));
+                };
+
+                // --- Toggle fins de semana ---
+                document.getElementById('toggleWeekends').onclick = function() {
+                    const cur = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
+                    cur.showWeekends = !(cur.showWeekends !== false);
+                    localStorage.setItem('flowly_view_settings', JSON.stringify(cur));
+                    renderSettingsView();
+                };
+
+                // --- Exportar ---
+                document.getElementById('btnExportSettings').onclick = () => {
+                    const backup = { allTasksData, weeklyRecurringTasks, dailyRoutine, habitsHistory, exportedAt: new Date().toISOString() };
+                    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `flowly-backup-${localDateStr()}.json`; a.click();
+                    URL.revokeObjectURL(url);
+                };
+
+                // --- Importar ---
+                document.getElementById('fileImportSettings').onchange = function(e) {
+                    const file = e.target.files[0]; if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        try {
+                            const data = JSON.parse(ev.target.result);
+                            if (data.allTasksData) { allTasksData = data.allTasksData; localStorage.setItem('allTasksData', JSON.stringify(allTasksData)); }
+                            if (data.weeklyRecurringTasks) { weeklyRecurringTasks = data.weeklyRecurringTasks; localStorage.setItem('weeklyRecurringTasks', JSON.stringify(weeklyRecurringTasks)); }
+                            if (data.dailyRoutine) { dailyRoutine = data.dailyRoutine; localStorage.setItem('dailyRoutine', JSON.stringify(dailyRoutine)); }
+                            if (data.habitsHistory) { habitsHistory = data.habitsHistory; localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory)); }
+                            renderView();
+                            alert('Backup importado com sucesso!');
+                        } catch (error) { alert('Erro ao importar backup: ' + error.message); }
+                    };
+                    reader.readAsText(file);
+                };
+
+                // --- Corrigir banco ---
                 document.getElementById('btnFixDuplicates').onclick = async () => {
                     if (!currentUser) { alert('Faça login primeiro!'); return; }
-                    if (!confirm('Isso vai limpar duplicatas e tarefas corrompidas do banco. Suas tarefas normais serão mantidas. Continuar?')) return;
-
+                    if (!confirm('Remove duplicatas e tarefas corrompidas do banco. Continuar?')) return;
                     const btn = document.getElementById('btnFixDuplicates');
-                    btn.textContent = 'Limpando...';
-                    btn.disabled = true;
-
+                    btn.textContent = 'Limpando...'; btn.disabled = true;
                     try {
-                        const { data: allTasks } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
-                        if (!allTasks) { alert('Erro ao buscar dados.'); return; }
-
-                        const weeklyTexts = new Set(weeklyRecurringTasks.map(rt => rt.text));
-                        const seen = new Map();
-                        const idsToDelete = [];
-
-                        allTasks.forEach(task => {
-                            const dateStr = task.day || '';
-                            if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !task.period || !task.text || task.text.trim() === '' || weeklyTexts.has(task.text)) {
-                                idsToDelete.push(task.id);
-                                return;
-                            }
-                            const key = `${dateStr}|${task.period}|${task.text}`;
-                            if (seen.has(key)) {
-                                idsToDelete.push(task.id);
-                            } else {
-                                seen.set(key, task.id);
-                            }
+                        const { data: allT } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
+                        if (!allT) { alert('Erro ao buscar dados.'); return; }
+                        const wTexts = new Set(weeklyRecurringTasks.map(rt => rt.text));
+                        const seen = new Map(); const del = [];
+                        allT.forEach(t => {
+                            const d = t.day || '';
+                            if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d) || !t.period || !t.text || wTexts.has(t.text)) { del.push(t.id); return; }
+                            const k = `${d}|${t.period}|${t.text}`;
+                            seen.has(k) ? del.push(t.id) : seen.set(k, t.id);
                         });
+                        for (let i = 0; i < del.length; i += 100) await supabaseClient.from('tasks').delete().in('id', del.slice(i, i+100));
+                        allTasksData = {}; localStorage.removeItem('allTasksData');
+                        await loadDataFromSupabase(); renderView();
+                        alert(`${del.length} registros removidos.`);
+                    } catch(e) { alert('Erro: ' + e.message); }
+                    finally { btn.textContent = 'Corrigir'; btn.disabled = false; }
+                };
 
-                        for (let i = 0; i < idsToDelete.length; i += 100) {
-                            const batch = idsToDelete.slice(i, i + 100);
-                            await supabaseClient.from('tasks').delete().in('id', batch);
-                        }
-
-                        allTasksData = {};
-                        localStorage.removeItem('allTasksData');
-                        await loadDataFromSupabase();
-                        renderView();
-                        alert(`Limpeza concluída! ${idsToDelete.length} registros removidos.`);
-                    } catch (e) {
-                        alert('Erro: ' + e.message);
+                // --- Limpar tudo ---
+                document.getElementById('btnClearAllSettings').onclick = async () => {
+                    if (!confirm('Apagar TODOS os dados? Isso não pode ser desfeito!')) return;
+                    const authKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') || k === 'flowly_persist_session');
+                    const authData = {}; authKeys.forEach(k => authData[k] = localStorage.getItem(k));
+                    if (currentUser) {
+                        await supabaseClient.from('tasks').delete().eq('user_id', currentUser.id);
+                        await supabaseClient.from('habits_history').delete().eq('user_id', currentUser.id);
                     }
+                    Object.keys(weekData).forEach(d => weekData[d] = {});
+                    allTasksData = {}; habitsHistory = {};
+                    localStorage.clear();
+                    Object.entries(authData).forEach(([k,v]) => localStorage.setItem(k, v));
+                    saveToLocalStorage(); renderView();
+                    alert('Dados limpos!');
                 };
             }, 0);
         }
@@ -3542,8 +3666,11 @@
         // Agendar notificações através do Service Worker
         function scheduleNotifications() {
             if (serviceWorkerRegistration) {
+                const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
                 serviceWorkerRegistration.active.postMessage({
-                    type: 'SCHEDULE_NOTIFICATIONS'
+                    type: 'SCHEDULE_NOTIFICATIONS',
+                    morningTime: notifSettings.morningTime || '08:00',
+                    eveningTime: notifSettings.eveningTime || '21:00'
                 });
             }
         }
