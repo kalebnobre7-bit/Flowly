@@ -71,6 +71,60 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     }
 });
 
+// Authentication Functions
+async function signIn(email, password) {
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) throw error;
+
+        currentUser = data.user;
+        document.getElementById('authModal').classList.remove('show');
+        document.getElementById('userEmail').textContent = data.user.email;
+
+        await loadDataFromSupabase();
+        renderView();
+
+        return true;
+    } catch (error) {
+        console.error('Login error:', error);
+        throw new Error(error.message || 'Erro ao fazer login');
+    }
+}
+
+async function signUp(email, password) {
+    try {
+        const { data, error } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password
+        });
+
+        if (error) throw error;
+
+        showAuthMessage('Conta criada! Verifique seu email para confirmar.', 'success');
+
+        // Switch to login form
+        setTimeout(() => {
+            document.getElementById('authSignup').style.display = 'none';
+            document.getElementById('authLogin').style.display = 'block';
+        }, 2000);
+
+        return true;
+    } catch (error) {
+        console.error('Signup error:', error);
+        throw new Error(error.message || 'Erro ao criar conta');
+    }
+}
+
+async function signOut() {
+    await supabaseClient.auth.signOut();
+    currentUser = null;
+    location.reload();
+}
+
 let currentUser = null;
 let currentView = 'week';
 let draggedTask = null;
@@ -4121,6 +4175,16 @@ document.addEventListener('DOMContentLoaded', () => {
         btnShowLogin.onclick = () => {
             document.getElementById('authSignup').style.display = 'none';
             document.getElementById('authLogin').style.display = 'block';
+        };
+    }
+
+    // Logout Button
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) {
+        btnLogout.onclick = async () => {
+            if (confirm('Deseja realmente sair?')) {
+                await signOut();
+            }
         };
     }
 
