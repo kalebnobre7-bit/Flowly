@@ -1,0 +1,14 @@
+# Arquivo de configuração com credenciais - NUNCA versionar
+config.js
+
+# Dependências
+node_modules/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.*.local
