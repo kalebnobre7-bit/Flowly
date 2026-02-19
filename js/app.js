@@ -113,6 +113,16 @@ function setView(view) {
     renderView();
 }
 
+// Funções auxiliares de data (ISO Local Robusto)
+function localDateStr(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// ... (código view management inalterado)
+
 function renderView() {
     if (!currentView) currentView = 'week';
 
@@ -132,7 +142,7 @@ function renderView() {
         if (el) el.classList.remove('hidden');
     }
 
-    // Call specific render functions if they exist
+    // Call specific render functions
     if (currentView === 'week' && typeof renderWeek === 'function') {
         renderWeek();
     } else if (currentView === 'routine' && typeof renderRoutineView === 'function') {
@@ -179,10 +189,7 @@ let routineCompletions = safeJSONParse(localStorage.getItem('routineCompletions'
 // Formato: { "taskText": { "2026-02-17": true, "2026-02-18": false } }
 
 
-// FunÇÕES auxiliares de data
-function localDateStr(date = new Date()) {
-    return date.toLocaleDateString('pt-BR').split('/').reverse().join('-');
-}
+// Função localDateStr removida (duplicada), usando a versão global definida no topo
 
 // --- FunÇÕES Globais do Analytics e Rotina ---
 
@@ -836,7 +843,7 @@ async function loadDataFromSupabase() {
 
     if (tasks && tasks.length > 0) {
         tasks.forEach(task => {
-            // Handle Routine Definitions (legacy)
+            // Handle Routine Definitions (legacy) - migrar para o novo sistema se possível ou manter compatibilidade
             if (task.day === 'ROUTINE') {
                 remoteDailyRoutine.push({
                     text: task.text,
@@ -850,11 +857,12 @@ async function loadDataFromSupabase() {
             if (task.day === 'RECURRING') {
                 remoteRecurringTasks.push({
                     text: task.text,
-                    daysOfWeek: (() => { try { return JSON.parse(task.period); } catch(e) { return [0,1,2,3,4,5,6]; } })(),
-                    priority: 'none',
+                    daysOfWeek: (() => { try { return JSON.parse(task.period); } catch (e) { return [0, 1, 2, 3, 4, 5, 6]; } })(),
+                    priority: 'none', // Prioridade padrao se nao tiver
                     color: task.color || 'default',
                     isHabit: task.is_habit || false,
-                    createdAt: task.created_at || new Date().toISOString()
+                    createdAt: task.created_at || new Date().toISOString(),
+                    supabaseId: task.id // Important: Keep ID for sync
                 });
                 return;
             }
@@ -885,12 +893,26 @@ async function loadDataFromSupabase() {
         }
     }
 
-    // Sync allRecurringTasks - Supabase é a fonte de verdade
-    if (remoteRecurringTasks.length > 0) {
-        allRecurringTasks = remoteRecurringTasks;
-        localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
-    } else if (allRecurringTasks.length > 0) {
-        // Não tem no Supabase mas tem local -> enviar
+    // Smart Merge for Recurring Tasks
+    // 1. Mapa de IDs remotos
+    const remoteMap = new Map(remoteRecurringTasks.map(t => [t.supabaseId, t]));
+
+    // 2. Atualizar local com remoto (server wins para conflitos) mas preservar locais novos sem ID ainda
+    // Se temos tarefas locais sem ID (criadas offline), devemos mantê-las para sync posterior
+    const localNewTasks = allRecurringTasks.filter(t => !t.supabaseId);
+
+    // 3. Reconstruir allRecurringTasks
+    allRecurringTasks = [...remoteRecurringTasks, ...localNewTasks];
+
+    // Remover duplicatas de texto se houver (opcional, mas bom pra evitar sujeira)
+    const uniqueTextMap = new Map();
+    allRecurringTasks.forEach(t => uniqueTextMap.set(t.text, t));
+    allRecurringTasks = Array.from(uniqueTextMap.values());
+
+    localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
+
+    // Se houve fusão e temos novos itens locais, disparar sync
+    if (localNewTasks.length > 0) {
         await syncRecurringTasksToSupabase();
     }
 
@@ -899,11 +921,18 @@ async function loadDataFromSupabase() {
 
     const { data: habits } = await supabaseClient.from('habits_history').select('*').eq('user_id', currentUser.id);
     if (habits) {
-        habitsHistory = {};
+        // Merge inteligente: Servidor sobrescreve valores conhecidos, mas mantém o resto
+        if (!habitsHistory) habitsHistory = {};
+
         habits.forEach(h => {
-            if (!habitsHistory[h.habit_name]) habitsHistory[h.habit_name] = {};
-            habitsHistory[h.habit_name][h.date] = h.completed;
+            const name = h.habit_name;
+            const date = h.date; // Esperado YYYY-MM-DD
+            if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                if (!habitsHistory[name]) habitsHistory[name] = {};
+                habitsHistory[name][date] = h.completed;
+            }
         });
+        localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
     }
 
     // Realtime Setup
@@ -920,7 +949,7 @@ async function loadDataFromSupabase() {
                         await loadDataFromSupabase();
                         renderView();
                         if (typeof renderRoutineView === 'function') renderRoutineView();
-                    }, 500);
+                    }, 1000); // Delay maior para evitar flashes em batch updates
                 }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'habits_history' }, (payload) => {
@@ -939,45 +968,57 @@ async function loadDataFromSupabase() {
 }
 
 async function syncDailyRoutineToSupabase() {
-    if (!currentUser) return;
-    // Remove antigas definiÇÕES
-    await supabaseClient.from('tasks').delete().eq('user_id', currentUser.id).eq('day', 'ROUTINE');
-
-    // Insere novas
-    if (dailyRoutine.length > 0) {
-        const inserts = dailyRoutine.map(t => ({
-            user_id: currentUser.id,
-            day: 'ROUTINE',
-            period: 'daily',
-            text: t.text,
-            completed: false,
-            is_habit: true,
-            color: t.color || 'default'
-        }));
-        await supabaseClient.from('tasks').insert(inserts);
-    }
+    // Deprecated or Legacy handled silently
 }
 
-// Sincroniza allRecurringTasks com Supabase (day='RECURRING')
+// Sincroniza allRecurringTasks com Supabase de forma inteligente (Diff Sync)
 async function syncRecurringTasksToSupabase() {
     if (!currentUser) return;
-    try {
-        await supabaseClient.from('tasks').delete()
-            .eq('user_id', currentUser.id)
-            .eq('day', 'RECURRING');
-        if (allRecurringTasks.length > 0) {
-            const inserts = allRecurringTasks.map(t => ({
-                user_id: currentUser.id,
-                day: 'RECURRING',
-                period: JSON.stringify(t.daysOfWeek || []),
-                text: t.text,
-                completed: false,
-                is_habit: t.isHabit || false,
-                color: t.color || 'default'
-            }));
-            await supabaseClient.from('tasks').insert(inserts);
+
+    // 1. Obter estado atual do servidor para comparação
+    const { data: serverTasks } = await supabaseClient
+        .from('tasks')
+        .select('id, text, period, color, is_habit')
+        .eq('user_id', currentUser.id)
+        .eq('day', 'RECURRING');
+
+    const serverIds = new Set((serverTasks || []).map(t => t.id));
+    const localIds = new Set(allRecurringTasks.map(t => t.supabaseId).filter(Boolean));
+
+    // A. Identificar Deletions (estão no Server mas não no Local)
+    const toDelete = (serverTasks || []).filter(t => !localIds.has(t.id)).map(t => t.id);
+
+    if (toDelete.length > 0) {
+        await supabaseClient.from('tasks').delete().in('id', toDelete);
+    }
+
+    // B. Identificar Upserts (Updates ou Inserts)
+    for (let task of allRecurringTasks) {
+        const payload = {
+            user_id: currentUser.id,
+            day: 'RECURRING',
+            period: JSON.stringify(task.daysOfWeek || []),
+            text: task.text,
+            // completed: false, // Default
+            is_habit: task.isHabit || false,
+            color: task.color || 'default'
+        };
+
+        if (task.supabaseId) {
+            // Update apenas se mudou algo (opcional, mas economiza banda)
+            // Aqui damos um update cego para garantir consistência
+            await supabaseClient.from('tasks').update(payload).eq('id', task.supabaseId);
+        } else {
+            // Insert
+            const { data } = await supabaseClient.from('tasks').insert(payload).select();
+            if (data && data[0]) {
+                task.supabaseId = data[0].id; // Atualizar ID local
+            }
         }
-    } catch (e) { /* silencioso */ }
+    }
+
+    // Salvar IDs novos no localStorage
+    localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
 }
 
 async function syncTaskToSupabase(dateStr, period, task) {
@@ -1056,12 +1097,59 @@ function getHabitStreak(habitText) { if (!habitsHistory[habitText]) return 0; co
 
 function getHabitCompletionRate(habitText, days = 30) { if (!habitsHistory[habitText]) return 0; const today = new Date(); let completed = 0; for (let i = 0; i < days; i++) { const date = new Date(today); date.setDate(date.getDate() - i); const dateKey = localDateStr(date); if (habitsHistory[habitText][dateKey]) { completed++; } } return Math.round((completed / days) * 100); }
 
-function markHabitCompleted(habitText, completed) { const today = localDateStr(); if (!habitsHistory[habitText]) { habitsHistory[habitText] = {}; } if (completed) { habitsHistory[habitText][today] = true; } else { delete habitsHistory[habitText][today]; } localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory)); syncHabitToSupabase(habitText, today, completed); }
+
+
+function markHabitCompleted(habitText, completed, targetDate = null) {
+    const dateKey = targetDate || localDateStr();
+
+    if (!habitsHistory[habitText]) { habitsHistory[habitText] = {}; }
+
+    // Atualizar estado local
+    if (completed) {
+        habitsHistory[habitText][dateKey] = true;
+    } else {
+        delete habitsHistory[habitText][dateKey];
+    }
+
+    // Persistir localmente
+    localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
+
+    // Sync com Supabase
+    if (currentUser) {
+        if (completed) {
+            supabaseClient.from('habits_history').upsert({
+                user_id: currentUser.id,
+                habit_name: habitText,
+                date: dateKey,
+                completed: true
+            }, { onConflict: 'user_id,habit_name,date' }).then(({ error }) => {
+                if (error) console.error('Erro ao marcar hábito:', error);
+            });
+        } else {
+            // Se desmarcou, remover do histórico no Supabase
+            supabaseClient.from('habits_history').delete()
+                .eq('user_id', currentUser.id)
+                .eq('habit_name', habitText)
+                .eq('date', dateKey)
+                .then(({ error }) => {
+                    if (error) console.error('Erro ao desmarcar hábito:', error);
+                });
+        }
+    }
+}
 
 window.toggleHabitToday = function (habitText, completed) {
-    markHabitCompleted(habitText, completed);
-    renderView();
-    if (currentView === 'routine' && typeof renderRoutineView === 'function') renderRoutineView();
+    // Normalizar texto para evitar problemas com aspas
+    const cleanText = habitText;
+    // O toggleHabitToday da interface de rotina assume "hoje", mas podemos melhorar isso se necessário.
+    // Por enquanto, mantém o comportamento atual de usar "hoje" SE não passar data.
+    markHabitCompleted(cleanText, completed);
+
+    // Re-renderizar para atualizar UI imediatamente (optimistic update)
+    setTimeout(() => {
+        renderView();
+        if (currentView === 'routine' && typeof renderRoutineView === 'function') renderRoutineView();
+    }, 50);
 }
 
 function removeHabit(habitText) {
@@ -2596,75 +2684,20 @@ function renderWeek() {
             col.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
         });
 
-        // ===== DROP ZONE NO FINAL =====
-        const finalDropZone = document.createElement('div');
-        finalDropZone.className = 'drop-zone';
-        finalDropZone.dataset.date = dateStr;
-        finalDropZone.dataset.period = 'Tarefas'; // Default drop target
-        finalDropZone.dataset.insertAt = '999999';
-        finalDropZone.innerText = '+';
-        finalDropZone.onclick = () => addQuickTaskInput(col, day); // Atalho rápido
+        // ===== DROP ZONE NO FINAL PADRONIZADA =====
+        // Usa createDropZone com index = allTasks.length para inserir no fim
+        const endDropZone = createDropZone(day.name, dateStr, 'Tarefas', allTasks.length);
+        endDropZone.classList.add('flex-grow', 'min-h-[40px]'); // Estilo para ocupar espaço
+        endDropZone.innerText = '';
 
-        finalDropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            finalDropZone.classList.add('active');
-        });
-        finalDropZone.addEventListener('dragleave', () => {
-            finalDropZone.classList.remove('active');
-        });
-        // Drop handler já está no evento global ou específico (mas createDropZone cuida disso?)
-        // createDropZone é para ENTRE tarefas. Esta é a final.
-        // Precisa de drop handler próprio se não for coberto pelo col
-        finalDropZone.addEventListener('drop', (e) => {
-
-            const targetDateStr = dateStr;
-            const targetPeriod = 'Tarefas';
-
-            const sourceDateStr = dragState.sourceDate;
-            const sourcePeriod = dragState.sourcePeriod;
-            const sourceIndex = dragState.sourceIndex;
-
-            // Remover da posição antiga
-            const sourceArray = allTasksData[sourceDateStr]?.[sourcePeriod];
-            if (sourceArray) {
-                sourceArray.splice(sourceIndex, 1);
-
-                // Limpar período vazio
-                if (sourceArray.length === 0) {
-                    delete allTasksData[sourceDateStr][sourcePeriod];
-                }
+        // Atalho: clique na zona final abre input de nova tarefa
+        endDropZone.addEventListener('click', (e) => {
+            if (!document.body.classList.contains('dragging-active')) {
+                addQuickTaskInput(col, day.name);
             }
-
-            // Garantir estruturas
-            if (!allTasksData[targetDateStr]) allTasksData[targetDateStr] = {};
-            if (!allTasksData[targetDateStr][targetPeriod]) allTasksData[targetDateStr][targetPeriod] = [];
-
-            // Inserir no FINAL
-            allTasksData[targetDateStr][targetPeriod].push(dragState.taskData);
-
-            // SALVAR!
-            saveToLocalStorage();
-
-            // Sincronizar com Supabase
-            syncDateToSupabase(sourceDateStr);
-            if (targetDateStr !== sourceDateStr) {
-                syncDateToSupabase(targetDateStr);
-            }
-
-            // Limpar estado
-            dragState = {
-                sourceDate: null,
-                sourcePeriod: null,
-                sourceIndex: null,
-                taskData: null
-            };
-
-            // Re-renderizar
-            renderView();
         });
 
-        col.appendChild(finalDropZone);
+        col.appendChild(endDropZone);
 
         // Adicionar área clicável para nova tarefa (estilo Notion)
         col.addEventListener('click', (e) => {
@@ -3058,7 +3091,7 @@ function createTaskElement(day, dateStr, period, task, index) {
 
     // Label (criado primeiro para ser referenciado pelos callbacks)
     const label = document.createElement('span');
-        label.className = `task-label color-${task.color || 'default'} ${task.completed ? 'task-completed' : ''}`;
+    label.className = `task-label color-${task.color || 'default'} ${task.completed ? 'task-completed' : ''}`;
     // Aplicar cor azul se for tarefa de rotina
     if (task.isRoutine || task.isRecurring || period === 'Rotina') {
         label.style.color = 'var(--accent-blue)';
@@ -3131,23 +3164,20 @@ function createTaskElement(day, dateStr, period, task, index) {
         }
         label.classList.toggle('task-completed', task.completed);
 
-        // Se for rotina, usar a lógica unificada routineCompletions
-        if (task.isRoutine || period === 'Rotina') {
-            const completions = JSON.parse(localStorage.getItem('routineCompletions') || '{}');
-            if (!completions[task.text]) completions[task.text] = {};
-
-            if (task.completed) completions[task.text][dateStr] = true;
-            else delete completions[task.text][dateStr];
-
-            localStorage.setItem('routineCompletions', JSON.stringify(completions));
-        }
-
-        // Sempre salvar estado geral
-        saveToLocalStorage();
-
-        // Sincronizar com Supabase
-        if (typeof syncDateToSupabase === 'function') {
-            syncDateToSupabase(dateStr);
+        // Se for rotina ou habito, usar a função centralizada que sincroniza com Supabase
+        if (task.isRoutine || task.isRecurring || task.isHabit || period === 'Rotina') {
+            // Usa a função global que já lida com habitsHistory + localStorage + Supabase
+            // IMPORTANTE: Passar dateStr para marcar no dia CORRETO, não apenas hoje
+            if (typeof markHabitCompleted === 'function') {
+                markHabitCompleted(task.text, task.completed, dateStr);
+            }
+        } else {
+            // Apenas salvar se for tarefa comum
+            saveToLocalStorage();
+            // Sincronizar com Supabase
+            if (typeof syncDateToSupabase === 'function') {
+                syncDateToSupabase(dateStr);
+            }
         }
     }
     el.appendChild(checkbox);
@@ -3705,10 +3735,14 @@ function normalizeAllTasks() {
 
         Object.entries(periods).forEach(([period, tasks]) => {
             if (Array.isArray(tasks)) {
-                // Remover tarefas recorrentes/rotina salvas indevidamente (por flag ou por texto)
+                // Normalizar: remover APENAS se for flag antiga explícita
                 const filtered = tasks.filter(task => {
+                    // Remover tarefas que são marcadas explicitamente como legado de recorrência
                     if (task.isWeeklyRecurring || task.isRoutine || task.isRecurring) return false;
-                    if (task.text && recurringTextsSet.has(task.text)) return false;
+
+                    // NÃO remover apenas pelo texto. Isso causava sumiço de tarefas manuais duplicadas.
+                    // if (task.text && recurringTextsSet.has(task.text)) return false; 
+
                     return true;
                 });
                 if (filtered.length !== tasks.length) {
@@ -3737,8 +3771,22 @@ function normalizeAllTasks() {
 
     if (hasChanges) {
         localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+        console.log('Banco normalizado e limpo de artefatos legados.');
+        if (document.getElementById('btnFixDuplicates')) alert('Banco corrigido com sucesso! Tarefas legadas removidas.');
+    } else {
+        if (document.getElementById('btnFixDuplicates')) alert('Nenhum problema encontrado no banco.');
     }
 }
+
+// Handler do botão Corrigir Banco (garantir que existe)
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#btnFixDuplicates')) {
+        if (confirm('Isso irá limpar vestígios de tarefas antigas (legado) para evitar duplicações visuais. Suas tarefas recorrentes configuradas NÃO serão afetadas.\n\nDeseja continuar?')) {
+            normalizeAllTasks();
+            renderView();
+        }
+    }
+});
 
 loadFromLocalStorage();
 normalizeAllTasks(); // Normalizar tarefas antigas
