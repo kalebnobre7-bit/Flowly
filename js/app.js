@@ -475,10 +475,15 @@ function getRoutineTasksForDate(dateStr) {
         }
 
         if (isForToday) {
-            const isCompleted = habitsHistory[habit.text] && habitsHistory[habit.text][dateStr];
+            const historyValue = habitsHistory[habit.text] && habitsHistory[habit.text][dateStr];
+            const isCompleted = !!historyValue;
+            // Se o valor for string, assume que é timestamp (novo formato). Se for true, é legado (sem timestamp).
+            const completedAt = (typeof historyValue === 'string') ? historyValue : null;
+
             tasks.push({
                 text: habit.text,
-                completed: !!isCompleted,
+                completed: isCompleted,
+                completedAt: completedAt,
                 color: habit.color || 'default',
                 priority: habit.priority || 'none',
                 isRecurring: true,
@@ -656,6 +661,13 @@ function createDropZone(day, dateStr, period, index) {
 // Retorna a data local no formato YYYY-MM-DD (sem bug de fuso horário UTC)
 function localDateStr(date = new Date()) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// Helper Time Formatter (Global)
+function formatTaskTime(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
 function getWeekDates(weekOffset = 0) {
@@ -884,7 +896,9 @@ async function loadDataFromSupabase() {
                 completed: task.completed,
                 color: task.color || 'default',
                 isHabit: task.is_habit,
-                supabaseId: task.id
+                isHabit: task.is_habit,
+                supabaseId: task.id,
+                completedAt: task.completed ? (task.updated_at || new Date().toISOString()) : null
             });
         });
 
@@ -1106,7 +1120,8 @@ function markHabitCompleted(habitText, completed, targetDate = null) {
 
     // Atualizar estado local
     if (completed) {
-        habitsHistory[habitText][dateKey] = true;
+        // Salvar timestamp ISO em vez de apenas true para permitir exibir horário
+        habitsHistory[habitText][dateKey] = new Date().toISOString();
     } else {
         delete habitsHistory[habitText][dateKey];
     }
@@ -2623,7 +2638,7 @@ function renderWeek() {
         col.appendChild(header);
 
         // Flatten all tasks
-        const allTasks = [];
+        let allTasks = [];
 
         // 1. Adicionar tarefas de rotina e recorrentes semanais (geradas dinamicamente, index = -1)
         const routineTasks = getRoutineTasksForDate(dateStr);
@@ -2655,29 +2670,8 @@ function renderWeek() {
             }
         });
 
-        // ===== ORDENAR TAREFAS POR PRIORIDADE =====
-        allTasks.sort((a, b) => {
-            const taskA = a.task;
-            const taskB = b.task;
-
-            // 1. Completadas vão para o FINAL
-            if (taskA.completed !== taskB.completed) {
-                return taskA.completed ? 1 : -1;
-            }
-
-            // 2. Rotinas primeiro
-            const isRoutineA = taskA.isRoutine;
-            const isRoutineB = taskB.isRoutine;
-
-            if (isRoutineA !== isRoutineB) return isRoutineA ? -1 : 1;
-
-            // 3. Cores
-            const colors = { 'red': 1, 'orange': 2, 'yellow': 3, 'green': 4, 'blue': 5, 'purple': 6, 'default': 99 };
-            const colorA = colors[taskA.color] || 99;
-            const colorB = colors[taskB.color] || 99;
-
-            return colorA - colorB;
-        });
+        // ===== ORDENAÇÃO UNIFICADA =====
+        allTasks = unifiedTaskSort(allTasks);
 
         // Renderizar
         allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
@@ -2693,7 +2687,7 @@ function renderWeek() {
         // Atalho: clique na zona final abre input de nova tarefa
         endDropZone.addEventListener('click', (e) => {
             if (!document.body.classList.contains('dragging-active')) {
-                addQuickTaskInput(col, day.name);
+                insertQuickTaskInput(col, dateStr, 'Tarefas', endDropZone);
             }
         });
 
@@ -2703,13 +2697,154 @@ function renderWeek() {
         col.addEventListener('click', (e) => {
             // Só adicionar se clicar na área vazia (não em tasks ou inputs existentes)
             if (e.target === col || e.target.tagName === 'H2' || e.target.tagName === 'H3') {
-                addQuickTaskInput(col, day);
+                insertQuickTaskInput(col, dateStr, 'Tarefas', endDropZone);
             }
         });
 
         grid.appendChild(col);
     });
 }
+
+// Função de Ordenação Unificada (Regra: Rotina -> Concluídas -> Pendentes)
+function unifiedTaskSort(taskList) {
+    return taskList.sort((a, b) => {
+        const tA = a.task;
+        const tB = b.task;
+
+        // 1. Rotinas (Topo)
+        const isRoutineA = tA.isRoutine || tA.isRecurring || a.period === 'Rotina';
+        const isRoutineB = tB.isRoutine || tB.isRecurring || b.period === 'Rotina';
+        if (isRoutineA !== isRoutineB) return isRoutineA ? -1 : 1;
+
+        // Se ambos forem rotinas, manter ordem definida (ou alfabética/index)
+        if (isRoutineA && isRoutineB) return (a.originalIndex || 0) - (b.originalIndex || 0);
+
+        // 2. Concluídas (Meio)
+        if (tA.completed !== tB.completed) {
+            // Se A completou e B não: A vem antes (-1)
+            // User request: "Depois: tarefas concluídas", "Por último: tarefas pendentes"
+            return tA.completed ? -1 : 1;
+        }
+
+        // 3. Critérios de Desempate
+        if (tA.completed) {
+            // Ambas concluídas: Ordenar por completedAt (Mais antigas primeiro ou mais recentes no fundo?)
+            // "Ficar logo abaixo da última tarefa já concluída" -> Ordem cronológica da conclusão
+            const timeA = tA.completedAt ? new Date(tA.completedAt).getTime() : 0;
+            const timeB = tB.completedAt ? new Date(tB.completedAt).getTime() : 0;
+            if (timeA !== timeB) return timeA - timeB; // Ascendente (Antigas no topo, Novas no fundo da seção)
+        } else {
+            // Ambas pendentes: Topo das pendentes (LIFO ou Index?)
+            // Se "Indo para o topo das pendentes", as recém desmarcadas devem ter prioridade visual?
+            // Mas aqui estamos ordenando a lista toda. Para manter "Topo da Pendente" funcionando com uncheck,
+            // devemos confiar na ordem do array (originalIndex) que manipulamos no toggle.
+            // Entao usamos originalIndex para manter a estabilidade.
+        }
+
+        // Fallback: Ordem original (Index) ou Cores
+        return (a.originalIndex || 0) - (b.originalIndex || 0);
+    });
+}
+
+// Nova função global para toggle com reordenação
+window.toggleTaskStatus = function (dateStr, period, index, isChecked, element) {
+    // Se for Rotina/Hábito (index -1), usa a lógica específica de hábitos
+    if (index === -1) {
+        const taskText = element.querySelector('.task-label').textContent; // Hacky but works for generated routine items
+        // Melhor pegar do dataset ou passar o objeto task direto, mas createTaskElement fecha o scope.
+        // Vamos usar o markHabitCompleted direto no checkbox.onchange para rotinas,
+        // e esta função APENAS para regular tasks.
+        return;
+    }
+
+    const list = allTasksData[dateStr]?.[period];
+    if (!list || !list[index]) return;
+
+    const task = list[index];
+
+    // 1. Atualizar Estado
+    task.completed = isChecked;
+
+    if (isChecked) {
+        task.completedAt = new Date().toISOString();
+
+        // 2. Mover: Logo abaixo da última tarefa já concluída
+        // Como estamos na lista crua (sem separação de Routine), 
+        // precisamos achar onde termina o bloco de "Concluídos" dentro dessa lista.
+        // Mas espere, unifiedSort mistura períodos se renderWeek juntasse períodos.
+        // Mas allTasksData[date][period] é a fonte da verdade.
+        // Se "period" é unico (ex: 'Tarefas'), a lista é autocontida.
+
+        // Remover da posição atual
+        list.splice(index, 1);
+
+        // Achar nova posição:
+        // Queremos inserir APÓS a última concluída.
+        // Percorrer e achar índice.
+        let insertIdx = 0;
+        let foundCompleted = false;
+        for (let i = 0; i < list.length; i++) {
+            if (list[i].completed) {
+                insertIdx = i + 1;
+                foundCompleted = true;
+            } else {
+                // Se achou pendente e já passamos por completadas (ou no inicio se R->C->P),
+                // Para R->C->P: Completadas vêm ANTES das Pendentes.
+                // Então inserimos logo antes da primeira pendente?
+                // Ou após a última concluída.
+                // Se sort order é C -> P.
+                // Lista ordenada: [C, C, C, P, P].
+                // Task virou C. Deve ir para fim dos C.
+                // InsertIdx deve ser index da primeira P.
+                if (foundCompleted) break;
+                // Se ainda nao achou completada, e achou pendente?
+                // Se não tem completadas, insertIdx = 0.
+            }
+        }
+
+        // Refinamento: Se ordenação é C -> P.
+        // Inserir após a última C existente.
+        // Se não houver C, inserir no topo (índice 0).
+        // Mas cuidado com a ordem original das P.
+
+        // Vamos simplificar: Inserir no final das concluídas.
+        // Filtrar C e P.
+        const completed = list.filter(t => t.completed);
+        const pending = list.filter(t => !t.completed);
+
+        // A task atual já foi removida. Adicionar em 'completed' no final.
+        completed.push(task);
+
+        // Reconstruir lista: Completed + Pending
+        allTasksData[dateStr][period] = [...completed, ...pending];
+
+    } else {
+        task.completedAt = null;
+
+        // 3. Mover: Topo das pendentes
+        // Remover da posição atual
+        list.splice(index, 1);
+
+        // Separar
+        const completed = list.filter(t => t.completed);
+        const pending = list.filter(t => !t.completed);
+
+        // Inserir no TOPO de pending
+        pending.unshift(task);
+
+        // Reconstruir: Completed + Pending
+        allTasksData[dateStr][period] = [...completed, ...pending];
+    }
+
+    // Salvar e Sync
+    saveToLocalStorage();
+    if (typeof syncTaskToSupabase === 'function') {
+        syncTaskToSupabase(dateStr, period, task);
+    }
+
+    // Re-renderizar TUDO para garantir consistência visual imediata
+    renderView();
+};
 
 function renderToday() {
     const grid = document.getElementById('weekGrid');
@@ -2737,7 +2872,7 @@ function renderToday() {
 
     // Buscar tarefas de hoje
     const dayTasks = allTasksData[dateStr] || {};
-    const allTasks = [];
+    let allTasks = [];
 
     // 1. Rotina diária + recorrentes semanais
     const routineTasks = getRoutineTasksForDate(dateStr);
@@ -2757,10 +2892,27 @@ function renderToday() {
         }
     });
 
-    // Render all tasks
+    // Render all tasks (Unified Sort)
+    allTasks = unifiedTaskSort(allTasks);
+
     allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
         taskList.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
     });
+
+    // ===== UNIFIED DROP ZONE (Igual a renderWeek) =====
+    // Usa createDropZone com index = allTasks.length para inserir no fim
+    const endDropZone = createDropZone(today, dateStr, 'Tarefas', allTasks.length);
+    endDropZone.classList.add('flex-grow', 'min-h-[40px]'); // Estilo para ocupar espaço
+    endDropZone.innerText = '';
+
+    // Atalho: clique na zona final abre input de nova tarefa
+    endDropZone.addEventListener('click', (e) => {
+        if (!document.body.classList.contains('dragging-active')) {
+            insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
+        }
+    });
+
+    taskList.appendChild(endDropZone);
 
     main.appendChild(taskList);
 
@@ -2769,15 +2921,23 @@ function renderToday() {
         const empty = document.createElement('div');
         empty.className = 'today-empty';
         empty.innerHTML = `<p> Nenhuma tarefa para hoje</p> <p>Clique para adicionar uma tarefa</p>`;
-        main.appendChild(empty);
+        // Inserir empty state DENTRO da taskList ou logo após, mas mantendo a dropzone funcional?
+        // Melhor: Se vazio, dropzone já serve. O texto ajuda.
+        // Vamos manter o empty state visual, mas o clique nele aciona o input.
+        empty.addEventListener('click', () => {
+            insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
+            empty.remove();
+        });
+        taskList.insertBefore(empty, endDropZone);
     }
 
-    // Clickable area for quick add
+    // Clickable area for quick add (Container principal)
     main.style.cursor = 'text';
     main.style.minHeight = '50vh';
     main.addEventListener('click', (e) => {
-        if (e.target === main || e.target.closest('.today-header') || e.target.closest('.today-empty')) {
-            addQuickTaskInputToday(taskList, today);
+        // Só acionar se clicar no container vazio ("fundo"), não em elementos interativos
+        if (e.target === main || e.target === taskList || e.target.classList.contains('today-main')) {
+            insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
         }
     });
 
@@ -2898,8 +3058,9 @@ function renderToday() {
     grid.appendChild(sidebar);
 }
 
-function addQuickTaskInputToday(container, day) {
-    // Verificar se já existe um input ativo
+// Função unificada para inserção de input de tarefa
+function insertQuickTaskInput(container, dateStr, period, beforeElement = null) {
+    // Verificar se já existe um input ativo no container
     const existingInput = container.querySelector('.quick-task-input');
     if (existingInput) {
         existingInput.focus();
@@ -2910,7 +3071,7 @@ function addQuickTaskInputToday(container, day) {
     inputContainer.className = 'quick-task-container';
     inputContainer.style.padding = '5px 6px';
 
-    // Checkbox placeholder
+    // Checkbox placeholder (visual apenas)
     const checkboxPlaceholder = document.createElement('div');
     checkboxPlaceholder.style.width = '16px';
     checkboxPlaceholder.style.height = '16px';
@@ -2924,111 +3085,26 @@ function addQuickTaskInputToday(container, day) {
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'quick-task-input';
-    input.placeholder = 'Escreva aqui...';
+    input.placeholder = 'Escreva a tarefa...';
     input.autocomplete = 'off';
     input.setAttribute('data-form-type', 'other');
     inputContainer.appendChild(input);
 
-    container.appendChild(inputContainer);
-    input.focus();
-
-    // Salvar ao pressionar Enter
-    input.addEventListener('keydown', async (e) => {
-        if (e.key === 'Enter' && input.value.trim()) {
-            e.preventDefault();
-
-            const dateStr = localDateStr();
-            const period = 'Tarefas';
-
-            if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
-            if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
-
-            const newTask = {
-                text: input.value.trim(),
-                completed: false,
-                color: 'default',
-                isHabit: false
-            };
-
-            allTasksData[dateStr][period].push(newTask);
-
-            await syncTaskToSupabase(dateStr, period, newTask);
-            saveToLocalStorage();
-
-            renderView();
-        }
-
-        // Deletar linha vazia ao pressionar Backspace/Delete
-        if ((e.key === 'Backspace' || e.key === 'Delete') && input.value.trim() === '') {
-            e.preventDefault();
-            inputContainer.remove();
-        }
-
-        if (e.key === 'Escape') {
-            inputContainer.remove();
-        }
-    });
-
-    input.addEventListener('blur', () => {
-        setTimeout(() => {
-            if (!input.value.trim()) {
-                inputContainer.remove();
-            }
-        }, 100);
-    });
-}
-
-function addQuickTaskInput(column, day) {
-    // Verificar se já existe um input ativo
-    const existingInput = column.querySelector('.quick-task-input');
-    if (existingInput) {
-        existingInput.focus();
-        return;
+    // Inserção no DOM
+    if (beforeElement) {
+        container.insertBefore(inputContainer, beforeElement);
+    } else {
+        container.appendChild(inputContainer);
     }
 
-    const container = document.createElement('div');
-    container.className = 'quick-task-container';
-    container.style.padding = '5px 6px';
-
-    // Checkbox placeholder
-    const checkboxPlaceholder = document.createElement('div');
-    checkboxPlaceholder.style.width = '16px';
-    checkboxPlaceholder.style.height = '16px';
-    checkboxPlaceholder.style.borderRadius = '4px';
-    checkboxPlaceholder.style.border = '1.5px solid rgba(255,255,255,0.15)';
-    checkboxPlaceholder.style.flexShrink = '0';
-    checkboxPlaceholder.style.marginTop = '2px';
-    container.appendChild(checkboxPlaceholder);
-
-    // Input
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'quick-task-input';
-    input.placeholder = 'Escreva aqui...';
-    input.autocomplete = 'off';
-    input.setAttribute('data-form-type', 'other');
-    container.appendChild(input);
-
-    // Adicionar ao final da coluna
-    column.appendChild(container);
     input.focus();
 
-    // Salvar ao pressionar Enter
+    // Handlers
     input.addEventListener('keydown', async (e) => {
         if (e.key === 'Enter' && input.value.trim()) {
             e.preventDefault();
 
-            // Encontrar a data correspondente ao dia da coluna
-            const weekDates = getWeekDates(currentWeekOffset);
-            const dayInfo = weekDates.find(d => d.name === day);
-            if (!dayInfo) return;
-
-            const dateStr = dayInfo.dateStr;
-            const period = 'Tarefas';
-
-            if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
-            if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
-
+            // Criar objeto da tarefa
             const newTask = {
                 text: input.value.trim(),
                 completed: false,
@@ -3036,33 +3112,37 @@ function addQuickTaskInput(column, day) {
                 isHabit: false
             };
 
+            // Garantir estrutura de dados
+            if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+            if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
+
+            // Adicionar (Pendentes vão para o final por padrão na lógica de array simples)
+            // O unifiedTaskSort vai reordenar no render()
             allTasksData[dateStr][period].push(newTask);
 
-            // Salvar e sincronizar
+            // Persistência
             await syncTaskToSupabase(dateStr, period, newTask);
             saveToLocalStorage();
 
-            // Re-renderizar a view
+            // Renderização atualiza a lista e remove o input automaticamente (pois re-cria o DOM)
             renderView();
         }
 
-        // Deletar linha vazia ao pressionar Backspace/Delete
         if ((e.key === 'Backspace' || e.key === 'Delete') && input.value.trim() === '') {
             e.preventDefault();
-            container.remove();
+            inputContainer.remove();
         }
 
-        // Cancelar ao pressionar Escape
         if (e.key === 'Escape') {
-            container.remove();
+            inputContainer.remove();
         }
     });
 
-    // Remover se perder o foco e estiver vazio
     input.addEventListener('blur', () => {
+        // Pequeno delay para permitir clique em botões se houver
         setTimeout(() => {
-            if (!input.value.trim()) {
-                container.remove();
+            if (document.activeElement !== input && input.value.trim() === '') {
+                inputContainer.remove();
             }
         }, 100);
     });
@@ -3090,8 +3170,10 @@ function createTaskElement(day, dateStr, period, task, index) {
     }
 
     // Label (criado primeiro para ser referenciado pelos callbacks)
+    // Label (criado primeiro para ser referenciado pelos callbacks)
     const label = document.createElement('span');
-    label.className = `task-label color-${task.color || 'default'} ${task.completed ? 'task-completed' : ''}`;
+    // Removemos task-completed daqui para não afetar todos os filhos
+    label.className = `task-label color-${task.color || 'default'}`;
     // Aplicar cor azul se for tarefa de rotina
     if (task.isRoutine || task.isRecurring || period === 'Rotina') {
         label.style.color = 'var(--accent-blue)';
@@ -3116,13 +3198,21 @@ function createTaskElement(day, dateStr, period, task, index) {
     }
 
     // Se a tarefa está vazia, mostrar placeholder
+    // Modificação da Estrutura para separar Texto (line-through) do Horário (sem line-through)
+    const textContentSpan = document.createElement('span');
+    textContentSpan.className = 'task-content-span';
+
     if (task.text.trim() === '') {
         label.textContent = '';
         label.style.color = '#666';
         label.setAttribute('data-placeholder', 'Clique para editar...');
         label.style.position = 'relative';
     } else {
-        label.textContent = task.text;
+        textContentSpan.textContent = task.text;
+        if (task.completed) {
+            textContentSpan.classList.add('task-completed');
+        }
+        label.appendChild(textContentSpan);
     }
 
     // Single Click Edit - New Modal
@@ -3162,7 +3252,12 @@ function createTaskElement(day, dateStr, period, task, index) {
             const vs = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
             if (vs.haptics !== false) navigator.vibrate(15);
         }
-        label.classList.toggle('task-completed', task.completed);
+
+        // Atualiza visualmente o span de texto interno
+        const innerText = label.querySelector('.task-content-span');
+        if (innerText) {
+            innerText.classList.toggle('task-completed', task.completed);
+        }
 
         // Se for rotina ou habito, usar a função centralizada que sincroniza com Supabase
         if (task.isRoutine || task.isRecurring || task.isHabit || period === 'Rotina') {
@@ -3173,14 +3268,28 @@ function createTaskElement(day, dateStr, period, task, index) {
             }
         } else {
             // Apenas salvar se for tarefa comum
-            saveToLocalStorage();
-            // Sincronizar com Supabase
-            if (typeof syncDateToSupabase === 'function') {
-                syncDateToSupabase(dateStr);
-            }
+            // USAR NOVO TOGGLE HANDLER para reordenar array
+            window.toggleTaskStatus(dateStr, period, index, task.completed, el);
+            // Nota: toggleTaskStatus já chama saveToLocalStorage e renderView
         }
     }
     el.appendChild(checkbox);
+
+    // Horário de Conclusão (Apenas View Diária ou Hoje) - INLINE, mas fora do span de texto riscado
+    if (currentView === 'today' && task.completed && task.completedAt && task.text.trim() !== '') {
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'task-time';
+        timeSpan.textContent = ' · ' + formatTaskTime(task.completedAt);
+        timeSpan.style.fontSize = '11px';
+        timeSpan.style.color = 'var(--text-tertiary)';
+        timeSpan.style.marginLeft = '6px';
+        timeSpan.style.fontWeight = 'normal';
+        timeSpan.style.textDecoration = 'none'; // Garantia extra
+        timeSpan.style.opacity = '0.7';
+
+        // Append no label (container), ficando irmão do textContentSpan que tem line-through
+        label.appendChild(timeSpan);
+    }
 
     el.appendChild(label);
 

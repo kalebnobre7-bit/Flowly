@@ -1282,6 +1282,7 @@ body.dragging-active .task-drop-zone {
     background: rgba(255, 255, 255, 0.05);
     color: white;
 }
+
 /* --- FIXES 2026-02-17 --- */
 
 /* Priority Buttons Styling */
@@ -1291,8 +1292,8 @@ body.dragging-active .task-drop-zone {
     gap: 8px;
     padding: 8px 12px;
     border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
     color: #888;
     font-size: 13px;
     font-weight: 500;
@@ -1303,13 +1304,13 @@ body.dragging-active .task-drop-zone {
 }
 
 .priority-btn:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     color: #fff;
-    border-color: rgba(255,255,255,0.2);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .priority-btn.active {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255, 255, 255, 0.15);
     border-color: var(--p-color, #fff);
     color: #fff;
     box-shadow: 0 0 0 1px var(--p-color, #fff) inset;
@@ -1325,10 +1326,10 @@ body.dragging-active .task-drop-zone {
 /* Edit Toolbar (Context Menu) Modernization */
 #editToolbar {
     background: #1c1c1e !important;
-    border: 1px solid rgba(255,255,255,0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 12px !important;
     padding: 6px !important;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
     display: none;
     align-items: center;
     gap: 4px;
@@ -1351,7 +1352,7 @@ body.dragging-active .task-drop-zone {
 }
 
 .toolbar-btn:hover {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255, 255, 255, 0.15);
     color: #fff;
 }
 
@@ -1360,8 +1361,8 @@ body.dragging-active .task-drop-zone {
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: #666;
     font-size: 11px;
     font-weight: 600;
@@ -1370,7 +1371,7 @@ body.dragging-active .task-drop-zone {
 }
 
 .weekly-day-btn:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     color: #fff;
 }
 
@@ -1379,4 +1380,3 @@ body.dragging-active .task-drop-zone {
     border-color: #0A84FF;
     color: white;
 }
-
