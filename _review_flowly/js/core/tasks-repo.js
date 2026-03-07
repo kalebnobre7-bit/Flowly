@@ -321,9 +321,24 @@
         habits.forEach(function (h) {
           const name = h.habit_name;
           const date = h.date;
-          if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-            if (!nextHabitsHistory[name]) nextHabitsHistory[name] = {};
-            nextHabitsHistory[name][date] = h.completed;
+          if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+
+          if (!nextHabitsHistory[name]) nextHabitsHistory[name] = {};
+
+          if (h.completed === false) {
+            delete nextHabitsHistory[name][date];
+            return;
+          }
+
+          const existing = nextHabitsHistory[name][date];
+          const serverTs = typeof h.created_at === 'string' ? h.created_at : null;
+
+          if (typeof existing === 'string' && existing.trim() !== '') {
+            nextHabitsHistory[name][date] = existing;
+          } else if (serverTs) {
+            nextHabitsHistory[name][date] = serverTs;
+          } else {
+            nextHabitsHistory[name][date] = new Date().toISOString();
           }
         });
         setHabitsHistory(nextHabitsHistory);
@@ -379,3 +394,4 @@
     create: createFlowlyTasksRepo
   };
 })();
+

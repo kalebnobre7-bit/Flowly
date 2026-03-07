@@ -162,15 +162,24 @@
     async function syncHabitToSupabase(habitText, date, completed) {
       const currentUser = getCurrentUser();
       if (!currentUser) return;
-      await supabaseClient.from('habits_history').upsert(
-        {
-          user_id: currentUser.id,
-          habit_name: habitText,
-          date: date,
-          completed: completed
-        },
-        { onConflict: 'user_id,habit_name,date' }
-      );
+      if (completed) {
+        await supabaseClient.from('habits_history').upsert(
+          {
+            user_id: currentUser.id,
+            habit_name: habitText,
+            date: date,
+            completed: true
+          },
+          { onConflict: 'user_id,habit_name,date' }
+        );
+      } else {
+        await supabaseClient
+          .from('habits_history')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('habit_name', habitText)
+          .eq('date', date);
+      }
     }
 
     return {
@@ -185,3 +194,4 @@
     create: createTasksSync
   };
 })();
+
