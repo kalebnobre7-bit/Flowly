@@ -30,6 +30,7 @@
 
         tasks.push({
           text: habit.text,
+          routineKey: habit.supabaseId || habit.text,
           completed: !!historyValue,
           completedAt: completedAt,
           color: habit.color || 'default',

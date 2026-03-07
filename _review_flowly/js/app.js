@@ -159,6 +159,69 @@ function formatTimeSince(dateLike) {
   return `ha ${formatElapsedShort(diff)}`;
 }
 
+function formatLastCompletionDisplay(ts) {
+  if (!Number.isFinite(ts) || ts <= 0) return 'Sem tarefas concluidas';
+
+  const completedAt = new Date(ts);
+  const now = new Date();
+  const hhmm = completedAt.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const isSameDay =
+    completedAt.getFullYear() === now.getFullYear() &&
+    completedAt.getMonth() === now.getMonth() &&
+    completedAt.getDate() === now.getDate();
+
+  if (isSameDay) return hhmm;
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    completedAt.getFullYear() === yesterday.getFullYear() &&
+    completedAt.getMonth() === yesterday.getMonth() &&
+    completedAt.getDate() === yesterday.getDate();
+
+  if (isYesterday) return `${hhmm} (dia anterior)`;
+
+  const ddmm = completedAt.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit'
+  });
+  return `${hhmm} (${ddmm})`;
+}
+
+function getLatestCompletionTimestamp() {
+  let latest = 0;
+
+  Object.values(allTasksData || {}).forEach((periods) => {
+    Object.values(periods || {}).forEach((tasks) => {
+      if (!Array.isArray(tasks)) return;
+      tasks.forEach((task) => {
+        if (!task || !task.completed || !task.completedAt) return;
+        const ts = new Date(task.completedAt).getTime();
+        if (Number.isFinite(ts) && ts > latest) latest = ts;
+      });
+    });
+  });
+
+  Object.values(habitsHistory || {}).forEach((historyByDate) => {
+    Object.values(historyByDate || {}).forEach((value) => {
+      if (typeof value !== 'string') return;
+      const ts = new Date(value).getTime();
+      if (Number.isFinite(ts) && ts > latest) latest = ts;
+    });
+  });
+
+  return latest > 0 ? latest : null;
+}
+
+function getRoutineKey(task) {
+  if (!task) return '';
+  return task.routineKey || task.supabaseId || task.text || '';
+}
+
 // Helper para JSON seguro
 function safeJSONParse(str, fallback) {
   if (localStore && typeof localStore.safeJSONParse === 'function') {
@@ -566,6 +629,51 @@ function getRoutineTasksForDate(dateStr) {
 // Compatibilidade: manter hydrateRoutineForDate como no-op para não quebrar chamadas existentes
 function hydrateRoutineForDate(dateStr) {
   // Não faz mais nada - rotinas são geradas dinamicamente
+}
+
+function reorderRoutineTasksForDate(dateStr, sourceRoutineKey, insertAt) {
+  if (!sourceRoutineKey) return false;
+
+  const routineKeys = getRoutineTasksForDate(dateStr)
+    .map((task) => getRoutineKey(task))
+    .filter(Boolean);
+
+  const sourceIdx = routineKeys.indexOf(sourceRoutineKey);
+  if (sourceIdx < 0) return false;
+
+  let targetIdx = Number.isFinite(insertAt) ? insertAt : routineKeys.length;
+  if (sourceIdx < targetIdx) targetIdx -= 1;
+
+  routineKeys.splice(sourceIdx, 1);
+  targetIdx = Math.max(0, Math.min(targetIdx, routineKeys.length));
+  routineKeys.splice(targetIdx, 0, sourceRoutineKey);
+
+  const desiredOrder = new Map(routineKeys.map((key, idx) => [key, idx]));
+  const recurringIndices = [];
+  const recurringSubset = [];
+
+  allRecurringTasks.forEach((task, idx) => {
+    const key = getRoutineKey(task);
+    if (!desiredOrder.has(key)) return;
+    recurringIndices.push(idx);
+    recurringSubset.push(task);
+  });
+
+  if (recurringSubset.length > 1) {
+    recurringSubset.sort(
+      (a, b) => desiredOrder.get(getRoutineKey(a)) - desiredOrder.get(getRoutineKey(b))
+    );
+    recurringIndices.forEach((globalIdx, subsetIdx) => {
+      allRecurringTasks[globalIdx] = recurringSubset[subsetIdx];
+    });
+  }
+
+  saveToLocalStorage();
+  if (typeof syncRecurringTasksToSupabase === 'function') {
+    syncRecurringTasksToSupabase();
+  }
+
+  return true;
 }
 
 function handleDrop(e) {
@@ -5839,13 +5947,13 @@ function renderWeek() {
 
     // 1. Adicionar tarefas de rotina e recorrentes semanais (geradas dinamicamente, index = -1)
     const routineTasks = getRoutineTasksForDate(dateStr);
-    routineTasks.forEach((task) => {
+    routineTasks.forEach((task, routineIndex) => {
       allTasks.push({
         task,
         day,
         dateStr,
         period: 'Rotina',
-        originalIndex: -1
+        originalIndex: routineIndex
       });
     });
 
@@ -6001,7 +6109,7 @@ function unifiedTaskSort(taskList) {
 // Nova função global para toggle com reordenação
 window.toggleTaskStatus = function (dateStr, period, index, isChecked, element) {
   // Se for Rotina/Hábito (index -1), usa a lógica específica de hábitos
-  if (index === -1) {
+  if (period === 'Rotina' || index === -1) {
     const taskText = element.querySelector('.task-label').textContent; // Hacky but works for generated routine items
     // Melhor pegar do dataset ou passar o objeto task direto, mas createTaskElement fecha o scope.
     // Vamos usar o markHabitCompleted direto no checkbox.onchange para rotinas,
@@ -6135,8 +6243,8 @@ function renderToday() {
 
   // 1. Rotina diária + recorrentes semanais
   const routineTasks = getRoutineTasksForDate(dateStr);
-  routineTasks.forEach((task) => {
-    allTasks.push({ task, day: today, dateStr, period: 'Rotina', originalIndex: -1 });
+  routineTasks.forEach((task, routineIndex) => {
+    allTasks.push({ task, day: today, dateStr, period: 'Rotina', originalIndex: routineIndex });
   });
 
   // 2. Tarefas normais persistidas
@@ -6218,13 +6326,11 @@ function renderToday() {
   const routineCompleted = routineTasks.filter((t) => t.completed).length;
   const routineRate = routineTotal > 0 ? Math.round((routineCompleted / routineTotal) * 100) : 0;
 
-  const completedWithTimestamp = todayPersistedTasks
-    .filter((t) => t && t.completed && t.completedAt)
-    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
-  const lastCompletedTask = completedWithTimestamp[0] || null;
-  const lastCompletedText = lastCompletedTask
-    ? formatTimeSince(lastCompletedTask.completedAt)
-    : 'Sem tarefas concluidas';
+  const latestCompletionTs = getLatestCompletionTimestamp();
+  const lastCompletedTask = latestCompletionTs
+    ? { completedAt: new Date(latestCompletionTs).toISOString() }
+    : null;
+  const lastCompletedText = formatLastCompletionDisplay(latestCompletionTs);
 
   const durationSamplesMs = todayPersistedTasks
     .filter((t) => t && t.completed && t.createdAt && t.completedAt)
@@ -6851,18 +6957,24 @@ function insertQuickTaskInput(container, dateStr, period, beforeElement = null) 
 function createTaskElement(day, dateStr, period, task, index) {
   const container = document.createElement('div');
 
-  // Top Drop Zone (não mostrar para recorrentes)
-  if (index !== -1) container.appendChild(createDropZone(day, dateStr, period, index));
+  const isRoutineTask = task.isRoutine || task.isRecurring || period === 'Rotina';
+  const normalizedIndex = Number.isInteger(index) ? index : -1;
 
-  const isRecurring = index === -1; // tarefas recorrentes não persistidas
+  // Top Drop Zone
+  if (normalizedIndex >= 0) {
+    container.appendChild(createDropZone(day, dateStr, period, normalizedIndex));
+  }
 
   const el = document.createElement('div');
   el.className = `task-item ${task.isHabit ? 'is-habit' : ''} `;
-  el.draggable = !isRecurring;
+  el.draggable = normalizedIndex >= 0;
   el.dataset.day = day;
   el.dataset.date = dateStr;
   el.dataset.period = period;
-  el.dataset.index = index;
+  el.dataset.index = normalizedIndex;
+  if (isRoutineTask) {
+    el.dataset.routineKey = getRoutineKey(task);
+  }
 
   // Aplicar indent de árvore hierárquica (Notion-style)
   el.tabIndex = 0; // Make focusable for keyboard events
@@ -7000,6 +7112,12 @@ function createTaskElement(day, dateStr, period, task, index) {
 
     // Se for rotina ou habito, usar a função centralizada que sincroniza com Supabase
     if (task.isRoutine || task.isRecurring || task.isHabit || period === 'Rotina') {
+      if (task.completed) {
+        task.completedAt = new Date().toISOString();
+      } else {
+        task.completedAt = null;
+      }
+
       // Usa a função global que já lida com habitsHistory + localStorage + Supabase
       // IMPORTANTE: Passar dateStr para marcar no dia CORRETO, não apenas hoje
       if (typeof markHabitCompleted === 'function') {
@@ -7240,10 +7358,21 @@ function handleDragStart(e) {
   const period = this.dataset.period;
   const dateStr = this.dataset.date;
   const index = parseInt(this.dataset.index);
+  const routineKey = this.dataset.routineKey || null;
 
-  // Tarefas recorrentes (index = -1) não são arrastáveis
-  if (index === -1) {
-    e.preventDefault();
+  if (period === 'Rotina' || routineKey) {
+    draggedTask = {
+      day: this.dataset.day,
+      dateStr,
+      period,
+      index,
+      routineKey,
+      isRoutineDrag: true,
+      task: { text: this.querySelector('.task-content-span')?.textContent || '' }
+    };
+
+    document.body.classList.add('dragging-active');
+    setTimeout(() => this.classList.add('opacity-50'), 0);
     return;
   }
 
@@ -7260,6 +7389,7 @@ function handleDragStart(e) {
     dateStr: dateStr,
     period: period,
     index: index,
+    isRoutineDrag: false,
     task: task
   };
 
@@ -7292,6 +7422,24 @@ function handleDropZoneDrop(e, dz) {
   const sourceDateStr = draggedTask.dateStr;
   const sourcePeriod = draggedTask.period;
   const sourceIndex = draggedTask.index;
+
+  if (draggedTask.isRoutineDrag) {
+    if (targetPeriod !== 'Rotina') {
+      draggedTask = null;
+      renderView();
+      return;
+    }
+
+    const routineKey = draggedTask.routineKey || getRoutineKey(draggedTask.task);
+    const movedOnTarget = reorderRoutineTasksForDate(targetDateStr, routineKey, insertAt);
+    if (!movedOnTarget) {
+      reorderRoutineTasksForDate(sourceDateStr, routineKey, insertAt);
+    }
+
+    draggedTask = null;
+    renderView();
+    return;
+  }
 
   // Garantir que as estruturas existem
   if (!allTasksData[sourceDateStr]) allTasksData[sourceDateStr] = {};
