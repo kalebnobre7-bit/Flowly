@@ -21,6 +21,13 @@
     const debugLog = deps.debugLog || function () {};
 
     let serviceWorkerRegistration = null;
+    let smartNotifTimer = null;
+
+    const SMART_NOTIFICATION_SLOTS = [
+      { key: 'morning', hour: 8, minute: 30 },
+      { key: 'midday', hour: 12, minute: 30 },
+      { key: 'night', hour: 23, minute: 0 }
+    ];
 
     function getAssetUrl(assetFile) {
       try {
@@ -29,6 +36,7 @@
         return assetFile;
       }
     }
+
     async function saveNotifSettingsToSupabase() {
       const currentUser = getCurrentUser();
       if (!currentUser) return;
@@ -198,6 +206,186 @@
       }
     }
 
+    function formatDuration(ms) {
+      if (!Number.isFinite(ms) || ms <= 0) return '0m';
+      const totalMinutes = Math.round(ms / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      if (hours <= 0) return `${Math.max(1, minutes)}m`;
+      if (minutes <= 0) return `${hours}h`;
+      return `${hours}h ${minutes}m`;
+    }
+
+    function getLocalDateKey(date = new Date()) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function isSmartNotificationReady() {
+      if (!('Notification' in window)) return false;
+      if (!window.isSecureContext) return false;
+      if (Notification.permission !== 'granted') return false;
+      const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+      return notifSettings.enabled === true;
+    }
+
+    function getSmartSentRegistry() {
+      try {
+        return JSON.parse(localStorage.getItem('flowly_smart_notif_sent') || '{}');
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function hasSentSmartNotification(dayKey, slotKey) {
+      const registry = getSmartSentRegistry();
+      return registry[dayKey] && registry[dayKey][slotKey] === true;
+    }
+
+    function markSmartNotificationSent(dayKey, slotKey) {
+      const registry = getSmartSentRegistry();
+      if (!registry[dayKey]) registry[dayKey] = {};
+      registry[dayKey][slotKey] = true;
+      localStorage.setItem('flowly_smart_notif_sent', JSON.stringify(registry));
+    }
+
+    function shouldFireSlotNow(slot, now) {
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const slotMinutes = slot.hour * 60 + slot.minute;
+      return nowMinutes >= slotMinutes && nowMinutes <= slotMinutes + 20;
+    }
+
+    function getMorningMessage(snapshot) {
+      const total = snapshot.total || 0;
+      const routineTotal = snapshot.routineTotal || 0;
+      const body =
+        total > 0
+          ? `Bom dia. Hoje voce tem ${total} tarefa${total === 1 ? '' : 's'} planejada${
+              total === 1 ? '' : 's'
+            } (${routineTotal} de rotina).`
+          : 'Bom dia. Hoje ainda nao ha tarefas planejadas. Que tal definir 3 prioridades?';
+      return { title: 'Flowly | Bom dia', body, tag: 'flowly-smart-morning' };
+    }
+
+    function getMiddayMessage(snapshot) {
+      const total = snapshot.total || 0;
+      const completed = snapshot.completed || 0;
+      const percentage = snapshot.percentage || 0;
+      let mood = 'Ritmo constante';
+      if (percentage >= 70) mood = 'Excelente produtividade';
+      else if (percentage >= 40) mood = 'Bom progresso';
+      else if (percentage < 20) mood = 'Hora de acelerar';
+
+      const pending = Math.max(0, total - completed);
+      const body =
+        total > 0
+          ? `${mood}: ${completed}/${total} concluidas (${percentage}%). Restam ${pending}.`
+          : 'Sem tarefas registradas para hoje. Aproveite para planejar a tarde.';
+
+      return { title: 'Flowly | Check de produtividade', body, tag: 'flowly-smart-midday' };
+    }
+
+    function getNightMessage(snapshot) {
+      const total = snapshot.total || 0;
+      const completed = snapshot.completed || 0;
+      const percentage = snapshot.percentage || 0;
+      const avgDurationText = formatDuration(snapshot.avgTaskDurationMs || 0);
+      const totalDurationText = formatDuration(snapshot.totalTaskDurationMs || 0);
+      const bestPeriod = snapshot.bestPeriod || 'sem periodo dominante';
+      const insight =
+        percentage >= 80
+          ? 'Dia muito forte. Mantem esse padrao amanha.'
+          : percentage >= 50
+            ? `Voce performou melhor em ${bestPeriod}.`
+            : 'Comece amanha por uma tarefa curta para ganhar tracao.';
+
+      const body =
+        total > 0
+          ? `Resumo: ${completed}/${total} concluidas (${percentage}%). Tempo total ${totalDurationText}, media ${avgDurationText}. ${insight} Hora de descansar.`
+          : 'Resumo: sem tarefas concluidas hoje. Reorganize prioridades e descanse para recomecar.';
+
+      return { title: 'Flowly | Resumo do dia', body, tag: 'flowly-smart-night' };
+    }
+
+    async function showSmartNotification(message) {
+      const options = {
+        body: message.body,
+        icon: getAssetUrl('logo_flowly.png'),
+        badge: getAssetUrl('logo_flowly.png'),
+        vibrate: [120, 60, 120],
+        tag: message.tag
+      };
+
+      if (!serviceWorkerRegistration && 'serviceWorker' in navigator) {
+        try {
+          serviceWorkerRegistration = await navigator.serviceWorker.ready;
+        } catch (e) {
+          // fallback para Notification API abaixo
+        }
+      }
+
+      if (
+        serviceWorkerRegistration &&
+        typeof serviceWorkerRegistration.showNotification === 'function'
+      ) {
+        await serviceWorkerRegistration.showNotification(message.title, options);
+        return;
+      }
+
+      new Notification(message.title, options);
+    }
+
+    async function checkSmartDailyNotifications(getSnapshot) {
+      if (!isSmartNotificationReady()) return;
+      if (typeof getSnapshot !== 'function') return;
+
+      const now = new Date();
+      const dayKey = getLocalDateKey(now);
+      const snapshot = getSnapshot() || {};
+
+      for (const slot of SMART_NOTIFICATION_SLOTS) {
+        if (!shouldFireSlotNow(slot, now)) continue;
+        if (hasSentSmartNotification(dayKey, slot.key)) continue;
+
+        let message = null;
+        if (slot.key === 'morning') message = getMorningMessage(snapshot);
+        if (slot.key === 'midday') message = getMiddayMessage(snapshot);
+        if (slot.key === 'night') message = getNightMessage(snapshot);
+        if (!message) continue;
+
+        try {
+          await showSmartNotification(message);
+          markSmartNotificationSent(dayKey, slot.key);
+        } catch (err) {
+          console.error('Falha ao enviar notificacao diaria inteligente:', err);
+        }
+      }
+    }
+
+    function startSmartDailyNotifications(options = {}) {
+      const getSnapshot = options.getSnapshot;
+      if (typeof getSnapshot !== 'function') return;
+
+      if (smartNotifTimer) {
+        clearInterval(smartNotifTimer);
+        smartNotifTimer = null;
+      }
+
+      checkSmartDailyNotifications(getSnapshot);
+      smartNotifTimer = setInterval(() => {
+        checkSmartDailyNotifications(getSnapshot);
+      }, 60000);
+
+      window.addEventListener('focus', () => checkSmartDailyNotifications(getSnapshot));
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          checkSmartDailyNotifications(getSnapshot);
+        }
+      });
+    }
+
     function sendProgressNotification(payload) {
       if (!serviceWorkerRegistration || !serviceWorkerRegistration.active) return;
 
@@ -226,7 +414,8 @@
       saveNotifSettingsToSupabase,
       sendTestNotification,
       sendProgressNotification,
-      sendDailyStats
+      sendDailyStats,
+      startSmartDailyNotifications
     };
   }
 

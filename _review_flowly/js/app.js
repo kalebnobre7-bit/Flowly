@@ -4324,8 +4324,8 @@ function renderRoutineView(embeddedEl) {
 
 function renderSettingsView() {
   const view = document.getElementById('settingsView');
+  if (!view) return;
 
-  // Carregar preferências
   const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
   const notifEnabled = notifSettings.enabled === true;
   const morningTime = notifSettings.morningTime || '12:00';
@@ -4338,1012 +4338,223 @@ function renderSettingsView() {
   const showWeekends = viewSettings.showWeekends !== false;
   const hapticsEnabled = viewSettings.haptics !== false;
 
-  // Perfil
   const displayName =
     localStorage.getItem('flowly_display_name') ||
-    (currentUser ? currentUser.email.split('@')[0] : 'Usuário');
+    (currentUser ? currentUser.email.split('@')[0] : 'Usuario');
 
-  // Badge Notification
   const permBadge =
     notifPerm === 'granted'
-      ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 font-medium" > Ativo</span> `
-      : `<span class="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 font-medium" > Inativo</span> `;
+      ? '<span class="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Ativo</span>'
+      : '<span class="inline-flex items-center rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-300">Inativo</span>';
 
-  // Components
+  const sectionCard = (title, subtitle, icon, content) => `
+    <section class="rounded-2xl border border-white/10 bg-[#141417] shadow-[0_12px_30px_rgba(0,0,0,0.28)] overflow-hidden">
+      <header class="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-gradient-to-r from-white/[0.03] to-white/[0.01]">
+        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/25 text-gray-300">
+          <i data-lucide="${icon}" style="width:16px;height:16px;"></i>
+        </span>
+        <div class="min-w-0">
+          <h3 class="text-sm font-semibold text-gray-100">${title}</h3>
+          <p class="text-xs text-gray-400">${subtitle}</p>
+        </div>
+      </header>
+      <div class="p-4">${content}</div>
+    </section>
+  `;
+
   const settingRow = (icon, title, desc, control) => `
-    <div class="flex items-center justify-between gap-4 py-4 border-b border-white/5 last:border-0 hover:bg-white/5 px-2 -mx-2 rounded-lg transition-colors" >
-            <div class="flex items-center gap-3 flex-1 min-w-0">
-                
-                
-                
-                
-                
-                
-                
-                <div class="w-8 h-8 rounded-lg bg-gray-800/50 flex items-center justify-center flex-shrink-0 text-gray-400">
-                
-                
-                
-                
-                
-                
-                
-                    <i data-lucide="${icon}" style="width:16px;height:16px;"></i>
-                
-                
-                
-                
-                
-                
-                
-                </div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="min-w-0">
-                
-                
-                
-                
-                
-                
-                
-                    <div class="text-sm font-medium text-gray-200">${title}</div>
-                
-                
-                
-                
-                
-                
-                
-                    <div class="text-xs text-gray-500 mt-0.5 truncate">${desc}</div>
-                
-                
-                
-                
-                
-                
-                
-                </div>
-            </div>
-            <div class="flex-shrink-0">${control}</div>
-        </div> `;
+    <div class="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/5 text-gray-400">
+          <i data-lucide="${icon}" style="width:14px;height:14px;"></i>
+        </span>
+        <div class="min-w-0">
+          <div class="text-sm font-medium text-gray-100">${title}</div>
+          <div class="truncate text-xs text-gray-400">${desc}</div>
+        </div>
+      </div>
+      <div class="flex-shrink-0">${control}</div>
+    </div>
+  `;
 
   const toggle = (id, checked) => `
-    <button id="${id}" role="switch" aria-checked="${checked}"
-class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-blue-600' : 'bg-gray-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-[#050505]" >
-    <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${checked ? 'translate-x-4' : 'translate-x-0'}"></span>
-        </button> `;
+    <button id="${id}" role="switch" aria-checked="${checked}" class="relative h-6 w-11 rounded-full border border-white/20 transition-colors ${checked ? 'bg-blue-600' : 'bg-gray-700'}">
+      <span class="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}"></span>
+    </button>
+  `;
+
+  const notifStatusText =
+    notifPerm === 'granted'
+      ? 'Permissao concedida.'
+      : notifPerm === 'denied'
+        ? 'Permissao bloqueada no navegador.'
+        : notifPerm === 'default'
+          ? 'Permissao ainda nao solicitada.'
+          : 'Navegador sem suporte a notificacoes.';
+
+  const secureContextText = notifSecureContext
+    ? 'Ambiente seguro detectado (HTTPS/localhost).'
+    : 'Para ativar notificacoes, abra por HTTPS ou localhost.';
 
   view.innerHTML = `
-    <div class="max-w-2xl mx-auto py-8 px-4 pb-24" >
-            <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-3">
-                
-                
-                
-                
-                
-                
-                
-                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
-                
-                
-                
-                
-                
-                
-                
-                    <i data-lucide="settings-2" class="text-white" style="width:20px;height:20px;"></i>
-                
-                
-                
-                
-                
-                
-                
+    <div class="mx-auto max-w-5xl px-4 py-7 pb-24">
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 class="flex items-center gap-3 text-2xl font-bold text-white">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-900/25">
+              <i data-lucide="settings-2" style="width:20px;height:20px;"></i>
+            </span>
+            Configuracoes
+          </h2>
+          <p class="mt-1 text-sm text-gray-400">Central unica para conta, notificacoes, personalizacao e dados.</p>
+        </div>
+        <div class="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-300">
+          <div class="font-semibold text-gray-200">FLOWLY v1.2</div>
+          <div class="text-gray-400">Sincronizado via Supabase</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <div class="space-y-4">
+          ${sectionCard(
+            'Perfil',
+            'Dados basicos e conta conectada',
+            'user-round',
+            `
+              <div class="flex items-center gap-3 rounded-xl border border-white/10 bg-black/25 p-3">
+                <div class="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 text-lg font-bold text-white">
+                  ${displayName.charAt(0).toUpperCase()}
                 </div>
-                
-                
-                
-                
-                
-                
-                
-                Configuracoes
-            </h2>
-
-            <!--PERFIL -->
-            <section class="mb-8">
-                
-                
-                
-                
-                
-                
-                
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Perfil</h3>
-                
-                
-                
-                
-                
-                
-                
-                <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden p-4">
-                
-                
-                
-                
-                
-                
-                
-                    <div class="flex items-center gap-4 mb-4">
-                
-                
-                
-                
-                
-                
-                
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl font-bold text-white shadow-inner">
-                
-                
-                
-                
-                
-                
-                
-                            ${displayName.charAt(0).toUpperCase()}
-                
-                
-                
-                
-                
-                
-                
-                        </div>
-                
-                
-                
-                
-                
-                
-                
-                        <div class="flex-1">
-                
-                
-                
-                
-                
-                
-                
-                            <label class="text-xs text-gray-500 mb-1 block">Nome de exibição</label>
-                
-                
-                
-                
-                
-                
-                
-                            <input type="text" id="inputDisplayName" value="${displayName}" 
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                placeholder="Seu nome">
-                
-                
-                
-                
-                
-                
-                
-                        </div>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
-                    ${
-                      currentUser
-                        ? `
-                
-                
-                
-                
-                
-                
-                
-                    <div class="flex items-center justify-between bg-black/20 rounded-lg p-3">
-                
-                
-                
-                
-                
-                
-                
-                        <div class="flex items-center gap-3">
-                
-                
-                
-                
-                
-                
-                
-                            <i data-lucide="mail" class="text-gray-500 w-4 h-4"></i>
-                
-                
-                
-                
-                
-                
-                
-                            <span class="text-sm text-gray-400">${currentUser.email}</span>
-                
-                
-                
-                
-                
-                
-                
-                        </div>
-                
-                
-                
-                
-                
-                
-                
-                        <button onclick="signOut()" class="text-xs text-red-400 hover:text-red-300 transition-colors font-medium">Sair</button>
-                
-                
-                
-                
-                
-                
-                
-                    </div>`
-                        : `
-                
-                
-                
-                
-                
-                
-                
-                    <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-center">
-                
-                
-                
-                
-                
-                
-                
-                        <p class="text-sm text-blue-300 mb-2">Faça login para sincronizar seus dados</p>
-                
-                
-                
-                
-                
-                
-                
-                        <button onclick="document.getElementById('authModal').classList.add('show')" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors">Entrar / Criar Conta</button>
-                
-                
-                
-                
-                
-                
-                
-                    </div>`
-                    }
-                
-                
-                
-                
-                
-                
-                
+                <div class="min-w-0 flex-1">
+                  <label class="mb-1 block text-xs uppercase tracking-wide text-gray-400" for="inputDisplayName">Nome de exibicao</label>
+                  <input id="inputDisplayName" type="text" value="${displayName}" placeholder="Seu nome" class="w-full rounded-lg border border-white/15 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-500/70" />
                 </div>
-            </section>
+              </div>
+              <div class="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                <span class="truncate">${currentUser ? `Conectado como ${currentUser.email}` : 'Sem conta conectada'}</span>
+                ${
+                  currentUser
+                    ? '<span class="text-emerald-300">Conta ativa</span>'
+                    : '<button onclick="document.getElementById(\'authModal\').classList.add(\'show\')" class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white hover:bg-blue-500">Entrar / Criar Conta</button>'
+                }
+              </div>
+            `
+          )}
 
-            <!--NOTIFICAÇÕES -->
-            <section class="mb-8">
-                
-                
-                
-                
-                
-                
-                
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Notificacoes</h3>
-                
-                
-                
-                
-                
-                
-                
-                <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden px-5 py-2">
-                
-                
-                
-                
-                
-                
-                
-                    <div class="flex items-center justify-between py-4 border-b border-white/5">
-                
-                
-                
-                
-                
-                
-                
-                        <div class="flex items-center gap-3">
-                
-                
-                
-                
-                
-                
-                
-                            <i data-lucide="bell" class="text-gray-400 w-5 h-5"></i>
-                
-                
-                
-                
-                
-                
-                
-                            <div>
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                <div class="text-sm font-medium text-white flex items-center gap-2">Permissão do Sistema ${permBadge}</div>
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                <div class="text-xs text-gray-500"> Necessário para receber lembretes</div>
-                
-                
-                
-                
-                
-                
-                
-                            </div>
-                
-                
-                
-                
-                
-                
-                
-                        </div>
-                
-                
-                
-                
-                
-                
-                
-                        ${toggle('toggleNotif', notifEnabled && notifPerm === 'granted')}
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
-                    
-                
-                
-                
-                
-                
-                
-                
-                    ${settingRow(
-                      'sun',
-
-                      'Check-in Matinal',
-
-                      'Horário para planejar o dia',
-
-                      `<input type="time" id="inputMorningTime" value="${morningTime}" class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500">`
-                    )}
-                
-                
-                
-                
-                
-                
-                
-                    
-                
-                
-                
-                
-                
-                
-                
-                    ${settingRow(
-                      'moon',
-
-                      'Resumo Noturno',
-
-                      'Horário para revisar o progresso',
-
-                      `<input type="time" id="inputEveningTime" value="${eveningTime}" class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500">`
-                    )}
-
-                
-                
-                
-                
-                
-                
-                
-                    <div class="py-4 border-t border-white/5">
-                
-                
-                
-                
-                
-                
-                
-                        <button id="btnTestNotification" class="w-full sm:w-auto px-3 py-2 text-xs font-semibold rounded-lg border border-blue-500/30 bg-blue-600/15 text-blue-300 hover:bg-blue-600/25 transition-colors">
-                
-                
-                
-                
-                
-                
-                
-                            Enviar notificacao de teste
-                
-                
-                
-                
-                
-                
-                
-                        </button>
-                
-                
-                
-                
-                
-                
-                
-                        <p id="notifTestFeedback" class="text-xs text-gray-500 mt-2 min-h-[16px]"></p>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
+          ${sectionCard(
+            'Notificacoes',
+            'Alertas de tarefas e teste rapido',
+            'bell-ring',
+            `
+              <div class="space-y-3">
+                ${settingRow('bell', 'Ativar notificacoes', 'Liga ou desliga alertas do app', toggle('toggleNotif', notifEnabled))}
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                    <span class="mb-1 block uppercase tracking-wide text-gray-400">Horario Manha</span>
+                    <input id="inputMorningTime" type="time" value="${morningTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                  </label>
+                  <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                    <span class="mb-1 block uppercase tracking-wide text-gray-400">Horario Noite</span>
+                    <input id="inputEveningTime" type="time" value="${eveningTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                  </label>
                 </div>
-                
-                
-                
-                
-                
-                
-                
-                ${notifPerm === 'denied' ? `<p class="text-xs text-red-400 mt-2 px-2 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Notificacoes bloqueadas pelo navegador.</p>` : ''}
-            </section>
-
-            <!--PREFERÊNCIAS -->
-            <section class="mb-8">
-                
-                
-                
-                
-                
-                
-                
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Preferências</h3>
-                
-                
-                
-                
-                
-                
-                
-                <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden px-5 py-2">
-                
-                
-                
-                
-                
-                
-                
-                    ${settingRow(
-                      'calendar',
-
-                      'Início da Semana',
-
-                      'Definir primeiro dia do calendário',
-
-                      `<select id="selectWeekStart" class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500">
-                
-                
-                
-                
-                
-                
-                
-                            <option value="mon" ${weekStart === 'mon' ? 'selected' : ''}>Segunda-feira</option>
-                
-                
-                
-                
-                
-                
-                
-                            <option value="sun" ${weekStart === 'sun' ? 'selected' : ''}>Domingo</option>
-                
-                
-                
-                
-                
-                
-                
-                        </select>`
-                    )}
-                
-                
-                
-                
-                
-                
-                
-                    
-                
-                
-                
-                
-                
-                
-                
-                    ${settingRow('calendar-days', 'Fins de Semana', 'Mostrar Sábado e Domingo', toggle('toggleWeekends', showWeekends))}
-                
-                
-                
-                
-                
-                
-                
-                    
-                
-                
-                
-                
-                
-                
-                
-                    ${settingRow('smartphone', 'Vibração', 'Feedback tátil ao completar tarefas', toggle('toggleHaptics', hapticsEnabled))}
-
-                
-                
-                
-                
-                
-                
-                
-                    ${settingRow('mouse-pointer-click', 'Animação Semanal', 'Habilitar animação de hover no quadro semanal', toggle('toggleWeekHover', dbUserSettings.enable_week_hover_animation))}
-                
-                
-                
-                
-                
-                
-                
+                <div class="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+                  <div class="mb-2 flex items-center justify-between gap-2 text-xs text-gray-300">
+                    <span>Status da permissao</span>
+                    ${permBadge}
+                  </div>
+                  <p class="text-xs text-gray-400">${notifStatusText}</p>
+                  <p class="mt-1 text-xs ${notifSecureContext ? 'text-emerald-300' : 'text-amber-300'}">${secureContextText}</p>
+                  <button id="btnTestNotification" class="mt-3 inline-flex items-center gap-2 rounded-lg border border-cyan-500/45 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/25">
+                    <i data-lucide="send" style="width:14px;height:14px;"></i>
+                    Enviar notificacao de teste
+                  </button>
+                  <div id="notifTestFeedback" class="mt-2 min-h-[16px] text-xs text-gray-400"></div>
                 </div>
-            </section>
+              </div>
+            `
+          )}
 
-            <!-- TIPOS E PRIORIDADES -->
-            <section class="mb-8">
-                
-                
-                
-                
-                
-                
-                
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Gerenciar Tipos e Prioridades</h3>
-                
-                
-                
-                
-                
-                
-                
-                <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden px-5 py-4">
-                
-                
-                
-                
-                
-                
-                
-                    <!-- Tipos -->
-                
-                
-                
-                
-                
-                
-                
-                    <div class="mb-6">
-                
-                
-                
-                
-                
-                
-                
-                        <label class="text-sm font-medium text-white mb-3 block">Tipos de Tarefa</label>
-                
-                
-                
-                
-                
-                
-                
-                        <div id="typesList" class="flex flex-col gap-2 mb-3"></div>
-                
-                
-                
-                
-                
-                
-                
-                        <button id="btnAddType" class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium"><i data-lucide="plus" style="width:14px;height:14px;"></i> Novo Tipo</button>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
-                    <!-- Prioridades -->
-                
-                
-                
-                
-                
-                
-                
-                    <div>
-                
-                
-                
-                
-                
-                
-                
-                        <label class="text-sm font-medium text-white mb-3 block">Prioridades</label>
-                
-                
-                
-                
-                
-                
-                
-                        <div id="priosList" class="flex flex-col gap-2 mb-3"></div>
-                
-                
-                
-                
-                
-                
-                
-                        <button id="btnAddPrio" class="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1 font-medium"><i data-lucide="plus" style="width:14px;height:14px;"></i> Nova Prioridade</button>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
+          ${sectionCard(
+            'Visual e interacao',
+            'Preferencias de exibicao e feedback',
+            'sliders-horizontal',
+            `
+              <div class="space-y-3">
+                <label class="block rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                  <span class="mb-1 block uppercase tracking-wide text-gray-400">Inicio da semana</span>
+                  <select id="selectWeekStart" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">
+                    <option value="sun" ${weekStart === 'sun' ? 'selected' : ''}>Domingo</option>
+                    <option value="mon" ${weekStart === 'mon' ? 'selected' : ''}>Segunda</option>
+                  </select>
+                </label>
+                ${settingRow('calendar-range', 'Mostrar fins de semana', 'Exibe Sabado e Domingo na semana', toggle('toggleWeekends', showWeekends))}
+                ${settingRow('vibrate', 'Feedback haptico', 'Vibracao em interacoes suportadas', toggle('toggleHaptics', hapticsEnabled))}
+                ${settingRow('sparkles', 'Animacao no hover semanal', 'Destaque visual ao passar mouse na semana', toggle('toggleWeekHover', dbUserSettings.enable_week_hover_animation !== false))}
+              </div>
+            `
+          )}
+        </div>
+
+        <div class="space-y-4">
+          ${sectionCard(
+            'Tipos de tarefa',
+            'Edite categorias e prioridades personalizadas',
+            'tags',
+            `
+              <div class="space-y-3">
+                <div>
+                  <div class="mb-2 flex items-center justify-between gap-2">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Tipos</span>
+                    <button id="btnAddType" class="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10">Adicionar</button>
+                  </div>
+                  <div id="typesList" class="space-y-2"></div>
                 </div>
-            </section>
-
-            <!--DADOS -->
-            <section class="mb-8">
-                
-                
-                
-                
-                
-                
-                
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Gerenciamento de Dados</h3>
-                
-                
-                
-                
-                
-                
-                
-                <div class="grid grid-cols-2 gap-3">
-                
-                
-                
-                
-                
-                
-                
-                    <button id="btnExportSettings" class="bg-[#1c1c1e] hover:bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-white/20 group">
-                
-                
-                
-                
-                
-                
-                
-                        <i data-lucide="download" class="text-blue-400 mb-1 group-hover:scale-110 transition-transform"></i>
-                
-                
-                
-                
-                
-                
-                
-                        <span class="text-sm font-medium text-gray-200">Exportar Backup</span>
-                
-                
-                
-                
-                
-                
-                
-                    </button>
-                
-                
-                
-                
-                
-                
-                
-                    
-                
-                
-                
-                
-                
-                
-                
-                    <label for="fileImportSettings" class="bg-[#1c1c1e] hover:bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-white/20 cursor-pointer group">
-                
-                
-                
-                
-                
-                
-                
-                        <i data-lucide="upload" class="text-green-400 mb-1 group-hover:scale-110 transition-transform"></i>
-                
-                
-                
-                
-                
-                
-                
-                        <span class="text-sm font-medium text-gray-200">Importar Dados</span>
-                
-                
-                
-                
-                
-                
-                
-                        <input type="file" id="fileImportSettings" accept=".json" class="hidden">
-                
-                
-                
-                
-                
-                
-                
-                    </label>
-
-                
-                
-                
-                
-                
-                
-                
-                    <button id="btnFixDuplicates" class="bg-[#1c1c1e] hover:bg-orange-900/10 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-orange-500/30 group">
-                
-                
-                
-                
-                
-                
-                
-                        <i data-lucide="wrench" class="text-orange-400 mb-1 group-hover:scale-110 transition-transform"></i>
-                
-                
-                
-                
-                
-                
-                
-                        <span class="text-sm font-medium text-gray-200">Corrigir Banco</span>
-                
-                
-                
-                
-                
-                
-                
-                    </button>
-
-                
-                
-                
-                
-                
-                
-                
-                    <button id="btnClearAllSettings" class="bg-[#1c1c1e] hover:bg-red-900/10 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-red-500/30 group">
-                
-                
-                
-                
-                
-                
-                
-                        <i data-lucide="trash-2" class="text-red-400 mb-1 group-hover:scale-110 transition-transform"></i>
-                
-                
-                
-                
-                
-                
-                
-                        <span class="text-sm font-medium text-gray-200">Apagar Tudo</span>
-                
-                
-                
-                
-                
-                
-                
-                    </button>
-                
-                
-                
-                
-                
-                
-                
+                <div class="border-t border-white/10 pt-3">
+                  <div class="mb-2 flex items-center justify-between gap-2">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Prioridades</span>
+                    <button id="btnAddPrio" class="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10">Adicionar</button>
+                  </div>
+                  <div id="priosList" class="space-y-2"></div>
                 </div>
-            </section>
+              </div>
+            `
+          )}
 
-            <div class="text-center mt-12 mb-8">
-                
-                
-                
-                
-                
-                
-                
-                <div class="text-xs text-gray-600 font-medium">FLOWLY v1.2</div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="text-[10px] text-gray-700 mt-1">Sincronizado via Supabase</div>
-            </div>
-        </div> `;
+          ${sectionCard(
+            'Dados e manutencao',
+            'Backup, reparo e limpeza',
+            'database',
+            `
+              <div class="grid grid-cols-2 gap-2">
+                <button id="btnExportSettings" class="group flex flex-col items-center justify-center gap-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-emerald-200 hover:bg-emerald-500/20">
+                  <i data-lucide="download" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i>
+                  <span class="text-xs font-semibold">Exportar Backup</span>
+                </button>
+                <label class="group flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-3 text-blue-200 hover:bg-blue-500/20">
+                  <i data-lucide="upload" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i>
+                  <span class="text-xs font-semibold">Importar Backup</span>
+                  <input id="fileImportSettings" type="file" accept="application/json" class="hidden" />
+                </label>
+                <button id="btnFixDuplicates" class="group flex flex-col items-center justify-center gap-1 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-3 text-amber-200 hover:bg-amber-500/20">
+                  <i data-lucide="wrench" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i>
+                  <span class="text-xs font-semibold">Corrigir Banco</span>
+                </button>
+                <button id="btnClearAllSettings" class="group flex flex-col items-center justify-center gap-1 rounded-xl border border-rose-500/35 bg-rose-500/10 px-3 py-3 text-rose-200 hover:bg-rose-500/20">
+                  <i data-lucide="trash-2" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i>
+                  <span class="text-xs font-semibold">Limpar Tudo</span>
+                </button>
+              </div>
+              <p class="mt-3 text-[11px] text-gray-500">A limpeza remove dados locais e remotos da sua conta. Use com cuidado.</p>
+            `
+          )}
+        </div>
+      </div>
+    </div>
+  `;
 
   setTimeout(() => {
     lucide.createIcons();
-
-    // --- handlers ---
 
     // Name Change
     const nameInput = document.getElementById('inputDisplayName');
@@ -5439,6 +4650,7 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
         this.classList.remove('opacity-70', 'cursor-not-allowed');
       };
     }
+
     // Inputs Hora
     ['inputMorningTime', 'inputEveningTime'].forEach((id) => {
       const el = document.getElementById(id);
@@ -5463,9 +4675,7 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
         } else {
           document.body.classList.remove('no-week-hover');
         }
-        const btnContent = toggleWH.outerHTML; // re-render locally or re-render view
         renderSettingsView();
-        // update in supabase
         if (currentUser) {
           await supabaseClient.from('user_settings').upsert(
             {
@@ -5513,7 +4723,6 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
       };
     }
 
-    // Handlers de dados (Export/Import/Fix/Clear) - Reutilizar lógica existente mas rebindar
     // Export
     document.getElementById('btnExportSettings').onclick = () => {
       const backup = {
@@ -5528,7 +4737,7 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `flowly - backup - ${localDateStr()}.json`;
+      a.download = `flowly-backup-${localDateStr()}.json`;
       a.click();
       URL.revokeObjectURL(url);
     };
@@ -5565,14 +4774,14 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
     // Fix
     document.getElementById('btnFixDuplicates').onclick = async () => {
       if (!currentUser) {
-        alert('Faça login primeiro!');
+        alert('Faca login primeiro!');
         return;
       }
       if (!confirm('Remove duplicatas e tarefas corrompidas do banco. Continuar?')) return;
       const btn = document.getElementById('btnFixDuplicates');
       const originalText =
-        '<i data-lucide="wrench" class="text-orange-400 mb-1 group-hover:scale-110 transition-transform"></i><span class="text-sm font-medium text-gray-200">Corrigir Banco</span>';
-      btn.innerHTML = '<span class="text-sm font-medium text-orange-400">Limpando...</span>';
+        '<i data-lucide="wrench" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i><span class="text-xs font-semibold">Corrigir Banco</span>';
+      btn.innerHTML = '<span class="text-xs font-semibold text-amber-200">Limpando...</span>';
       btn.disabled = true;
       try {
         const { data: allT } = await supabaseClient
@@ -5601,11 +4810,12 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
           const k = `${d}| ${t.period}| ${t.text} `;
           seen.has(k) ? del.push(t.id) : seen.set(k, t.id);
         });
-        for (let i = 0; i < del.length; i += 100)
+        for (let i = 0; i < del.length; i += 100) {
           await supabaseClient
             .from('tasks')
             .delete()
             .in('id', del.slice(i, i + 100));
+        }
         allTasksData = {};
         localStorage.removeItem('allTasksData');
         await loadDataFromSupabase();
@@ -5622,7 +4832,7 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
 
     // Clear
     document.getElementById('btnClearAllSettings').onclick = async () => {
-      if (!confirm('Apagar TODOS os dados? Isso não pode ser desfeito!')) return;
+      if (!confirm('Apagar TODOS os dados? Isso nao pode ser desfeito!')) return;
       const authKeys = Object.keys(localStorage).filter(
         (k) => k.startsWith('sb-') || k === 'flowly_persist_session'
       );
@@ -5631,9 +4841,8 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
       if (currentUser) {
         await supabaseClient.from('tasks').delete().eq('user_id', currentUser.id);
         await supabaseClient.from('habits_history').delete().eq('user_id', currentUser.id);
-        // Opcionalmente limpar settings e types, mas ignoramos para manter simples
       }
-      Object.keys(weekData).forEach((d) => (weekData[d] = {})); // Reset weekData if exists
+      Object.keys(weekData).forEach((d) => (weekData[d] = {}));
       allTasksData = {};
       habitsHistory = {};
       localStorage.clear();
@@ -7950,6 +7159,50 @@ function countDayTasks(dateStr) {
   return { total, completed };
 }
 
+function getDailyNotificationSnapshot(dateStr = localDateStr()) {
+  const { total, completed } = countDayTasks(dateStr);
+  const dayData = allTasksData[dateStr] || {};
+  const periodDone = {};
+  const durationSamplesMs = [];
+
+  Object.entries(dayData).forEach(([period, tasks]) => {
+    if (!Array.isArray(tasks)) return;
+    tasks.forEach((task) => {
+      if (!task || !task.completed) return;
+      periodDone[period] = (periodDone[period] || 0) + 1;
+
+      if (task.createdAt && task.completedAt) {
+        const diff = new Date(task.completedAt).getTime() - new Date(task.createdAt).getTime();
+        if (Number.isFinite(diff) && diff >= 0 && diff <= 24 * 60 * 60 * 1000) {
+          durationSamplesMs.push(diff);
+        }
+      }
+    });
+  });
+
+  const bestPeriodEntry = Object.entries(periodDone).sort((a, b) => b[1] - a[1])[0];
+  const totalTaskDurationMs = durationSamplesMs.reduce((sum, ms) => sum + ms, 0);
+  const avgTaskDurationMs =
+    durationSamplesMs.length > 0 ? Math.round(totalTaskDurationMs / durationSamplesMs.length) : 0;
+
+  const routine = getRoutineTasksForDate(dateStr);
+  const routineTotal = routine.length;
+  const routineCompleted = routine.filter((task) => task && task.completed).length;
+
+  return {
+    dateStr,
+    total,
+    completed,
+    pending: Math.max(0, total - completed),
+    percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
+    avgTaskDurationMs,
+    totalTaskDurationMs,
+    bestPeriod: bestPeriodEntry ? bestPeriodEntry[0] : null,
+    routineTotal,
+    routineCompleted
+  };
+}
+
 function sendProgressNotification() {
   const { total, completed } = countDayTasks(localDateStr());
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -7968,6 +7221,20 @@ function sendDailyStats() {
     flowlyPwa.sendDailyStats({ completed, total, percentage });
   }
 }
+
+const enableLocalSmartNotifFallback =
+  localStorage.getItem('flowly_notif_local_fallback') === 'true';
+
+if (
+  enableLocalSmartNotifFallback &&
+  flowlyPwa &&
+  typeof flowlyPwa.startSmartDailyNotifications === 'function'
+) {
+  flowlyPwa.startSmartDailyNotifications({
+    getSnapshot: () => getDailyNotificationSnapshot(localDateStr())
+  });
+}
+
 
 // Enviar notificação de progresso quando tarefa é marcada
 const originalSaveToLocalStorage = saveToLocalStorage;
@@ -8279,3 +7546,5 @@ window.handleTaskIndent = function (dateStr, period, index, shiftKey) {
   syncTaskToSupabase(dateStr, period, currentTask);
   renderView();
 };
+
+
