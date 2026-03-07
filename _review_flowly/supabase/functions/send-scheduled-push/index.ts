@@ -1,7 +1,8 @@
 ﻿import { createClient } from 'npm:@supabase/supabase-js@2.48.0';
 import webpush from 'npm:web-push@3.6.7';
 
-type SlotName = 'morning' | 'midday' | 'night';
+type SlotName = 'morning' | 'midday' | 'night' | 'inactivity';
+type TimedSlotName = 'morning' | 'midday' | 'night';
 
 type UserSetting = {
   user_id: string;
@@ -33,13 +34,16 @@ type DailyStats = {
   bestPeriod: string | null;
 };
 
-const SLOT_TIMES: Record<SlotName, { hour: number; minute: number }> = {
+const SLOT_TIMES: Record<TimedSlotName, { hour: number; minute: number }> = {
   morning: { hour: 8, minute: 30 },
   midday: { hour: 12, minute: 30 },
   night: { hour: 23, minute: 0 }
 };
 
 const WINDOW_MINUTES = 8;
+const INACTIVITY_THRESHOLD_MINUTES = 150; // 2h30
+const INACTIVITY_START_MINUTES = 7 * 60; // 07:00
+const INACTIVITY_END_MINUTES = 24 * 60; // 00:00
 
 function getEnv(name: string): string {
   const value = Deno.env.get(name);
@@ -83,7 +87,7 @@ function minutesOfDay(hour: number, minute: number): number {
   return hour * 60 + minute;
 }
 
-function isSlotDue(slot: SlotName, localHour: number, localMinute: number): boolean {
+function isSlotDue(slot: TimedSlotName, localHour: number, localMinute: number): boolean {
   const target = SLOT_TIMES[slot];
   const nowM = minutesOfDay(localHour, localMinute);
   const targetM = minutesOfDay(target.hour, target.minute);
@@ -104,7 +108,9 @@ function buildMessage(slot: SlotName, stats: DailyStats) {
   if (slot === 'morning') {
     const body =
       stats.total > 0
-        ? `Bom dia. Hoje voce tem ${stats.total} tarefa${stats.total === 1 ? '' : 's'} planejada${stats.total === 1 ? '' : 's'}.`
+        ? `Bom dia. Hoje voce tem ${stats.total} tarefa${stats.total === 1 ? '' : 's'} planejada${
+            stats.total === 1 ? '' : 's'
+          }.`
         : 'Bom dia. Hoje ainda nao ha tarefas planejadas. Defina 3 prioridades rapidas.';
 
     return {
@@ -134,6 +140,15 @@ function buildMessage(slot: SlotName, stats: DailyStats) {
     };
   }
 
+  if (slot === 'inactivity') {
+    return {
+      title: 'Flowly | Foco',
+      body: 'Bem, o que andou fazendo nas ultimas 3h?',
+      tag: 'flowly-scheduled-inactivity',
+      type: 'scheduled-inactivity'
+    };
+  }
+
   const insight =
     stats.percentage >= 80
       ? 'Dia muito forte. Mantem o padrao amanha.'
@@ -143,7 +158,9 @@ function buildMessage(slot: SlotName, stats: DailyStats) {
 
   const body =
     stats.total > 0
-      ? `Resumo: ${stats.completed}/${stats.total} concluidas (${stats.percentage}%). Tempo total ${formatDuration(stats.totalDurationMs)}, media ${formatDuration(stats.avgDurationMs)}. ${insight} Hora de descansar.`
+      ? `Resumo: ${stats.completed}/${stats.total} concluidas (${stats.percentage}%). Tempo total ${formatDuration(
+          stats.totalDurationMs
+        )}, media ${formatDuration(stats.avgDurationMs)}. ${insight} Hora de descansar.`
       : 'Resumo: sem tarefas concluidas hoje. Reorganize prioridades e descanse para recomecar melhor.';
 
   return {
@@ -205,6 +222,60 @@ async function fetchDailyStats(
     totalDurationMs,
     bestPeriod
   };
+}
+
+async function fetchLatestActivityTimestamp(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string,
+  dateKey: string
+): Promise<number | null> {
+  const [tasksRes, habitsRes] = await Promise.all([
+    supabaseAdmin
+      .from('tasks')
+      .select('updated_at')
+      .eq('user_id', userId)
+      .eq('day', dateKey)
+      .eq('completed', true)
+      .order('updated_at', { ascending: false })
+      .limit(1),
+    supabaseAdmin
+      .from('habits_history')
+      .select('created_at')
+      .eq('user_id', userId)
+      .eq('date', dateKey)
+      .eq('completed', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+  ]);
+
+  if (tasksRes.error) {
+    throw new Error(`Latest activity tasks query failed: ${tasksRes.error.message}`);
+  }
+  if (habitsRes.error) {
+    throw new Error(`Latest activity habits query failed: ${habitsRes.error.message}`);
+  }
+
+  const taskTs = tasksRes.data?.[0]?.updated_at ? new Date(tasksRes.data[0].updated_at).getTime() : 0;
+  const habitTs = habitsRes.data?.[0]?.created_at
+    ? new Date(habitsRes.data[0].created_at).getTime()
+    : 0;
+
+  const latest = Math.max(taskTs || 0, habitTs || 0);
+  return latest > 0 ? latest : null;
+}
+
+function shouldSendInactivity(localHour: number, localMinute: number, latestActivityTs: number | null): boolean {
+  const nowMinutes = minutesOfDay(localHour, localMinute);
+  if (nowMinutes < INACTIVITY_START_MINUTES || nowMinutes >= INACTIVITY_END_MINUTES) {
+    return false;
+  }
+
+  if (!latestActivityTs) {
+    return nowMinutes >= INACTIVITY_START_MINUTES + INACTIVITY_THRESHOLD_MINUTES;
+  }
+
+  const diffMinutes = Math.floor((Date.now() - latestActivityTs) / 60000);
+  return Number.isFinite(diffMinutes) && diffMinutes >= INACTIVITY_THRESHOLD_MINUTES;
 }
 
 async function alreadySent(
@@ -290,22 +361,20 @@ async function sendToUserSubscriptions(
 
 Deno.serve(async (req) => {
   try {
-
     const bodyText = await req.text();
     const body = parseBodySafe(bodyText);
 
     const url = new URL(req.url);
     const slotParam = (url.searchParams.get('slot') || body.slot || '').toString() as SlotName | '';
     const requestedSlots: SlotName[] =
-      slotParam === 'morning' || slotParam === 'midday' || slotParam === 'night'
+      slotParam === 'morning' || slotParam === 'midday' || slotParam === 'night' || slotParam === 'inactivity'
         ? [slotParam]
-        : ['morning', 'midday', 'night'];
+        : ['morning', 'midday', 'night', 'inactivity'];
 
     const supabaseUrl = getEnv('SUPABASE_URL');
     const serviceRoleKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
 
-    const vapidSubject =
-      Deno.env.get('FLOWLY_VAPID_SUBJECT') || Deno.env.get('VAPID_SUBJECT') || '';
+    const vapidSubject = Deno.env.get('FLOWLY_VAPID_SUBJECT') || Deno.env.get('VAPID_SUBJECT') || '';
     const vapidPublicKey =
       Deno.env.get('FLOWLY_VAPID_PUBLIC_KEY') || Deno.env.get('VAPID_PUBLIC_KEY') || '';
     const vapidPrivateKey =
@@ -341,7 +410,51 @@ Deno.serve(async (req) => {
       const localNow = getNowInTimezone(timezone);
 
       for (const slot of requestedSlots) {
-        if (!isSlotDue(slot, localNow.hour, localNow.minute)) continue;
+        if (slot === 'inactivity') {
+          const already = await alreadySent(supabaseAdmin, setting.user_id, localNow.dateKey, slot);
+          if (already) continue;
+
+          const latestActivityTs = await fetchLatestActivityTimestamp(
+            supabaseAdmin,
+            setting.user_id,
+            localNow.dateKey
+          );
+
+          if (!shouldSendInactivity(localNow.hour, localNow.minute, latestActivityTs)) {
+            continue;
+          }
+
+          const message = buildMessage('inactivity', {
+            total: 0,
+            completed: 0,
+            percentage: 0,
+            pending: 0,
+            avgDurationMs: 0,
+            totalDurationMs: 0,
+            bestPeriod: null
+          });
+
+          const payload = {
+            title: message.title,
+            body: message.body,
+            type: message.type,
+            tag: message.tag,
+            url: '/'
+          };
+
+          const result = await sendToUserSubscriptions(supabaseAdmin, setting.user_id, payload);
+
+          if (result.sent > 0) {
+            await markSent(supabaseAdmin, setting.user_id, localNow.dateKey, slot, timezone);
+            usersProcessed += 1;
+            notificationsSent += result.sent;
+            subscriptionsRemoved += result.removed;
+          }
+
+          continue;
+        }
+
+        if (!isSlotDue(slot as TimedSlotName, localNow.hour, localNow.minute)) continue;
 
         const sentBefore = await alreadySent(supabaseAdmin, setting.user_id, localNow.dateKey, slot);
         if (sentBefore) continue;
@@ -376,7 +489,8 @@ Deno.serve(async (req) => {
         notifications_sent: notificationsSent,
         subscriptions_removed: subscriptionsRemoved,
         slots: requestedSlots,
-        window_minutes: WINDOW_MINUTES
+        window_minutes: WINDOW_MINUTES,
+        inactivity_threshold_minutes: INACTIVITY_THRESHOLD_MINUTES
       }),
       {
         status: 200,
@@ -393,4 +507,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-
