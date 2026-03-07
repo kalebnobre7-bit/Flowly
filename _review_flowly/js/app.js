@@ -1331,7 +1331,7 @@ function renderAnalyticsView() {
   const view = document.getElementById('analyticsView');
   if (!view) return;
 
-  // ── Outer tab (Rotina | Analytics) ────────────────────────────────────
+  // -- Outer tab (Rotina | Analytics) ------------------------------------
   const mainTab = view.dataset.mainTab || 'analytics';
   const outerTabsHTML = `
     <div style="display:flex;gap:6px;padding:0 0 20px">
@@ -1393,7 +1393,7 @@ function renderAnalyticsView() {
         </button>
     </div>`;
 
-  // ── Routine tab: embed renderRoutineView inside analytics ─────────────
+  // -- Routine tab: embed renderRoutineView inside analytics -------------
   if (mainTab === 'routine') {
     const routineTab = view.dataset.routineTab || 'today';
     view.innerHTML = `<div class="analytics-container-v2">${outerTabsHTML}<div id="routineEmbedded"></div></div>`;
@@ -1403,7 +1403,7 @@ function renderAnalyticsView() {
     return;
   }
 
-  // ── Constants ──────────────────────────────────────────────────────────
+  // -- Constants ----------------------------------------------------------
   const MONTH_NAMES_PT = [
     'Janeiro',
     'Fevereiro',
@@ -1420,10 +1420,10 @@ function renderAnalyticsView() {
   ];
   const DAY_ABBR_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-  // ── Today ──────────────────────────────────────────────────────────────
+  // -- Today --------------------------------------------------------------
   const today = localDateStr();
 
-  // ── Week stats ─────────────────────────────────────────────────────────
+  // -- Week stats ---------------------------------------------------------
   const weekDates = getWeekDates(0);
   let totalTasksWeek = 0,
     completedTasksWeek = 0;
@@ -1464,18 +1464,18 @@ function renderAnalyticsView() {
     dayStatsMap[name] = { total: dayTotal, completed: dayCompleted, dateStr };
   });
 
-  // ── Habit stats ────────────────────────────────────────────────────────
+  // -- Habit stats --------------------------------------------------------
   const allHabitsArr = getAllHabits();
   const totalHabits = allHabitsArr.length;
   const completedHabitsToday = allHabitsArr.filter((h) => h.completedToday).length;
 
-  // ── Rates ──────────────────────────────────────────────────────────────
+  // -- Rates --------------------------------------------------------------
   const todayRate =
     totalTasksToday > 0 ? Math.round((completedTasksToday / totalTasksToday) * 100) : 0;
   const weekRate = totalTasksWeek > 0 ? Math.round((completedTasksWeek / totalTasksWeek) * 100) : 0;
   const habitRate = totalHabits > 0 ? Math.round((completedHabitsToday / totalHabits) * 100) : 0;
 
-  // ── Streak ─────────────────────────────────────────────────────────────
+  // -- Streak -------------------------------------------------------------
   let currentStreak = 0;
   const streakCheckDate = new Date();
   for (let i = 0; i < 60; i++) {
@@ -1501,7 +1501,7 @@ function renderAnalyticsView() {
     streakCheckDate.setDate(streakCheckDate.getDate() - 1);
   }
 
-  // ── Last-week comparison (fair: compare only up to same day of week) ──
+  // -- Last-week comparison (fair: compare only up to same day of week) --
   const todayDayOfWeek = new Date().getDay(); // 0=Dom, 6=Sáb
   const lastWeekDates = getWeekDates(-1);
   let lastWeekTotal = 0,
@@ -1555,7 +1555,7 @@ function renderAnalyticsView() {
     lastWeekTotal > 0 ? Math.round((lastWeekCompleted / lastWeekTotal) * 100) : 0;
   const weekDiff = thisWeekFairRate - lastWeekRate;
 
-  // ── Day-of-week performance ────────────────────────────────────────────
+  // -- Day-of-week performance --------------------------------------------
   const dayPerfData = weekDates.map(({ name, dateStr }, idx) => {
     const s = dayStatsMap[name] || { total: 0, completed: 0 };
     const rate = s.total > 0 ? Math.round((s.completed / s.total) * 100) : 0;
@@ -1576,13 +1576,13 @@ function renderAnalyticsView() {
   const worstDay =
     dayRates.length > 1 ? dayRates.reduce((w, d) => (d.rate < w.rate ? d : w)) : null;
 
-  // ── KPI derived values ─────────────────────────────────────────────────
+  // -- KPI derived values -------------------------------------------------
   const todayKpiColor = todayRate >= 70 ? '#30D158' : todayRate >= 40 ? '#FF9F0A' : '#FF453A';
   const trendClass = weekDiff > 0 ? 'up' : weekDiff < 0 ? 'down' : 'neutral';
-  const trendLabel = weekDiff > 0 ? `↑ +${weekDiff}%` : weekDiff < 0 ? `↓ ${weekDiff}%` : '→ igual';
+  const trendLabel = weekDiff > 0 ? `? +${weekDiff}%` : weekDiff < 0 ? `? ${weekDiff}%` : '? igual';
   const trendTooltip = 'vs mesmo período sem. ant.';
 
-  // ── Habit ranking ─────────────────────────────────────────────────────
+  // -- Habit ranking -----------------------------------------------------
   const habitRanking = allHabitsArr
     .map((h) => ({
       text: h.text,
@@ -1597,7 +1597,7 @@ function renderAnalyticsView() {
       : habitRanking
           .slice(0, 8)
           .map((h, i) => {
-            const medals = ['🥇', '🥈', '🥉'];
+            const medals = ['??', '??', '??'];
             const rank = i < 3 ? medals[i] : `${i + 1}º`;
             const rc = h.rate >= 80 ? '#30D158' : h.rate >= 50 ? '#0A84FF' : 'var(--text-tertiary)';
             const bc = h.rate >= 80 ? '#30D158' : h.rate >= 50 ? '#0A84FF' : '#FF9F0A';
@@ -1638,7 +1638,7 @@ function renderAnalyticsView() {
           })
           .join('');
 
-  // ── Category distribution ─────────────────────────────────────────────
+  // -- Category distribution ---------------------------------------------
   const taskTypes = getTaskTypes();
   const catCounts = {};
   weekDates.forEach(({ dateStr }) => {
@@ -1712,7 +1712,7 @@ function renderAnalyticsView() {
           })
           .join('');
 
-  // ── 30-day heatmap ─────────────────────────────────────────────────────
+  // -- 30-day heatmap -----------------------------------------------------
   let heatmapCells = '';
   const heatCur = new Date();
   heatCur.setDate(heatCur.getDate() - 29);
@@ -1747,7 +1747,7 @@ function renderAnalyticsView() {
     heatCur.setDate(heatCur.getDate() + 1);
   }
 
-  // ── Day performance columns HTML ──────────────────────────────────────
+  // -- Day performance columns HTML --------------------------------------
   const dayPerfHTML = dayPerfData
     .map((d) => {
       const barH = d.rate > 0 ? Math.max(6, Math.round(d.rate * 0.9)) : 0;
@@ -1760,61 +1760,61 @@ function renderAnalyticsView() {
     })
     .join('');
 
-  // ── Auto-insights ─────────────────────────────────────────────────────
+  // -- Auto-insights -----------------------------------------------------
   const insights = [];
   if (totalTasksToday > 0 && completedTasksToday === totalTasksToday)
     insights.push({
       color: 'green',
-      icon: '✅',
+      icon: '?',
       title: 'Dia Perfeito!',
       text: 'Todas as tarefas de hoje concluídas. Excelente!'
     });
   if (currentStreak >= 3)
     insights.push({
       color: 'orange',
-      icon: '🔥',
+      icon: '??',
       title: `${currentStreak} Dias de Streak`,
       text: 'Dias consecutivos com 100% das tarefas concluídas!'
     });
   if (habitRate === 100 && totalHabits > 0)
     insights.push({
       color: 'purple',
-      icon: '✨',
+      icon: '?',
       title: 'Hábitos Perfeitos',
       text: 'Todos os hábitos marcados hoje. Consistência máxima!'
     });
   if (weekDiff >= 10)
     insights.push({
       color: 'green',
-      icon: '📈',
+      icon: '??',
       title: 'Semana em Alta',
       text: `+${weekDiff}% vs semana anterior. Crescendo consistentemente!`
     });
   if (weekDiff <= -10)
     insights.push({
       color: 'red',
-      icon: '📉',
+      icon: '??',
       title: 'Queda de Desempenho',
       text: `${weekDiff}% vs semana anterior. Identifique o que está bloqueando.`
     });
   if (bestDay && bestDay.rate >= 80)
     insights.push({
       color: 'blue',
-      icon: '⭐',
+      icon: '?',
       title: `Destaque: ${bestDay.name}`,
       text: `${bestDay.rate}% de conclusão — seu melhor dia da semana!`
     });
   if (insights.length === 0 && weekRate > 0)
     insights.push({
       color: 'blue',
-      icon: '💡',
+      icon: '??',
       title: 'Continue Evoluindo',
       text: `${weekRate}% de conclusão esta semana. Cada dia conta!`
     });
   if (insights.length === 0)
     insights.push({
       color: 'blue',
-      icon: '🚀',
+      icon: '??',
       title: 'Comece Hoje',
       text: 'Adicione tarefas e hábitos para ver seus insights aqui.'
     });
@@ -1846,7 +1846,7 @@ function renderAnalyticsView() {
     )
     .join('');
 
-  // ── Monthly data ───────────────────────────────────────────────────────
+  // -- Monthly data -------------------------------------------------------
   const nowDate = new Date();
   const nowYear = nowDate.getFullYear(),
     nowMonth = nowDate.getMonth();
@@ -1883,7 +1883,7 @@ function renderAnalyticsView() {
   const monthAvgRate =
     monthAvg.length > 0 ? Math.round(monthAvg.reduce((a, b) => a + b, 0) / monthAvg.length) : 0;
 
-  // ── Week chart data ────────────────────────────────────────────────────
+  // -- Week chart data ----------------------------------------------------
   const weekChartData = weekDates.map(({ name }) => {
     const s = dayStatsMap[name] || { total: 0, completed: 0 };
     return s.total > 0 ? Math.round((s.completed / s.total) * 100) : null;
@@ -1893,7 +1893,7 @@ function renderAnalyticsView() {
     return v >= 80 ? '#30D158' : v >= 50 ? '#0A84FF' : '#FF9F0A';
   });
 
-  // ── BUILD HTML ─────────────────────────────────────────────────────────
+  // -- BUILD HTML ---------------------------------------------------------
   view.innerHTML = `<div class="analytics-container-v2">
 
         <!-- Outer tabs -->
@@ -1963,7 +1963,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                ${todayRate === 100 && totalTasksToday > 0 ? `<span class="analytics-kpi-v2-badge up">✅ Perfeito</span>` : ''}
+                ${todayRate === 100 && totalTasksToday > 0 ? `<span class="analytics-kpi-v2-badge up">? Perfeito</span>` : ''}
             </div>
             <div class="analytics-kpi-v2">
                 
@@ -2073,7 +2073,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${currentStreak > 0 ? `🔥 dias perfeitos consecutivos` : 'Complete 100% hoje!'}</div>
+                <div class="analytics-kpi-v2-sub">${currentStreak > 0 ? `?? dias perfeitos consecutivos` : 'Complete 100% hoje!'}</div>
             </div>
         </div>
 
@@ -2561,7 +2561,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#30D158"></div><span style="font-size:10px;color:var(--text-tertiary)">≥80%</span></div>
+                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#30D158"></div><span style="font-size:10px;color:var(--text-tertiary)">=80%</span></div>
             </div>
         </div>
 
@@ -2573,7 +2573,7 @@ function renderAnalyticsView() {
 
     </div>`;
 
-  // ── Charts ─────────────────────────────────────────────────────────────
+  // -- Charts -------------------------------------------------------------
   setTimeout(() => {
     // Destroy any stale Chart.js instances on these canvases
     ['weekChartV2', 'habitsChartV2', 'monthChartV2'].forEach((id) => {
@@ -3274,7 +3274,7 @@ function renderRoutineView(embeddedEl) {
       ? `document.getElementById('analyticsView').dataset.routineTab='${tab}';renderAnalyticsView()`
       : `document.getElementById('routineView').dataset.routineTab='${tab}';renderRoutineView()`;
 
-  // ── Constants ───────────────────────────────────────────────────────────
+  // -- Constants -----------------------------------------------------------
   const today = new Date();
   const todayStr = localDateStr(today);
   const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -3309,7 +3309,7 @@ function renderRoutineView(embeddedEl) {
     'Dez'
   ];
 
-  // ── Core Data ────────────────────────────────────────────────────────────
+  // -- Core Data ------------------------------------------------------------
   const todayTasks = getRoutineTasksForDate(todayStr);
   const totalToday = todayTasks.length;
   const completedToday = todayTasks.filter((t) => t.completed).length;
@@ -3398,12 +3398,12 @@ function renderRoutineView(embeddedEl) {
   });
   const catMaxTotal = Math.max(...Object.values(catMap).map((c) => c.total), 1);
 
-  // ── SVG Ring ─────────────────────────────────────────────────────────────
+  // -- SVG Ring -------------------------------------------------------------
   const ringR = 52,
     ringCirc = 2 * Math.PI * ringR;
   const ringOffset = ringCirc * (1 - todayPercent / 100);
 
-  // ── 12-week Heatmap ───────────────────────────────────────────────────────
+  // -- 12-week Heatmap -------------------------------------------------------
   let heatWeeks = [];
   for (let w = 11; w >= 0; w--) {
     const week = [];
@@ -3442,7 +3442,7 @@ function renderRoutineView(embeddedEl) {
     )
     .join('');
 
-  // ── Habits HTML ────────────────────────────────────────────────────────────
+  // -- Habits HTML ------------------------------------------------------------
   const habitsHTML =
     activeRoutines.length === 0
       ? `<div style="padding:32px 0;text-align:center;color:var(--text-tertiary);font-size:13px;line-height:1.6">
@@ -3599,7 +3599,7 @@ function renderRoutineView(embeddedEl) {
                 
                 
                 
-                    ${runningStreak > 0 ? `<div class="routine-habit-streak-v2">🔥 ${runningStreak}d</div>` : `<div style="font-size:10px;color:var(--text-tertiary)">30 dias</div>`}
+                    ${runningStreak > 0 ? `<div class="routine-habit-streak-v2">?? ${runningStreak}d</div>` : `<div style="font-size:10px;color:var(--text-tertiary)">30 dias</div>`}
                 
                 
                 
@@ -3612,12 +3612,12 @@ function renderRoutineView(embeddedEl) {
           })
           .join('');
 
-  // ── Period breakdown (Manhã/Tarde/Noite) ─────────────────────────────────
+  // -- Period breakdown (Manhã/Tarde/Noite) ---------------------------------
   const todayAllTasks = allTasksData[todayStr] || {};
   const periods = [
-    { key: 'Manhã', label: 'Manhã', icon: '🌅', color: '#FF9F0A' },
-    { key: 'Tarde', label: 'Tarde', icon: '☀️', color: '#0A84FF' },
-    { key: 'Noite', label: 'Noite', icon: '🌙', color: '#BF5AF2' }
+    { key: 'Manhã', label: 'Manhã', icon: '??', color: '#FF9F0A' },
+    { key: 'Tarde', label: 'Tarde', icon: '??', color: '#0A84FF' },
+    { key: 'Noite', label: 'Noite', icon: '??', color: '#BF5AF2' }
   ];
   const periodHTML = periods
     .map((p) => {
@@ -3634,7 +3634,7 @@ function renderRoutineView(embeddedEl) {
     })
     .join('');
 
-  // ── Weekly column view ────────────────────────────────────────────────────
+  // -- Weekly column view ----------------------------------------------------
   const weeklyColsHTML = weeklyDayData
     .map((day) => {
       const barH = day.rate > 0 ? Math.max(6, Math.round(day.rate * 0.8)) : 0;
@@ -3656,7 +3656,7 @@ function renderRoutineView(embeddedEl) {
     })
     .join('');
 
-  // ── Category distribution HTML ────────────────────────────────────────────
+  // -- Category distribution HTML --------------------------------------------
   const catHTML =
     Object.entries(catMap).length === 0
       ? `<div style="padding:16px 0;text-align:center;color:var(--text-tertiary);font-size:13px">Sem dados de categoria</div>`
@@ -3700,19 +3700,19 @@ function renderRoutineView(embeddedEl) {
           })
           .join('');
 
-  // ── Streak Badge ──────────────────────────────────────────────────────────
+  // -- Streak Badge ----------------------------------------------------------
   const streakBadge =
     currentStreak >= 7
-      ? `<span class="routine-streak-badge fire">🔥 ${currentStreak} dias de sequência</span>`
+      ? `<span class="routine-streak-badge fire">?? ${currentStreak} dias de sequência</span>`
       : currentStreak >= 3
-        ? `<span class="routine-streak-badge orange" style="background:rgba(255,159,10,0.1);border-color:rgba(255,159,10,0.25);color:#FF9F0A">⚡ ${currentStreak} dias consecutivos</span>`
+        ? `<span class="routine-streak-badge orange" style="background:rgba(255,159,10,0.1);border-color:rgba(255,159,10,0.25);color:#FF9F0A">? ${currentStreak} dias consecutivos</span>`
         : todayPercent === 100 && totalToday > 0
-          ? `<span class="routine-streak-badge green">✅ Dia perfeito!</span>`
+          ? `<span class="routine-streak-badge green">? Dia perfeito!</span>`
           : weeklyRate >= 80
-            ? `<span class="routine-streak-badge blue">📈 Semana excelente — ${weeklyRate}%</span>`
+            ? `<span class="routine-streak-badge blue">?? Semana excelente — ${weeklyRate}%</span>`
             : '';
 
-  // ── TAB CONTENT ───────────────────────────────────────────────────────────
+  // -- TAB CONTENT -----------------------------------------------------------
   let tabContent = '';
 
   if (activeTab === 'today') {
@@ -4013,7 +4013,7 @@ function renderRoutineView(embeddedEl) {
         </div>`;
   }
 
-  // ── FULL HTML ─────────────────────────────────────────────────────────────
+  // -- FULL HTML -------------------------------------------------------------
   view.innerHTML = `
     <div class="routine-container">
         <!-- Header -->
@@ -4337,8 +4337,23 @@ function renderSettingsView() {
 
   const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
   const notifEnabled = notifSettings.enabled === true;
-  const morningTime = notifSettings.morningTime || '12:00';
-  const eveningTime = notifSettings.eveningTime || '22:00';
+  const morningTime = notifSettings.morningTime || '08:30';
+  const middayTime = notifSettings.middayTime || '12:30';
+  const eveningTime = notifSettings.eveningTime || '23:00';
+  const inactivityEnabled = notifSettings.inactivityEnabled !== false;
+  const inactivityThresholdMinutes = Number(notifSettings.inactivityThresholdMinutes || 150);
+  const progressEnabled = notifSettings.progressEnabled !== false;
+  const morningTemplate =
+    notifSettings.morningTemplate || 'Bom dia. Hoje voce tem {total} tarefas planejadas.';
+  const middayTemplate =
+    notifSettings.middayTemplate || 'Como estamos de produtividade? {completed}/{total} ({percentage}%).';
+  const nightTemplate =
+    notifSettings.nightTemplate ||
+    'Resumo do dia: {completed}/{total} ({percentage}%). Tempo total {totalDuration}. Hora de descansar.';
+  const inactivityTemplate =
+    notifSettings.inactivityTemplate || 'Bem, o que andou fazendo nas ultimas 3h?';
+  const progressTemplate =
+    notifSettings.progressTemplate || 'Estamos no caminho, {completed}/{total}';
   const notifPerm = 'Notification' in window ? Notification.permission : 'unsupported';
   const notifSecureContext = window.isSecureContext === true;
 
@@ -4457,17 +4472,51 @@ function renderSettingsView() {
             `
               <div class="space-y-3">
                 ${settingRow('bell', 'Ativar notificacoes', 'Liga ou desliga alertas do app', toggle('toggleNotif', notifEnabled))}
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
                     <span class="mb-1 block uppercase tracking-wide text-gray-400">Horario Manha</span>
                     <input id="inputMorningTime" type="time" value="${morningTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                  </label>
+                  <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                    <span class="mb-1 block uppercase tracking-wide text-gray-400">Horario Meio-dia</span>
+                    <input id="inputMiddayTime" type="time" value="${middayTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
                   </label>
                   <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
                     <span class="mb-1 block uppercase tracking-wide text-gray-400">Horario Noite</span>
                     <input id="inputEveningTime" type="time" value="${eveningTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
                   </label>
                 </div>
-                <div class="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+                <div class="space-y-3 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+                  ${settingRow('timer-reset', 'Lembrete por inatividade', 'Se ficar muito tempo sem concluir tarefa', toggle('toggleInactivityNotif', inactivityEnabled))}
+                  <label class="block text-xs text-gray-300">
+                    <span class="mb-1 block uppercase tracking-wide text-gray-400">Limite inatividade (min)</span>
+                    <input id="inputInactivityMinutes" type="number" min="30" max="480" step="10" value="${inactivityThresholdMinutes}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                  </label>
+                  ${settingRow('gauge', 'Notificacao de progresso', 'Notifica a cada tarefa concluida', toggle('toggleProgressNotif', progressEnabled))}
+                </div>
+                <div class="grid grid-cols-1 gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+                  <label class="text-xs text-gray-300">
+                    <span class="mb-1 block uppercase tracking-wide text-gray-400">Template manha</span>
+                    <input id="inputMorningTemplate" type="text" value="${morningTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                  </label>
+                  <label class="text-xs text-gray-300">
+                    <span class="mb-1 block uppercase tracking-wide text-gray-400">Template meio-dia</span>
+                    <input id="inputMiddayTemplate" type="text" value="${middayTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                  </label>
+                  <label class="text-xs text-gray-300">
+                    <span class="mb-1 block uppercase tracking-wide text-gray-400">Template noite</span>
+                    <input id="inputNightTemplate" type="text" value="${nightTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                  </label>
+                  <label class="text-xs text-gray-300">
+                    <span class="mb-1 block uppercase tracking-wide text-gray-400">Template inatividade</span>
+                    <input id="inputInactivityTemplate" type="text" value="${inactivityTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                  </label>
+                  <label class="text-xs text-gray-300">
+                    <span class="mb-1 block uppercase tracking-wide text-gray-400">Template progresso</span>
+                    <input id="inputProgressTemplate" type="text" value="${progressTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                  </label>
+                  <p class="text-[11px] text-gray-500">Use variaveis: {completed}, {total}, {pending}, {percentage}, {avgDuration}, {totalDuration}, {bestPeriod}.</p>
+                </div>
                   <div class="mb-2 flex items-center justify-between gap-2 text-xs text-gray-300">
                     <span>Status da permissao</span>
                     ${permBadge}
@@ -4660,19 +4709,67 @@ function renderSettingsView() {
       };
     }
 
-    // Inputs Hora
-    ['inputMorningTime', 'inputEveningTime'].forEach((id) => {
+    const saveNotifField = async (id, value) => {
+      const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+      const valueById = {
+        inputMorningTime: ['morningTime', value],
+        inputMiddayTime: ['middayTime', value],
+        inputEveningTime: ['eveningTime', value],
+        inputInactivityMinutes: [
+          'inactivityThresholdMinutes',
+          Math.max(30, Math.min(480, Number(value) || 150))
+        ],
+        inputMorningTemplate: ['morningTemplate', value],
+        inputMiddayTemplate: ['middayTemplate', value],
+        inputNightTemplate: ['nightTemplate', value],
+        inputInactivityTemplate: ['inactivityTemplate', value],
+        inputProgressTemplate: ['progressTemplate', value]
+      };
+
+      const config = valueById[id];
+      if (!config) return;
+      cur[config[0]] = config[1];
+      localStorage.setItem('flowly_notif_settings', JSON.stringify(cur));
+      await saveNotifSettingsToSupabase();
+    };
+
+    // Inputs de notificacoes
+    [
+      'inputMorningTime',
+      'inputMiddayTime',
+      'inputEveningTime',
+      'inputInactivityMinutes',
+      'inputMorningTemplate',
+      'inputMiddayTemplate',
+      'inputNightTemplate',
+      'inputInactivityTemplate',
+      'inputProgressTemplate'
+    ].forEach((id) => {
       const el = document.getElementById(id);
       if (el) {
-        el.onchange = function () {
-          const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
-          if (id === 'inputMorningTime') cur.morningTime = this.value;
-          else cur.eveningTime = this.value;
-          localStorage.setItem('flowly_notif_settings', JSON.stringify(cur));
-          if (Notification.permission === 'granted') saveNotifSettingsToSupabase();
+        el.onchange = async function () {
+          await saveNotifField(id, this.value);
+          if (id === 'inputInactivityMinutes') {
+            this.value = String(Math.max(30, Math.min(480, Number(this.value) || 150)));
+          }
         };
       }
     });
+
+    const bindNotifToggle = (id, fieldName) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.onclick = async function () {
+        const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+        cur[fieldName] = !(cur[fieldName] !== false);
+        localStorage.setItem('flowly_notif_settings', JSON.stringify(cur));
+        await saveNotifSettingsToSupabase();
+        renderSettingsView();
+      };
+    };
+
+    bindNotifToggle('toggleInactivityNotif', 'inactivityEnabled');
+    bindNotifToggle('toggleProgressNotif', 'progressEnabled');
 
     // Week Hover Toggle
     const toggleWH = document.getElementById('toggleWeekHover');
@@ -6283,10 +6380,10 @@ function createTaskElement(day, dateStr, period, task, index) {
     window.toggleTaskExpansion(task, el);
   };
 
-  // ⋯ Action Button (Hover Context Menu replacement)
+  // ? Action Button (Hover Context Menu replacement)
   const hoverMenuBtn = document.createElement('button');
   hoverMenuBtn.className = 'task-hover-menu-btn text-gray-500 hover:text-white';
-  hoverMenuBtn.innerHTML = '⋯';
+  hoverMenuBtn.innerHTML = '?';
   hoverMenuBtn.style.opacity = '0';
   hoverMenuBtn.style.transition = 'opacity 150ms ease';
   hoverMenuBtn.style.background = 'transparent';
@@ -7213,15 +7310,68 @@ function getDailyNotificationSnapshot(dateStr = localDateStr()) {
   };
 }
 
-function sendProgressNotification() {
-  const { total, completed } = countDayTasks(localDateStr());
-  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+function renderNotifTemplate(template, snapshot) {
+  if (typeof template !== 'string' || template.trim().length === 0) return '';
+  const values = {
+    completed: snapshot.completed,
+    total: snapshot.total,
+    pending: snapshot.pending,
+    percentage: snapshot.percentage,
+    avgDuration: formatElapsedShort(snapshot.avgTaskDurationMs || 0),
+    totalDuration: formatElapsedShort(snapshot.totalTaskDurationMs || 0),
+    bestPeriod: snapshot.bestPeriod || 'sem destaque'
+  };
 
-  if (flowlyPwa && total > 0) {
-    flowlyPwa.sendProgressNotification({ completed, total, percentage });
+  return template.replace(/\{([a-zA-Z]+)\}/g, (_, key) => {
+    return Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : '';
+  });
+}
+
+function getProgressNotificationState() {
+  try {
+    return JSON.parse(localStorage.getItem('flowly_progress_notif_state') || '{}');
+  } catch (e) {
+    return {};
   }
 }
 
+function setProgressNotificationState(state) {
+  localStorage.setItem('flowly_progress_notif_state', JSON.stringify(state || {}));
+}
+
+function sendProgressNotification() {
+  if (!flowlyPwa) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+  if (notifSettings.enabled !== true) return;
+  if (notifSettings.progressEnabled === false) return;
+
+  const snapshot = getDailyNotificationSnapshot(localDateStr());
+  if (snapshot.total <= 0 || snapshot.completed <= 0) return;
+
+  const state = getProgressNotificationState();
+  const currentDay = snapshot.dateStr;
+  const prev = state[currentDay] || { completed: 0, total: 0 };
+  if (snapshot.completed <= prev.completed) return;
+
+  const body = renderNotifTemplate(
+    notifSettings.progressTemplate || 'Estamos no caminho, {completed}/{total}',
+    snapshot
+  );
+
+  flowlyPwa.sendProgressNotification({
+    completed: snapshot.completed,
+    total: snapshot.total,
+    percentage: snapshot.percentage,
+    title: 'Flowly | Progresso',
+    body,
+    tag: 'flowly-progress'
+  });
+
+  state[currentDay] = { completed: snapshot.completed, total: snapshot.total };
+  setProgressNotificationState(state);
+}
 // Enviar estatísticas diárias para o resumo da noite
 function sendDailyStats() {
   const { total, completed } = countDayTasks(localDateStr());
@@ -7246,18 +7396,11 @@ if (
 }
 
 
-// Enviar notificação de progresso quando tarefa é marcada
+// Enviar notificacao de progresso quando tarefa e marcada
 const originalSaveToLocalStorage = saveToLocalStorage;
 saveToLocalStorage = function () {
   originalSaveToLocalStorage();
-
-  // Enviar notificação a cada 3 tarefas completadas
-  const { completed } = countDayTasks(localDateStr());
-
-  // Notificar a cada 3, 5, 8 e 10 tarefas completadas
-  if ([3, 5, 8, 10].includes(completed)) {
-    setTimeout(sendProgressNotification, 1000);
-  }
+  setTimeout(sendProgressNotification, 250);
 };
 
 // ========================================
@@ -7556,4 +7699,9 @@ window.handleTaskIndent = function (dateStr, period, index, shiftKey) {
   syncTaskToSupabase(dateStr, period, currentTask);
   renderView();
 };
+
+
+
+
+
 

@@ -49,8 +49,27 @@
           {
             user_id: currentUser.id,
             push_enabled: notifSettings.enabled === true,
-            morning_notif_time: notifSettings.morningTime || '09:00',
-            evening_notif_time: notifSettings.eveningTime || '22:00',
+            morning_notif_time: notifSettings.morningTime || '08:30',
+            midday_notif_time: notifSettings.middayTime || '12:30',
+            evening_notif_time: notifSettings.eveningTime || '23:00',
+            inactivity_notif_enabled: notifSettings.inactivityEnabled !== false,
+            inactivity_threshold_minutes: Math.max(
+              30,
+              Math.min(480, Number(notifSettings.inactivityThresholdMinutes) || 150)
+            ),
+            progress_notif_enabled: notifSettings.progressEnabled !== false,
+            morning_notif_template:
+              notifSettings.morningTemplate || 'Bom dia. Hoje voce tem {total} tarefas planejadas.',
+            midday_notif_template:
+              notifSettings.middayTemplate ||
+              'Como estamos de produtividade? {completed}/{total} ({percentage}%).',
+            night_notif_template:
+              notifSettings.nightTemplate ||
+              'Resumo do dia: {completed}/{total} ({percentage}%). Tempo total {totalDuration}. Hora de descansar.',
+            inactivity_notif_template:
+              notifSettings.inactivityTemplate || 'Bem, o que andou fazendo nas ultimas 3h?',
+            progress_notif_template:
+              notifSettings.progressTemplate || 'Estamos no caminho, {completed}/{total}',
             timezone: tz,
             updated_at: new Date().toISOString()
           },
@@ -393,7 +412,10 @@
         type: 'SEND_PROGRESS_NOTIFICATION',
         completed: payload.completed,
         total: payload.total,
-        percentage: payload.percentage
+        percentage: payload.percentage,
+        title: payload.title || '',
+        body: payload.body || '',
+        tag: payload.tag || 'flowly-progress'
       });
     }
 

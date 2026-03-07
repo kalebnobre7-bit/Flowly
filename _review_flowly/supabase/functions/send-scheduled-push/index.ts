@@ -8,6 +8,15 @@ type UserSetting = {
   user_id: string;
   timezone: string | null;
   push_enabled: boolean | null;
+  morning_notif_time: string | null;
+  midday_notif_time: string | null;
+  evening_notif_time: string | null;
+  inactivity_notif_enabled: boolean | null;
+  inactivity_threshold_minutes: number | null;
+  morning_notif_template: string | null;
+  midday_notif_template: string | null;
+  night_notif_template: string | null;
+  inactivity_notif_template: string | null;
 };
 
 type PushSubscriptionRow = {
@@ -34,16 +43,24 @@ type DailyStats = {
   bestPeriod: string | null;
 };
 
-const SLOT_TIMES: Record<TimedSlotName, { hour: number; minute: number }> = {
-  morning: { hour: 8, minute: 30 },
-  midday: { hour: 12, minute: 30 },
-  night: { hour: 23, minute: 0 }
+const DEFAULT_TIMES: Record<TimedSlotName, string> = {
+  morning: '08:30',
+  midday: '12:30',
+  night: '23:00'
+};
+
+const DEFAULT_TEMPLATES = {
+  morning: 'Bom dia. Hoje voce tem {total} tarefas planejadas.',
+  midday: 'Como estamos de produtividade? {completed}/{total} ({percentage}%).',
+  night:
+    'Resumo do dia: {completed}/{total} ({percentage}%). Tempo total {totalDuration}. Hora de descansar.',
+  inactivity: 'Bem, o que andou fazendo nas ultimas 3h?'
 };
 
 const WINDOW_MINUTES = 8;
-const INACTIVITY_THRESHOLD_MINUTES = 150; // 2h30
-const INACTIVITY_START_MINUTES = 7 * 60; // 07:00
-const INACTIVITY_END_MINUTES = 24 * 60; // 00:00
+const INACTIVITY_START_MINUTES = 7 * 60;
+const INACTIVITY_END_MINUTES = 24 * 60;
+const DEFAULT_INACTIVITY_THRESHOLD_MINUTES = 150;
 
 function getEnv(name: string): string {
   const value = Deno.env.get(name);
@@ -87,11 +104,21 @@ function minutesOfDay(hour: number, minute: number): number {
   return hour * 60 + minute;
 }
 
-function isSlotDue(slot: TimedSlotName, localHour: number, localMinute: number): boolean {
-  const target = SLOT_TIMES[slot];
+function parseTimeToMinutes(value: string | null | undefined, fallback: string): number {
+  const source = (value || fallback || '').trim();
+  const match = /^(\d{1,2}):(\d{2})$/.exec(source);
+  if (!match) return parseTimeToMinutes(fallback, '08:30');
+
+  const hh = Number(match[1]);
+  const mm = Number(match[2]);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return parseTimeToMinutes(fallback, '08:30');
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return parseTimeToMinutes(fallback, '08:30');
+  return hh * 60 + mm;
+}
+
+function isSlotDue(targetMinutes: number, localHour: number, localMinute: number): boolean {
   const nowM = minutesOfDay(localHour, localMinute);
-  const targetM = minutesOfDay(target.hour, target.minute);
-  return Math.abs(nowM - targetM) <= WINDOW_MINUTES;
+  return Math.abs(nowM - targetMinutes) <= WINDOW_MINUTES;
 }
 
 function formatDuration(ms: number): string {
@@ -104,37 +131,37 @@ function formatDuration(ms: number): string {
   return `${hours}h ${minutes}m`;
 }
 
-function buildMessage(slot: SlotName, stats: DailyStats) {
-  if (slot === 'morning') {
-    const body =
-      stats.total > 0
-        ? `Bom dia. Hoje voce tem ${stats.total} tarefa${stats.total === 1 ? '' : 's'} planejada${
-            stats.total === 1 ? '' : 's'
-          }.`
-        : 'Bom dia. Hoje ainda nao ha tarefas planejadas. Defina 3 prioridades rapidas.';
+function renderTemplate(template: string | null | undefined, stats: DailyStats, fallback: string): string {
+  const source = (template || '').trim() || fallback;
+  const values: Record<string, string | number> = {
+    completed: stats.completed,
+    total: stats.total,
+    pending: stats.pending,
+    percentage: stats.percentage,
+    avgDuration: formatDuration(stats.avgDurationMs),
+    totalDuration: formatDuration(stats.totalDurationMs),
+    bestPeriod: stats.bestPeriod || 'sem destaque'
+  };
 
+  return source.replace(/\{([a-zA-Z]+)\}/g, (_, key) => {
+    return Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : '';
+  });
+}
+
+function buildMessage(slot: SlotName, stats: DailyStats, setting: UserSetting) {
+  if (slot === 'morning') {
     return {
       title: 'Flowly | Bom dia',
-      body,
+      body: renderTemplate(setting.morning_notif_template, stats, DEFAULT_TEMPLATES.morning),
       tag: 'flowly-scheduled-morning',
       type: 'scheduled-morning'
     };
   }
 
   if (slot === 'midday') {
-    let mood = 'Ritmo constante';
-    if (stats.percentage >= 70) mood = 'Excelente produtividade';
-    else if (stats.percentage >= 40) mood = 'Bom progresso';
-    else if (stats.percentage < 20) mood = 'Hora de acelerar';
-
-    const body =
-      stats.total > 0
-        ? `${mood}: ${stats.completed}/${stats.total} concluidas (${stats.percentage}%). Restam ${stats.pending}.`
-        : 'Sem tarefas registradas para hoje. Aproveite para planejar a tarde.';
-
     return {
-      title: 'Flowly | Produtividade 12:30',
-      body,
+      title: 'Flowly | Produtividade',
+      body: renderTemplate(setting.midday_notif_template, stats, DEFAULT_TEMPLATES.midday),
       tag: 'flowly-scheduled-midday',
       type: 'scheduled-midday'
     };
@@ -143,32 +170,34 @@ function buildMessage(slot: SlotName, stats: DailyStats) {
   if (slot === 'inactivity') {
     return {
       title: 'Flowly | Foco',
-      body: 'Bem, o que andou fazendo nas ultimas 3h?',
+      body: renderTemplate(setting.inactivity_notif_template, stats, DEFAULT_TEMPLATES.inactivity),
       tag: 'flowly-scheduled-inactivity',
       type: 'scheduled-inactivity'
     };
   }
 
-  const insight =
-    stats.percentage >= 80
-      ? 'Dia muito forte. Mantem o padrao amanha.'
-      : stats.percentage >= 50
-        ? `Seu melhor periodo foi ${stats.bestPeriod || 'o foco principal do dia'}.`
-        : 'Amanha comece por uma tarefa curta para ganhar tracao.';
-
-  const body =
-    stats.total > 0
-      ? `Resumo: ${stats.completed}/${stats.total} concluidas (${stats.percentage}%). Tempo total ${formatDuration(
-          stats.totalDurationMs
-        )}, media ${formatDuration(stats.avgDurationMs)}. ${insight} Hora de descansar.`
-      : 'Resumo: sem tarefas concluidas hoje. Reorganize prioridades e descanse para recomecar melhor.';
-
   return {
     title: 'Flowly | Resumo do dia',
-    body,
+    body: renderTemplate(setting.night_notif_template, stats, DEFAULT_TEMPLATES.night),
     tag: 'flowly-scheduled-night',
     type: 'scheduled-night'
   };
+}
+
+function getSlotTargetMinutes(slot: TimedSlotName, setting: UserSetting): number {
+  if (slot === 'morning') {
+    return parseTimeToMinutes(setting.morning_notif_time, DEFAULT_TIMES.morning);
+  }
+  if (slot === 'midday') {
+    return parseTimeToMinutes(setting.midday_notif_time, DEFAULT_TIMES.midday);
+  }
+  return parseTimeToMinutes(setting.evening_notif_time, DEFAULT_TIMES.night);
+}
+
+function getInactivityThreshold(setting: UserSetting): number {
+  const raw = Number(setting.inactivity_threshold_minutes ?? DEFAULT_INACTIVITY_THRESHOLD_MINUTES);
+  if (!Number.isFinite(raw)) return DEFAULT_INACTIVITY_THRESHOLD_MINUTES;
+  return Math.max(30, Math.min(480, Math.floor(raw)));
 }
 
 async function fetchDailyStats(
@@ -264,18 +293,23 @@ async function fetchLatestActivityTimestamp(
   return latest > 0 ? latest : null;
 }
 
-function shouldSendInactivity(localHour: number, localMinute: number, latestActivityTs: number | null): boolean {
+function shouldSendInactivity(
+  localHour: number,
+  localMinute: number,
+  latestActivityTs: number | null,
+  thresholdMinutes: number
+): boolean {
   const nowMinutes = minutesOfDay(localHour, localMinute);
   if (nowMinutes < INACTIVITY_START_MINUTES || nowMinutes >= INACTIVITY_END_MINUTES) {
     return false;
   }
 
   if (!latestActivityTs) {
-    return nowMinutes >= INACTIVITY_START_MINUTES + INACTIVITY_THRESHOLD_MINUTES;
+    return nowMinutes >= INACTIVITY_START_MINUTES + thresholdMinutes;
   }
 
   const diffMinutes = Math.floor((Date.now() - latestActivityTs) / 60000);
-  return Number.isFinite(diffMinutes) && diffMinutes >= INACTIVITY_THRESHOLD_MINUTES;
+  return Number.isFinite(diffMinutes) && diffMinutes >= thresholdMinutes;
 }
 
 async function alreadySent(
@@ -367,7 +401,10 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const slotParam = (url.searchParams.get('slot') || body.slot || '').toString() as SlotName | '';
     const requestedSlots: SlotName[] =
-      slotParam === 'morning' || slotParam === 'midday' || slotParam === 'night' || slotParam === 'inactivity'
+      slotParam === 'morning' ||
+      slotParam === 'midday' ||
+      slotParam === 'night' ||
+      slotParam === 'inactivity'
         ? [slotParam]
         : ['morning', 'midday', 'night', 'inactivity'];
 
@@ -392,7 +429,9 @@ Deno.serve(async (req) => {
 
     const { data: settingsData, error: settingsError } = await supabaseAdmin
       .from('user_settings')
-      .select('user_id, timezone, push_enabled')
+      .select(
+        'user_id, timezone, push_enabled, morning_notif_time, midday_notif_time, evening_notif_time, inactivity_notif_enabled, inactivity_threshold_minutes, morning_notif_template, midday_notif_template, night_notif_template, inactivity_notif_template'
+      )
       .eq('push_enabled', true);
 
     if (settingsError) {
@@ -410,9 +449,13 @@ Deno.serve(async (req) => {
       const localNow = getNowInTimezone(timezone);
 
       for (const slot of requestedSlots) {
+        const sentBefore = await alreadySent(supabaseAdmin, setting.user_id, localNow.dateKey, slot);
+        if (sentBefore) continue;
+
+        const stats = await fetchDailyStats(supabaseAdmin, setting.user_id, localNow.dateKey);
+
         if (slot === 'inactivity') {
-          const already = await alreadySent(supabaseAdmin, setting.user_id, localNow.dateKey, slot);
-          if (already) continue;
+          if (setting.inactivity_notif_enabled === false) continue;
 
           const latestActivityTs = await fetchLatestActivityTimestamp(
             supabaseAdmin,
@@ -420,20 +463,12 @@ Deno.serve(async (req) => {
             localNow.dateKey
           );
 
-          if (!shouldSendInactivity(localNow.hour, localNow.minute, latestActivityTs)) {
+          const thresholdMinutes = getInactivityThreshold(setting);
+          if (!shouldSendInactivity(localNow.hour, localNow.minute, latestActivityTs, thresholdMinutes)) {
             continue;
           }
 
-          const message = buildMessage('inactivity', {
-            total: 0,
-            completed: 0,
-            percentage: 0,
-            pending: 0,
-            avgDurationMs: 0,
-            totalDurationMs: 0,
-            bestPeriod: null
-          });
-
+          const message = buildMessage('inactivity', stats, setting);
           const payload = {
             title: message.title,
             body: message.body,
@@ -454,14 +489,10 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        if (!isSlotDue(slot as TimedSlotName, localNow.hour, localNow.minute)) continue;
+        const targetMinutes = getSlotTargetMinutes(slot as TimedSlotName, setting);
+        if (!isSlotDue(targetMinutes, localNow.hour, localNow.minute)) continue;
 
-        const sentBefore = await alreadySent(supabaseAdmin, setting.user_id, localNow.dateKey, slot);
-        if (sentBefore) continue;
-
-        const stats = await fetchDailyStats(supabaseAdmin, setting.user_id, localNow.dateKey);
-        const message = buildMessage(slot, stats);
-
+        const message = buildMessage(slot, stats, setting);
         const payload = {
           title: message.title,
           body: message.body,
@@ -489,8 +520,7 @@ Deno.serve(async (req) => {
         notifications_sent: notificationsSent,
         subscriptions_removed: subscriptionsRemoved,
         slots: requestedSlots,
-        window_minutes: WINDOW_MINUTES,
-        inactivity_threshold_minutes: INACTIVITY_THRESHOLD_MINUTES
+        window_minutes: WINDOW_MINUTES
       }),
       {
         status: 200,

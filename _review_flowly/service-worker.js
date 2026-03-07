@@ -118,7 +118,7 @@ self.addEventListener('message', (event) => {
   if (!data || !data.type) return;
 
   if (data.type === 'SEND_PROGRESS_NOTIFICATION') {
-    showProgressNotification(data.completed, data.total, data.percentage);
+    showProgressNotification(data);
     return;
   }
 
@@ -132,7 +132,11 @@ self.addEventListener('message', (event) => {
   }
 });
 
-function showProgressNotification(completed, total, percentage) {
+function showProgressNotification(data) {
+  const completed = Number(data.completed || 0);
+  const total = Number(data.total || 0);
+  const percentage = Number(data.percentage || 0);
+
   let title;
   let body;
   let prefix;
@@ -155,15 +159,18 @@ function showProgressNotification(completed, total, percentage) {
     body = `${completed}/${total} tarefas concluidas. Vamos fazer acontecer!`;
   }
 
+  const customTitle = typeof data.title === 'string' && data.title.trim().length > 0 ? data.title.trim() : `${prefix} ${title}`;
+  const customBody = typeof data.body === 'string' && data.body.trim().length > 0 ? data.body.trim() : body;
+  const customTag = typeof data.tag === 'string' && data.tag.trim().length > 0 ? data.tag.trim() : 'flowly-progress';
+
   const options = buildNotificationOptions({
-    body,
-    tag: 'flowly-progress',
+    body: customBody,
+    tag: customTag,
     requireInteraction: false
   });
 
-  self.registration.showNotification(`${prefix} ${title}`, options);
+  self.registration.showNotification(customTitle, options);
 }
-
 self.addEventListener('push', (event) => {
   let data = { title: 'Flowly', body: 'Nova notificacao', type: 'general' };
 
@@ -217,4 +224,5 @@ self.addEventListener('notificationclick', (event) => {
     );
   }
 });
+
 
