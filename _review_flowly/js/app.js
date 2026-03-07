@@ -129,6 +129,36 @@ function localDateStr(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function formatElapsedShort(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return 'agora';
+
+  const totalMinutes = Math.floor(ms / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) {
+    if (hours > 0) return `${days}d ${hours}h`;
+    return `${days}d`;
+  }
+
+  if (hours > 0) {
+    if (minutes > 0) return `${hours}h ${minutes}m`;
+    return `${hours}h`;
+  }
+
+  return `${Math.max(1, minutes)}m`;
+}
+
+function formatTimeSince(dateLike) {
+  const ts = new Date(dateLike).getTime();
+  if (!Number.isFinite(ts)) return 'sem registro';
+
+  const diff = Date.now() - ts;
+  if (diff <= 0) return 'agora';
+  return `ha ${formatElapsedShort(diff)}`;
+}
+
 // Helper para JSON seguro
 function safeJSONParse(str, fallback) {
   if (localStore && typeof localStore.safeJSONParse === 'function') {
@@ -6100,6 +6130,7 @@ function renderToday() {
 
   // Buscar tarefas de hoje
   const dayTasks = allTasksData[dateStr] || {};
+  const todayPersistedTasks = [];
   let allTasks = [];
 
   // 1. Rotina diária + recorrentes semanais
@@ -6115,6 +6146,7 @@ function renderToday() {
       tasks.forEach((task, index) => {
         if (task && typeof task === 'object') {
           allTasks.push({ task, day: today, dateStr, period, originalIndex: index });
+          todayPersistedTasks.push(task);
         }
       });
     }
@@ -6185,6 +6217,26 @@ function renderToday() {
   const routineTotal = routineTasks.length;
   const routineCompleted = routineTasks.filter((t) => t.completed).length;
   const routineRate = routineTotal > 0 ? Math.round((routineCompleted / routineTotal) * 100) : 0;
+
+  const completedWithTimestamp = todayPersistedTasks
+    .filter((t) => t && t.completed && t.completedAt)
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+  const lastCompletedTask = completedWithTimestamp[0] || null;
+  const lastCompletedText = lastCompletedTask
+    ? formatTimeSince(lastCompletedTask.completedAt)
+    : 'Sem tarefas concluidas';
+
+  const durationSamplesMs = todayPersistedTasks
+    .filter((t) => t && t.completed && t.createdAt && t.completedAt)
+    .map((t) => new Date(t.completedAt).getTime() - new Date(t.createdAt).getTime())
+    .filter((ms) => Number.isFinite(ms) && ms >= 0);
+
+  const avgTaskDurationText =
+    durationSamplesMs.length > 0
+      ? formatElapsedShort(
+          Math.round(durationSamplesMs.reduce((sum, ms) => sum + ms, 0) / durationSamplesMs.length)
+        )
+      : 'Sem dados';
 
   // Streak
   let streak = 0;
@@ -6519,7 +6571,16 @@ function renderToday() {
                 
                 
                 
+                                        <div class="stat-card">
+                        <span class="stat-label">Ultima conclusao</span>
+                        <span class="stat-value ${lastCompletedTask ? 'blue' : ''}">${lastCompletedText}</span>
+                    </div>
+
                     <div class="stat-card">
+                        <span class="stat-label">Media por tarefa</span>
+                        <span class="stat-value ${durationSamplesMs.length > 0 ? 'blue' : ''}">${avgTaskDurationText}</span>
+                    </div>
+<div class="stat-card">
                 
                 
                 
