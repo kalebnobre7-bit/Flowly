@@ -241,3 +241,48 @@ body::before {
 
 @media print { body::before { display: none; } }
 
+
+/* Mobile layout fixes (today view) */
+@media (max-width: 768px) {
+    #weekGrid.today-container {
+        width: 100%;
+        max-width: 100%;
+        padding: 10px 14px;
+        gap: 18px;
+        align-items: stretch;
+    }
+
+    .today-main,
+    .today-sidebar {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .today-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .today-sidebar .stat-section {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+        border-radius: 20px;
+        padding: 18px;
+    }
+
+    .today-header {
+        text-align: center;
+        margin-bottom: 18px;
+    }
+
+    .today-header h1 {
+        font-size: 32px;
+        text-align: center;
+    }
+
+    .today-header p {
+        text-align: center;
+    }
+}
