@@ -61,18 +61,31 @@
 
     async function syncTaskToSupabase(dateStr, period, task) {
       const currentUser = getCurrentUser();
-      if (!currentUser) return { success: false, errorText: 'Usuário não autenticado.' };
+      if (!currentUser) return { success: false, errorText: 'Usuario nao autenticado.' };
 
       try {
         let data;
         let error;
+
+        const payloadBase = {
+          text: task.text,
+          completed: task.completed === true,
+          color: task.color || 'default',
+          type: task.type || null,
+          priority: task.priority || null,
+          parent_id: task.parent_id || null,
+          position: typeof task.position === 'number' ? task.position : null,
+          is_habit: task.isHabit || false,
+          updated_at: new Date().toISOString()
+        };
+
         if (task.supabaseId && task.supabaseId.includes('-')) {
           const updatePayload = {
-            text: task.text,
-            completed: task.completed === true,
-            color: task.color || 'default',
-            is_habit: task.isHabit || false
+            ...payloadBase,
+            day: dateStr,
+            period
           };
+
           ({ data, error } = await supabaseClient
             .from('tasks')
             .update(updatePayload)
@@ -82,12 +95,10 @@
           const insertPayload = {
             user_id: currentUser.id,
             day: dateStr,
-            period: period,
-            text: task.text,
-            completed: task.completed === true,
-            color: task.color || 'default',
-            is_habit: task.isHabit || false
+            period,
+            ...payloadBase
           };
+
           ({ data, error } = await supabaseClient.from('tasks').insert([insertPayload]).select());
         }
 
@@ -117,17 +128,31 @@
         if (task.supabaseId) {
           const { error } = await supabaseClient.from('tasks').delete().eq('id', task.supabaseId);
           if (error) console.error('[Delete] Error by ID:', error.message);
+          return;
         }
 
+        // Fallback para tarefas sem supabaseId (legacy): resolve um id e deleta apenas esse registro
         if (task.text && day && period) {
-          const { error } = await supabaseClient
+          const { data: oneTask, error: findError } = await supabaseClient
             .from('tasks')
-            .delete()
+            .select('id')
             .eq('user_id', currentUser.id)
             .eq('text', task.text)
             .eq('day', day)
-            .eq('period', period);
-          if (error) console.error('[Delete] Error by text/day/period:', error.message);
+            .eq('period', period)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (findError) {
+            console.error('[Delete] Error finding fallback task:', findError.message);
+            return;
+          }
+
+          if (oneTask && oneTask.id) {
+            const { error } = await supabaseClient.from('tasks').delete().eq('id', oneTask.id);
+            if (error) console.error('[Delete] Error by resolved ID:', error.message);
+          }
         }
       } catch (err) {
         console.error('[Delete] Fatal:', err.message);

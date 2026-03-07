@@ -1039,22 +1039,141 @@ function renderHabitsView() {
     const streak = getHabitStreak(habit.text),
       completionRate = getHabitCompletionRate(habit.text, 30);
     html += `<div class="bg-[#1c1c1e] bg-opacity-40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:bg-opacity-60 transition-all flex items-center justify-between gap-4 group">
+                
+                
+                
+                
+                
+                
+                
                 <div class="flex items-center gap-4 flex-1">
+                
+                
+                
+                
+                
+                
+                
                     <input type="checkbox" class="checkbox-custom mt-1" ${habit.completedToday ? 'checked' : ''} onchange="toggleHabitToday('${habit.text.replace(/'/g, "\\'")}', this.checked)">
+                
+                
+                
+                
+                
+                
+                
                     <div class="flex-1">
+                
+                
+                
+                
+                
+                
+                
                         <div class="color-${habit.color} font-medium text-lg mb-1 group-hover:text-white transition-colors">${habit.text}</div>
+                
+                
+                
+                
+                
+                
+                
                         <div class="flex items-center gap-3 text-xs text-gray-400">
+                
+                
+                
+                
+                
+                
+                
                             ${streak > 0 ? `<span class="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 font-medium flex items-center gap-1"><i data-lucide="flame" style="width: 14px; height: 14px;"></i> ${streak} dias</span>` : ''}
+                
+                
+                
+                
+                
+                
+                
                             <span>${completionRate}% consistency (30d)</span>
+                
+                
+                
+                
+                
+                
+                
                         </div>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="flex items-center gap-3">
+                
+                
+                
+                
+                
+                
+                
                     <div class="w-32 h-1.5 bg-gray-700/30 rounded-full overflow-hidden flex-shrink-0"><div class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: ${completionRate}%"></div></div>
+                
+                
+                
+                
+                
+                
+                
                     <button onclick="removeHabit('${habit.text.replace(/'/g, "\\'")}');" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg" title="Remover hábito">
+                
+                
+                
+                
+                
+                
+                
                         <i data-lucide="x" class="text-red-400" style="width: 18px; height: 18px;"></i>
+                
+                
+                
+                
+                
+                
+                
                     </button>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>`;
   });
   html += `</div></div>`;
@@ -1071,15 +1190,57 @@ function renderAnalyticsView() {
     <div style="display:flex;gap:6px;padding:0 0 20px">
         <button onclick="document.getElementById('analyticsView').dataset.mainTab='routine';document.getElementById('analyticsView').dataset.routineTab=document.getElementById('analyticsView').dataset.routineTab||'today';renderAnalyticsView()"
             style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid;cursor:pointer;transition:all 0.15s;
+                
+                
+                
+                
+                
+                
+                
                    background:${mainTab === 'routine' ? 'rgba(10,132,255,0.15)' : 'transparent'};
+                
+                
+                
+                
+                
+                
+                
                    color:${mainTab === 'routine' ? '#0A84FF' : 'var(--text-tertiary)'};
+                
+                
+                
+                
+                
+                
+                
                    border-color:${mainTab === 'routine' ? 'rgba(10,132,255,0.35)' : 'var(--border-subtle)'}">
             Rotina
         </button>
         <button onclick="document.getElementById('analyticsView').dataset.mainTab='analytics';renderAnalyticsView()"
             style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid;cursor:pointer;transition:all 0.15s;
+                
+                
+                
+                
+                
+                
+                
                    background:${mainTab === 'analytics' ? 'rgba(10,132,255,0.15)' : 'transparent'};
+                
+                
+                
+                
+                
+                
+                
                    color:${mainTab === 'analytics' ? '#0A84FF' : 'var(--text-tertiary)'};
+                
+                
+                
+                
+                
+                
+                
                    border-color:${mainTab === 'analytics' ? 'rgba(10,132,255,0.35)' : 'var(--border-subtle)'}">
             Analytics
         </button>
@@ -1294,9 +1455,37 @@ function renderAnalyticsView() {
             const rc = h.rate >= 80 ? '#30D158' : h.rate >= 50 ? '#0A84FF' : 'var(--text-tertiary)';
             const bc = h.rate >= 80 ? '#30D158' : h.rate >= 50 ? '#0A84FF' : '#FF9F0A';
             return `<div class="analytics-rank-row">
+                
+                
+                
+                
+                
+                
+                
                 <span class="analytics-rank-num">${rank}</span>
+                
+                
+                
+                
+                
+                
+                
                 <span class="analytics-rank-name">${h.text}</span>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-rank-bar-wrap"><div class="analytics-rank-bar" style="width:${h.rate}%;background:${bc}"></div></div>
+                
+                
+                
+                
+                
+                
+                
                 <span class="analytics-rank-pct" style="color:${rc}">${h.rate}%</span>
             </div>`;
           })
@@ -1332,10 +1521,45 @@ function renderAnalyticsView() {
             const pct = Math.round((c.total / catMaxVal) * 100);
             const donePct = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
             return `<div class="analytics-cat-row">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-cat-dot" style="background:${ti.color}"></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-cat-name">${ti.name}</div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="font-size:11px;color:var(--text-tertiary);min-width:28px;text-align:right">${donePct}%</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-cat-bar-wrap"><div class="analytics-cat-bar" style="width:${pct}%;background:${ti.color}"></div></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-cat-count">${c.done}/${c.total}</div>
             </div>`;
           })
@@ -1454,7 +1678,21 @@ function renderAnalyticsView() {
         <div class="analytics-insight-v2 ${ins.color}">
             <div class="analytics-insight-v2-icon">${ins.icon}</div>
             <div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-insight-v2-title">${ins.title}</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-insight-v2-text">${ins.text}</div>
             </div>
         </div>`
@@ -1517,7 +1755,21 @@ function renderAnalyticsView() {
         <!-- Header -->
         <div class="analytics-header-v2">
             <div>
+                
+                
+                
+                
+                
+                
+                
                 <h2 class="analytics-title-v2">Analytics</h2>
+                
+                
+                
+                
+                
+                
+                
                 <p class="analytics-subtitle-v2">${MONTH_NAMES_PT[nowMonth]} ${nowYear} · Semana atual</p>
             </div>
         </div>
@@ -1525,29 +1777,155 @@ function renderAnalyticsView() {
         <!-- KPI Grid -->
         <div class="analytics-kpi-grid-v2">
             <div class="analytics-kpi-v2">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-glow" style="background:radial-gradient(circle,rgba(${todayRate >= 70 ? '48,209,88' : todayRate >= 40 ? '255,159,10' : '255,69,58'},0.18),transparent)"></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-label"><i data-lucide="sun" style="width:12px;height:12px"></i> Hoje</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-value" style="color:${todayKpiColor}">${todayRate}%</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-sub">${completedTasksToday} de ${totalTasksToday} tarefas</div>
+                
+                
+                
+                
+                
+                
+                
                 ${todayRate === 100 && totalTasksToday > 0 ? `<span class="analytics-kpi-v2-badge up">✅ Perfeito</span>` : ''}
             </div>
             <div class="analytics-kpi-v2">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-glow" style="background:radial-gradient(circle,rgba(${weekDiff > 0 ? '48,209,88' : weekDiff < 0 ? '255,69,58' : '10,132,255'},0.18),transparent)"></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-label"><i data-lucide="calendar" style="width:12px;height:12px"></i> Semana</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-value" style="color:${weekDiff > 0 ? '#30D158' : weekDiff < 0 ? '#FF453A' : '#0A84FF'}">${weekRate}%</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-sub">${completedTasksWeek} de ${totalTasksWeek} tarefas</div>
+                
+                
+                
+                
+                
+                
+                
                 <span class="analytics-kpi-v2-badge ${trendClass}" title="${trendTooltip}">${trendLabel} vs sem. ant. (até ${weekDates[weekDates.findIndex((w) => w.dateStr === today)]?.name?.substring(0, 3) || 'hoje'})</span>
             </div>
             <div class="analytics-kpi-v2">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-glow" style="background:radial-gradient(circle,rgba(191,90,242,0.18),transparent)"></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-label"><i data-lucide="target" style="width:12px;height:12px"></i> Hábitos</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-value" style="color:${habitRate >= 80 ? '#30D158' : '#BF5AF2'}">${habitRate}%</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-sub">${completedHabitsToday} de ${totalHabits} concluídos</div>
             </div>
             <div class="analytics-kpi-v2">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-glow" style="background:radial-gradient(circle,rgba(255,159,10,0.18),transparent)"></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-label"><i data-lucide="flame" style="width:12px;height:12px"></i> Streak</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-value" style="color:${currentStreak >= 7 ? '#FF9F0A' : currentStreak > 0 ? '#30D158' : 'var(--text-tertiary)'}">${currentStreak}</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-kpi-v2-sub">${currentStreak > 0 ? `🔥 dias perfeitos consecutivos` : 'Complete 100% hoje!'}</div>
             </div>
         </div>
@@ -1555,7 +1933,21 @@ function renderAnalyticsView() {
         <!-- Day performance strip -->
         <div class="analytics-chart-v2">
             <div class="analytics-chart-v2-header">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-chart-v2-title"><i data-lucide="bar-chart-2" style="width:14px;height:14px"></i> Desempenho por Dia</div>
+                
+                
+                
+                
+                
+                
+                
                 <span class="analytics-chart-v2-badge">${weekRate}% semana</span>
             </div>
             <div class="analytics-day-perf-grid">${dayPerfHTML}</div>
@@ -1564,29 +1956,183 @@ function renderAnalyticsView() {
         <!-- Charts row: week bar + doughnut -->
         <div class="analytics-2col">
             <div class="analytics-chart-v2">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-chart-v2-header">
+                
+                
+                
+                
+                
+                
+                
                     <div class="analytics-chart-v2-title"><i data-lucide="bar-chart-2" style="width:14px;height:14px"></i> Progresso Semanal</div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="position:relative;height:200px">
+                
+                
+                
+                
+                
+                
+                
                     <canvas id="weekChartV2"></canvas>
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </div>
             <div class="analytics-chart-v2" style="display:flex;flex-direction:column">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-chart-v2-header">
+                
+                
+                
+                
+                
+                
+                
                     <div class="analytics-chart-v2-title"><i data-lucide="pie-chart" style="width:14px;height:14px"></i> Hábitos Hoje</div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="flex:1;display:flex;align-items:center;justify-content:center">
+                
+                
+                
+                
+                
+                
+                
                     <div style="position:relative;width:160px;height:160px">
+                
+                
+                
+                
+                
+                
+                
                         <canvas id="habitsChartV2"></canvas>
+                
+                
+                
+                
+                
+                
+                
                         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                
+                
+                
+                
+                
+                
+                
                             <div style="font-size:30px;font-weight:800;font-family:var(--font-display);color:${habitRate >= 80 ? '#30D158' : '#BF5AF2'};line-height:1">${habitRate}%</div>
+                
+                
+                
+                
+                
+                
+                
                             <div style="font-size:10px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">hábitos</div>
+                
+                
+                
+                
+                
+                
+                
                         </div>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="display:flex;justify-content:center;gap:16px;margin-top:14px;font-size:11px;color:var(--text-tertiary)">
+                
+                
+                
+                
+                
+                
+                
                     <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#30D158;display:inline-block"></span>${completedHabitsToday} feitos</span>
+                
+                
+                
+                
+                
+                
+                
                     <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.1);display:inline-block"></span>${totalHabits - completedHabitsToday} pendentes</span>
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </div>
         </div>
@@ -1594,10 +2140,31 @@ function renderAnalyticsView() {
         <!-- Monthly evolution -->
         <div class="analytics-chart-v2">
             <div class="analytics-chart-v2-header">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-chart-v2-title"><i data-lucide="calendar-days" style="width:14px;height:14px"></i> Evolução do Mês — ${MONTH_NAMES_PT[nowMonth]}</div>
+                
+                
+                
+                
+                
+                
+                
                 <span class="analytics-chart-v2-badge">Média ${monthAvgRate}%</span>
             </div>
             <div style="position:relative;height:180px">
+                
+                
+                
+                
+                
+                
+                
                 <canvas id="monthChartV2"></canvas>
             </div>
         </div>
@@ -1605,29 +2172,183 @@ function renderAnalyticsView() {
         <!-- Ranking + Category -->
         <div class="analytics-2col">
             <div class="analytics-chart-v2">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-chart-v2-header">
+                
+                
+                
+                
+                
+                
+                
                     <div class="analytics-chart-v2-title"><i data-lucide="award" style="width:14px;height:14px"></i> Ranking de Hábitos</div>
+                
+                
+                
+                
+                
+                
+                
                     <span class="analytics-chart-v2-badge">30 dias</span>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 ${habitRankingHTML}
             </div>
             <div style="display:flex;flex-direction:column;gap:12px">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-chart-v2" style="flex:1">
+                
+                
+                
+                
+                
+                
+                
                     <div class="analytics-chart-v2-header">
+                
+                
+                
+                
+                
+                
+                
                         <div class="analytics-chart-v2-title"><i data-lucide="tag" style="width:14px;height:14px"></i> Por Categoria</div>
+                
+                
+                
+                
+                
+                
+                
                         <span class="analytics-chart-v2-badge">esta semana</span>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                     ${catHTML}
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                
+                
+                
+                
+                
+                
+                
                     <div class="analytics-chart-v2" style="padding:16px 14px">
+                
+                
+                
+                
+                
+                
+                
                         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);margin-bottom:8px;display:flex;align-items:center;gap:5px"><i data-lucide="trophy" style="width:11px;height:11px;color:#30D158"></i> Melhor</div>
+                
+                
+                
+                
+                
+                
+                
                         ${bestDay ? `<div style="font-size:18px;font-weight:800;color:#30D158;font-family:var(--font-display)">${bestDay.name.substring(0, 3)}</div><div style="font-size:24px;font-weight:900;font-family:var(--font-display);letter-spacing:-0.04em;color:#30D158">${bestDay.rate}%</div>` : `<div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">Sem dados</div>`}
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                     <div class="analytics-chart-v2" style="padding:16px 14px">
+                
+                
+                
+                
+                
+                
+                
                         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);margin-bottom:8px;display:flex;align-items:center;gap:5px"><i data-lucide="alert-circle" style="width:11px;height:11px;color:#FF9F0A"></i> Atenção</div>
+                
+                
+                
+                
+                
+                
+                
                         ${worstDay ? `<div style="font-size:18px;font-weight:800;color:#FF9F0A;font-family:var(--font-display)">${worstDay.name.substring(0, 3)}</div><div style="font-size:24px;font-weight:900;font-family:var(--font-display);letter-spacing:-0.04em;color:#FF9F0A">${worstDay.rate}%</div>` : `<div style="font-size:12px;color:var(--text-tertiary);padding:8px 0">Sem dados</div>`}
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </div>
         </div>
@@ -1635,15 +2356,64 @@ function renderAnalyticsView() {
         <!-- 30-day Heatmap -->
         <div class="analytics-chart-v2">
             <div class="analytics-chart-v2-header">
+                
+                
+                
+                
+                
+                
+                
                 <div class="analytics-chart-v2-title"><i data-lucide="layout-grid" style="width:14px;height:14px"></i> Heatmap de Produtividade</div>
+                
+                
+                
+                
+                
+                
+                
                 <span class="analytics-chart-v2-badge">30 dias</span>
             </div>
             <div class="analytics-heatmap-grid">${heatmapCells}</div>
             <div style="display:flex;gap:14px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
+                
+                
+                
+                
+                
+                
+                
                 <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:rgba(255,255,255,0.06)"></div><span style="font-size:10px;color:var(--text-tertiary)">Vazio</span></div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:rgba(255,69,58,0.55)"></div><span style="font-size:10px;color:var(--text-tertiary)">&lt;40%</span></div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#FF9F0A"></div><span style="font-size:10px;color:var(--text-tertiary)">40–60%</span></div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#0A84FF"></div><span style="font-size:10px;color:var(--text-tertiary)">60–80%</span></div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#30D158"></div><span style="font-size:10px;color:var(--text-tertiary)">≥80%</span></div>
             </div>
         </div>
@@ -1793,6 +2563,7 @@ function renderAnalyticsView() {
               padding: 10,
               callbacks: {
                 title: (items) => `Dia ${items[0].label}`,
+
                 label: (item) => (item.raw !== null ? ` ${item.raw}% concluído` : ' Sem tarefas')
               }
             }
@@ -1809,9 +2580,12 @@ function renderAnalyticsView() {
               grid: { display: false },
               ticks: {
                 color: chartDefaults.color,
+
                 maxTicksLimit: 12,
+
                 callback: function (val, index) {
                   const d = index + 1;
+
                   return d === 1 || d % 5 === 0 || d === daysInMonth ? d : '';
                 }
               },
@@ -1846,34 +2620,223 @@ function renderMonth() {
   ];
 
   let html = `
+                
+                
+                
+                
+                
+                
+                
                 <div class="max-w-[1400px] mx-auto">
+                
+                
+                
+                
+                
+                
+                
                     <div class="flex items-center justify-center gap-4 mb-6">
+                
+                
+                
+                
+                
+                
+                
                         <button onclick="currentMonthOffset--; renderView();" class="utility-btn">
+                
+                
+                
+                
+                
+                
+                
                             <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+                
+                
+                
+                
+                
+                
+                
                         </button>
+                
+                
+                
+                
+                
+                
+                
                         <h2 class="text-2xl font-bold text-white min-w-[200px] text-center">
+                
+                
+                
+                
+                
+                
+                
                             ${monthNames[month]} ${year}
+                
+                
+                
+                
+                
+                
+                
                         </h2>
+                
+                
+                
+                
+                
+                
+                
                         <button onclick="currentMonthOffset++; renderView();" class="utility-btn">
+                
+                
+                
+                
+                
+                
+                
                             <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+                
+                
+                
+                
+                
+                
+                
                         </button>
+                
+                
+                
+                
+                
+                
+                
                         <button onclick="currentMonthOffset = 0; renderView();" class="btn-secondary text-xs px-3 py-1 ml-4" style="width: auto; padding: 6px 12px;">
+                
+                
+                
+                
+                
+                
+                
                             Mês Atual
+                
+                
+                
+                
+                
+                
+                
                         </button>
+                
+                
+                
+                
+                
+                
+                
                     </div>
 
+                
+                
+                
+                
+                
+                
+                
                     <!-- Cabeçalho dos dias da semana -->
+                
+                
+                
+                
+                
+                
+                
                     <div class="grid grid-cols-7 gap-2 mb-2">
+                
+                
+                
+                
+                
+                
+                
                         <div class="text-center text-xs font-semibold text-gray-500 uppercase">Seg</div>
+                
+                
+                
+                
+                
+                
+                
                         <div class="text-center text-xs font-semibold text-gray-500 uppercase">Ter</div>
+                
+                
+                
+                
+                
+                
+                
                         <div class="text-center text-xs font-semibold text-gray-500 uppercase">Qua</div>
+                
+                
+                
+                
+                
+                
+                
                         <div class="text-center text-xs font-semibold text-gray-500 uppercase">Qui</div>
+                
+                
+                
+                
+                
+                
+                
                         <div class="text-center text-xs font-semibold text-gray-500 uppercase">Sex</div>
+                
+                
+                
+                
+                
+                
+                
                         <div class="text-center text-xs font-semibold text-gray-500 uppercase">Sáb</div>
+                
+                
+                
+                
+                
+                
+                
                         <div class="text-center text-xs font-semibold text-gray-500 uppercase">Dom</div>
+                
+                
+                
+                
+                
+                
+                
                     </div>
 
+                
+                
+                
+                
+                
+                
+                
                     <!-- Grid do calendário -->
+                
+                
+                
+                
+                
+                
+                
                     <div class="grid grid-cols-7 gap-2">
             `;
 
@@ -1916,40 +2879,222 @@ function renderMonth() {
     const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     html += `
+                
+                
+                
+                
+                
+                
+                
                     <div class="min-h-[120px] bg-[#1c1c1e] bg-opacity-40 rounded-lg p-3 hover:bg-opacity-60 transition-all cursor-pointer border ${isToday ? 'border-blue-500' : 'border-white/5'}"
+                
+                
+                
+                
+                
+                
+                
                          onclick="goToDate('${dateStr}')">
+                
+                
+                
+                
+                
+                
+                
                         <div class="flex items-center justify-between mb-2">
+                
+                
+                
+                
+                
+                
+                
                             <div class="text-sm font-semibold ${isToday ? 'text-blue-400' : 'text-white'}">${day}</div>
+                
+                
+                
+                
+                
+                
+                
                             ${
                               totalTasks > 0
                                 ? `
-                                <div class="text-xs text-gray-500">
-                                    ${completedTasks}/${totalTasks}
-                                </div>
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <div class="text-xs text-gray-500">
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                    ${completedTasks}/${totalTasks}
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                </div>
+                
+                
+                
+                
+                
+                
+                
                             `
                                 : ''
                             }
+                
+                
+                
+                
+                
+                
+                
                         </div>
 
+                
+                
+                
+                
+                
+                
+                
                         ${
                           totalTasks > 0
                             ? `
+                
+                
+                
+                
+                
+                
+                
                             <div class="w-full h-1 bg-gray-700/30 rounded-full overflow-hidden mb-2">
-                                <div class="h-full bg-blue-500 rounded-full transition-all" style="width: ${completionPercent}%"></div>
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <div class="h-full bg-blue-500 rounded-full transition-all" style="width: ${completionPercent}%"></div>
+                
+                
+                
+                
+                
+                
+                
                             </div>
+                
+                
+                
+                
+                
+                
+                
                         `
                             : ''
                         }
 
+                
+                
+                
+                
+                
+                
+                
                         <div class="text-xs text-gray-600 space-y-1">
+                
+                
+                
+                
+                
+                
+                
                             ${totalTasks === 0 ? '<div class="text-center py-4 text-gray-700">Sem tarefas</div>' : ''}
+                
+                
+                
+                
+                
+                
+                
                         </div>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 `;
   }
 
   html += `
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
             `;
 
@@ -2168,9 +3313,12 @@ function renderRoutineView(embeddedEl) {
               const dStr = localDateStr(d);
               if (task.daysOfWeek.includes(d.getDay())) {
                 itemTotal++;
+
                 const done = habitsHistory[task.text] && habitsHistory[task.text][dStr];
+
                 if (done) {
                   itemCompleted++;
+
                   if (!streakBroken) runningStreak++;
                 } else if (dStr !== todayStr) streakBroken = true;
               }
@@ -2192,26 +3340,126 @@ function renderRoutineView(embeddedEl) {
             const dayDots = [0, 1, 2, 3, 4, 5, 6]
               .map((dow) => {
                 const active = task.daysOfWeek.includes(dow);
+
                 const isNow = dow === today.getDay();
+
                 return `<span class="routine-habit-day-dot" style="background:${active ? (isNow ? '#0A84FF' : 'rgba(255,255,255,0.3)') : 'rgba(255,255,255,0.06)'}"></span>`;
               })
               .join('');
             const safeText = task.text.replace(/'/g, "\\'");
             return `
             <div class="routine-habit-row-v2" onclick="window.toggleHabitToday('${safeText}', ${!isTodayDone})">
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-habit-check-v2 ${checkClass}">
+                
+                
+                
+                
+                
+                
+                
                     <i data-lucide="check" style="width:14px;height:14px;stroke-width:3"></i>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 <div style="min-width:0">
+                
+                
+                
+                
+                
+                
+                
                     <div class="routine-habit-name-v2" style="color:${isTodayDone ? 'var(--text-tertiary)' : 'var(--text-primary)'};text-decoration:${isTodayDone ? 'line-through' : 'none'}">${task.text}</div>
+                
+                
+                
+                
+                
+                
+                
                     <div class="routine-habit-meta">
+                
+                
+                
+                
+                
+                
+                
                         <div class="routine-habit-days-track">${dayDots}</div>
+                
+                
+                
+                
+                
+                
+                
                         ${tagHTML}${prioHTML}
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-habit-stats">
+                
+                
+                
+                
+                
+                
+                
                     <div class="routine-habit-rate-v2" style="color:${rateColor}">${itemRate}%</div>
+                
+                
+                
+                
+                
+                
+                
                     ${runningStreak > 0 ? `<div class="routine-habit-streak-v2">🔥 ${runningStreak}d</div>` : `<div style="font-size:10px;color:var(--text-tertiary)">30 dias</div>`}
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </div>`;
           })
@@ -2269,9 +3517,37 @@ function renderRoutineView(embeddedEl) {
           .map(([id, c]) => {
             const ti = taskTypes.find((t) => t.id === id) || { name: id, color: '#888' };
             return `<div class="routine-category-row">
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-category-dot" style="background:${ti.color}"></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-category-name">${ti.name}</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-category-bar-wrap"><div class="routine-category-bar-fill" style="width:${Math.round((c.total / catMaxTotal) * 100)}%;background:${ti.color}"></div></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-category-count" style="color:${ti.color}">${c.done}/${c.total}</div>
             </div>`;
           })
@@ -2297,8 +3573,29 @@ function renderRoutineView(embeddedEl) {
         <!-- Period breakdown -->
         <div class="routine-section-card">
             <div class="routine-section-header">
+                
+                
+                
+                
+                
+                
+                
                 <i data-lucide="clock" style="width:14px;height:14px"></i>
+                
+                
+                
+                
+                
+                
+                
                 Tarefas por Período
+                
+                
+                
+                
+                
+                
+                
                 <span class="routine-badge">${(todayAllTasks['Manhã'] || []).length + (todayAllTasks['Tarde'] || []).length + (todayAllTasks['Noite'] || []).length}</span>
             </div>
             <div class="routine-period-grid">${periodHTML}</div>
@@ -2307,15 +3604,64 @@ function renderRoutineView(embeddedEl) {
         <!-- Habits List -->
         <div class="routine-section-card">
             <div class="routine-section-header">
+                
+                
+                
+                
+                
+                
+                
                 <i data-lucide="check-circle" style="width:14px;height:14px"></i>
+                
+                
+                
+                
+                
+                
+                
                 Hábitos de Hoje
+                
+                
+                
+                
+                
+                
+                
                 <span class="routine-badge">${completedToday}/${totalToday}</span>
             </div>
             <div class="routine-habits-list">${habitsHTML}</div>
             <button onclick="setView('week')"
+                
+                
+                
+                
+                
+                
+                
                 style="width:100%;margin-top:14px;padding:11px;font-size:13px;font-weight:600;color:var(--text-secondary);background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background 0.15s,color 0.15s"
+                
+                
+                
+                
+                
+                
+                
                 onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='var(--text-primary)'"
+                
+                
+                
+                
+                
+                
+                
                 onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='var(--text-secondary)'">
+                
+                
+                
+                
+                
+                
+                
                 Gerenciar Hábitos <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
             </button>
         </div>
@@ -2326,7 +3672,21 @@ function renderRoutineView(embeddedEl) {
         <!-- Category distribution -->
         <div class="routine-section-card">
             <div class="routine-section-header">
+                
+                
+                
+                
+                
+                
+                
                 <i data-lucide="tag" style="width:14px;height:14px"></i>
+                
+                
+                
+                
+                
+                
+                
                 Distribuição por Categoria
             </div>
             ${catHTML}
@@ -2338,8 +3698,29 @@ function renderRoutineView(embeddedEl) {
         <!-- Weekly columns -->
         <div class="routine-section-card">
             <div class="routine-section-header">
+                
+                
+                
+                
+                
+                
+                
                 <i data-lucide="bar-chart-2" style="width:14px;height:14px"></i>
+                
+                
+                
+                
+                
+                
+                
                 Consistência — Esta Semana
+                
+                
+                
+                
+                
+                
+                
                 <span class="routine-badge">${weeklyRate}%</span>
             </div>
             <div class="routine-weekly-grid">${weeklyColsHTML}</div>
@@ -2348,8 +3729,29 @@ function renderRoutineView(embeddedEl) {
         <!-- Habits with weekly performance -->
         <div class="routine-section-card">
             <div class="routine-section-header">
+                
+                
+                
+                
+                
+                
+                
                 <i data-lucide="repeat" style="width:14px;height:14px"></i>
+                
+                
+                
+                
+                
+                
+                
                 Hábitos
+                
+                
+                
+                
+                
+                
+                
                 <span class="routine-badge">${activeRoutines.length}</span>
             </div>
             <div class="routine-habits-list">${habitsHTML}</div>
@@ -2359,20 +3761,83 @@ function renderRoutineView(embeddedEl) {
         <!-- 12-week heatmap -->
         <div class="routine-section-card">
             <div class="routine-section-header">
+                
+                
+                
+                
+                
+                
+                
                 <i data-lucide="layout-grid" style="width:14px;height:14px"></i>
+                
+                
+                
+                
+                
+                
+                
                 Histórico — 12 Semanas
+                
+                
+                
+                
+                
+                
+                
                 <span class="routine-badge">${monthlyRate}% (30d)</span>
             </div>
             <!-- Day labels -->
             <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;text-align:center">
+                
+                
+                
+                
+                
+                
+                
                 ${DAY_ABBR.map((d) => `<span style="font-size:10px;font-weight:700;color:var(--text-tertiary)">${d.charAt(0)}</span>`).join('')}
             </div>
             <div class="routine-heatmap-12w">${heatHTML}</div>
             <div class="routine-heatmap-legend" style="margin-top:14px">
+                
+                
+                
+                
+                
+                
+                
                 <div><div style="width:10px;height:10px;border-radius:3px;background:rgba(255,255,255,0.05)"></div><span>Vazio</span></div>
+                
+                
+                
+                
+                
+                
+                
                 <div><div style="width:10px;height:10px;border-radius:3px;background:rgba(255,69,58,0.45)"></div><span>&lt;40%</span></div>
+                
+                
+                
+                
+                
+                
+                
                 <div><div style="width:10px;height:10px;border-radius:3px;background:#FF9F0A"></div><span>40–70%</span></div>
+                
+                
+                
+                
+                
+                
+                
                 <div><div style="width:10px;height:10px;border-radius:3px;background:rgba(48,209,88,0.55)"></div><span>70–99%</span></div>
+                
+                
+                
+                
+                
+                
+                
                 <div><div style="width:10px;height:10px;border-radius:3px;background:#30D158"></div><span>100%</span></div>
             </div>
         </div>
@@ -2380,7 +3845,21 @@ function renderRoutineView(embeddedEl) {
         <!-- Category breakdown over month -->
         <div class="routine-section-card">
             <div class="routine-section-header">
+                
+                
+                
+                
+                
+                
+                
                 <i data-lucide="pie-chart" style="width:14px;height:14px"></i>
+                
+                
+                
+                
+                
+                
+                
                 Hábitos por Categoria
             </div>
             ${catHTML.replace(/done\/total/g, '') || `<div style="padding:16px 0;text-align:center;color:var(--text-tertiary);font-size:13px">Sem hábitos com categoria</div>`}
@@ -2393,12 +3872,47 @@ function renderRoutineView(embeddedEl) {
         <!-- Header -->
         <div class="routine-header">
             <div>
+                
+                
+                
+                
+                
+                
+                
                 <h2 class="routine-title">Rotina</h2>
+                
+                
+                
+                
+                
+                
+                
                 <p class="routine-subtitle">${DAY_NAMES[today.getDay()]}, ${today.getDate()} de ${MONTH_NAMES[today.getMonth()]}</p>
             </div>
             <div class="routine-view-tabs">
+                
+                
+                
+                
+                
+                
+                
                 <button class="routine-tab-btn ${activeTab === 'today' ? 'active' : ''}" onclick="${tabClick('today')}">Hoje</button>
+                
+                
+                
+                
+                
+                
+                
                 <button class="routine-tab-btn ${activeTab === 'week' ? 'active' : ''}"  onclick="${tabClick('week')}">Semana</button>
+                
+                
+                
+                
+                
+                
+                
                 <button class="routine-tab-btn ${activeTab === 'month' ? 'active' : ''}" onclick="${tabClick('month')}">Mensal</button>
             </div>
         </div>
@@ -2406,25 +3920,151 @@ function renderRoutineView(embeddedEl) {
         <!-- Score Hero Card -->
         <div class="routine-score-card">
             <div class="routine-ring-wrap">
+                
+                
+                
+                
+                
+                
+                
                 <svg width="130" height="130" viewBox="0 0 130 130" style="display:block">
+                
+                
+                
+                
+                
+                
+                
                     <circle cx="65" cy="65" r="${ringR}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="11"/>
+                
+                
+                
+                
+                
+                
+                
                     <circle cx="65" cy="65" r="${ringR}" fill="none" stroke="${ringColor}" stroke-width="11"
+                
+                
+                
+                
+                
+                
+                
                         stroke-dasharray="${ringCirc.toFixed(2)}" stroke-dashoffset="${ringOffset.toFixed(2)}"
+                
+                
+                
+                
+                
+                
+                
                         stroke-linecap="round" transform="rotate(-90 65 65)"
+                
+                
+                
+                
+                
+                
+                
                         style="transition:stroke-dashoffset 0.8s cubic-bezier(0.22,1,0.36,1),stroke 0.4s ease"/>
+                
+                
+                
+                
+                
+                
+                
                 </svg>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-ring-center">
+                
+                
+                
+                
+                
+                
+                
                     <span class="routine-ring-pct" style="color:${ringColor}">${todayPercent}%</span>
+                
+                
+                
+                
+                
+                
+                
                     <span class="routine-ring-label">Hoje</span>
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </div>
             <div class="routine-score-info">
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-score-label">Progresso do Dia</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-score-count">${completedToday}<span>/${totalToday}</span></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-score-sub">hábitos concluídos hoje</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-progress-bar">
+                
+                
+                
+                
+                
+                
+                
                     <div class="routine-progress-bar-fill" style="width:${todayPercent}%;background:${ringColor}"></div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 ${streakBadge}
             </div>
         </div>
@@ -2432,23 +4072,107 @@ function renderRoutineView(embeddedEl) {
         <!-- Metrics Strip -->
         <div class="routine-metrics-strip">
             <div class="routine-metric-pill">
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-icon"><i data-lucide="flame" style="width:16px;height:16px;color:#FF9F0A"></i></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-val" style="color:${currentStreak >= 7 ? '#FF9F0A' : currentStreak > 0 ? '#30D158' : 'var(--text-tertiary)'}">${currentStreak}</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-lbl">Streak</div>
             </div>
             <div class="routine-metric-pill">
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-icon"><i data-lucide="trending-up" style="width:16px;height:16px;color:#0A84FF"></i></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-val" style="color:${weeklyRate >= 80 ? '#30D158' : '#0A84FF'}">${weeklyRate}%</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-lbl">Semana</div>
             </div>
             <div class="routine-metric-pill">
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-icon"><i data-lucide="calendar" style="width:16px;height:16px;color:#30D158"></i></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-val" style="color:${monthlyRate >= 70 ? '#30D158' : '#0A84FF'}">${monthlyRate}%</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-lbl">30 Dias</div>
             </div>
             <div class="routine-metric-pill">
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-icon"><i data-lucide="trophy" style="width:16px;height:16px;color:#BF5AF2"></i></div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-val" style="color:#BF5AF2">${DAY_ABBR[bestDayIdx]}</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="routine-metric-pill-lbl">Melhor Dia</div>
             </div>
         </div>
@@ -2465,10 +4189,11 @@ function renderSettingsView() {
 
   // Carregar preferências
   const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
-  const notifEnabled = notifSettings.enabled !== false;
+  const notifEnabled = notifSettings.enabled === true;
   const morningTime = notifSettings.morningTime || '12:00';
   const eveningTime = notifSettings.eveningTime || '22:00';
   const notifPerm = 'Notification' in window ? Notification.permission : 'unsupported';
+  const notifSecureContext = window.isSecureContext === true;
 
   const viewSettings = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
   const weekStart = viewSettings.weekStart || 'mon';
@@ -2490,12 +4215,61 @@ function renderSettingsView() {
   const settingRow = (icon, title, desc, control) => `
     <div class="flex items-center justify-between gap-4 py-4 border-b border-white/5 last:border-0 hover:bg-white/5 px-2 -mx-2 rounded-lg transition-colors" >
             <div class="flex items-center gap-3 flex-1 min-w-0">
+                
+                
+                
+                
+                
+                
+                
                 <div class="w-8 h-8 rounded-lg bg-gray-800/50 flex items-center justify-center flex-shrink-0 text-gray-400">
+                
+                
+                
+                
+                
+                
+                
                     <i data-lucide="${icon}" style="width:16px;height:16px;"></i>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="min-w-0">
+                
+                
+                
+                
+                
+                
+                
                     <div class="text-sm font-medium text-gray-200">${title}</div>
+                
+                
+                
+                
+                
+                
+                
                     <div class="text-xs text-gray-500 mt-0.5 truncate">${desc}</div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </div>
             <div class="flex-shrink-0">${control}</div>
@@ -2510,155 +4284,920 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
   view.innerHTML = `
     <div class="max-w-2xl mx-auto py-8 px-4 pb-24" >
             <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-3">
+                
+                
+                
+                
+                
+                
+                
                 <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
+                
+                
+                
+                
+                
+                
+                
                     <i data-lucide="settings-2" class="text-white" style="width:20px;height:20px;"></i>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 Configuracoes
             </h2>
 
             <!--PERFIL -->
             <section class="mb-8">
+                
+                
+                
+                
+                
+                
+                
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Perfil</h3>
+                
+                
+                
+                
+                
+                
+                
                 <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden p-4">
+                
+                
+                
+                
+                
+                
+                
                     <div class="flex items-center gap-4 mb-4">
+                
+                
+                
+                
+                
+                
+                
                         <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl font-bold text-white shadow-inner">
+                
+                
+                
+                
+                
+                
+                
                             ${displayName.charAt(0).toUpperCase()}
+                
+                
+                
+                
+                
+                
+                
                         </div>
+                
+                
+                
+                
+                
+                
+                
                         <div class="flex-1">
+                
+                
+                
+                
+                
+                
+                
                             <label class="text-xs text-gray-500 mb-1 block">Nome de exibição</label>
+                
+                
+                
+                
+                
+                
+                
                             <input type="text" id="inputDisplayName" value="${displayName}" 
-                                class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-                                placeholder="Seu nome">
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                placeholder="Seu nome">
+                
+                
+                
+                
+                
+                
+                
                         </div>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                     ${
                       currentUser
                         ? `
+                
+                
+                
+                
+                
+                
+                
                     <div class="flex items-center justify-between bg-black/20 rounded-lg p-3">
+                
+                
+                
+                
+                
+                
+                
                         <div class="flex items-center gap-3">
+                
+                
+                
+                
+                
+                
+                
                             <i data-lucide="mail" class="text-gray-500 w-4 h-4"></i>
+                
+                
+                
+                
+                
+                
+                
                             <span class="text-sm text-gray-400">${currentUser.email}</span>
+                
+                
+                
+                
+                
+                
+                
                         </div>
+                
+                
+                
+                
+                
+                
+                
                         <button onclick="signOut()" class="text-xs text-red-400 hover:text-red-300 transition-colors font-medium">Sair</button>
+                
+                
+                
+                
+                
+                
+                
                     </div>`
                         : `
+                
+                
+                
+                
+                
+                
+                
                     <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-center">
+                
+                
+                
+                
+                
+                
+                
                         <p class="text-sm text-blue-300 mb-2">Faça login para sincronizar seus dados</p>
+                
+                
+                
+                
+                
+                
+                
                         <button onclick="document.getElementById('authModal').classList.add('show')" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors">Entrar / Criar Conta</button>
+                
+                
+                
+                
+                
+                
+                
                     </div>`
                     }
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </section>
 
             <!--NOTIFICAÇÕES -->
             <section class="mb-8">
+                
+                
+                
+                
+                
+                
+                
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Notificacoes</h3>
+                
+                
+                
+                
+                
+                
+                
                 <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden px-5 py-2">
+                
+                
+                
+                
+                
+                
+                
                     <div class="flex items-center justify-between py-4 border-b border-white/5">
+                
+                
+                
+                
+                
+                
+                
                         <div class="flex items-center gap-3">
+                
+                
+                
+                
+                
+                
+                
                             <i data-lucide="bell" class="text-gray-400 w-5 h-5"></i>
+                
+                
+                
+                
+                
+                
+                
                             <div>
-                                <div class="text-sm font-medium text-white flex items-center gap-2">Permissão do Sistema ${permBadge}</div>
-                                <div class="text-xs text-gray-500"> Necessário para receber lembretes</div>
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <div class="text-sm font-medium text-white flex items-center gap-2">Permissão do Sistema ${permBadge}</div>
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <div class="text-xs text-gray-500"> Necessário para receber lembretes</div>
+                
+                
+                
+                
+                
+                
+                
                             </div>
+                
+                
+                
+                
+                
+                
+                
                         </div>
+                
+                
+                
+                
+                
+                
+                
                         ${toggle('toggleNotif', notifEnabled && notifPerm === 'granted')}
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                     
+                
+                
+                
+                
+                
+                
+                
                     ${settingRow(
                       'sun',
+
                       'Check-in Matinal',
+
                       'Horário para planejar o dia',
+
                       `<input type="time" id="inputMorningTime" value="${morningTime}" class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500">`
                     )}
+                
+                
+                
+                
+                
+                
+                
                     
+                
+                
+                
+                
+                
+                
+                
                     ${settingRow(
                       'moon',
+
                       'Resumo Noturno',
+
                       'Horário para revisar o progresso',
+
                       `<input type="time" id="inputEveningTime" value="${eveningTime}" class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500">`
                     )}
 
+                
+                
+                
+                
+                
+                
+                
                     <div class="py-4 border-t border-white/5">
+                
+                
+                
+                
+                
+                
+                
                         <button id="btnTestNotification" class="w-full sm:w-auto px-3 py-2 text-xs font-semibold rounded-lg border border-blue-500/30 bg-blue-600/15 text-blue-300 hover:bg-blue-600/25 transition-colors">
+                
+                
+                
+                
+                
+                
+                
                             Enviar notificacao de teste
+                
+                
+                
+                
+                
+                
+                
                         </button>
+                
+                
+                
+                
+                
+                
+                
                         <p id="notifTestFeedback" class="text-xs text-gray-500 mt-2 min-h-[16px]"></p>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
+                
+                
+                
+                
+                
+                
+                
                 ${notifPerm === 'denied' ? `<p class="text-xs text-red-400 mt-2 px-2 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Notificacoes bloqueadas pelo navegador.</p>` : ''}
             </section>
 
             <!--PREFERÊNCIAS -->
             <section class="mb-8">
+                
+                
+                
+                
+                
+                
+                
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Preferências</h3>
+                
+                
+                
+                
+                
+                
+                
                 <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden px-5 py-2">
+                
+                
+                
+                
+                
+                
+                
                     ${settingRow(
                       'calendar',
+
                       'Início da Semana',
+
                       'Definir primeiro dia do calendário',
+
                       `<select id="selectWeekStart" class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500">
+                
+                
+                
+                
+                
+                
+                
                             <option value="mon" ${weekStart === 'mon' ? 'selected' : ''}>Segunda-feira</option>
+                
+                
+                
+                
+                
+                
+                
                             <option value="sun" ${weekStart === 'sun' ? 'selected' : ''}>Domingo</option>
+                
+                
+                
+                
+                
+                
+                
                         </select>`
                     )}
+                
+                
+                
+                
+                
+                
+                
                     
+                
+                
+                
+                
+                
+                
+                
                     ${settingRow('calendar-days', 'Fins de Semana', 'Mostrar Sábado e Domingo', toggle('toggleWeekends', showWeekends))}
+                
+                
+                
+                
+                
+                
+                
                     
+                
+                
+                
+                
+                
+                
+                
                     ${settingRow('smartphone', 'Vibração', 'Feedback tátil ao completar tarefas', toggle('toggleHaptics', hapticsEnabled))}
 
+                
+                
+                
+                
+                
+                
+                
                     ${settingRow('mouse-pointer-click', 'Animação Semanal', 'Habilitar animação de hover no quadro semanal', toggle('toggleWeekHover', dbUserSettings.enable_week_hover_animation))}
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </section>
 
             <!-- TIPOS E PRIORIDADES -->
             <section class="mb-8">
+                
+                
+                
+                
+                
+                
+                
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Gerenciar Tipos e Prioridades</h3>
+                
+                
+                
+                
+                
+                
+                
                 <div class="bg-[#1c1c1e] border border-white/10 rounded-2xl overflow-hidden px-5 py-4">
+                
+                
+                
+                
+                
+                
+                
                     <!-- Tipos -->
+                
+                
+                
+                
+                
+                
+                
                     <div class="mb-6">
+                
+                
+                
+                
+                
+                
+                
                         <label class="text-sm font-medium text-white mb-3 block">Tipos de Tarefa</label>
+                
+                
+                
+                
+                
+                
+                
                         <div id="typesList" class="flex flex-col gap-2 mb-3"></div>
+                
+                
+                
+                
+                
+                
+                
                         <button id="btnAddType" class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium"><i data-lucide="plus" style="width:14px;height:14px;"></i> Novo Tipo</button>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                     <!-- Prioridades -->
+                
+                
+                
+                
+                
+                
+                
                     <div>
+                
+                
+                
+                
+                
+                
+                
                         <label class="text-sm font-medium text-white mb-3 block">Prioridades</label>
+                
+                
+                
+                
+                
+                
+                
                         <div id="priosList" class="flex flex-col gap-2 mb-3"></div>
+                
+                
+                
+                
+                
+                
+                
                         <button id="btnAddPrio" class="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1 font-medium"><i data-lucide="plus" style="width:14px;height:14px;"></i> Nova Prioridade</button>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </section>
 
             <!--DADOS -->
             <section class="mb-8">
+                
+                
+                
+                
+                
+                
+                
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Gerenciamento de Dados</h3>
+                
+                
+                
+                
+                
+                
+                
                 <div class="grid grid-cols-2 gap-3">
+                
+                
+                
+                
+                
+                
+                
                     <button id="btnExportSettings" class="bg-[#1c1c1e] hover:bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-white/20 group">
+                
+                
+                
+                
+                
+                
+                
                         <i data-lucide="download" class="text-blue-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                
+                
+                
+                
+                
+                
+                
                         <span class="text-sm font-medium text-gray-200">Exportar Backup</span>
+                
+                
+                
+                
+                
+                
+                
                     </button>
+                
+                
+                
+                
+                
+                
+                
                     
+                
+                
+                
+                
+                
+                
+                
                     <label for="fileImportSettings" class="bg-[#1c1c1e] hover:bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-white/20 cursor-pointer group">
+                
+                
+                
+                
+                
+                
+                
                         <i data-lucide="upload" class="text-green-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                
+                
+                
+                
+                
+                
+                
                         <span class="text-sm font-medium text-gray-200">Importar Dados</span>
+                
+                
+                
+                
+                
+                
+                
                         <input type="file" id="fileImportSettings" accept=".json" class="hidden">
+                
+                
+                
+                
+                
+                
+                
                     </label>
 
+                
+                
+                
+                
+                
+                
+                
                     <button id="btnFixDuplicates" class="bg-[#1c1c1e] hover:bg-orange-900/10 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-orange-500/30 group">
+                
+                
+                
+                
+                
+                
+                
                         <i data-lucide="wrench" class="text-orange-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                
+                
+                
+                
+                
+                
+                
                         <span class="text-sm font-medium text-gray-200">Corrigir Banco</span>
+                
+                
+                
+                
+                
+                
+                
                     </button>
 
+                
+                
+                
+                
+                
+                
+                
                     <button id="btnClearAllSettings" class="bg-[#1c1c1e] hover:bg-red-900/10 border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2 transition-all hover:border-red-500/30 group">
+                
+                
+                
+                
+                
+                
+                
                         <i data-lucide="trash-2" class="text-red-400 mb-1 group-hover:scale-110 transition-transform"></i>
+                
+                
+                
+                
+                
+                
+                
                         <span class="text-sm font-medium text-gray-200">Apagar Tudo</span>
+                
+                
+                
+                
+                
+                
+                
                     </button>
+                
+                
+                
+                
+                
+                
+                
                 </div>
             </section>
 
             <div class="text-center mt-12 mb-8">
+                
+                
+                
+                
+                
+                
+                
                 <div class="text-xs text-gray-600 font-medium">FLOWLY v1.2</div>
+                
+                
+                
+                
+                
+                
+                
                 <div class="text-[10px] text-gray-700 mt-1">Sincronizado via Supabase</div>
             </div>
         </div> `;
@@ -2680,11 +5219,31 @@ class="relative w-10 h-6 rounded-full transition-colors duration-200 ${checked ?
     const toggleNotif = document.getElementById('toggleNotif');
     if (toggleNotif) {
       toggleNotif.onclick = async function () {
+        if (!('Notification' in window)) {
+          alert('Este navegador nao suporta notificacoes.');
+          return;
+        }
+
+        if (!window.isSecureContext) {
+          alert(
+            'Notificacoes exigem HTTPS ou localhost. Se abriu por arquivo, rode via servidor local.'
+          );
+          return;
+        }
+
         const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
-        const nextEnabled = !(cur.enabled !== false);
+        const currentEnabled = cur.enabled === true;
+        const nextEnabled = !currentEnabled;
 
         if (nextEnabled) {
-          if (Notification.permission === 'denied') return;
+          if (Notification.permission === 'denied') {
+            alert(
+              'Permissao de notificacao bloqueada no navegador. Libere nas configuracoes do site.'
+            );
+            renderSettingsView();
+            return;
+          }
+
           await requestNotificationPermission();
           if (Notification.permission !== 'granted') {
             renderSettingsView();
@@ -3498,13 +6057,20 @@ window.toggleTaskStatus = function (dateStr, period, index, isChecked, element) 
     allTasksData[dateStr][period] = [...completed, ...pending];
   }
 
-  // Salvar e Sync
+  // Recalcular posicao de toda a lista para persistir a nova ordem corretamente
+  allTasksData[dateStr][period].forEach((t, i) => {
+    t.position = i;
+  });
+
+  // Salvar e sincronizar a data inteira para evitar divergencia de ordem no reload
   saveToLocalStorage();
-  if (typeof syncTaskToSupabase === 'function') {
+  if (typeof syncDateToSupabase === 'function') {
+    syncDateToSupabase(dateStr);
+  } else if (typeof syncTaskToSupabase === 'function') {
     syncTaskToSupabase(dateStr, period, task);
   }
 
-  // Re-renderizar TUDO para garantir consistência visual imediata
+  // Re-renderizar TUDO para garantir consistencia visual imediata
   renderView();
 };
 
@@ -3661,49 +6227,371 @@ function renderToday() {
   // Build sidebar HTML
   sidebar.innerHTML = `
     <!--Progresso do dia-->
+                
+                
+                
+                
+                
+                
+                
                 <div class="stat-section">
+                
+                
+                
+                
+                
+                
+                
                     <div class="stat-section-title">Progresso</div>
+                
+                
+                
+                
+                
+                
+                
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+                
+                
+                
+                
+                
+                
+                
                         <div class="stat-ring">
+                
+                
+                
+                
+                
+                
+                
                             <svg width="48" height="48" viewBox="0 0 48 48">
-                                <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
-                                <circle cx="24" cy="24" r="19" fill="none" stroke="${ringColor}" stroke-width="3"
-                                    stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
-                                    stroke-linecap="round"/>
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <circle cx="24" cy="24" r="19" fill="none" stroke="${ringColor}" stroke-width="3"
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                    stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                    stroke-linecap="round"/>
+                
+                
+                
+                
+                
+                
+                
                             </svg>
+                
+                
+                
+                
+                
+                
+                
                             <div class="stat-ring-text">${todayRate}%</div>
+                
+                
+                
+                
+                
+                
+                
                         </div>
+                
+                
+                
+                
+                
+                
+                
                         <div>
+                
+                
+                
+                
+                
+                
+                
                             <div style="font-size: 13px; color: var(--text-secondary);">${completedTasks} de ${totalTasks}</div>
+                
+                
+                
+                
+                
+                
+                
                             <div style="font-size: 11px; color: var(--text-tertiary);">tarefas concluídas</div>
+                
+                
+                
+                
+                
+                
+                
                         </div>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                     <div class="progress-bar-mini">
+                
+                
+                
+                
+                
+                
+                
                         <div class="progress-bar-mini-fill" style="width: ${todayRate}%; background: ${ringColor};"></div>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
 
+                
+                
+                
+                
+                
+                
+                
                 <!--Resumo -->
+                
+                
+                
+                
+                
+                
+                
                 <div class="stat-section">
+                
+                
+                
+                
+                
+                
+                
                     <div class="stat-section-title">Resumo</div>
+                
+                
+                
+                
+                
+                
+                
                     <div class="stat-card">
+                
+                
+                
+                
+                
+                
+                
                         <span class="stat-label">Pendentes</span>
+                
+                
+                
+                
+                
+                
+                
                         <span class="stat-value ${pendingTasks > 0 ? 'orange' : 'green'}">${pendingTasks}</span>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                     <div class="stat-card">
+                
+                
+                
+                
+                
+                
+                
                         <span class="stat-label">Rotina</span>
+                
+                
+                
+                
+                
+                
+                
                         <span class="stat-value ${routineRate >= 80 ? 'green' : routineRate >= 50 ? 'blue' : ''}">${routineCompleted}/${routineTotal}</span>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                     <div class="stat-card">
+                
+                
+                
+                
+                
+                
+                
                         <span class="stat-label">Streak</span>
+                
+                
+                
+                
+                
+                
+                
                         <span class="stat-value ${streak >= 3 ? 'green' : ''}">${streak > 0 ? streak + ' dia' + (streak > 1 ? 's' : '') : '—'}</span>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                     <div class="stat-card">
+                
+                
+                
+                
+                
+                
+                
                         <span class="stat-label">Semana</span>
+                
+                
+                
+                
+                
+                
+                
                         <span class="stat-value ${weekRate >= 70 ? 'green' : weekRate >= 40 ? 'blue' : ''}">${weekRate}%</span>
+                
+                
+                
+                
+                
+                
+                
                     </div>
+                
+                
+                
+                
+                
+                
+                
                 </div>
 
+                
+                
+                
+                
+                
+                
+                
                 <!--Mini semana-->
     <div class="stat-section">
         <div class="stat-section-title">Esta semana</div>
@@ -3711,8 +6599,11 @@ function renderToday() {
             ${weekDates
               .map(({ name, dateStr: wds }) => {
                 const { total: wt, completed: wc } = countDayTasks(wds);
+
                 const pct = wt > 0 ? Math.round((wc / wt) * 100) : 0;
+
                 const isToday = wds === dateStr;
+
                 const barColor =
                   pct >= 80
                     ? 'var(--accent-green)'
@@ -3721,12 +6612,77 @@ function renderToday() {
                       : pct > 0
                         ? 'var(--accent-orange)'
                         : 'rgba(255,255,255,0.06)';
+
                 const barH = wt > 0 ? Math.max(6, pct * 0.4) : 4;
+
                 return `<div style="flex: 1; text-align: center;">
-                                <div style="height: 40px; display: flex; align-items: flex-end; justify-content: center;">
-                                    <div style="width: 100%; max-width: 20px; height: ${barH}px; background: ${barColor}; border-radius: 2px; ${isToday ? 'box-shadow: 0 0 6px ' + barColor + ';' : ''}"></div>
-                                </div>
-                                <div style="font-size: 10px; color: ${isToday ? 'var(--accent-blue)' : 'var(--text-tertiary)'}; margin-top: 4px; font-weight: ${isToday ? '600' : '400'};">${name.slice(0, 3)}</div>
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <div style="height: 40px; display: flex; align-items: flex-end; justify-content: center;">
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                    <div style="width: 100%; max-width: 20px; height: ${barH}px; background: ${barColor}; border-radius: 2px; ${isToday ? 'box-shadow: 0 0 6px ' + barColor + ';' : ''}"></div>
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                </div>
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <div style="font-size: 10px; color: ${isToday ? 'var(--accent-blue)' : 'var(--text-tertiary)'}; margin-top: 4px; font-weight: ${isToday ? '600' : '400'};">${name.slice(0, 3)}</div>
+                
+                
+                
+                
+                
+                
+                
                             </div>`;
               })
               .join('')}
@@ -3783,6 +6739,7 @@ function insertQuickTaskInput(container, dateStr, period, beforeElement = null) 
     if (e.key === 'Enter' && input.value.trim()) {
       e.preventDefault();
 
+      const currentList = allTasksData[dateStr]?.[period] || [];
       const newTask = {
         text: input.value.trim(),
         completed: false,
@@ -3790,6 +6747,7 @@ function insertQuickTaskInput(container, dateStr, period, beforeElement = null) 
         type: null,
         priority: null,
         parent_id: null,
+        position: currentList.length,
         isHabit: false,
         supabaseId: null // Supabase will generate this on insert
       };
@@ -4365,6 +7323,8 @@ async function syncDateToSupabase(dateStr) {
             color: task.color || 'default',
             type: task.type || null,
             priority: task.priority || null,
+            parent_id: task.parent_id || null,
+            position: typeof task.position === 'number' ? task.position : index,
             is_habit: task.isHabit || false,
             updated_at: new Date().toISOString()
           };
@@ -4563,6 +7523,7 @@ document.querySelectorAll('.quick-add-option').forEach((option) => {
         if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
         if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
 
+        const currentList = allTasksData[dateStr]?.[period] || [];
         const newTask = {
           text: text.trim(),
           completed: false,
@@ -4570,6 +7531,7 @@ document.querySelectorAll('.quick-add-option').forEach((option) => {
           type: null,
           priority: null,
           parent_id: null,
+          position: currentList.length,
           isHabit: false,
           supabaseId: null
         };
@@ -4743,8 +7705,8 @@ async function saveNotifSettingsToSupabase() {
 }
 
 async function requestNotificationPermission() {
-  if (!flowlyPwa) return;
-  await flowlyPwa.requestNotificationPermission();
+  if (!flowlyPwa) return { ok: false, reason: 'unavailable' };
+  return flowlyPwa.requestNotificationPermission();
 }
 
 async function sendTestNotification() {

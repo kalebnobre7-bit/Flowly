@@ -33,7 +33,7 @@
         await supabaseClient.from('user_settings').upsert(
           {
             user_id: currentUser.id,
-            push_enabled: notifSettings.enabled !== false,
+            push_enabled: notifSettings.enabled === true,
             morning_notif_time: notifSettings.morningTime || '09:00',
             evening_notif_time: notifSettings.eveningTime || '22:00',
             timezone: tz,
@@ -111,17 +111,22 @@
     async function requestNotificationPermission() {
       if (!('Notification' in window)) {
         debugLog('Este navegador nao suporta notificacoes');
-        return;
+        return { ok: false, reason: 'unsupported' };
+      }
+
+      if (!window.isSecureContext) {
+        debugLog('Contexto inseguro para notificacoes');
+        return { ok: false, reason: 'insecure-context' };
       }
 
       if (Notification.permission === 'granted') {
         debugLog('Permissao de notificacoes ja concedida');
         await subscribeToPush();
-        return;
+        return { ok: true, reason: 'already-granted' };
       }
 
       if (Notification.permission === 'denied') {
-        return;
+        return { ok: false, reason: 'denied' };
       }
 
       const permission = await Notification.requestPermission();
@@ -129,7 +134,10 @@
         debugLog('Permissao de notificacoes concedida');
         await subscribeToPush();
         showWelcomeNotification();
+        return { ok: true, reason: 'granted' };
       }
+
+      return { ok: false, reason: permission || 'default' };
     }
 
     function showWelcomeNotification() {

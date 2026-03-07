@@ -46,7 +46,7 @@
         Object.entries(periods).forEach(function ([period, tasks]) {
           if (!Array.isArray(tasks)) return;
 
-          tasks.forEach(function (task) {
+          tasks.forEach(function (task, index) {
             if (!task.text) return;
             inserts.push({
               user_id: currentUser.id,
@@ -55,6 +55,10 @@
               text: task.text,
               completed: task.completed || false,
               color: task.color || 'default',
+              type: task.type || null,
+              priority: task.priority || null,
+              parent_id: task.parent_id || null,
+              position: typeof task.position === 'number' ? task.position : index,
               is_habit: task.isHabit || false
             });
           });
@@ -69,8 +73,13 @@
           inserted.forEach(function (row) {
             const tasks = allTasksData[row.day] && allTasksData[row.day][row.period];
             if (!tasks) return;
-            const match = tasks.find(function (t) {
-              return t.text === row.text && !t.supabaseId;
+            const match = tasks.find(function (t, idx) {
+              return (
+                t.text === row.text &&
+                !t.supabaseId &&
+                (t.parent_id || null) === (row.parent_id || null) &&
+                (typeof t.position === 'number' ? t.position : idx) === Number(row.position)
+              );
             });
             if (match) match.supabaseId = row.id;
           });
@@ -115,6 +124,9 @@
         .from('tasks')
         .select('*')
         .eq('user_id', currentUser.id)
+        .order('day', { ascending: true })
+        .order('period', { ascending: true })
+        .order('position', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -176,20 +188,8 @@
             return;
           }
 
-          const dupKey = dateStr + '|' + task.period + '|' + task.text.trim();
-          if (seenNormalTasks.has(dupKey)) {
-            idsToDelete.push(seenNormalTasks.get(dupKey));
-          }
-          seenNormalTasks.set(dupKey, task.id);
-
           if (!nextAllTasksData[dateStr]) nextAllTasksData[dateStr] = {};
           if (!nextAllTasksData[dateStr][task.period]) nextAllTasksData[dateStr][task.period] = [];
-
-          nextAllTasksData[dateStr][task.period] = nextAllTasksData[dateStr][task.period].filter(
-            function (t) {
-              return t.text.trim() !== task.text.trim();
-            }
-          );
 
           nextAllTasksData[dateStr][task.period].push({
             text: task.text,
