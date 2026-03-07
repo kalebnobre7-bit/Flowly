@@ -965,23 +965,32 @@ async function syncDailyRoutineToSupabase() {
 }
 
 // Sincroniza allRecurringTasks com Supabase de forma inteligente (Diff Sync)
+function markLocalSupabaseMutation(ms = 1800) {
+  const until = Date.now() + ms;
+  const prev = Number(window._flowlySuppressRealtimeUntil || 0);
+  window._flowlySuppressRealtimeUntil = Math.max(prev, until);
+}
 async function syncRecurringTasksToSupabase() {
   if (!tasksSyncService) return;
+  markLocalSupabaseMutation();
   await tasksSyncService.syncRecurringTasksToSupabase();
 }
 
 async function syncTaskToSupabase(dateStr, period, task) {
   if (!tasksSyncService) return { success: false, errorText: 'Sync service indisponivel.' };
+  markLocalSupabaseMutation();
   return tasksSyncService.syncTaskToSupabase(dateStr, period, task);
 }
 
 async function deleteTaskFromSupabase(task, day, period) {
   if (!tasksSyncService) return;
+  markLocalSupabaseMutation();
   await tasksSyncService.deleteTaskFromSupabase(task, day, period);
 }
 
 async function syncHabitToSupabase(habitText, date, completed) {
   if (!tasksSyncService) return;
+  markLocalSupabaseMutation();
   await tasksSyncService.syncHabitToSupabase(habitText, date, completed);
 }
 
@@ -6718,6 +6727,7 @@ function handleDropZoneDrop(e, dz) {
 // Sincroniza todas as tarefas de uma data via Upsert seguro para preservar parent_id
 async function syncDateToSupabase(dateStr) {
   if (!currentUser) return;
+  markLocalSupabaseMutation(2400);
   _isSyncingDate = true;
   try {
     const recurringTextsSet = new Set(allRecurringTasks.map((rt) => rt.text));
@@ -7546,5 +7556,4 @@ window.handleTaskIndent = function (dateStr, period, index, shiftKey) {
   syncTaskToSupabase(dateStr, period, currentTask);
   renderView();
 };
-
 

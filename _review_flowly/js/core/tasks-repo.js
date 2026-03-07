@@ -12,7 +12,6 @@
     const setHabitsHistory = deps.setHabitsHistory;
     const setCustomTaskTypes = deps.setCustomTaskTypes;
     const setCustomTaskPriorities = deps.setCustomTaskPriorities;
-    const getDbUserSettings = deps.getDbUserSettings;
     const setDbUserSettings = deps.setDbUserSettings;
 
     const normalizeAllTasks = deps.normalizeAllTasks;
@@ -20,6 +19,58 @@
     const syncTaskToSupabase = deps.syncTaskToSupabase;
     const renderView = deps.renderView;
     const renderRoutineView = deps.renderRoutineView;
+
+    let rtDebounceTimer = null;
+    let rtReloadInFlight = false;
+    let rtReloadQueued = false;
+
+    function sortAndNormalizePositions(allData) {
+      Object.values(allData || {}).forEach(function (periods) {
+        if (!periods || typeof periods !== 'object') return;
+        Object.values(periods).forEach(function (tasks) {
+          if (!Array.isArray(tasks)) return;
+          tasks.sort(function (a, b) {
+            const pA = typeof a.position === 'number' ? a.position : 0;
+            const pB = typeof b.position === 'number' ? b.position : 0;
+            if (pA !== pB) return pA - pB;
+            return String(a.supabaseId || a.text || '').localeCompare(
+              String(b.supabaseId || b.text || '')
+            );
+          });
+          tasks.forEach(function (task, index) {
+            task.position = index;
+          });
+        });
+      });
+    }
+
+    async function runRealtimeReload() {
+      if (rtReloadInFlight) {
+        rtReloadQueued = true;
+        return;
+      }
+      rtReloadInFlight = true;
+      try {
+        await loadDataFromSupabase();
+        if (typeof renderView === 'function') renderView();
+        if (typeof renderRoutineView === 'function') renderRoutineView();
+      } finally {
+        rtReloadInFlight = false;
+        if (rtReloadQueued) {
+          rtReloadQueued = false;
+          setTimeout(runRealtimeReload, 80);
+        }
+      }
+    }
+
+    function scheduleRealtimeReload(reason, delayMs) {
+      const suppressUntil = Number(window._flowlySuppressRealtimeUntil || 0);
+      const now = Date.now();
+      const delay = Math.max(0, delayMs || 0, suppressUntil > now ? suppressUntil - now + 120 : 0);
+      debugLog('[Realtime] schedule reload:', reason, 'delay=', delay);
+      if (rtDebounceTimer) clearTimeout(rtDebounceTimer);
+      rtDebounceTimer = setTimeout(runRealtimeReload, delay);
+    }
 
     async function migrateLocalDataToSupabase() {
       const currentUser = getCurrentUser();
@@ -149,13 +200,10 @@
       const idsToDelete = [];
       const nextAllTasksData = {};
       const remoteRecurringTasks = [];
-      const seenNormalTasks = new Map();
 
       if (tasks && tasks.length > 0) {
         tasks.forEach(function (task) {
-          if (task.day === 'ROUTINE') {
-            return;
-          }
+          if (task.day === 'ROUTINE') return;
 
           if (task.day === 'RECURRING') {
             remoteRecurringTasks.push({
@@ -210,6 +258,7 @@
         }
       }
 
+      sortAndNormalizePositions(nextAllTasksData);
       setAllTasksData(nextAllTasksData);
 
       if (localSnapshot) {
@@ -282,41 +331,37 @@
       }
 
       if (!window._flowlySubscription) {
+        const channelUser = getCurrentUser();
+        const userFilter = channelUser ? `user_id=eq.${channelUser.id}` : null;
+
         debugLog('[Realtime] Iniciando subscricao...');
         window._flowlySubscription = supabaseClient
-          .channel('flowly_changes')
+          .channel(`flowly_changes_${channelUser ? channelUser.id : 'anon'}`)
           .on(
             'postgres_changes',
-            { event: '*', schema: 'public', table: 'tasks' },
+            userFilter
+              ? { event: '*', schema: 'public', table: 'tasks', filter: userFilter }
+              : { event: '*', schema: 'public', table: 'tasks' },
             function (payload) {
               const uid =
                 (payload.new && payload.new.user_id) || (payload.old && payload.old.user_id);
               const activeUser = getCurrentUser();
               if (activeUser && uid === activeUser.id) {
-                debugLog('[Realtime] Tasks atualizadas.');
-                if (window._rtTimeout) clearTimeout(window._rtTimeout);
-                window._rtTimeout = setTimeout(async function () {
-                  await loadDataFromSupabase();
-                  if (typeof renderView === 'function') renderView();
-                  if (typeof renderRoutineView === 'function') renderRoutineView();
-                }, 1000);
+                scheduleRealtimeReload('tasks', 220);
               }
             }
           )
           .on(
             'postgres_changes',
-            { event: '*', schema: 'public', table: 'habits_history' },
+            userFilter
+              ? { event: '*', schema: 'public', table: 'habits_history', filter: userFilter }
+              : { event: '*', schema: 'public', table: 'habits_history' },
             function (payload) {
               const uid =
                 (payload.new && payload.new.user_id) || (payload.old && payload.old.user_id);
               const activeUser = getCurrentUser();
               if (activeUser && uid === activeUser.id) {
-                debugLog('[Realtime] Habits atualizados.');
-                if (window._rtTimeout) clearTimeout(window._rtTimeout);
-                window._rtTimeout = setTimeout(async function () {
-                  await loadDataFromSupabase();
-                  if (typeof renderRoutineView === 'function') renderRoutineView();
-                }, 500);
+                scheduleRealtimeReload('habits', 180);
               }
             }
           )
