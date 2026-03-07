@@ -1,0 +1,16 @@
+﻿{
+  "name": "flowly-bento-v4",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "check": "node scripts/check-syntax.js",
+    "test": "node tests/run-tests.js",
+    "lint": "eslint \"js/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\"",
+    "format": "prettier --write \"js/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\" \"*.md\" \"*.json\""
+  },
+  "devDependencies": {
+    "eslint": "^9.38.0",
+    "prettier": "^3.6.2"
+  }
+}
