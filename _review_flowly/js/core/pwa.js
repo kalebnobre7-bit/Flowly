@@ -22,6 +22,13 @@
 
     let serviceWorkerRegistration = null;
 
+    function getAssetUrl(assetFile) {
+      try {
+        return new URL(assetFile, window.location.href).toString();
+      } catch (e) {
+        return assetFile;
+      }
+    }
     async function saveNotifSettingsToSupabase() {
       const currentUser = getCurrentUser();
       if (!currentUser) return;
@@ -145,8 +152,8 @@
 
       serviceWorkerRegistration.showNotification('Notificacoes ativadas!', {
         body: 'Voce recebera lembretes e atualizacoes de progresso',
-        icon: '/logo_flowly.png',
-        badge: '/logo_flowly.png',
+        icon: getAssetUrl('logo_flowly.png'),
+        badge: getAssetUrl('logo_flowly.png'),
         vibrate: [200, 100, 200],
         tag: 'flowly-welcome'
       });
@@ -169,8 +176,8 @@
         const title = 'Teste de notificacao';
         const options = {
           body: 'Tudo certo. As notificacoes do Flowly estao funcionando.',
-          icon: '/logo_flowly.png',
-          badge: '/logo_flowly.png',
+          icon: getAssetUrl('logo_flowly.png'),
+          badge: getAssetUrl('logo_flowly.png'),
           vibrate: [120, 60, 120],
           tag: 'flowly-test'
         };

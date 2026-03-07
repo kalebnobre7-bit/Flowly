@@ -1,14 +1,29 @@
-﻿const STATIC_CACHE = 'flowly-static-v2';
+﻿const STATIC_CACHE = 'flowly-static-v3';
+
+const APP_SCOPE_URL = new URL(self.registration.scope);
+const APP_SCOPE_PATH = APP_SCOPE_URL.pathname.endsWith('/')
+  ? APP_SCOPE_URL.pathname
+  : `${APP_SCOPE_URL.pathname}/`;
+const INDEX_URL = `${APP_SCOPE_PATH}index.html`;
+
+function scopedPath(path = '') {
+  return `${APP_SCOPE_PATH}${path}`;
+}
+
+function scopedUrl(path = '') {
+  return new URL(path, APP_SCOPE_URL).toString();
+}
+
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/logo_flowly.png',
-  '/favicon.svg',
-  '/lightning.svg',
-  '/styles.css',
-  '/bento-theme.css',
-  '/js/app.js'
+  APP_SCOPE_PATH,
+  INDEX_URL,
+  scopedPath('manifest.json'),
+  scopedPath('logo_flowly.png'),
+  scopedPath('favicon.svg'),
+  scopedPath('lightning.svg'),
+  scopedPath('styles.css'),
+  scopedPath('bento-theme.css'),
+  scopedPath('js/app.js')
 ];
 
 function isSameOrigin(url) {
@@ -29,9 +44,7 @@ function isApiRequest(url) {
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
+  event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS)));
   self.skipWaiting();
 });
 
@@ -61,11 +74,11 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           const responseClone = response.clone();
-          caches.open(STATIC_CACHE).then((cache) => cache.put('/index.html', responseClone));
+          caches.open(STATIC_CACHE).then((cache) => cache.put(INDEX_URL, responseClone));
           return response;
         })
         .catch(async () => {
-          const cachedPage = await caches.match('/index.html');
+          const cachedPage = await caches.match(INDEX_URL);
           return cachedPage || Response.error();
         })
     );
@@ -91,6 +104,15 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+function buildNotificationOptions(overrides = {}) {
+  return {
+    icon: scopedPath('logo_flowly.png'),
+    badge: scopedPath('logo_flowly.png'),
+    vibrate: [200, 100, 200],
+    ...overrides
+  };
+}
+
 self.addEventListener('message', (event) => {
   const { data } = event;
   if (!data || !data.type) return;
@@ -101,14 +123,11 @@ self.addEventListener('message', (event) => {
   }
 
   if (data.type === 'DAILY_STATS') {
-    const options = {
+    const options = buildNotificationOptions({
       body: `Voce completou ${data.completed} de ${data.total} tarefas hoje (${data.percentage}%)`,
-      icon: '/logo_flowly.png',
-      badge: '/logo_flowly.png',
-      vibrate: [200, 100, 200],
       tag: 'flowly-daily-summary',
       requireInteraction: true
-    };
+    });
     self.registration.showNotification('Resumo do dia', options);
   }
 });
@@ -136,14 +155,11 @@ function showProgressNotification(completed, total, percentage) {
     body = `${completed}/${total} tarefas concluidas. Vamos fazer acontecer!`;
   }
 
-  const options = {
+  const options = buildNotificationOptions({
     body,
-    icon: '/logo_flowly.png',
-    badge: '/logo_flowly.png',
-    vibrate: [200, 100, 200],
     tag: 'flowly-progress',
     requireInteraction: false
-  };
+  });
 
   self.registration.showNotification(`${prefix} ${title}`, options);
 }
@@ -159,22 +175,21 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const options = {
+  const targetUrl = data.url ? scopedUrl(data.url) : scopedUrl('');
+
+  const options = buildNotificationOptions({
     body: data.body,
-    icon: '/logo_flowly.png',
-    badge: '/logo_flowly.png',
-    vibrate: [200, 100, 200],
     tag: data.tag || 'flowly-push',
     requireInteraction: false,
     data: {
-      url: data.url || '/',
+      url: targetUrl,
       type: data.type
     },
     actions: [
       { action: 'open', title: 'Abrir Flowly' },
       { action: 'close', title: 'Fechar' }
     ]
-  };
+  });
 
   event.waitUntil(self.registration.showNotification(data.title, options));
 });
@@ -183,21 +198,23 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   if (event.action === 'open' || !event.action) {
+    const targetUrl = (event.notification.data && event.notification.data.url) || scopedUrl('');
+
     event.waitUntil(
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then((clientList) => {
-          for (const client of clientList) {
-            if ('focus' in client) {
-              return client.focus();
-            }
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        for (const client of clientList) {
+          if ('focus' in client) {
+            return client.focus();
           }
+        }
 
-          if (self.clients.openWindow) {
-            return self.clients.openWindow('/');
-          }
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(targetUrl);
+        }
 
-          return undefined;
-        })
+        return undefined;
+      })
     );
   }
 });
+
