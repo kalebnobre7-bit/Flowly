@@ -3005,6 +3005,7 @@ function renderMonth() {
     const dayTasks = allTasksData[dateStr] || {};
     let totalTasks = 0;
     let completedTasks = 0;
+    const completedTaskNames = [];
 
     // Conjunto de textos ignorados (recorrentes e rotinas)
     const ignoredTexts = new Set([
@@ -3020,8 +3021,32 @@ function renderMonth() {
         const validTasks = tasks.filter((t) => !ignoredTexts.has(t.text));
         totalTasks += validTasks.length;
         completedTasks += validTasks.filter((t) => t.completed).length;
+        validTasks.forEach((t) => {
+          if (t && t.completed && t.text) completedTaskNames.push(String(t.text));
+        });
       }
     });
+
+    const completedRoutineNames = getRoutineTasksForDate(dateStr)
+      .filter((t) => t && t.completed && t.text)
+      .map((t) => String(t.text));
+    completedRoutineNames.forEach((name) => completedTaskNames.push(name));
+
+    const uniqueCompletedTaskNames = [...new Set(completedTaskNames)];
+    const previewMaxItems = 6;
+    const previewItems = uniqueCompletedTaskNames.slice(0, previewMaxItems);
+    const previewMore = uniqueCompletedTaskNames.length - previewItems.length;
+    const monthDayTooltip =
+      uniqueCompletedTaskNames.length > 0
+        ? `Concluidas: ${uniqueCompletedTaskNames.length}\n${previewItems.map((name) => `- ${name}`).join('\n')}${previewMore > 0 ? `\n+${previewMore} outras` : ''}`
+        : 'Nenhuma tarefa concluida neste dia';
+    const monthDayTooltipAttr = monthDayTooltip
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '&#10;');
 
     const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
@@ -3041,6 +3066,7 @@ function renderMonth() {
                 
                 
                 
+                         title="${monthDayTooltipAttr}"
                          onclick="goToDate('${dateStr}')">
                 
                 
@@ -7002,17 +7028,25 @@ document.addEventListener('click', (e) => {
     document.getElementById('editToolbar').classList.remove('show');
     document.getElementById('colorMenu').classList.remove('show');
   }
-  if (!e.target.closest('#userDropdown') && !e.target.closest('#btnUser')) {
-    document.getElementById('userDropdown').classList.remove('show');
+  const userDropdown = document.getElementById('userDropdown');
+  if (userDropdown && !e.target.closest('#userDropdown') && !e.target.closest('#btnUser')) {
+    userDropdown.classList.remove('show');
   }
 });
 
-document.getElementById('btnUser').onclick = () => {
-  const drop = document.getElementById('userDropdown');
-  drop.style.display = drop.style.display === 'flex' ? 'none' : 'flex';
-};
+const btnUserEl = document.getElementById('btnUser');
+if (btnUserEl) {
+  btnUserEl.onclick = () => {
+    const drop = document.getElementById('userDropdown');
+    if (!drop) return;
+    drop.style.display = drop.style.display === 'flex' ? 'none' : 'flex';
+  };
+}
 
-document.getElementById('btnLogout').onclick = signOut;
+const btnLogoutEl = document.getElementById('btnLogout');
+if (btnLogoutEl) {
+  btnLogoutEl.onclick = signOut;
+}
 
 // Event listeners para opÇÕES do quick add menu
 document.querySelectorAll('.quick-add-option').forEach((option) => {
