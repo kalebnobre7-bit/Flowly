@@ -338,19 +338,26 @@
         return !t.supabaseId;
       });
 
-      // Keep cloud as source of truth for recurring tasks when cloud data exists.
-      // This prevents old local recurring entries from reappearing on one device only.
-      let nextRecurringTasks = remoteRecurringTasks.length > 0 ? remoteRecurringTasks : localNewTasks;
+      // Prefer cloud recurring tasks, but preserve local unsynced recurring tasks until sync completes.
+      let nextRecurringTasks = [];
       const uniqueTextMap = new Map();
-      nextRecurringTasks.forEach(function (t) {
+
+      remoteRecurringTasks.forEach(function (t) {
+        if (!t || !t.text) return;
         uniqueTextMap.set(t.text, t);
       });
+
+      localNewTasks.forEach(function (t) {
+        if (!t || !t.text) return;
+        if (!uniqueTextMap.has(t.text)) uniqueTextMap.set(t.text, t);
+      });
+
       nextRecurringTasks = Array.from(uniqueTextMap.values());
 
       setAllRecurringTasks(nextRecurringTasks);
       localStorage.setItem('allRecurringTasks', JSON.stringify(nextRecurringTasks));
 
-      if (remoteRecurringTasks.length === 0 && localNewTasks.length > 0) {
+      if (localNewTasks.length > 0) {
         await syncRecurringTasksToSupabase();
       }
 

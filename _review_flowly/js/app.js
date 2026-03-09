@@ -1102,6 +1102,13 @@ async function syncUnsyncedTasksToSupabase() {
       }
     }
 
+    const hasUnsyncedRecurring = (allRecurringTasks || []).some(
+      (t) => t && (!t.supabaseId || String(t.supabaseId).indexOf('-') === -1)
+    );
+    if (hasUnsyncedRecurring) {
+      await syncRecurringTasksToSupabase();
+    }
+
     if (hasChanges) saveToLocalStorage();
   } catch (err) {
     console.error('[Sync] Erro ao sincronizar tarefas pendentes:', err);
@@ -1112,6 +1119,11 @@ async function syncUnsyncedTasksToSupabase() {
 
 async function syncRecurringTasksToSupabase() {
   if (!tasksSyncService) return;
+  const user = await ensureCurrentUserForSync();
+  if (!user) {
+    scheduleUnsyncedTasksSync(2000);
+    return;
+  }
   markLocalSupabaseMutation();
   await tasksSyncService.syncRecurringTasksToSupabase();
 }
