@@ -6971,7 +6971,6 @@ async function syncDateToSupabase(dateStr) {
   _isSyncingDate = true;
 
   try {
-    const recurringTextsSet = new Set(allRecurringTasks.map((rt) => rt.text));
     const periods = allTasksData[dateStr] || {};
     const updates = [];
     const inserts = [];
@@ -6992,7 +6991,6 @@ async function syncDateToSupabase(dateStr) {
       tasks.forEach((task, index) => {
         if (!task.text || task.text.trim() === '') return;
         if (task.isWeeklyRecurring || task.isRoutine || task.isRecurring) return;
-        if (recurringTextsSet.has(task.text)) return;
 
         const payload = {
           user_id: currentUser.id,
@@ -7891,6 +7889,7 @@ window.handleTaskIndent = function (dateStr, period, index, shiftKey) {
   syncTaskToSupabase(dateStr, period, currentTask);
   renderView();
 };
+
 
 
 
