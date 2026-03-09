@@ -1,17 +1,18 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const TELEGRAM_TOKEN = "8359178148:AAGMuyNm9iwPhd0K9Eu6yXXRmIPbCsFuoo0"
-const GEMINI_API_KEY = "AIzaSyB6bdmWJv-_g-whBsPjXBiUWRfayw941Ok"
+const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || ''
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || ''
+if (!TELEGRAM_TOKEN) {
+  throw new Error('Missing TELEGRAM_BOT_TOKEN secret')
+}
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`
-const YOUR_CHAT_ID = 5524418615 // Seu Chat ID pessoal
-
 // Cliente Supabase
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-// Função para enviar mensagem no Telegram
+// FunÃ§Ã£o para enviar mensagem no Telegram
 async function sendTelegramMessage(chatId: number, text: string, parseMode = 'Markdown') {
   const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
     method: 'POST',
@@ -25,8 +26,12 @@ async function sendTelegramMessage(chatId: number, text: string, parseMode = 'Ma
   return await response.json()
 }
 
-// Função para chamar Gemini AI
+// FunÃ§Ã£o para chamar Gemini AI
 async function callGemini(prompt: string): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    return 'Gemini API nao configurada. Defina GEMINI_API_KEY nos secrets.'
+  }
+
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
     {
@@ -45,10 +50,10 @@ async function callGemini(prompt: string): Promise<string> {
   )
 
   const data = await response.json()
-  return data.candidates[0]?.content?.parts[0]?.text || "Desculpe, não consegui processar sua mensagem."
+  return data.candidates[0]?.content?.parts[0]?.text || "Desculpe, nÃ£o consegui processar sua mensagem."
 }
 
-// Buscar tarefas do usuário
+// Buscar tarefas do usuÃ¡rio
 async function getUserTasks(userId: string, date: string) {
   const { data, error } = await supabase
     .from('tasks')
@@ -85,7 +90,7 @@ async function handleTarefasCommand(userId: string, chatId: number) {
   const tasks = await getUserTasks(userId, today)
 
   if (tasks.length === 0) {
-    await sendTelegramMessage(chatId, "📋 Você não tem tarefas para hoje!\n\nUse /adicionar para criar uma nova tarefa.")
+    await sendTelegramMessage(chatId, "ðŸ“‹ VocÃª nÃ£o tem tarefas para hoje!\n\nUse /adicionar para criar uma nova tarefa.")
     return
   }
 
@@ -93,15 +98,15 @@ async function handleTarefasCommand(userId: string, chatId: number) {
   const total = tasks.length
   const percentage = Math.round((completed / total) * 100)
 
-  let message = `📊 *Suas tarefas de hoje:*\n\n`
-  message += `✅ Concluídas: ${completed}/${total} (${percentage}%)\n\n`
+  let message = `ðŸ“Š *Suas tarefas de hoje:*\n\n`
+  message += `âœ… ConcluÃ­das: ${completed}/${total} (${percentage}%)\n\n`
 
   tasks.forEach((task, index) => {
-    const icon = task.completed ? '✅' : '⬜'
+    const icon = task.completed ? 'âœ…' : 'â¬œ'
     message += `${icon} ${index + 1}. ${task.text}\n`
   })
 
-  message += `\n💡 _Use /completar [número] para marcar como concluída_`
+  message += `\nðŸ’¡ _Use /completar [nÃºmero] para marcar como concluÃ­da_`
 
   await sendTelegramMessage(chatId, message)
 }
@@ -115,25 +120,25 @@ async function handleProgressoCommand(userId: string, chatId: number) {
   const total = tasks.length
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0
 
-  let emoji = '⏰'
-  let status = 'Hora de começar!'
+  let emoji = 'â°'
+  let status = 'Hora de comeÃ§ar!'
 
   if (percentage >= 80) {
-    emoji = '🎉'
+    emoji = 'ðŸŽ‰'
     status = 'Excelente!'
   } else if (percentage >= 50) {
-    emoji = '💪'
+    emoji = 'ðŸ’ª'
     status = 'Bom trabalho!'
   } else if (percentage >= 20) {
-    emoji = '📝'
-    status = 'Vamos lá!'
+    emoji = 'ðŸ“'
+    status = 'Vamos lÃ¡!'
   }
 
   const message = `${emoji} *${status}*\n\n` +
-    `📊 Progresso de hoje:\n` +
-    `✅ ${completed}/${total} tarefas concluídas\n` +
-    `📈 ${percentage}% do dia completo\n\n` +
-    `_Continue assim! 🚀_`
+    `ðŸ“Š Progresso de hoje:\n` +
+    `âœ… ${completed}/${total} tarefas concluÃ­das\n` +
+    `ðŸ“ˆ ${percentage}% do dia completo\n\n` +
+    `_Continue assim! ðŸš€_`
 
   await sendTelegramMessage(chatId, message)
 }
@@ -143,16 +148,16 @@ async function handleAdicionarCommand(userId: string, chatId: number, text: stri
   const taskText = text.replace('/adicionar', '').trim()
 
   if (!taskText) {
-    await sendTelegramMessage(chatId, "❌ Use: /adicionar [nome da tarefa]\n\nExemplo: /adicionar Estudar React")
+    await sendTelegramMessage(chatId, "âŒ Use: /adicionar [nome da tarefa]\n\nExemplo: /adicionar Estudar React")
     return
   }
 
   const today = new Date().toISOString().split('T')[0]
-  const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+  const days = ['Domingo', 'Segunda', 'TerÃ§a', 'Quarta', 'Quinta', 'Sexta', 'SÃ¡bado']
   const dayName = days[new Date().getDay()]
 
   await addTask(userId, taskText, dayName)
-  await sendTelegramMessage(chatId, `✅ *Tarefa adicionada!*\n\n📝 "${taskText}"\n\n_Acesse o Flowly para visualizar_`)
+  await sendTelegramMessage(chatId, `âœ… *Tarefa adicionada!*\n\nðŸ“ "${taskText}"\n\n_Acesse o Flowly para visualizar_`)
 }
 
 // Processar mensagem com IA
@@ -160,18 +165,18 @@ async function handleAIMessage(userId: string, chatId: number, messageText: stri
   const today = new Date().toISOString().split('T')[0]
   const tasks = await getUserTasks(userId, today)
 
-  const tasksList = tasks.map((t, i) => `${i + 1}. ${t.text} ${t.completed ? '✅' : '⬜'}`).join('\n')
+  const tasksList = tasks.map((t, i) => `${i + 1}. ${t.text} ${t.completed ? 'âœ…' : 'â¬œ'}`).join('\n')
 
-  const prompt = `Você é o Flowly Assistant, um assistente de produtividade inteligente.
+  const prompt = `VocÃª Ã© o Flowly Assistant, um assistente de produtividade inteligente.
 
-Tarefas do usuário hoje:
+Tarefas do usuÃ¡rio hoje:
 ${tasksList || 'Nenhuma tarefa'}
 
-Mensagem do usuário: "${messageText}"
+Mensagem do usuÃ¡rio: "${messageText}"
 
-Responda de forma útil e motivadora. Se o usuário pedir para adicionar tarefas, criar planos ou dar sugestões, seja específico e prático. Use emojis para deixar mais amigável.
+Responda de forma Ãºtil e motivadora. Se o usuÃ¡rio pedir para adicionar tarefas, criar planos ou dar sugestÃµes, seja especÃ­fico e prÃ¡tico. Use emojis para deixar mais amigÃ¡vel.
 
-Mantenha respostas curtas (máx 200 caracteres).`
+Mantenha respostas curtas (mÃ¡x 200 caracteres).`
 
   const aiResponse = await callGemini(prompt)
   await sendTelegramMessage(chatId, aiResponse)
@@ -182,7 +187,7 @@ async function handleCompletarCommand(userId: string, chatId: number, text: stri
   const taskNumber = parseInt(text.replace('/completar', '').trim())
 
   if (isNaN(taskNumber)) {
-    await sendTelegramMessage(chatId, "❌ Use: /completar [número]\n\nExemplo: /completar 1")
+    await sendTelegramMessage(chatId, "âŒ Use: /completar [nÃºmero]\n\nExemplo: /completar 1")
     return
   }
 
@@ -190,7 +195,7 @@ async function handleCompletarCommand(userId: string, chatId: number, text: stri
   const tasks = await getUserTasks(userId, today)
 
   if (taskNumber < 1 || taskNumber > tasks.length) {
-    await sendTelegramMessage(chatId, `❌ Tarefa #${taskNumber} não encontrada!\n\nVocê tem ${tasks.length} tarefas.`)
+    await sendTelegramMessage(chatId, `âŒ Tarefa #${taskNumber} nÃ£o encontrada!\n\nVocÃª tem ${tasks.length} tarefas.`)
     return
   }
 
@@ -203,8 +208,8 @@ async function handleCompletarCommand(userId: string, chatId: number, text: stri
 
   if (error) throw error
 
-  const status = !task.completed ? '✅ Concluída' : '⬜ Reaberta'
-  await sendTelegramMessage(chatId, `${status}!\n\n📝 "${task.text}"`)
+  const status = !task.completed ? 'âœ… ConcluÃ­da' : 'â¬œ Reaberta'
+  await sendTelegramMessage(chatId, `${status}!\n\nðŸ“ "${task.text}"`)
 }
 
 // Handler principal
@@ -224,13 +229,13 @@ serve(async (req) => {
         // Comandos
         if (text.startsWith('/start')) {
           await sendTelegramMessage(chatId,
-            `🎉 *Bem-vindo ao Flowly!*\n\n` +
-            `Comandos disponíveis:\n` +
+            `ðŸŽ‰ *Bem-vindo ao Flowly!*\n\n` +
+            `Comandos disponÃ­veis:\n` +
             `/tarefas - Ver suas tarefas\n` +
             `/adicionar [texto] - Criar tarefa\n` +
-            `/completar [número] - Marcar como concluída\n` +
+            `/completar [nÃºmero] - Marcar como concluÃ­da\n` +
             `/progresso - Ver seu progresso\n\n` +
-            `Ou converse naturalmente comigo! 🤖`
+            `Ou converse naturalmente comigo! ðŸ¤–`
           )
         } else if (text.startsWith('/tarefas')) {
           await handleTarefasCommand(userId, chatId)
@@ -252,7 +257,7 @@ serve(async (req) => {
     }
 
     // GET request - status
-    return new Response(JSON.stringify({ status: 'Flowly Bot is running! 🚀' }), {
+    return new Response(JSON.stringify({ status: 'Flowly Bot is running! ðŸš€' }), {
       headers: { 'Content-Type': 'application/json' }
     })
 
@@ -264,3 +269,6 @@ serve(async (req) => {
     })
   }
 })
+
+
+

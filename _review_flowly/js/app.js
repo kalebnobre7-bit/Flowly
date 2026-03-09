@@ -6969,68 +6969,110 @@ async function syncDateToSupabase(dateStr) {
   if (!currentUser) return;
   markLocalSupabaseMutation(2400);
   _isSyncingDate = true;
+
   try {
     const recurringTextsSet = new Set(allRecurringTasks.map((rt) => rt.text));
     const periods = allTasksData[dateStr] || {};
     const updates = [];
     const inserts = [];
 
+    const { data: remoteRows, error: remoteError } = await supabaseClient
+      .from('tasks')
+      .select('id')
+      .eq('user_id', currentUser.id)
+      .eq('day', dateStr);
+
+    if (remoteError) {
+      throw remoteError;
+    }
+
     Object.entries(periods).forEach(([period, tasks]) => {
-      if (Array.isArray(tasks)) {
-        tasks.forEach((task, index) => {
-          if (!task.text || task.text.trim() === '') return;
-          if (task.isWeeklyRecurring || task.isRoutine || task.isRecurring) return;
-          if (recurringTextsSet.has(task.text)) return;
+      if (!Array.isArray(tasks)) return;
 
-          const payload = {
-            user_id: currentUser.id,
-            day: dateStr,
-            period: period,
-            text: task.text,
-            completed: task.completed || false,
-            color: task.color || 'default',
-            type: task.type || null,
-            priority: task.priority || null,
-            parent_id: task.parent_id || null,
-            position: typeof task.position === 'number' ? task.position : index,
-            is_habit: task.isHabit || false,
-            updated_at: new Date().toISOString()
-          };
+      tasks.forEach((task, index) => {
+        if (!task.text || task.text.trim() === '') return;
+        if (task.isWeeklyRecurring || task.isRoutine || task.isRecurring) return;
+        if (recurringTextsSet.has(task.text)) return;
 
-          if (task.supabaseId && task.supabaseId.indexOf('-') > -1) {
-            payload.id = task.supabaseId;
-            updates.push(payload);
-          } else {
-            inserts.push({ taskRef: task, payload });
-          }
-        });
-      }
+        const payload = {
+          user_id: currentUser.id,
+          day: dateStr,
+          period,
+          text: task.text,
+          completed: task.completed || false,
+          color: task.color || 'default',
+          type: task.type || null,
+          priority: task.priority || null,
+          parent_id: task.parent_id || null,
+          position: typeof task.position === 'number' ? task.position : index,
+          is_habit: task.isHabit || false,
+          updated_at: new Date().toISOString()
+        };
+
+        if (task.supabaseId && task.supabaseId.indexOf('-') > -1) {
+          payload.id = task.supabaseId;
+          updates.push(payload);
+        } else {
+          inserts.push({ taskRef: task, payload });
+        }
+      });
     });
 
-    // 1. Process Updates
     if (updates.length > 0) {
       await supabaseClient.from('tasks').upsert(updates, { onConflict: 'id' });
     }
 
-    // 2. Process Inserts
     if (inserts.length > 0) {
       const payloadsToInsert = inserts.map((i) => i.payload);
       const { data, error } = await supabaseClient.from('tasks').insert(payloadsToInsert).select();
-      if (!error && data && data.length > 0) {
-        // Map generated IDs back to the local tasks
-        // We map by text and period matching since we inserted them
+
+      if (error) {
+        throw error;
+      }
+
+      if (Array.isArray(data) && data.length > 0) {
+        const usedLocalIdx = new Set();
+
         data.forEach((row) => {
-          const match = inserts.find(
-            (i) =>
-              i.payload.text === row.text &&
-              i.payload.period === row.period &&
-              !i.taskRef.supabaseId
-          );
-          if (match) {
-            match.taskRef.supabaseId = row.id;
+          const rowPos = typeof row.position === 'number' ? row.position : null;
+          const localIdx = inserts.findIndex((item, idx) => {
+            if (usedLocalIdx.has(idx)) return false;
+
+            const sameParent = (item.payload.parent_id || null) === (row.parent_id || null);
+            const samePosition = rowPos === null || item.payload.position === rowPos;
+
+            return (
+              item.payload.text === row.text &&
+              item.payload.period === row.period &&
+              sameParent &&
+              samePosition
+            );
+          });
+
+          if (localIdx >= 0) {
+            inserts[localIdx].taskRef.supabaseId = row.id;
+            usedLocalIdx.add(localIdx);
           }
         });
       }
+    }
+
+    const localIds = new Set();
+    Object.values(periods).forEach((tasks) => {
+      if (!Array.isArray(tasks)) return;
+
+      tasks.forEach((task) => {
+        if (!task || !task.supabaseId || task.supabaseId.indexOf('-') === -1) return;
+        localIds.add(task.supabaseId);
+      });
+    });
+
+    const staleIds = (remoteRows || [])
+      .map((row) => row.id)
+      .filter((id) => id && !localIds.has(id));
+
+    if (staleIds.length > 0) {
+      await supabaseClient.from('tasks').delete().in('id', staleIds);
     }
 
     localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
@@ -7040,7 +7082,6 @@ async function syncDateToSupabase(dateStr) {
     _isSyncingDate = false;
   }
 }
-
 function handleDrop(e) {
   // Fallback drop on column
   e.preventDefault();
@@ -7850,6 +7891,7 @@ window.handleTaskIndent = function (dateStr, period, index, shiftKey) {
   syncTaskToSupabase(dateStr, period, currentTask);
   renderView();
 };
+
 
 
 

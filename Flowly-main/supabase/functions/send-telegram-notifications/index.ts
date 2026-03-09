@@ -1,8 +1,11 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const TELEGRAM_TOKEN = "8359178148:AAGMuyNm9iwPhd0K9Eu6yXXRmIPbCsFuoo0"
-const YOUR_CHAT_ID = 5524418615
+const TELEGRAM_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || ''
+const DEFAULT_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID') || ''
+if (!TELEGRAM_TOKEN) {
+  throw new Error('Missing TELEGRAM_BOT_TOKEN secret')
+}
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`
 
 // Cliente Supabase
@@ -10,7 +13,7 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-// Função para enviar mensagem no Telegram
+// FunÃ§Ã£o para enviar mensagem no Telegram
 async function sendTelegramMessage(chatId: number, text: string) {
   const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
     method: 'POST',
@@ -24,10 +27,10 @@ async function sendTelegramMessage(chatId: number, text: string) {
   return await response.json()
 }
 
-// Buscar tarefas do usuário
+// Buscar tarefas do usuÃ¡rio
 async function getUserTasks(userId: string) {
   const today = new Date().toISOString().split('T')[0]
-  const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+  const days = ['Domingo', 'Segunda', 'TerÃ§a', 'Quarta', 'Quinta', 'Sexta', 'SÃ¡bado']
   const dayName = days[new Date().getDay()]
 
   const { data, error } = await supabase
@@ -45,7 +48,11 @@ serve(async (req) => {
   try {
     const { type, userId } = await req.json()
 
-    const tasks = await getUserTasks(userId || YOUR_CHAT_ID.toString())
+    const fallbackUserId = (DEFAULT_CHAT_ID || '').trim()
+    const resolvedUserId = (userId || fallbackUserId || '').trim()
+    if (!resolvedUserId) throw new Error('Missing userId and TELEGRAM_CHAT_ID secret')
+
+    const tasks = await getUserTasks(resolvedUserId)
     const completed = tasks.filter(t => t.completed).length
     const total = tasks.length
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0
@@ -54,9 +61,9 @@ serve(async (req) => {
 
     switch (type) {
       case 'morning': // 9h
-        message = `☀️ *Bom dia!*\n\n`
+        message = `â˜€ï¸ *Bom dia!*\n\n`
         if (total > 0) {
-          message += `Você tem *${total} tarefas* para hoje:\n\n`
+          message += `VocÃª tem *${total} tarefas* para hoje:\n\n`
           tasks.slice(0, 5).forEach((task, i) => {
             message += `${i + 1}. ${task.text}\n`
           })
@@ -64,66 +71,72 @@ serve(async (req) => {
             message += `\n_...e mais ${total - 5} tarefas_\n`
           }
         } else {
-          message += `Sem tarefas para hoje! 🎉\n\n_Use /adicionar para criar uma_`
+          message += `Sem tarefas para hoje! ðŸŽ‰\n\n_Use /adicionar para criar uma_`
         }
-        message += `\n💪 Tenha um dia produtivo!`
+        message += `\nðŸ’ª Tenha um dia produtivo!`
         break
 
       case 'afternoon': // 15h
         if (total === 0) {
-          message = `📊 *Como está o progresso?*\n\nVocê ainda não tem tarefas cadastradas para hoje.\n\n_Use /adicionar para criar_`
+          message = `ðŸ“Š *Como estÃ¡ o progresso?*\n\nVocÃª ainda nÃ£o tem tarefas cadastradas para hoje.\n\n_Use /adicionar para criar_`
         } else if (percentage === 100) {
-          message = `🎉 *Parabéns!*\n\nVocê já completou todas as tarefas!\n\n✅ ${completed}/${total} concluídas`
+          message = `ðŸŽ‰ *ParabÃ©ns!*\n\nVocÃª jÃ¡ completou todas as tarefas!\n\nâœ… ${completed}/${total} concluÃ­das`
         } else {
-          message = `📊 *Como está o progresso?*\n\n` +
-            `✅ ${completed}/${total} tarefas concluídas (${percentage}%)\n\n` +
+          message = `ðŸ“Š *Como estÃ¡ o progresso?*\n\n` +
+            `âœ… ${completed}/${total} tarefas concluÃ­das (${percentage}%)\n\n` +
             `${total - completed} tarefas restantes para hoje!`
         }
         break
 
       case 'evening': // 20h
         if (total === 0) {
-          message = `⏰ *Última chance!*\n\nNão há tarefas pendentes. Aproveite sua noite! 🌙`
+          message = `â° *Ãšltima chance!*\n\nNÃ£o hÃ¡ tarefas pendentes. Aproveite sua noite! ðŸŒ™`
         } else if (percentage === 100) {
-          message = `🎉 *Incrível!*\n\nTodas as tarefas concluídas!\n\nMereça um descanso! ✨`
+          message = `ðŸŽ‰ *IncrÃ­vel!*\n\nTodas as tarefas concluÃ­das!\n\nMereÃ§a um descanso! âœ¨`
         } else {
           const remaining = total - completed
-          message = `⏰ *Última chance!*\n\n` +
+          message = `â° *Ãšltima chance!*\n\n` +
             `Ainda faltam *${remaining} tarefas*:\n\n`
 
           tasks.filter(t => !t.completed).slice(0, 3).forEach((task, i) => {
-            message += `⬜ ${task.text}\n`
+            message += `â¬œ ${task.text}\n`
           })
 
-          message += `\n_Ainda dá tempo! 💪_`
+          message += `\n_Ainda dÃ¡ tempo! ðŸ’ª_`
         }
         break
 
       case 'summary': // 23h
-        const emoji = percentage >= 80 ? '🎉' : percentage >= 50 ? '💪' : percentage >= 20 ? '📝' : '😴'
+        const emoji = percentage >= 80 ? 'ðŸŽ‰' : percentage >= 50 ? 'ðŸ’ª' : percentage >= 20 ? 'ðŸ“' : 'ðŸ˜´'
         let status = ''
 
         if (percentage >= 80) status = 'Excelente dia!'
         else if (percentage >= 50) status = 'Bom trabalho!'
         else if (percentage >= 20) status = 'Progresso moderado'
-        else status = 'Amanhã é um novo dia!'
+        else status = 'AmanhÃ£ Ã© um novo dia!'
 
-        message = `🌙 *Resumo do dia*\n\n` +
+        message = `ðŸŒ™ *Resumo do dia*\n\n` +
           `${emoji} *${status}*\n\n` +
-          `📊 Você completou:\n` +
-          `✅ ${completed}/${total} tarefas (${percentage}%)\n\n`
+          `ðŸ“Š VocÃª completou:\n` +
+          `âœ… ${completed}/${total} tarefas (${percentage}%)\n\n`
 
         if (percentage >= 80) {
-          message += `Continue assim! 🚀`
+          message += `Continue assim! ðŸš€`
         } else if (percentage >= 50) {
-          message += `Amanhã você consegue 100%! 💪`
+          message += `AmanhÃ£ vocÃª consegue 100%! ðŸ’ª`
         } else {
-          message += `Não desista! Todo progresso conta! ✨`
+          message += `NÃ£o desista! Todo progresso conta! âœ¨`
         }
         break
     }
 
-    await sendTelegramMessage(YOUR_CHAT_ID, message)
+    const targetChatIdRaw = (DEFAULT_CHAT_ID || resolvedUserId).trim()
+    const targetChatId = Number(targetChatIdRaw)
+    if (!Number.isFinite(targetChatId)) {
+      throw new Error('Invalid TELEGRAM_CHAT_ID or userId for chat target')
+    }
+
+    await sendTelegramMessage(targetChatId, message)
 
     return new Response(JSON.stringify({ ok: true, message: 'Notification sent!' }), {
       headers: { 'Content-Type': 'application/json' }
@@ -137,3 +150,4 @@ serve(async (req) => {
     })
   }
 })
+

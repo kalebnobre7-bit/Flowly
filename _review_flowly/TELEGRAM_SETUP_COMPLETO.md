@@ -1,14 +1,14 @@
-# 🤖 SETUP COMPLETO: Telegram Bot + IA Gemini
+﻿# ðŸ¤– SETUP COMPLETO: Telegram Bot + IA Gemini
 
-## ✅ Informações Configuradas:
+## âœ… InformaÃ§Ãµes Configuradas:
 
-- **Bot Token:** `8359178148:AAGMuyNm9iwPhd0K9Eu6yXXRmIPbCsFuoo0`
-- **Gemini API:** `AIzaSyB6bdmWJv-_g-whBsPjXBiUWRfayw941Ok`
-- **Seu Chat ID:** `5524418615`
+- **Bot Token:** `<TELEGRAM_BOT_TOKEN>`
+- **Gemini API:** `<GEMINI_API_KEY>`
+- **Seu Chat ID:** `<TELEGRAM_CHAT_ID>`
 
 ---
 
-## 🚀 PASSO 1: Instalar Supabase CLI
+## ðŸš€ PASSO 1: Instalar Supabase CLI
 
 ```bash
 # Windows (PowerShell como Admin):
@@ -21,11 +21,11 @@ scoop install supabase
 
 ---
 
-## 🔗 PASSO 2: Conectar ao Supabase
+## ðŸ”— PASSO 2: Conectar ao Supabase
 
 1. Acesse: https://supabase.com/dashboard
 2. Abra seu projeto Flowly
-3. Vá em **Settings → General**
+3. VÃ¡ em **Settings â†’ General**
 4. Copie o **Project Reference ID** (aparece na URL, tipo: `abcdefghijk`)
 
 ```bash
@@ -39,52 +39,52 @@ supabase link --project-ref SEU_PROJECT_ID
 
 ---
 
-## 📤 PASSO 3: Deploy das Edge Functions
+## ðŸ“¤ PASSO 3: Deploy das Edge Functions
 
 ```bash
 # Deploy do bot principal
 supabase functions deploy telegram-bot --no-verify-jwt
 
-# Deploy do sistema de notificações
+# Deploy do sistema de notificaÃ§Ãµes
 supabase functions deploy send-telegram-notifications --no-verify-jwt
 ```
 
-Anote as URLs que aparecerem! Serão algo como:
+Anote as URLs que aparecerem! SerÃ£o algo como:
 
 - `https://SEU_PROJECT.supabase.co/functions/v1/telegram-bot`
 - `https://SEU_PROJECT.supabase.co/functions/v1/send-telegram-notifications`
 
 ---
 
-## 🔔 PASSO 4: Configurar Webhook do Telegram
+## ðŸ”” PASSO 4: Configurar Webhook do Telegram
 
 Substitua `SUA_URL` pela URL do passo anterior:
 
 ```bash
-curl -X POST "https://api.telegram.org/bot8359178148:AAGMuyNm9iwPhd0K9Eu6yXXRmIPbCsFuoo0/setWebhook?url=https://SEU_PROJECT.supabase.co/functions/v1/telegram-bot"
+curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://SEU_PROJECT.supabase.co/functions/v1/telegram-bot"
 ```
 
 **Verificar se funcionou:**
 
 ```bash
-curl "https://api.telegram.org/bot8359178148:AAGMuyNm9iwPhd0K9Eu6yXXRmIPbCsFuoo0/getWebhookInfo"
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
 ```
 
 Deve retornar: `"url": "sua-url-aqui"`
 
 ---
 
-## ⏰ PASSO 5: Configurar Notificações Agendadas (CRON)
+## â° PASSO 5: Configurar NotificaÃ§Ãµes Agendadas (CRON)
 
 No Supabase Dashboard:
 
-1. Vá em **Database → Extensions**
-2. Habilite **pg_cron** (se não estiver habilitado)
-3. Vá em **SQL Editor**
-4. Cole e execute este código:
+1. VÃ¡ em **Database â†’ Extensions**
+2. Habilite **pg_cron** (se nÃ£o estiver habilitado)
+3. VÃ¡ em **SQL Editor**
+4. Cole e execute este cÃ³digo:
 
 ```sql
--- Notificação da manhã (9h - UTC-3 = 12h UTC)
+-- NotificaÃ§Ã£o da manhÃ£ (9h - UTC-3 = 12h UTC)
 SELECT cron.schedule(
   'telegram-morning-notification',
   '0 12 * * *',
@@ -92,12 +92,12 @@ SELECT cron.schedule(
   SELECT net.http_post(
     url := 'https://SEU_PROJECT.supabase.co/functions/v1/send-telegram-notifications',
     headers := '{"Content-Type": "application/json"}'::jsonb,
-    body := '{"type": "morning", "userId": "5524418615"}'::jsonb
+    body := '{"type": "morning", "userId": "<TELEGRAM_CHAT_ID>"}'::jsonb
   );
   $$
 );
 
--- Notificação da tarde (15h - UTC-3 = 18h UTC)
+-- NotificaÃ§Ã£o da tarde (15h - UTC-3 = 18h UTC)
 SELECT cron.schedule(
   'telegram-afternoon-notification',
   '0 18 * * *',
@@ -105,12 +105,12 @@ SELECT cron.schedule(
   SELECT net.http_post(
     url := 'https://SEU_PROJECT.supabase.co/functions/v1/send-telegram-notifications',
     headers := '{"Content-Type": "application/json"}'::jsonb,
-    body := '{"type": "afternoon", "userId": "5524418615"}'::jsonb
+    body := '{"type": "afternoon", "userId": "<TELEGRAM_CHAT_ID>"}'::jsonb
   );
   $$
 );
 
--- Notificação da noite (20h - UTC-3 = 23h UTC)
+-- NotificaÃ§Ã£o da noite (20h - UTC-3 = 23h UTC)
 SELECT cron.schedule(
   'telegram-evening-notification',
   '0 23 * * *',
@@ -118,7 +118,7 @@ SELECT cron.schedule(
   SELECT net.http_post(
     url := 'https://SEU_PROJECT.supabase.co/functions/v1/send-telegram-notifications',
     headers := '{"Content-Type": "application/json"}'::jsonb,
-    body := '{"type": "evening", "userId": "5524418615"}'::jsonb
+    body := '{"type": "evening", "userId": "<TELEGRAM_CHAT_ID>"}'::jsonb
   );
   $$
 );
@@ -131,7 +131,7 @@ SELECT cron.schedule(
   SELECT net.http_post(
     url := 'https://SEU_PROJECT.supabase.co/functions/v1/send-telegram-notifications',
     headers := '{"Content-Type": "application/json"}'::jsonb,
-    body := '{"type": "summary", "userId": "5524418615"}'::jsonb
+    body := '{"type": "summary", "userId": "<TELEGRAM_CHAT_ID>"}'::jsonb
   );
   $$
 );
@@ -141,7 +141,7 @@ SELECT cron.schedule(
 
 ---
 
-## ✅ PASSO 6: Testar!
+## âœ… PASSO 6: Testar!
 
 No Telegram, procure seu bot e envie:
 
@@ -156,24 +156,24 @@ Deve receber a mensagem de boas-vindas!
 - `/tarefas` - Ver suas tarefas
 - `/adicionar Testar bot` - Criar tarefa
 - `/progresso` - Ver progresso
-- `/completar 1` - Marcar como concluída
+- `/completar 1` - Marcar como concluÃ­da
 
 **Testar IA:**
 Envie qualquer mensagem:
 
 - "Me ajuda a organizar minha semana"
-- "Como está meu desempenho?"
+- "Como estÃ¡ meu desempenho?"
 - "Sugira tarefas para estudar"
 
 ---
 
-## 🔧 Verificar Jobs CRON
+## ðŸ”§ Verificar Jobs CRON
 
 ```sql
 -- Ver jobs agendados
 SELECT * FROM cron.job;
 
--- Ver histórico de execuções
+-- Ver histÃ³rico de execuÃ§Ãµes
 SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
 
 -- Remover job (se precisar)
@@ -182,72 +182,73 @@ SELECT cron.unschedule('nome-do-job');
 
 ---
 
-## 🎯 Recursos Implementados:
+## ðŸŽ¯ Recursos Implementados:
 
 ### Bot Commands:
 
-- ✅ `/start` - Início e ajuda
-- ✅ `/tarefas` - Lista completa de tarefas
-- ✅ `/adicionar [texto]` - Criar tarefa
-- ✅ `/completar [número]` - Marcar como concluída
-- ✅ `/progresso` - Ver estatísticas do dia
+- âœ… `/start` - InÃ­cio e ajuda
+- âœ… `/tarefas` - Lista completa de tarefas
+- âœ… `/adicionar [texto]` - Criar tarefa
+- âœ… `/completar [nÃºmero]` - Marcar como concluÃ­da
+- âœ… `/progresso` - Ver estatÃ­sticas do dia
 
 ### IA Natural:
 
-- ✅ Processamento com Gemini Pro
-- ✅ Respostas contextuais baseadas nas suas tarefas
-- ✅ Sugestões inteligentes
-- ✅ Análise de produtividade
+- âœ… Processamento com Gemini Pro
+- âœ… Respostas contextuais baseadas nas suas tarefas
+- âœ… SugestÃµes inteligentes
+- âœ… AnÃ¡lise de produtividade
 
-### Notificações Automáticas:
+### NotificaÃ§Ãµes AutomÃ¡ticas:
 
-- ✅ 09:00 - Bom dia + lista de tarefas
-- ✅ 15:00 - Check de progresso
-- ✅ 20:00 - Última chance
-- ✅ 23:00 - Resumo completo do dia
+- âœ… 09:00 - Bom dia + lista de tarefas
+- âœ… 15:00 - Check de progresso
+- âœ… 20:00 - Ãšltima chance
+- âœ… 23:00 - Resumo completo do dia
 
 ---
 
-## 🐛 Troubleshooting:
+## ðŸ› Troubleshooting:
 
-**Bot não responde:**
+**Bot nÃ£o responde:**
 
 ```bash
 # Verificar webhook
-curl "https://api.telegram.org/bot8359178148:AAGMuyNm9iwPhd0K9Eu6yXXRmIPbCsFuoo0/getWebhookInfo"
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
 
-# Ver logs da função
+# Ver logs da funÃ§Ã£o
 supabase functions logs telegram-bot
 ```
 
-**Notificações não chegam:**
+**NotificaÃ§Ãµes nÃ£o chegam:**
 
 ```sql
--- Ver se os jobs estão rodando
+-- Ver se os jobs estÃ£o rodando
 SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
 ```
 
-**IA não funciona:**
+**IA nÃ£o funciona:**
 
 - Verifique a Gemini API Key em: https://aistudio.google.com/app/apikey
 - Veja os logs: `supabase functions logs telegram-bot`
 
 ---
 
-## 📊 Próximos Passos (Opcional):
+## ðŸ“Š PrÃ³ximos Passos (Opcional):
 
 1. **Adicionar mais comandos:**
-   - `/semana` - Visão semanal
-   - `/habitos` - Acompanhar hábitos
-   - `/analytics` - Análise completa
+   - `/semana` - VisÃ£o semanal
+   - `/habitos` - Acompanhar hÃ¡bitos
+   - `/analytics` - AnÃ¡lise completa
 
-2. **Notificações customizáveis:**
-   - Escolher horários
+2. **NotificaÃ§Ãµes customizÃ¡veis:**
+   - Escolher horÃ¡rios
    - Ativar/desativar tipos
 
-3. **IA mais avançada:**
-   - Análise de padrões
-   - Sugestões personalizadas
+3. **IA mais avanÃ§ada:**
+   - AnÃ¡lise de padrÃµes
+   - SugestÃµes personalizadas
    - Coaching de produtividade
 
-Me avisa quando terminar o setup para continuar evoluindo! 🚀
+Me avisa quando terminar o setup para continuar evoluindo! ðŸš€
+

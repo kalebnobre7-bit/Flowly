@@ -261,7 +261,9 @@
       sortAndNormalizePositions(nextAllTasksData);
       setAllTasksData(nextAllTasksData);
 
-      if (localSnapshot) {
+      const hasRemoteDatedTasks = Object.keys(nextAllTasksData).length > 0;
+      // Prevent cross-device divergence: only recover local snapshot when remote has no dated tasks.
+      if (localSnapshot && !hasRemoteDatedTasks) {
         const pendingLocalSync = [];
 
         Object.entries(localSnapshot).forEach(function ([dateStr, periods]) {
@@ -276,25 +278,6 @@
 
             tasksInPeriod.forEach(function (localTask, localIndex) {
               if (!localTask || !localTask.text) return;
-
-              const serverTask = serverTasks.find(function (t) {
-                return (
-                  (localTask.supabaseId && t.supabaseId === localTask.supabaseId) ||
-                  (t.text === localTask.text &&
-                    (t.parent_id || null) === (localTask.parent_id || null) &&
-                    (t.type || null) === (localTask.type || null) &&
-                    (t.priority || null) === (localTask.priority || null))
-                );
-              });
-
-              if (serverTask) {
-                if (localTask.completed && !serverTask.completed) {
-                  serverTask.completed = true;
-                  serverTask.completedAt = localTask.completedAt || new Date().toISOString();
-                  pendingLocalSync.push({ dateStr: dateStr, period: period, task: serverTask });
-                }
-                return;
-              }
 
               const taskToKeep = {
                 text: localTask.text,

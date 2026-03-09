@@ -1,7 +1,6 @@
-# Arquivo de configuração com credenciais - NUNCA versionar
-config.js
-
-# Dependências
+﻿# Arquivo de configuraÃ§Ã£o com credenciais - NUNCA versionar
+/config.js
+# DependÃªncias
 node_modules/
 
 # Arquivos de sistema
@@ -12,3 +11,4 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
