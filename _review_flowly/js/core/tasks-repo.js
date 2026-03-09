@@ -198,11 +198,13 @@
       })();
 
       const idsToDelete = [];
+      const remoteTaskIds = new Set();
       const nextAllTasksData = {};
       const remoteRecurringTasks = [];
 
       if (tasks && tasks.length > 0) {
         tasks.forEach(function (task) {
+          if (task.id) remoteTaskIds.add(task.id);
           if (task.day === 'ROUTINE') return;
 
           if (task.day === 'RECURRING') {
@@ -258,26 +260,31 @@
         }
       }
 
-      sortAndNormalizePositions(nextAllTasksData);
-      setAllTasksData(nextAllTasksData);
-
-      const hasRemoteDatedTasks = Object.keys(nextAllTasksData).length > 0;
-      // Prevent cross-device divergence: only recover local snapshot when remote has no dated tasks.
-      if (localSnapshot && !hasRemoteDatedTasks) {
-        const pendingLocalSync = [];
-
+      const pendingLocalSync = [];
+      if (localSnapshot && typeof localSnapshot === 'object') {
         Object.entries(localSnapshot).forEach(function ([dateStr, periods]) {
           if (!periods || typeof periods !== 'object') return;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
 
           Object.entries(periods).forEach(function ([period, tasksInPeriod]) {
             if (!Array.isArray(tasksInPeriod)) return;
+            if (!period || period === 'Rotina') return;
             if (!nextAllTasksData[dateStr]) nextAllTasksData[dateStr] = {};
             if (!nextAllTasksData[dateStr][period]) nextAllTasksData[dateStr][period] = [];
 
             const serverTasks = nextAllTasksData[dateStr][period];
 
             tasksInPeriod.forEach(function (localTask, localIndex) {
-              if (!localTask || !localTask.text) return;
+              if (!localTask || !localTask.text || localTask.text.trim() === '') return;
+
+              const localTaskId =
+                typeof localTask.supabaseId === 'string' && localTask.supabaseId.indexOf('-') > -1
+                  ? localTask.supabaseId
+                  : null;
+              const localTaskHasValidRemoteId = localTaskId && remoteTaskIds.has(localTaskId);
+
+              // If the task was already loaded from remote by id, keep cloud payload.
+              if (localTaskHasValidRemoteId) return;
 
               const taskToKeep = {
                 text: localTask.text,
@@ -291,22 +298,41 @@
                     ? localTask.position
                     : serverTasks.length + localIndex,
                 isHabit: localTask.isHabit === true,
-                supabaseId: localTask.supabaseId || null,
+                supabaseId: null,
                 completedAt: localTask.completedAt || null
               };
+
+              const existsInServer = serverTasks.some(function (serverTask, serverIndex) {
+                const serverPosition =
+                  typeof serverTask.position === 'number' ? serverTask.position : serverIndex;
+                const targetPosition =
+                  typeof taskToKeep.position === 'number' ? taskToKeep.position : localIndex;
+                return (
+                  serverTask &&
+                  serverTask.text === taskToKeep.text &&
+                  (serverTask.parent_id || null) === (taskToKeep.parent_id || null) &&
+                  (serverTask.type || null) === (taskToKeep.type || null) &&
+                  (serverTask.priority || null) === (taskToKeep.priority || null) &&
+                  (serverTask.isHabit === true) === (taskToKeep.isHabit === true) &&
+                  serverPosition === targetPosition
+                );
+              });
+
+              if (existsInServer) return;
 
               serverTasks.push(taskToKeep);
               pendingLocalSync.push({ dateStr: dateStr, period: period, task: taskToKeep });
             });
           });
         });
-
-        sortAndNormalizePositions(nextAllTasksData);
-
-        pendingLocalSync.forEach(function (entry) {
-          syncTaskToSupabase(entry.dateStr, entry.period, entry.task);
-        });
       }
+
+      sortAndNormalizePositions(nextAllTasksData);
+      setAllTasksData(nextAllTasksData);
+
+      pendingLocalSync.forEach(function (entry) {
+        syncTaskToSupabase(entry.dateStr, entry.period, entry.task);
+      });
       const allRecurringTasks = getAllRecurringTasks();
       const localNewTasks = allRecurringTasks.filter(function (t) {
         return !t.supabaseId;
@@ -414,6 +440,7 @@
     create: createFlowlyTasksRepo
   };
 })();
+
 
 
 
