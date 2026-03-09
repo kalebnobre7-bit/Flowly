@@ -312,7 +312,9 @@
         return !t.supabaseId;
       });
 
-      let nextRecurringTasks = remoteRecurringTasks.concat(localNewTasks);
+      // Keep cloud as source of truth for recurring tasks when cloud data exists.
+      // This prevents old local recurring entries from reappearing on one device only.
+      let nextRecurringTasks = remoteRecurringTasks.length > 0 ? remoteRecurringTasks : localNewTasks;
       const uniqueTextMap = new Map();
       nextRecurringTasks.forEach(function (t) {
         uniqueTextMap.set(t.text, t);
@@ -322,7 +324,7 @@
       setAllRecurringTasks(nextRecurringTasks);
       localStorage.setItem('allRecurringTasks', JSON.stringify(nextRecurringTasks));
 
-      if (localNewTasks.length > 0) {
+      if (remoteRecurringTasks.length === 0 && localNewTasks.length > 0) {
         await syncRecurringTasksToSupabase();
       }
 
@@ -412,5 +414,6 @@
     create: createFlowlyTasksRepo
   };
 })();
+
 
 
