@@ -5308,11 +5308,29 @@ async function deleteEmptyTasks() {
 }
 
 // Função para mostrar modal de criação de tarefa semanal recorrente
+function bindWeeklyDayButtons() {
+  document.querySelectorAll('.weekly-day-btn').forEach((btn) => {
+    if (btn.dataset.weeklyBound === '1') return;
+    btn.dataset.weeklyBound = '1';
+    btn.setAttribute('type', 'button');
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      btn.classList.toggle('selected');
+      btn.classList.toggle('active');
+    });
+  });
+}
+
 function showWeeklyRecurrenceDialog() {
   const modal = document.getElementById('weeklyModal');
   document.getElementById('weeklyTaskText').value = '';
   // Limpar seleção de dias
-  document.querySelectorAll('.weekly-day-btn').forEach((b) => b.classList.remove('selected'));
+  bindWeeklyDayButtons();
+  document.querySelectorAll('.weekly-day-btn').forEach((b) => {
+    b.classList.remove('selected');
+    b.classList.remove('active');
+  });
   modal.classList.add('show');
   setTimeout(() => {
     document.getElementById('weeklyTaskText').focus();
@@ -7334,9 +7352,7 @@ document.querySelectorAll('.quick-add-option').forEach((option) => {
 });
 
 // Event listeners do modal de tarefa semanal
-document.querySelectorAll('.weekly-day-btn').forEach((btn) => {
-  btn.onclick = () => btn.classList.toggle('selected');
-});
+bindWeeklyDayButtons();
 
 // Listeners do modal semanal — só vinculam se os elementos existirem no HTML
 // (podem ser gerados dinamicamente via renderSettingsView, portanto usamos delegação)
@@ -7924,11 +7940,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Week Day Buttons (Toggle)
-  document.querySelectorAll('.weekly-day-btn').forEach((btn) => {
-    btn.onclick = () => {
-      btn.classList.toggle('active');
-    };
-  });
+  bindWeeklyDayButtons();
 
   // Action Buttons
   const btnSave = document.getElementById('btnSaveTaskEdit');
