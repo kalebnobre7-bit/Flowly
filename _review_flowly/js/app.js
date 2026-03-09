@@ -1059,9 +1059,26 @@ function scheduleUnsyncedTasksSync(delay = 600) {
   }, delay);
 }
 
+async function ensureCurrentUserForSync() {
+  if (currentUser) return currentUser;
+  try {
+    const result = await supabaseClient.auth.getSession();
+    const session = result && result.data ? result.data.session : null;
+    if (session && session.user) {
+      currentUser = session.user;
+      return currentUser;
+    }
+  } catch (err) {
+    console.error('[Auth] Falha ao recuperar sessao para sincronizacao:', err);
+  }
+  return null;
+}
+
 async function syncUnsyncedTasksToSupabase() {
   if (_unsyncedSyncInFlight) return;
-  if (!tasksSyncService || !currentUser) return;
+  if (!tasksSyncService) return;
+  const user = await ensureCurrentUserForSync();
+  if (!user) return;
 
   _unsyncedSyncInFlight = true;
   try {
@@ -1101,6 +1118,11 @@ async function syncRecurringTasksToSupabase() {
 
 async function syncTaskToSupabase(dateStr, period, task) {
   if (!tasksSyncService) return { success: false, errorText: 'Sync service indisponivel.' };
+  const user = await ensureCurrentUserForSync();
+  if (!user) {
+    scheduleUnsyncedTasksSync(2000);
+    return { success: false, errorText: 'Usuario nao autenticado para sincronizacao.' };
+  }
   markLocalSupabaseMutation();
   const result = await tasksSyncService.syncTaskToSupabase(dateStr, period, task);
   if (!result || !result.success) scheduleUnsyncedTasksSync(1500);
@@ -7454,6 +7476,11 @@ window.addEventListener('online', () => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) scheduleUnsyncedTasksSync(500);
 });
+
+setInterval(() => {
+  if (document.hidden) return;
+  scheduleUnsyncedTasksSync(0);
+}, 15000);
 // ========================================
 // PWA - Service Worker & Notificacoes
 // ========================================
