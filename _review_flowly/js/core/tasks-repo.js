@@ -262,33 +262,68 @@
       setAllTasksData(nextAllTasksData);
 
       if (localSnapshot) {
+        const pendingLocalSync = [];
+
         Object.entries(localSnapshot).forEach(function ([dateStr, periods]) {
           if (!periods || typeof periods !== 'object') return;
+
           Object.entries(periods).forEach(function ([period, tasksInPeriod]) {
             if (!Array.isArray(tasksInPeriod)) return;
+            if (!nextAllTasksData[dateStr]) nextAllTasksData[dateStr] = {};
+            if (!nextAllTasksData[dateStr][period]) nextAllTasksData[dateStr][period] = [];
 
-            tasksInPeriod.forEach(function (localTask) {
-              if (!localTask.completed) return;
-              const serverTasks = nextAllTasksData[dateStr] && nextAllTasksData[dateStr][period];
-              if (!serverTasks) return;
+            const serverTasks = nextAllTasksData[dateStr][period];
+
+            tasksInPeriod.forEach(function (localTask, localIndex) {
+              if (!localTask || !localTask.text) return;
 
               const serverTask = serverTasks.find(function (t) {
                 return (
                   (localTask.supabaseId && t.supabaseId === localTask.supabaseId) ||
-                  t.text === localTask.text
+                  (t.text === localTask.text &&
+                    (t.parent_id || null) === (localTask.parent_id || null) &&
+                    (t.type || null) === (localTask.type || null) &&
+                    (t.priority || null) === (localTask.priority || null))
                 );
               });
 
-              if (serverTask && !serverTask.completed) {
-                serverTask.completed = true;
-                serverTask.completedAt = localTask.completedAt || new Date().toISOString();
-                syncTaskToSupabase(dateStr, period, serverTask);
+              if (serverTask) {
+                if (localTask.completed && !serverTask.completed) {
+                  serverTask.completed = true;
+                  serverTask.completedAt = localTask.completedAt || new Date().toISOString();
+                  pendingLocalSync.push({ dateStr: dateStr, period: period, task: serverTask });
+                }
+                return;
               }
+
+              const taskToKeep = {
+                text: localTask.text,
+                completed: localTask.completed === true,
+                color: localTask.color || 'default',
+                type: localTask.type || null,
+                priority: localTask.priority || null,
+                parent_id: localTask.parent_id || null,
+                position:
+                  typeof localTask.position === 'number'
+                    ? localTask.position
+                    : serverTasks.length + localIndex,
+                isHabit: localTask.isHabit === true,
+                supabaseId: localTask.supabaseId || null,
+                completedAt: localTask.completedAt || null
+              };
+
+              serverTasks.push(taskToKeep);
+              pendingLocalSync.push({ dateStr: dateStr, period: period, task: taskToKeep });
             });
           });
         });
-      }
 
+        sortAndNormalizePositions(nextAllTasksData);
+
+        pendingLocalSync.forEach(function (entry) {
+          syncTaskToSupabase(entry.dateStr, entry.period, entry.task);
+        });
+      }
       const allRecurringTasks = getAllRecurringTasks();
       const localNewTasks = allRecurringTasks.filter(function (t) {
         return !t.supabaseId;
@@ -394,4 +429,5 @@
     create: createFlowlyTasksRepo
   };
 })();
+
 
