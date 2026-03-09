@@ -359,6 +359,55 @@ body.no-week-hover .day-column:hover {
     min-height: 80vh;
 }
 
+#weekGrid.today-container.today-focus-mode {
+    display: block !important;
+    max-width: 760px;
+    padding: 18px 20px 28px;
+    min-height: auto;
+}
+
+#weekGrid.today-container.today-focus-mode .today-main {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+#weekGrid.today-container.today-focus-mode .today-sidebar {
+    display: none !important;
+}
+
+#weekGrid.today-container.today-focus-mode .today-header {
+    display: none;
+}
+
+.today-focus-toggle-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+
+.today-focus-toggle-wrap.focus-active {
+    justify-content: center;
+    margin-bottom: 6px;
+}
+
+.today-focus-toggle-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--text-secondary);
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    transition: all 0.15s ease;
+}
+
+.today-focus-toggle-btn:hover {
+    background: rgba(77, 107, 254, 0.16);
+    border-color: rgba(77, 107, 254, 0.5);
+    color: #dce3ff;
+}
+
 .today-main {
     flex: 1;
     /* Ocupa o espaÃ§o restante */

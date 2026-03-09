@@ -5643,7 +5643,10 @@ window.toggleTaskStatus = function (dateStr, period, index, isChecked, element) 
 
 function renderToday() {
   const grid = document.getElementById('weekGrid');
-  grid.className = 'today-container';
+  const todayViewSettings = safeJSONParse(localStorage.getItem('flowly_today_view_settings'), {});
+  const focusOnlyMode = todayViewSettings.focusOnlyMode === true;
+
+  grid.className = focusOnlyMode ? 'today-container today-focus-mode' : 'today-container';
   grid.style.cssText = '';
   grid.innerHTML = '';
 
@@ -5655,11 +5658,32 @@ function renderToday() {
   const main = document.createElement('div');
   main.className = 'today-main';
 
+  // Focus toggle (daily view)
+  const focusToggleWrap = document.createElement('div');
+  focusToggleWrap.className = focusOnlyMode
+    ? 'today-focus-toggle-wrap focus-active'
+    : 'today-focus-toggle-wrap';
+
+  const focusToggleBtn = document.createElement('button');
+  focusToggleBtn.className = 'today-focus-toggle-btn';
+  focusToggleBtn.textContent = focusOnlyMode ? 'Mostrar dados' : 'Modo foco';
+  focusToggleBtn.onclick = (e) => {
+    e.stopPropagation();
+    const current = safeJSONParse(localStorage.getItem('flowly_today_view_settings'), {});
+    current.focusOnlyMode = !(current.focusOnlyMode === true);
+    localStorage.setItem('flowly_today_view_settings', JSON.stringify(current));
+    renderView();
+  };
+  focusToggleWrap.appendChild(focusToggleBtn);
+  main.appendChild(focusToggleWrap);
+
   // Header
   const header = document.createElement('div');
   header.className = 'today-header';
   header.innerHTML = `<h1> ${today}</h1> <p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`;
-  main.appendChild(header);
+  if (!focusOnlyMode) {
+    main.appendChild(header);
+  }
 
   // Task list container
   const taskList = document.createElement('div');
@@ -5739,6 +5763,11 @@ function renderToday() {
   });
 
   grid.appendChild(main);
+
+  if (focusOnlyMode) {
+    return;
+  }
+
 
   // ===== RIGHT: Sidebar stats =====
   const sidebar = document.createElement('div');
@@ -7821,6 +7850,7 @@ window.handleTaskIndent = function (dateStr, period, index, shiftKey) {
   syncTaskToSupabase(dateStr, period, currentTask);
   renderView();
 };
+
 
 
 
