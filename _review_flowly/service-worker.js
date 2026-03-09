@@ -1,4 +1,4 @@
-﻿const STATIC_CACHE = 'flowly-static-v3';
+﻿const STATIC_CACHE = 'flowly-static-v4';
 
 const APP_SCOPE_URL = new URL(self.registration.scope);
 const APP_SCOPE_PATH = APP_SCOPE_URL.pathname.endsWith('/')
@@ -32,6 +32,10 @@ function isSameOrigin(url) {
 
 function isStaticAsset(url) {
   return /\.(?:js|css|png|svg|ico|json|html)$/i.test(url.pathname);
+}
+
+function isCodeAsset(url) {
+  return /\.(?:js|css|html)$/i.test(url.pathname);
 }
 
 function isApiRequest(url) {
@@ -86,6 +90,21 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (!isStaticAsset(requestUrl)) return;
+
+  if (isCodeAsset(requestUrl)) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.ok) {
+            const clone = networkResponse.clone();
+            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
@@ -224,5 +243,3 @@ self.addEventListener('notificationclick', (event) => {
     );
   }
 });
-
-
