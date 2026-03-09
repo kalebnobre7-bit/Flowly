@@ -106,7 +106,7 @@
               text: task.text,
               completed: task.completed || false,
               color: task.color || 'default',
-              type: task.type || null,
+              type: task.type || 'OPERATIONAL',
               priority: task.priority || null,
               parent_id: task.parent_id || null,
               position: typeof task.position === 'number' ? task.position : index,
@@ -219,7 +219,7 @@
               })(),
               priority: null,
               color: task.color || 'default',
-              type: task.type || null,
+              type: task.type || 'OPERATIONAL',
               isHabit: task.is_habit || false,
               createdAt: task.created_at || new Date().toISOString(),
               supabaseId: task.id
@@ -245,7 +245,7 @@
             text: task.text,
             completed: task.completed,
             color: task.color || 'default',
-            type: task.type || null,
+            type: task.type || 'OPERATIONAL',
             priority: task.priority || null,
             parent_id: task.parent_id || null,
             position: Number(task.position) || 0,
@@ -290,7 +290,7 @@
                 text: localTask.text,
                 completed: localTask.completed === true,
                 color: localTask.color || 'default',
-                type: localTask.type || null,
+                type: localTask.type || 'OPERATIONAL',
                 priority: localTask.priority || null,
                 parent_id: localTask.parent_id || null,
                 position:
@@ -440,6 +440,7 @@
     create: createFlowlyTasksRepo
   };
 })();
+
 
 
 

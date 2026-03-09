@@ -43,7 +43,7 @@
           period: JSON.stringify(task.daysOfWeek || []),
           text: task.text,
           is_habit: task.isHabit || false,
-          type: task.type || null,
+          type: task.type || 'OPERATIONAL',
           color: task.color || 'default'
         };
 
@@ -71,7 +71,7 @@
           text: task.text,
           completed: task.completed === true,
           color: task.color || 'default',
-          type: task.type || null,
+          type: task.type || 'OPERATIONAL',
           priority: task.priority || null,
           parent_id: task.parent_id || null,
           position: typeof task.position === 'number' ? task.position : null,
@@ -194,4 +194,5 @@
     create: createTasksSync
   };
 })();
+
 

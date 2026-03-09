@@ -500,7 +500,7 @@ window.toggleTaskExpansion = function (task, el) {
           daysOfWeek: [i],
           priority: task.priority || null,
           color: task.color || 'default',
-          type: task.type || null,
+          type: task.type || 'OPERATIONAL',
           createdAt: new Date().toISOString()
         };
         allRecurringTasks.push(newRecTask);
@@ -6438,7 +6438,7 @@ function insertQuickTaskInput(container, dateStr, period, beforeElement = null) 
         text: input.value.trim(),
         completed: false,
         color: 'default',
-        type: null,
+        type: 'OPERATIONAL',
         priority: null,
         parent_id: null,
         position: currentList.length,
@@ -7068,7 +7068,7 @@ async function syncDateToSupabase(dateStr) {
           text: task.text,
           completed: task.completed || false,
           color: task.color || 'default',
-          type: task.type || null,
+          type: task.type || 'OPERATIONAL',
           priority: task.priority || null,
           parent_id: task.parent_id || null,
           position: typeof task.position === 'number' ? task.position : index,
@@ -7287,7 +7287,7 @@ document.querySelectorAll('.quick-add-option').forEach((option) => {
           daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
           priority: null,
           color: 'default',
-          type: null,
+          type: 'OPERATIONAL',
           isHabit: true,
           createdAt: new Date().toISOString()
         });
@@ -7312,7 +7312,7 @@ document.querySelectorAll('.quick-add-option').forEach((option) => {
           text: text.trim(),
           completed: false,
           color: 'default',
-          type: null,
+          type: 'OPERATIONAL',
           priority: null,
           parent_id: null,
           position: currentList.length,
@@ -7972,4 +7972,5 @@ window.handleTaskIndent = function (dateStr, period, index, shiftKey) {
   syncTaskToSupabase(dateStr, period, currentTask);
   renderView();
 };
+
 
