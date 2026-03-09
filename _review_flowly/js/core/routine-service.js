@@ -7,6 +7,24 @@
     const getCurrentUser = deps.getCurrentUser;
     const supabaseClient = deps.supabaseClient;
 
+    function getTaskStartDateKey(task) {
+      const raw = task && (task.startDate || task.createdAt || task.created_at);
+      if (!raw) return null;
+
+      const parsed = new Date(raw);
+      const ts = parsed.getTime();
+      if (!Number.isFinite(ts)) return null;
+
+      const localStart = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+      return localDateStr(localStart);
+    }
+
+    function isTaskActiveForDate(task, dateStr) {
+      const startDateKey = getTaskStartDateKey(task);
+      if (!startDateKey) return true;
+      return dateStr >= startDateKey;
+    }
+
     function getRoutineTasksForDate(dateStr) {
       const tasks = [];
       const dateParts = dateStr.split('-');
@@ -16,6 +34,8 @@
       const habitsHistory = getHabitsHistory();
 
       allRecurringTasks.forEach(function (habit) {
+        if (!isTaskActiveForDate(habit, dateStr)) return;
+
         let isForToday = false;
         if (habit.daysOfWeek && Array.isArray(habit.daysOfWeek)) {
           if (habit.daysOfWeek.includes(dayOfWeek)) isForToday = true;
@@ -52,6 +72,8 @@
       const habitsHistory = getHabitsHistory();
 
       allRecurringTasks.forEach(function (task) {
+        if (!isTaskActiveForDate(task, today)) return;
+
         if (
           (task.isHabit || (task.daysOfWeek && task.daysOfWeek.length > 0)) &&
           !habitMap.has(task.text)

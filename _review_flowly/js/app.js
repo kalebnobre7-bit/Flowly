@@ -329,6 +329,8 @@ window.toggleTaskExpansion = function (task, el) {
     renderView();
   };
 
+  const recDefinition = isRecurring ? allRecurringTasks.find((rt) => rt.text === task.text) : null;
+
   // === HELPER: Create a property row (Notion-style) ===
   const createPropertyRow = (icon, labelTxt) => {
     const row = document.createElement('div');
@@ -362,6 +364,83 @@ window.toggleTaskExpansion = function (task, el) {
     return btn;
   };
 
+  // 0. NAME ROW
+  const nameRow = createPropertyRow('text-cursor-input', 'Nome');
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.value = task.text || '';
+  nameInput.style.cssText =
+    'flex:1;min-width:180px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px 10px;color:#fff;font-size:12px;outline:none;';
+  nameInput.setAttribute('maxlength', '180');
+
+  const applyTaskRename = async () => {
+    const newText = nameInput.value.trim();
+    const oldText = task.text || '';
+
+    if (!newText || newText === oldText) {
+      nameInput.value = oldText;
+      return;
+    }
+
+    if (
+      isRecurring &&
+      allRecurringTasks.some((t) => t !== recDefinition && String(t.text || '') === newText)
+    ) {
+      alert('Ja existe uma rotina com esse nome.');
+      nameInput.value = oldText;
+      return;
+    }
+
+    if (isRecurring && recDefinition) {
+      recDefinition.text = newText;
+      task.text = newText;
+
+      if (habitsHistory[oldText] && !habitsHistory[newText]) {
+        habitsHistory[newText] = habitsHistory[oldText];
+        delete habitsHistory[oldText];
+      }
+
+      Object.values(allTasksData || {}).forEach((periods) => {
+        Object.values(periods || {}).forEach((tasks) => {
+          if (!Array.isArray(tasks)) return;
+          tasks.forEach((t) => {
+            if (!t || t.text !== oldText) return;
+            if (t.isHabit || t.isRecurring || t.isRoutine) t.text = newText;
+          });
+        });
+      });
+
+      saveToLocalStorage();
+      syncRecurringTasksToSupabase();
+      if (currentUser && supabaseClient) {
+        supabaseClient
+          .from('habits_history')
+          .update({ habit_name: newText })
+          .eq('user_id', currentUser.id)
+          .eq('habit_name', oldText);
+      }
+      renderView();
+      return;
+    }
+
+    task.text = newText;
+    saveToLocalStorage();
+    if (!isRecurring) syncTaskToSupabase(dateStr, period, task);
+    renderView();
+  };
+
+  nameInput.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyTaskRename();
+    }
+  };
+  nameInput.onblur = () => {
+    applyTaskRename();
+  };
+  nameRow.appendChild(nameInput);
+  exp.appendChild(nameRow);
+
   // 1. TYPE ROW
   const typeRow = createPropertyRow('tag', 'Tipo');
   const types = getTaskTypes();
@@ -382,7 +461,6 @@ window.toggleTaskExpansion = function (task, el) {
   // 2. PRIORITY ROW
   const prioRow = createPropertyRow('signal', 'Prioridade');
   const prios = getTaskPriorities();
-  const recDefinition = isRecurring ? allRecurringTasks.find((rt) => rt.text === task.text) : null;
   let currentPrio = task.priority || null;
   if (isRecurring && recDefinition && recDefinition.priority) currentPrio = recDefinition.priority;
   const priosWrap = document.createElement('div');
@@ -5184,9 +5262,19 @@ function getWeeklyRecurringForDay(dateStr, dayOfWeek) {
       });
   });
   return allRecurringTasks
-    .filter(
-      (rt) => rt.daysOfWeek && rt.daysOfWeek.includes(dayOfWeek) && !existingTexts.has(rt.text)
-    )
+    .filter((rt) => {
+      if (!rt.daysOfWeek || !rt.daysOfWeek.includes(dayOfWeek)) return false;
+      if (existingTexts.has(rt.text)) return false;
+
+      const rawStart = rt.startDate || rt.createdAt || rt.created_at;
+      if (!rawStart) return true;
+
+      const parsed = new Date(rawStart);
+      if (!Number.isFinite(parsed.getTime())) return true;
+
+      const startKey = localDateStr(new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
+      return dateStr >= startKey;
+    })
     .map((rt) => ({
       text: rt.text,
       completed: false,
