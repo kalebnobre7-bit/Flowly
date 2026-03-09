@@ -1048,6 +1048,51 @@ function markLocalSupabaseMutation(ms = 1800) {
   const prev = Number(window._flowlySuppressRealtimeUntil || 0);
   window._flowlySuppressRealtimeUntil = Math.max(prev, until);
 }
+let _unsyncedSyncInFlight = false;
+let _unsyncedSyncTimer = null;
+
+function scheduleUnsyncedTasksSync(delay = 600) {
+  if (_unsyncedSyncTimer) clearTimeout(_unsyncedSyncTimer);
+  _unsyncedSyncTimer = setTimeout(() => {
+    _unsyncedSyncTimer = null;
+    syncUnsyncedTasksToSupabase();
+  }, delay);
+}
+
+async function syncUnsyncedTasksToSupabase() {
+  if (_unsyncedSyncInFlight) return;
+  if (!tasksSyncService || !currentUser) return;
+
+  _unsyncedSyncInFlight = true;
+  try {
+    let hasChanges = false;
+
+    for (const [dateStr, periods] of Object.entries(allTasksData || {})) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) continue;
+
+      for (const [period, tasks] of Object.entries(periods || {})) {
+        if (!Array.isArray(tasks) || period === 'Rotina') continue;
+
+        for (const task of tasks) {
+          if (!task || !task.text || task.text.trim() === '') continue;
+          if (task.isWeeklyRecurring || task.isRoutine || task.isRecurring) continue;
+          if (typeof task.supabaseId === 'string' && task.supabaseId.indexOf('-') > -1) continue;
+
+          markLocalSupabaseMutation();
+          const result = await tasksSyncService.syncTaskToSupabase(dateStr, period, task);
+          if (result && result.success) hasChanges = true;
+        }
+      }
+    }
+
+    if (hasChanges) saveToLocalStorage();
+  } catch (err) {
+    console.error('[Sync] Erro ao sincronizar tarefas pendentes:', err);
+  } finally {
+    _unsyncedSyncInFlight = false;
+  }
+}
+
 async function syncRecurringTasksToSupabase() {
   if (!tasksSyncService) return;
   markLocalSupabaseMutation();
@@ -1057,7 +1102,9 @@ async function syncRecurringTasksToSupabase() {
 async function syncTaskToSupabase(dateStr, period, task) {
   if (!tasksSyncService) return { success: false, errorText: 'Sync service indisponivel.' };
   markLocalSupabaseMutation();
-  return tasksSyncService.syncTaskToSupabase(dateStr, period, task);
+  const result = await tasksSyncService.syncTaskToSupabase(dateStr, period, task);
+  if (!result || !result.success) scheduleUnsyncedTasksSync(1500);
+  return result;
 }
 
 async function deleteTaskFromSupabase(task, day, period) {
@@ -7388,6 +7435,7 @@ if (flowlyAuthSessionFactory) {
     getCurrentUser: () => currentUser,
     onSessionDataRequired: async () => {
       await loadDataFromSupabase();
+      await syncUnsyncedTasksToSupabase();
       renderView();
     },
     onSignedOut: () => {
@@ -7398,6 +7446,14 @@ if (flowlyAuthSessionFactory) {
 
   authSession.init(() => !allTasksData || Object.keys(allTasksData).length === 0);
 }
+
+window.addEventListener('online', () => {
+  scheduleUnsyncedTasksSync(300);
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) scheduleUnsyncedTasksSync(500);
+});
 // ========================================
 // PWA - Service Worker & Notificacoes
 // ========================================
@@ -7889,12 +7945,4 @@ window.handleTaskIndent = function (dateStr, period, index, shiftKey) {
   syncTaskToSupabase(dateStr, period, currentTask);
   renderView();
 };
-
-
-
-
-
-
-
-
 
