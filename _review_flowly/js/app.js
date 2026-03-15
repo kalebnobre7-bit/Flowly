@@ -928,21 +928,36 @@ function formatTaskTime(isoString) {
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+function getViewSettings() {
+  return safeJSONParse(localStorage.getItem('flowly_view_settings'), {});
+}
+
 function getWeekDates(weekOffset = 0) {
   const today = new Date();
-  const currentDay = today.getDay(); // 0 = Domingo
-  const diff = currentDay === 0 ? -6 : 1 - currentDay; // Ajustar para segunda-feira
+  const viewSettings = getViewSettings();
+  const weekStart = viewSettings.weekStart === 'sun' ? 'sun' : 'mon';
+  const showWeekends = viewSettings.showWeekends !== false;
 
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diff + weekOffset * 7);
-  monday.setHours(0, 0, 0, 0);
+  const currentDay = today.getDay(); // 0 = Domingo
+  const startDiff = weekStart === 'sun' ? -currentDay : currentDay === 0 ? -6 : 1 - currentDay;
+
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() + startDiff + weekOffset * 7);
+  startDate.setHours(0, 0, 0, 0);
+
+  const dayNames =
+    weekStart === 'sun'
+      ? ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+      : ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
   const dates = [];
-  const dayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-
   for (let i = 0; i < 7; i++) {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    const dayIndex = date.getDay();
+    const isWeekend = dayIndex === 0 || dayIndex === 6;
+    if (!showWeekends && isWeekend) continue;
+
     dates.push({
       name: dayNames[i],
       date: date,
@@ -966,8 +981,10 @@ function getMonthDates(monthOffset = 0) {
 
 function getWeekLabel(weekOffset) {
   const dates = getWeekDates(weekOffset);
+  if (!dates.length) return 'Semana Atual';
+
   const firstDate = dates[0].date;
-  const lastDate = dates[6].date;
+  const lastDate = dates[dates.length - 1].date;
 
   if (weekOffset === 0) return 'Semana Atual';
 
@@ -4989,6 +5006,7 @@ function renderSettingsView() {
         const cur = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
         cur.weekStart = this.value;
         localStorage.setItem('flowly_view_settings', JSON.stringify(cur));
+        if (currentView === 'week') renderView();
       };
     }
 
@@ -5000,6 +5018,7 @@ function renderSettingsView() {
         cur.showWeekends = !(cur.showWeekends !== false);
         localStorage.setItem('flowly_view_settings', JSON.stringify(cur));
         renderSettingsView();
+        if (currentView === 'week') renderView();
       };
     }
 

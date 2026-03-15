@@ -132,7 +132,11 @@
 
             <div id="authLogin">
                 <input type="email" id="loginEmail" class="task-input mb-3" placeholder="Email">
-                <input type="password" id="loginPassword" class="task-input mb-4" placeholder="Senha">
+                <input type="password" id="loginPassword" class="task-input mb-3" placeholder="Senha">
+                <label class="mb-4 flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
+                    <input type="checkbox" id="keepLoggedIn" checked class="h-4 w-4 rounded border-white/20 bg-white/5">
+                    <span>Manter conectado neste dispositivo</span>
+                </label>
                 <button id="btnLogin" class="btn-primary mb-3">Entrar</button>
                 <button id="btnShowSignup" class="btn-secondary">Criar conta</button>
             </div>
