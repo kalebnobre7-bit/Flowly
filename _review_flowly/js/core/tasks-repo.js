@@ -273,9 +273,23 @@
             if (!nextAllTasksData[dateStr][period]) nextAllTasksData[dateStr][period] = [];
 
             const serverTasks = nextAllTasksData[dateStr][period];
+            const localSeenKeys = new Set();
 
             tasksInPeriod.forEach(function (localTask, localIndex) {
               if (!localTask || !localTask.text || localTask.text.trim() === '') return;
+
+              const normalizedText = localTask.text.trim().replace(/\s+/g, ' ');
+              const dedupeKey = JSON.stringify({
+                text: normalizedText.toLowerCase(),
+                parent_id: localTask.parent_id || null,
+                type: localTask.type || 'OPERATIONAL',
+                priority: localTask.priority || null,
+                isHabit: localTask.isHabit === true
+              });
+
+              // Nunca deixar o snapshot local ressuscitar duplicadas antigas.
+              if (localSeenKeys.has(dedupeKey)) return;
+              localSeenKeys.add(dedupeKey);
 
               const localTaskId =
                 typeof localTask.supabaseId === 'string' && localTask.supabaseId.indexOf('-') > -1
@@ -287,7 +301,7 @@
               if (localTaskHasValidRemoteId) return;
 
               const taskToKeep = {
-                text: localTask.text,
+                text: normalizedText,
                 completed: localTask.completed === true,
                 color: localTask.color || 'default',
                 type: localTask.type || 'OPERATIONAL',
@@ -302,19 +316,15 @@
                 completedAt: localTask.completedAt || null
               };
 
-              const existsInServer = serverTasks.some(function (serverTask, serverIndex) {
-                const serverPosition =
-                  typeof serverTask.position === 'number' ? serverTask.position : serverIndex;
-                const targetPosition =
-                  typeof taskToKeep.position === 'number' ? taskToKeep.position : localIndex;
+              const existsInServer = serverTasks.some(function (serverTask) {
                 return (
                   serverTask &&
-                  serverTask.text === taskToKeep.text &&
+                  String(serverTask.text || '').trim().toLowerCase() ===
+                    taskToKeep.text.trim().toLowerCase() &&
                   (serverTask.parent_id || null) === (taskToKeep.parent_id || null) &&
                   (serverTask.type || null) === (taskToKeep.type || null) &&
                   (serverTask.priority || null) === (taskToKeep.priority || null) &&
-                  (serverTask.isHabit === true) === (taskToKeep.isHabit === true) &&
-                  serverPosition === targetPosition
+                  (serverTask.isHabit === true) === (taskToKeep.isHabit === true)
                 );
               });
 

@@ -967,7 +967,7 @@ async function loadDataFromSupabase() {
     allTasksData = {};
     const remoteDailyRoutine = [];
     const remoteRecurringTasks = [];
-    // Track seen normal tasks to detect duplicates: key = "day|period|text"
+    // Track seen normal tasks to detect duplicates by semantic identity, not only text.
     const seenNormalTasks = new Map();
 
     if (tasks && tasks.length > 0) {
@@ -1007,24 +1007,30 @@ async function loadDataFromSupabase() {
                 return;
             }
 
-            // Deduplicate: keep the most recent (tasks ordered by created_at asc, so last wins)
-            const dupKey = `${dateStr}|${task.period}|${task.text.trim()}`;
+            const normalizedText = task.text.trim().replace(/\s+/g, ' ');
+            const dupKey = JSON.stringify({
+                day: dateStr,
+                period: task.period,
+                text: normalizedText.toLowerCase(),
+                parent_id: task.parent_id || null,
+                type: task.type || null,
+                priority: task.priority || null,
+                isHabit: task.is_habit === true,
+                completed: task.completed === true
+            });
+
             if (seenNormalTasks.has(dupKey)) {
-                // Mark the older copy for deletion
-                idsToDelete.push(seenNormalTasks.get(dupKey));
+                // Mark later copies for deletion and keep the oldest canonical row.
+                if (task.id) idsToDelete.push(task.id);
+                return;
             }
             seenNormalTasks.set(dupKey, task.id);
 
             if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
             if (!allTasksData[dateStr][task.period]) allTasksData[dateStr][task.period] = [];
 
-            // Remove any previously added duplicate entry for this key
-            allTasksData[dateStr][task.period] = allTasksData[dateStr][task.period].filter(
-                t => t.text.trim() !== task.text.trim()
-            );
-
             allTasksData[dateStr][task.period].push({
-                text: task.text,
+                text: normalizedText,
                 completed: task.completed,
                 color: task.color || 'default',
                 type: task.type || null,
