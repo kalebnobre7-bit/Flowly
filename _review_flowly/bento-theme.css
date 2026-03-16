@@ -345,7 +345,8 @@ body::before {
     .sexta-hero,
     .sexta-hero-side,
     .sexta-grid,
-    .sexta-command-row { grid-template-columns: 1fr; }
+    .sexta-command-row,
+    .sexta-ops-grid { grid-template-columns: 1fr; }
     .analytics-kpi-v2 { border-radius: 20px; }
     .analytics-kpi-v2-value { font-size: 32px; }
 }

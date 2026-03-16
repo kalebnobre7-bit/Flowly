@@ -3334,6 +3334,18 @@ body.dragging-active .task-drop-zone {
     margin-top: 14px;
 }
 
+.sexta-ops-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.sexta-panel-highlight--small {
+    font-size: 15px;
+    line-height: 1.45;
+}
+
 .sexta-pill,
 .sexta-chip {
     border-radius: 999px;

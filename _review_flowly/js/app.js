@@ -4653,10 +4653,25 @@ function buildSextaSuggestions() {
   const completedTasks = allTodayTasks.filter((task) => task.completed);
   const suggestions = [];
 
-  if (pendingTasks.length > 0) {
+  const moneyTasks = pendingTasks.filter((task) => String(task.priority || '').toLowerCase() === 'money');
+  const followupTasks = pendingTasks.filter((task) => /follow|cobrar|cliente|whats|proposta/i.test(String(task.text || '')));
+
+  if (moneyTasks.length > 0) {
+    suggestions.push({
+      title: 'Caixa primeiro',
+      body: `Se quer puxar dinheiro, começa por: ${moneyTasks[0].text}`
+    });
+  } else if (pendingTasks.length > 0) {
     suggestions.push({
       title: 'Prioridade imediata',
       body: `Ataca primeiro: ${pendingTasks[0].text}`
+    });
+  }
+
+  if (followupTasks.length > 0) {
+    suggestions.push({
+      title: 'Cliente na mesa',
+      body: `Tem follow-up aberto: ${followupTasks[0].text}`
     });
   }
 
@@ -4693,7 +4708,7 @@ function runSextaQuickAction(action) {
     const { total, completed } = countDayTasks(todayDate);
     sextaState.lastAction = `Hoje: ${completed}/${total} concluídas. Fecha o que ficou aberto antes de virar o dia.`;
   } else if (action === 'tomorrow') {
-    sextaState.lastAction = 'Amanhã: separa 3 prioridades, 1 tarefa rápida e 1 tarefa de alavancagem.';
+    sextaState.lastAction = 'Amanhã: separa 3 prioridades, 1 follow-up e 1 tarefa que puxe caixa.';
   } else if (action === 'plan') {
     const todayDate = localDateStr();
     const created = [
@@ -4786,6 +4801,29 @@ function renderSextaView() {
   if (!view) return;
 
   const todayDate = localDateStr();
+  const todayData = allTasksData[todayDate] || {};
+  const allOpenToday = [];
+  Object.entries(todayData).forEach(([period, tasks]) => {
+    if (!Array.isArray(tasks)) return;
+    tasks.forEach((task, index) => {
+      if (task && !task.completed) allOpenToday.push({ task, period, index });
+    });
+  });
+  const openRoutineToday = getRoutineTasksForDate(todayDate).filter((task) => task && !task.completed);
+  const moneyOpen = allOpenToday.filter((entry) => String(entry.task.priority || '').toLowerCase() === 'money');
+  const urgentOpen = allOpenToday.filter((entry) => String(entry.task.priority || '').toLowerCase() === 'urgent');
+  const followUpOpen = allOpenToday.filter((entry) => /follow|cobrar|cliente|whats|proposta/i.test(String(entry.task.text || '')));
+  const bottleneckLabel = moneyOpen.length > 0
+    ? 'Caixa pendente na mesa.'
+    : urgentOpen.length > 0
+      ? 'Tem urgência aberta travando o ritmo.'
+      : openRoutineToday.length > 2
+        ? 'Rotina está comendo teu foco.'
+        : allOpenToday.length > 5
+          ? 'Excesso de frente aberta.'
+          : 'Fluxo sob controle.';
+  const primaryMoneyTask = moneyOpen[0]?.task?.text || 'Nenhuma tarefa marcada como dinheiro hoje.';
+  const primaryFollowupTask = followUpOpen[0]?.task?.text || 'Nenhum follow-up pendente visível.';
   const { total, completed } = countDayTasks(todayDate);
   const pending = Math.max(0, total - completed);
   const weekDates = getWeekDates(0);
@@ -4841,14 +4879,14 @@ function renderSextaView() {
           <p>${completionRate >= 70 ? 'Dia sob controle.' : completionRate >= 35 ? 'Tem tração, mas ainda dá pra apertar.' : 'Baixa tração. Fecha uma tarefa curta e entra no fluxo.'}</p>
         </div>
         <div class="sexta-overview-card">
-          <span class="sexta-panel-label">Próximo modo</span>
-          <strong>${focusLabel}</strong>
-          <p>${pending > 5 ? 'Cortar excesso e escolher uma frente principal.' : pending > 2 ? 'Atacar entrega ou prioridade financeira.' : 'Fechar o que falta e revisar o dia.'}</p>
+          <span class="sexta-panel-label">Caixa em aberto</span>
+          <strong>${moneyOpen.length}</strong>
+          <p>${primaryMoneyTask}</p>
         </div>
         <div class="sexta-overview-card">
-          <span class="sexta-panel-label">Comandos que já funcionam</span>
-          <strong>criar • priorizar • concluir</strong>
-          <p>Escreve natural. Ex.: criar tarefa cobrar cliente, priorizar lévessy, concluir próxima.</p>
+          <span class="sexta-panel-label">Gargalo do dia</span>
+          <strong>${bottleneckLabel}</strong>
+          <p>${followUpOpen.length > 0 ? 'Follow-up pendente: ' + primaryFollowupTask : pending > 5 ? 'Tem tarefa demais aberta ao mesmo tempo.' : 'Nada crítico travando agora.'}</p>
         </div>
       </div>
 
@@ -4893,6 +4931,16 @@ function renderSextaView() {
           <div class="sexta-panel-block">
             <div class="sexta-panel-label">Última ação</div>
             <div class="sexta-panel-highlight">${lastAction}</div>
+          </div>
+          <div class="sexta-ops-grid">
+            <div class="sexta-panel-block sexta-panel-block--soft">
+              <div class="sexta-panel-label">Próxima ação que puxa caixa</div>
+              <div class="sexta-panel-highlight sexta-panel-highlight--small">${primaryMoneyTask}</div>
+            </div>
+            <div class="sexta-panel-block sexta-panel-block--soft">
+              <div class="sexta-panel-label">Follow-up mais próximo</div>
+              <div class="sexta-panel-highlight sexta-panel-highlight--small">${primaryFollowupTask}</div>
+            </div>
           </div>
           <div class="sexta-list">
             ${suggestions
