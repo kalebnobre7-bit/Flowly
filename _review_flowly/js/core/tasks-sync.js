@@ -76,7 +76,9 @@
           parent_id: task.parent_id || null,
           position: typeof task.position === 'number' ? task.position : null,
           is_habit: task.isHabit || false,
-          updated_at: new Date().toISOString()
+          created_at: task.createdAt || undefined,
+          updated_at: new Date().toISOString(),
+          completed_at: task.completed === true ? task.completedAt || new Date().toISOString() : null
         };
 
         if (task.supabaseId && task.supabaseId.includes('-')) {
@@ -100,6 +102,34 @@
           };
 
           ({ data, error } = await supabaseClient.from('tasks').insert([insertPayload]).select());
+        }
+
+        if (error && /completed_at/i.test(String(error.message || ''))) {
+          const fallbackPayloadBase = {
+            text: task.text,
+            completed: task.completed === true,
+            color: task.color || 'default',
+            type: task.type || 'OPERATIONAL',
+            priority: task.priority || null,
+            parent_id: task.parent_id || null,
+            position: typeof task.position === 'number' ? task.position : null,
+            is_habit: task.isHabit || false,
+            created_at: task.createdAt || undefined,
+            updated_at: new Date().toISOString()
+          };
+
+          if (task.supabaseId && task.supabaseId.includes('-')) {
+            ({ data, error } = await supabaseClient
+              .from('tasks')
+              .update({ ...fallbackPayloadBase, day: dateStr, period })
+              .eq('id', task.supabaseId)
+              .select());
+          } else {
+            ({ data, error } = await supabaseClient
+              .from('tasks')
+              .insert([{ user_id: currentUser.id, day: dateStr, period, ...fallbackPayloadBase }])
+              .select());
+          }
         }
 
         if (error) {
@@ -163,15 +193,27 @@
       const currentUser = getCurrentUser();
       if (!currentUser) return;
       if (completed) {
-        await supabaseClient.from('habits_history').upsert(
+        let { error } = await supabaseClient.from('habits_history').upsert(
           {
             user_id: currentUser.id,
             habit_name: habitText,
             date: date,
-            completed: true
+            completed: true,
+            completed_at: new Date().toISOString()
           },
           { onConflict: 'user_id,habit_name,date' }
         );
+        if (error && /completed_at/i.test(String(error.message || ''))) {
+          ({ error } = await supabaseClient.from('habits_history').upsert(
+            {
+              user_id: currentUser.id,
+              habit_name: habitText,
+              date: date,
+              completed: true
+            },
+            { onConflict: 'user_id,habit_name,date' }
+          ));
+        }
       } else {
         await supabaseClient
           .from('habits_history')

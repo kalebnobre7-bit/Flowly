@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     position integer not null default 0,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    completed_at timestamp with time zone,
     primary key (id)
 );
 
@@ -27,6 +28,7 @@ ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS priority text;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS parent_id uuid;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS position integer NOT NULL DEFAULT 0;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS completed_at timestamp with time zone;
 
 -- Ativar RLS para tasks
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
@@ -47,8 +49,11 @@ CREATE TABLE IF NOT EXISTS public.habits_history (
     date text not null,
     completed boolean not null default false,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    completed_at timestamp with time zone,
     primary key (user_id, habit_name, date)
 );
+
+ALTER TABLE public.habits_history ADD COLUMN IF NOT EXISTS completed_at timestamp with time zone;
 
 -- Ativar RLS para habits_history
 ALTER TABLE public.habits_history ENABLE ROW LEVEL SECURITY;

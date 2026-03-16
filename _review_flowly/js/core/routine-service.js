@@ -149,11 +149,28 @@
               user_id: currentUser.id,
               habit_name: habitText,
               date: dateKey,
-              completed: true
+              completed: true,
+              completed_at: habitsHistory[habitText][dateKey]
             },
             { onConflict: 'user_id,habit_name,date' }
           )
           .then(function (res) {
+            if (res.error && /completed_at/i.test(String(res.error.message || ''))) {
+              return supabaseClient
+                .from('habits_history')
+                .upsert(
+                  {
+                    user_id: currentUser.id,
+                    habit_name: habitText,
+                    date: dateKey,
+                    completed: true
+                  },
+                  { onConflict: 'user_id,habit_name,date' }
+                )
+                .then(function (fallbackRes) {
+                  if (fallbackRes.error) console.error('Erro ao marcar hábito:', fallbackRes.error);
+                });
+            }
             if (res.error) console.error('Erro ao marcar hábito:', res.error);
           });
       } else {

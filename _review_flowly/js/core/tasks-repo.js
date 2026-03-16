@@ -110,7 +110,9 @@
               priority: task.priority || null,
               parent_id: task.parent_id || null,
               position: typeof task.position === 'number' ? task.position : index,
-              is_habit: task.isHabit || false
+              is_habit: task.isHabit || false,
+              created_at: task.createdAt || undefined,
+              completed_at: task.completed ? task.completedAt || undefined : null
             });
           });
         });
@@ -251,7 +253,8 @@
             position: Number(task.position) || 0,
             isHabit: task.is_habit,
             supabaseId: task.id,
-            completedAt: task.completed ? task.updated_at || new Date().toISOString() : null
+            createdAt: task.created_at || null,
+            completedAt: task.completed ? task.completed_at || task.updated_at || new Date().toISOString() : null
           });
         });
 
@@ -394,7 +397,7 @@
           }
 
           const existing = nextHabitsHistory[name][date];
-          const serverTs = typeof h.created_at === 'string' ? h.created_at : null;
+          const serverTs = typeof h.completed_at === 'string' ? h.completed_at : (typeof h.created_at === 'string' ? h.created_at : null);
 
           if (typeof existing === 'string' && existing.trim() !== '') {
             nextHabitsHistory[name][date] = existing;

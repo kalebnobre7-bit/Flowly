@@ -6069,6 +6069,7 @@ window.toggleTaskStatus = function (dateStr, period, index, isChecked, element) 
   if (!list || !list[index]) return;
 
   const task = list[index];
+  if (!task.createdAt) task.createdAt = new Date().toISOString();
 
   // 1. Atualizar Estado
   task.completed = isChecked;
@@ -6950,7 +6951,9 @@ function createTaskViaSexta(dateStr, text, period = 'Tarefas') {
     parent_id: null,
     position: currentList.length,
     isHabit: false,
-    supabaseId: null
+    supabaseId: null,
+    createdAt: new Date().toISOString(),
+    completedAt: null
   };
 
   if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
@@ -7179,6 +7182,7 @@ function createTaskElement(day, dateStr, period, task, index) {
   checkbox.checked = task.completed;
   checkbox.onchange = (e) => {
     task.completed = e.target.checked;
+    if (!task.createdAt) task.createdAt = new Date().toISOString();
     if (task.completed && navigator.vibrate) {
       const vs = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
       if (vs.haptics !== false) navigator.vibrate(15);
