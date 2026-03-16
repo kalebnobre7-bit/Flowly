@@ -118,10 +118,16 @@ body.sidebar-collapsed .app-sidebar {
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, rgba(242,116,5,1) 0%, rgba(255,145,0,0.92) 100%);
-    color: white;
-    font-weight: 800;
     box-shadow: 0 10px 26px rgba(242,116,5,0.22);
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.sidebar-brand-mark img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    display: block;
 }
 
 .sidebar-brand-copy {
@@ -218,7 +224,47 @@ body.sidebar-collapsed .sidebar-toggle {
     align-self: center;
 }
 
+@media (max-width: 1200px) {
+    .app-shell {
+        grid-template-columns: 228px minmax(0, 1fr);
+    }
+
+    .app-main {
+        padding: 18px 18px 24px;
+    }
+
+    .app-sidebar {
+        padding: 14px 10px;
+    }
+
+    .sidebar-nav-btn,
+    .sidebar-coming-item {
+        min-height: 42px;
+        padding: 0 10px;
+        gap: 10px;
+    }
+
+    .sidebar-brand-copy strong {
+        font-size: 13px;
+    }
+
+    .sidebar-brand-copy span,
+    .sidebar-section-label {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+    }
+}
+
 @media (max-width: 980px) {
+    .app-shell {
+        grid-template-columns: 210px minmax(0, 1fr);
+    }
+
+    .sidebar-nav-btn span,
+    .sidebar-coming-item span {
+        font-size: 14px;
+    }
+
     .sexta-hero,
     .sexta-grid,
     .sexta-overview-grid {
