@@ -157,7 +157,7 @@ function setView(view) {
   });
 
   // Update navigation buttons
-  document.querySelectorAll('.segment-btn').forEach((btn) => btn.classList.remove('active'));
+  document.querySelectorAll('.segment-btn, .sidebar-nav-btn').forEach((btn) => btn.classList.remove('active'));
   const btnMap = {
     month: 'btnMonth',
     week: 'btnWeek',
@@ -8478,6 +8478,22 @@ window.signOut = signOut;
 
 // --- Event Listeners do Novo Modal de Tarefas ---
 document.addEventListener('DOMContentLoaded', () => {
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const collapsed = localStorage.getItem('flowly_sidebar_collapsed') === 'true';
+  if (collapsed) document.body.classList.add('sidebar-collapsed');
+  if (sidebarToggle) {
+    sidebarToggle.onclick = () => {
+      const next = !document.body.classList.contains('sidebar-collapsed');
+      document.body.classList.toggle('sidebar-collapsed', next);
+      localStorage.setItem('flowly_sidebar_collapsed', String(next));
+      const icon = sidebarToggle.querySelector('i');
+      if (icon) icon.setAttribute('data-lucide', next ? 'panel-left-open' : 'panel-left-close');
+      if (window.lucide) lucide.createIcons();
+    };
+    const icon = sidebarToggle.querySelector('i');
+    if (icon) icon.setAttribute('data-lucide', collapsed ? 'panel-left-open' : 'panel-left-close');
+  }
+
   // Priority Buttons
   document.querySelectorAll('.priority-btn').forEach((btn) => {
     btn.onclick = () => {

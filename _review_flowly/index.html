@@ -37,23 +37,65 @@
 </head>
 
 <body class="safe-area-bottom">
-    <div class="w-full">
-        <!-- Header Original (Desktop Focus) -->
-        <div class="nav-container hidden-mobile">
-            <div class="segmented-control">
-                <button id="btnMonth" class="segment-btn" onclick="setView('month')">Mes</button>
-                <button id="btnWeek" class="segment-btn" onclick="setView('week')">Semana</button>
-                <button id="btnToday" class="segment-btn active" onclick="setView('today')">Hoje</button>
-                <button id="btnAnalytics" class="segment-btn" onclick="setView('analytics')">Analytics</button>
-                <button id="btnSexta" class="segment-btn" onclick="setView('sexta')">Sexta</button>
-                <button id="btnSettings" class="segment-btn" onclick="setView('settings')"><i data-lucide="settings"
-                        style="width: 16px; height: 16px;"></i></button>
+    <div class="app-shell">
+        <aside id="appSidebar" class="app-sidebar hidden-mobile">
+            <div class="sidebar-top">
+                <button id="sidebarToggle" class="sidebar-toggle utility-btn" type="button" aria-label="Recolher barra lateral">
+                    <i data-lucide="panel-left-close" style="width: 18px; height: 18px;"></i>
+                </button>
+                <div class="sidebar-brand">
+                    <div class="sidebar-brand-mark">F</div>
+                    <div class="sidebar-brand-copy">
+                        <strong>Flowly</strong>
+                        <span>Sistema operacional</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="utility-btns flex items-center gap-3">
+            <nav class="sidebar-nav">
+                <button id="btnToday" class="sidebar-nav-btn active" onclick="setView('today')">
+                    <i data-lucide="sun-medium" style="width: 18px; height: 18px;"></i>
+                    <span>Hoje</span>
+                </button>
+                <button id="btnWeek" class="sidebar-nav-btn" onclick="setView('week')">
+                    <i data-lucide="calendar-range" style="width: 18px; height: 18px;"></i>
+                    <span>Semana</span>
+                </button>
+                <button id="btnMonth" class="sidebar-nav-btn" onclick="setView('month')">
+                    <i data-lucide="calendar-days" style="width: 18px; height: 18px;"></i>
+                    <span>Mês</span>
+                </button>
+                <button id="btnAnalytics" class="sidebar-nav-btn" onclick="setView('analytics')">
+                    <i data-lucide="chart-column" style="width: 18px; height: 18px;"></i>
+                    <span>Analytics</span>
+                </button>
+                <button id="btnSexta" class="sidebar-nav-btn" onclick="setView('sexta')">
+                    <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                    <span>Sexta</span>
+                </button>
+            </nav>
 
+            <div class="sidebar-section-label">Em breve</div>
+            <div class="sidebar-coming-soon">
+                <div class="sidebar-coming-item">
+                    <i data-lucide="wallet" style="width: 16px; height: 16px;"></i>
+                    <span>Finanças</span>
+                </div>
+                <div class="sidebar-coming-item">
+                    <i data-lucide="message-circle-more" style="width: 16px; height: 16px;"></i>
+                    <span>WhatsApp</span>
+                </div>
             </div>
-        </div>
+
+            <div class="sidebar-footer">
+                <button id="btnSettings" class="sidebar-nav-btn sidebar-nav-btn--ghost" onclick="setView('settings')">
+                    <i data-lucide="settings-2" style="width: 18px; height: 18px;"></i>
+                    <span>Ajustes</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="app-main">
         <!-- Week Navigation (Controls) -->
         <div id="weekNav" class="hidden flex items-center justify-center gap-4 mb-6">
             <button id="btnPrevWeek" class="utility-btn" onclick="changeWeek(-1)"><i data-lucide="chevron-left"
@@ -76,6 +118,7 @@
             <div id="settingsView" class="hidden"></div>
             <div id="todayView" class="hidden"></div>
         </div>
+        </main>
     </div>
 
     <!-- Mobile Bottom Navigation (New Feature - Kept) -->
