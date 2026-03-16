@@ -3396,6 +3396,135 @@ body.dragging-active .task-drop-zone {
     line-height: 1.45;
 }
 
+.finance-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.finance-hero,
+.finance-kpi-grid,
+.finance-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.finance-hero-main,
+.finance-goal-card,
+.finance-kpi-card,
+.finance-card {
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.025);
+    box-shadow: var(--shadow-card);
+}
+
+.finance-hero-main,
+.finance-goal-card,
+.finance-kpi-card,
+.finance-card {
+    padding: 20px;
+}
+
+.finance-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.finance-kicker,
+.finance-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+}
+
+.finance-hero-main h2,
+.finance-goal-card strong,
+.finance-kpi-card strong {
+    margin: 8px 0;
+    font-size: 30px;
+    line-height: 1.05;
+    color: var(--text-primary);
+}
+
+.finance-hero-main p,
+.finance-goal-card span,
+.finance-kpi-card p,
+.finance-card-head p,
+.finance-list-item p,
+.finance-empty {
+    color: var(--text-secondary);
+}
+
+.finance-goal-card,
+.finance-kpi-card--accent {
+    background: linear-gradient(145deg, rgba(242,116,5,0.09) 0%, rgba(12,12,18,0.88) 76%);
+}
+
+.finance-progress {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+    margin-top: 14px;
+}
+
+.finance-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(242,116,5,1) 0%, rgba(255,145,0,0.92) 100%);
+}
+
+.finance-card-head {
+    margin-bottom: 16px;
+}
+
+.finance-card-head h3 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    color: var(--text-primary);
+}
+
+.finance-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.finance-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04);
+}
+
+.finance-list-item strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.finance-list-item span {
+    font-weight: 800;
+    color: #ffd9bf;
+    white-space: nowrap;
+}
+
+.finance-list-item--done span {
+    color: #d8fbe5;
+}
+
+.finance-empty {
+    padding: 20px 6px 4px;
+}
+
 .sexta-pill,
 .sexta-chip {
     border-radius: 999px;

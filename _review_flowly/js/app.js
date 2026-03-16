@@ -148,6 +148,7 @@ function setView(view) {
     'todayView',
     'routineView',
     'analyticsView',
+    'financeView',
     'sextaView',
     'settingsView'
   ];
@@ -163,6 +164,7 @@ function setView(view) {
     week: 'btnWeek',
     today: 'btnToday',
     analytics: 'btnAnalytics',
+    finance: 'btnFinance',
     sexta: 'btnSexta',
     settings: 'btnSettings'
   };
@@ -173,6 +175,7 @@ function setView(view) {
   const mobileBtnMap = {
     week: 'btnMobileWeek',
     analytics: 'btnMobileAnalytics',
+    finance: 'btnMobileFinance',
     today: 'btnMobileToday',
     sexta: 'btnMobileSexta',
     settings: 'btnMobileSettings'
@@ -4963,6 +4966,128 @@ function renderSextaView() {
   `;
 }
 
+function renderFinanceView() {
+  const view = document.getElementById('financeView');
+  if (!view) return;
+
+  const monthKey = localDateStr().slice(0, 7);
+  const allEntries = [];
+
+  Object.entries(allTasksData || {}).forEach(([dateStr, periods]) => {
+    Object.entries(periods || {}).forEach(([period, tasks]) => {
+      if (!Array.isArray(tasks)) return;
+      tasks.forEach((task) => {
+        if (!task || !task.text) return;
+        const matches = String(task.text).match(/R\$\s*([\d\.]+(?:,\d{1,2})?)/i);
+        const value = matches ? Number(matches[1].replace(/\./g, '').replace(',', '.')) : 0;
+        const type = String(task.type || '').toUpperCase();
+        const priority = String(task.priority || '').toLowerCase();
+        const isMoney = type === 'MONEY' || /dinheiro|cobrar|proposta|orcamento|orçamento|cliente|venda|pagamento|receber|follow/i.test(task.text) || value > 0 || priority === 'money';
+        if (!isMoney) return;
+        allEntries.push({
+          text: task.text,
+          dateStr,
+          period,
+          completed: task.completed === true,
+          value,
+          priority,
+          type
+        });
+      });
+    });
+  });
+
+  const monthEntries = allEntries.filter((item) => item.dateStr.startsWith(monthKey));
+  const openEntries = monthEntries.filter((item) => !item.completed);
+  const doneEntries = monthEntries.filter((item) => item.completed);
+  const receivable = openEntries.reduce((sum, item) => sum + item.value, 0);
+  const received = doneEntries.reduce((sum, item) => sum + item.value, 0);
+  const goal = 10000;
+  const progress = goal > 0 ? Math.min(100, Math.round((received / goal) * 100)) : 0;
+  const topOpen = openEntries.slice().sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 4);
+  const topDone = doneEntries.slice().sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 4);
+
+  const formatBRL = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+
+  view.innerHTML = `
+    <div class="flowly-shell flowly-shell--narrow finance-shell">
+      <div class="finance-hero">
+        <div class="finance-hero-main">
+          <div class="finance-kicker">Finance</div>
+          <h2>Caixa e oportunidades</h2>
+          <p>Leitura financeira operacional baseada nas tarefas que carregam dinheiro, cobrança, proposta ou valor explícito.</p>
+        </div>
+        <div class="finance-goal-card">
+          <span class="finance-label">Meta do mês</span>
+          <strong>${formatBRL(goal)}</strong>
+          <span>${progress}% da meta já capturada</span>
+          <div class="finance-progress"><span style="width:${progress}%"></span></div>
+        </div>
+      </div>
+
+      <div class="finance-kpi-grid">
+        <div class="finance-kpi-card">
+          <span class="finance-label">A receber</span>
+          <strong>${formatBRL(receivable)}</strong>
+          <p>${openEntries.length} oportunidade(s) em aberto</p>
+        </div>
+        <div class="finance-kpi-card finance-kpi-card--accent">
+          <span class="finance-label">Recebido</span>
+          <strong>${formatBRL(received)}</strong>
+          <p>${doneEntries.length} item(ns) concluídos com valor</p>
+        </div>
+        <div class="finance-kpi-card">
+          <span class="finance-label">Gap da meta</span>
+          <strong>${formatBRL(Math.max(0, goal - received))}</strong>
+          <p>${Math.max(0, 100 - progress)}% ainda falta capturar</p>
+        </div>
+      </div>
+
+      <div class="finance-grid">
+        <section class="finance-card">
+          <div class="finance-card-head">
+            <div>
+              <h3>Entradas em aberto</h3>
+              <p>Prioriza o que pode virar caixa mais rápido.</p>
+            </div>
+          </div>
+          <div class="finance-list">
+            ${topOpen.length > 0 ? topOpen.map((item) => `
+              <div class="finance-list-item">
+                <div>
+                  <strong>${item.text}</strong>
+                  <p>${item.dateStr} • ${item.priority || 'sem prioridade'}</p>
+                </div>
+                <span>${item.value > 0 ? formatBRL(item.value) : 'sem valor'}</span>
+              </div>
+            `).join('') : '<div class="finance-empty">Nenhuma entrada em aberto detectada ainda.</div>'}
+          </div>
+        </section>
+
+        <section class="finance-card">
+          <div class="finance-card-head">
+            <div>
+              <h3>Já capturado</h3>
+              <p>O que já foi concluído e pode contar como caixa fechado.</p>
+            </div>
+          </div>
+          <div class="finance-list">
+            ${topDone.length > 0 ? topDone.map((item) => `
+              <div class="finance-list-item finance-list-item--done">
+                <div>
+                  <strong>${item.text}</strong>
+                  <p>${item.dateStr}</p>
+                </div>
+                <span>${item.value > 0 ? formatBRL(item.value) : 'sem valor'}</span>
+              </div>
+            `).join('') : '<div class="finance-empty">Nada concluído com valor ainda neste mês.</div>'}
+          </div>
+        </section>
+      </div>
+    </div>
+  `;
+}
+
 function renderSettingsView() {
   const view = document.getElementById('settingsView');
   if (!view) return;
@@ -5839,6 +5964,7 @@ function renderView() {
     document.getElementById('weekGrid').classList.remove('today-container');
     document.getElementById('routineView').classList.add('hidden');
     document.getElementById('analyticsView').classList.add('hidden');
+    document.getElementById('financeView').classList.add('hidden');
     document.getElementById('settingsView').classList.add('hidden');
     document.getElementById('weekNav').classList.add('hidden');
     document.getElementById('sextaView').classList.remove('hidden');
@@ -5851,6 +5977,7 @@ function renderView() {
     viewDispatcher = window.FlowlyViews.createDispatcher({
       renderMonth,
       renderAnalyticsView,
+      renderFinanceView,
       renderSextaView,
       renderSettingsView,
       renderWeek,
@@ -5866,6 +5993,7 @@ function renderView() {
     document.getElementById('weekGrid').classList.remove('today-container');
     document.getElementById('routineView').classList.add('hidden');
     document.getElementById('analyticsView').classList.add('hidden');
+    document.getElementById('financeView').classList.add('hidden');
     document.getElementById('sextaView').classList.add('hidden');
     document.getElementById('settingsView').classList.add('hidden');
     document.getElementById('weekNav').classList.add('hidden');
@@ -5877,6 +6005,9 @@ function renderView() {
     } else if (currentView === 'analytics') {
       document.getElementById('analyticsView').classList.remove('hidden');
       renderAnalyticsView();
+    } else if (currentView === 'finance') {
+      document.getElementById('financeView').classList.remove('hidden');
+      renderFinanceView();
     } else if (currentView === 'sexta') {
       document.getElementById('sextaView').classList.remove('hidden');
       renderSextaView();

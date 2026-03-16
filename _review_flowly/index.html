@@ -71,6 +71,10 @@
                     <i data-lucide="chart-column" style="width: 18px; height: 18px;"></i>
                     <span>Analytics</span>
                 </button>
+                <button id="btnFinance" class="sidebar-nav-btn" onclick="setView('finance')">
+                    <i data-lucide="wallet" style="width: 18px; height: 18px;"></i>
+                    <span>Finanças</span>
+                </button>
                 <button id="btnSexta" class="sidebar-nav-btn" onclick="setView('sexta')">
                     <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
                     <span>Sexta</span>
@@ -79,10 +83,6 @@
 
             <div class="sidebar-section-label">Em breve</div>
             <div class="sidebar-coming-soon">
-                <div class="sidebar-coming-item">
-                    <i data-lucide="wallet" style="width: 16px; height: 16px;"></i>
-                    <span>Finanças</span>
-                </div>
                 <div class="sidebar-coming-item">
                     <i data-lucide="message-circle-more" style="width: 16px; height: 16px;"></i>
                     <span>WhatsApp</span>
@@ -116,6 +116,7 @@
             <div id="weekGrid" class="grid gap-0"></div>
             <div id="routineView" class="hidden"></div>
             <div id="analyticsView" class="hidden"></div>
+            <div id="financeView" class="hidden"></div>
             <div id="sextaView" class="hidden"></div>
             <div id="settingsView" class="hidden"></div>
             <div id="todayView" class="hidden"></div>
@@ -136,6 +137,11 @@
                 onclick="setView('analytics')">
                 <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
                 <span class="text-[10px] font-medium">Analytics</span>
+            </button>
+            <button id="btnMobileFinance" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
+                onclick="setView('finance')">
+                <i data-lucide="wallet" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium">Finance</span>
             </button>
             <button id="btnMobileToday" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
                 onclick="setView('today')">
