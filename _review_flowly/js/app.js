@@ -65,6 +65,66 @@ let currentEditingTask = null;
 const width = 600;
 let currentWeekOffset = 0; // 0 = semana atual, -1 = semana passada, +1 = próxima semana
 let currentMonthOffset = 0; // 0 = mês atual
+let syncStatus = {
+  state: navigator.onLine ? 'saved' : 'offline',
+  text: navigator.onLine ? 'Tudo salvo' : 'Sem conexao',
+  hideTimer: null,
+  busyCount: 0,
+  lastSavedAt: 0
+};
+
+function renderSyncStatus() {
+  const bar = document.getElementById('syncStatusBar');
+  const textEl = document.getElementById('syncStatusText');
+  if (!bar || !textEl) return;
+
+  bar.dataset.state = syncStatus.state;
+  textEl.textContent = syncStatus.text;
+  bar.classList.toggle('hidden', false);
+}
+
+function setSyncStatus(state, text, options = {}) {
+  if (syncStatus.hideTimer) {
+    clearTimeout(syncStatus.hideTimer);
+    syncStatus.hideTimer = null;
+  }
+
+  syncStatus.state = state;
+  syncStatus.text = text;
+  renderSyncStatus();
+
+  if (options.autoSaved) {
+    syncStatus.lastSavedAt = Date.now();
+    syncStatus.hideTimer = setTimeout(() => {
+      if (syncStatus.state === 'saved') {
+        syncStatus.text = 'Tudo salvo';
+        renderSyncStatus();
+      }
+    }, options.autoSaved);
+  }
+}
+
+function startSyncActivity(text = 'Sincronizando...') {
+  syncStatus.busyCount += 1;
+  setSyncStatus(navigator.onLine ? 'syncing' : 'offline', navigator.onLine ? text : 'Sem conexao');
+}
+
+function finishSyncActivity(success = true, errorText = '') {
+  syncStatus.busyCount = Math.max(0, syncStatus.busyCount - 1);
+  if (!navigator.onLine) {
+    setSyncStatus('offline', 'Sem conexao');
+    return;
+  }
+  if (!success) {
+    setSyncStatus('error', errorText || 'Falha ao sincronizar');
+    return;
+  }
+  if (syncStatus.busyCount > 0) {
+    setSyncStatus('syncing', 'Sincronizando...');
+    return;
+  }
+  setSyncStatus('saved', 'Tudo salvo na nuvem', { autoSaved: 2200 });
+}
 
 // View Management Functions
 function setView(view) {
@@ -651,12 +711,16 @@ function saveToLocalStorage() {
       habitsHistory
     });
     if (eventBus) eventBus.emit('storage:saved', { at: Date.now() });
+    if (navigator.onLine) setSyncStatus('saving', 'Alteracoes locais salvas');
+    else setSyncStatus('offline', 'Alteracoes salvas no dispositivo');
     return;
   }
   localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
   localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
   localStorage.setItem('routineCompletions', JSON.stringify(routineCompletions));
   localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
+  if (navigator.onLine) setSyncStatus('saving', 'Alteracoes locais salvas');
+  else setSyncStatus('offline', 'Alteracoes salvas no dispositivo');
 }
 
 // ===== DRAG AND DROP =====
@@ -1139,10 +1203,18 @@ async function syncRecurringTasksToSupabase() {
   const user = await ensureCurrentUserForSync();
   if (!user) {
     scheduleUnsyncedTasksSync(2000);
+    finishSyncActivity(false, 'Login necessario para sincronizar');
     return;
   }
   markLocalSupabaseMutation();
-  await tasksSyncService.syncRecurringTasksToSupabase();
+  startSyncActivity('Sincronizando recorrencias...');
+  try {
+    await tasksSyncService.syncRecurringTasksToSupabase();
+    finishSyncActivity(true);
+  } catch (err) {
+    finishSyncActivity(false, 'Falha ao sincronizar recorrencias');
+    throw err;
+  }
 }
 
 async function syncTaskToSupabase(dateStr, period, task) {
@@ -1150,24 +1222,45 @@ async function syncTaskToSupabase(dateStr, period, task) {
   const user = await ensureCurrentUserForSync();
   if (!user) {
     scheduleUnsyncedTasksSync(2000);
+    finishSyncActivity(false, 'Login necessario para sincronizar');
     return { success: false, errorText: 'Usuario nao autenticado para sincronizacao.' };
   }
   markLocalSupabaseMutation();
+  startSyncActivity('Sincronizando alteracoes...');
   const result = await tasksSyncService.syncTaskToSupabase(dateStr, period, task);
-  if (!result || !result.success) scheduleUnsyncedTasksSync(1500);
+  if (!result || !result.success) {
+    scheduleUnsyncedTasksSync(1500);
+    finishSyncActivity(false, (result && result.errorText) || 'Falha ao sincronizar');
+    return result;
+  }
+  finishSyncActivity(true);
   return result;
 }
 
 async function deleteTaskFromSupabase(task, day, period) {
   if (!tasksSyncService) return;
   markLocalSupabaseMutation();
-  await tasksSyncService.deleteTaskFromSupabase(task, day, period);
+  startSyncActivity('Removendo tarefa na nuvem...');
+  try {
+    await tasksSyncService.deleteTaskFromSupabase(task, day, period);
+    finishSyncActivity(true);
+  } catch (err) {
+    finishSyncActivity(false, 'Falha ao remover tarefa');
+    throw err;
+  }
 }
 
 async function syncHabitToSupabase(habitText, date, completed) {
   if (!tasksSyncService) return;
   markLocalSupabaseMutation();
-  await tasksSyncService.syncHabitToSupabase(habitText, date, completed);
+  startSyncActivity('Sincronizando habitos...');
+  try {
+    await tasksSyncService.syncHabitToSupabase(habitText, date, completed);
+    finishSyncActivity(true);
+  } catch (err) {
+    finishSyncActivity(false, 'Falha ao sincronizar habitos');
+    throw err;
+  }
 }
 
 let _isSyncingDate = false;
@@ -1353,7 +1446,7 @@ function renderHabitsView() {
     return;
   }
 
-  let html = `<div class="max-w-5xl mx-auto"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Meus Hábitos</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+  let html = `<div class="flowly-shell flowly-shell--narrow"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Meus Hábitos</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Total de Hábitos</div><div class="text-3xl font-bold text-white">${habits.length}</div></div>
             <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Concluídos Hoje</div><div class="text-3xl font-bold text-[#30d158]">${habits.filter((h) => h.completedToday).length}</div></div>
             <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Taxa Hoje</div><div class="text-3xl font-bold text-[#0A84FF]">${habits.length > 0 ? Math.round((habits.filter((h) => h.completedToday).length / habits.length) * 100) : 0}%</div></div></div><div class="space-y-3">`;
@@ -1572,7 +1665,7 @@ function renderAnalyticsView() {
   // -- Routine tab: embed renderRoutineView inside analytics -------------
   if (mainTab === 'routine') {
     const routineTab = view.dataset.routineTab || 'today';
-    view.innerHTML = `<div class="analytics-container-v2">${outerTabsHTML}<div id="routineEmbedded"></div></div>`;
+    view.innerHTML = `<div class="flowly-shell"><div class="analytics-container-v2">${outerTabsHTML}<div id="routineEmbedded"></div></div></div>`;
     const embedded = document.getElementById('routineEmbedded');
     embedded.dataset.routineTab = routineTab;
     renderRoutineView(embedded);
@@ -2070,7 +2163,7 @@ function renderAnalyticsView() {
   });
 
   // -- BUILD HTML ---------------------------------------------------------
-  view.innerHTML = `<div class="analytics-container-v2">
+  view.innerHTML = `<div class="flowly-shell"><div class="analytics-container-v2">
 
         <!-- Outer tabs -->
         ${outerTabsHTML}
@@ -2747,7 +2840,7 @@ function renderAnalyticsView() {
             <div class="analytics-insights-v2">${insightsHTML}</div>
         </div>
 
-    </div>`;
+    </div></div>`;
 
   // -- Charts -------------------------------------------------------------
   setTimeout(() => {
@@ -2950,7 +3043,7 @@ function renderMonth() {
                 
                 
                 
-                <div class="max-w-[1400px] mx-auto">
+                <div class="flowly-shell flowly-shell--wide">
                 
                 
                 
@@ -4623,7 +4716,7 @@ function renderSettingsView() {
     : 'Para ativar notificacoes, abra por HTTPS ou localhost.';
 
   view.innerHTML = `
-    <div class="mx-auto max-w-5xl px-4 py-7 pb-24">
+    <div class="flowly-shell flowly-shell--narrow">
       <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 class="flex items-center gap-3 text-2xl font-bold text-white">
@@ -5799,7 +5892,38 @@ function renderToday() {
   const header = document.createElement('div');
   header.className = 'today-header';
   header.innerHTML = `<h1> ${today}</h1> <p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`;
+
+  const totalTasksPreview = allTasksData[dateStr]
+    ? Object.values(allTasksData[dateStr]).reduce(
+        (sum, tasks) => sum + (Array.isArray(tasks) ? tasks.length : 0),
+        0
+      ) + getRoutineTasksForDate(dateStr).length
+    : getRoutineTasksForDate(dateStr).length;
+
   if (!focusOnlyMode) {
+    const todayHero = document.createElement('div');
+    todayHero.className = 'today-hero';
+    todayHero.innerHTML = `
+      <div class="today-hero-main">
+        <div class="today-hero-kicker">Painel de hoje</div>
+        <h1>${today}</h1>
+        <p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      </div>
+      <div class="today-hero-metrics">
+        <div class="today-hero-card accent">
+          <span class="today-hero-card-label">Planejadas</span>
+          <strong class="today-hero-card-value">${totalTasksPreview}</strong>
+          <span class="today-hero-card-sub">tarefas mapeadas pro dia</span>
+        </div>
+        <div class="today-hero-card">
+          <span class="today-hero-card-label">Meta</span>
+          <strong class="today-hero-card-value">5</strong>
+          <span class="today-hero-card-sub">mínimo operacional do dia</span>
+        </div>
+      </div>
+    `;
+    main.appendChild(todayHero);
+  } else {
     main.appendChild(header);
   }
 
@@ -5833,6 +5957,35 @@ function renderToday() {
 
   // Render all tasks (Unified Sort)
   allTasks = unifiedTaskSort(allTasks);
+
+  const completedCount = allTasks.filter((entry) => entry.task && entry.task.completed).length;
+  const pendingEntries = allTasks.filter((entry) => entry.task && !entry.task.completed);
+  const nextTask = pendingEntries[0] || null;
+  const focusLabel = nextTask ? nextTask.task.text : 'Dia zerado por aqui';
+  const progressPct = allTasks.length > 0 ? Math.round((completedCount / allTasks.length) * 100) : 0;
+
+  if (!focusOnlyMode) {
+    const summaryStrip = document.createElement('div');
+    summaryStrip.className = 'today-summary-strip';
+    summaryStrip.innerHTML = `
+      <div class="today-summary-card primary">
+        <span class="today-summary-label">Próxima ação</span>
+        <strong class="today-summary-value">${focusLabel}</strong>
+        <span class="today-summary-sub">${nextTask ? 'puxa essa primeiro e gera momentum' : 'aproveita pra puxar algo novo com intenção'}</span>
+      </div>
+      <div class="today-summary-card compact">
+        <span class="today-summary-label">Progresso</span>
+        <strong class="today-summary-value">${completedCount}/${allTasks.length || 0}</strong>
+        <span class="today-summary-sub">${progressPct}% concluído</span>
+      </div>
+      <div class="today-summary-card compact">
+        <span class="today-summary-label">Pendentes</span>
+        <strong class="today-summary-value">${pendingEntries.length}</strong>
+        <span class="today-summary-sub">tarefas ainda abertas</span>
+      </div>
+    `;
+    main.appendChild(summaryStrip);
+  }
 
   allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
     taskList.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
@@ -7492,6 +7645,7 @@ normalizeAllTasks(); // Normalizar tarefas antigas
 if (window.lucide) {
   lucide.createIcons();
 }
+renderSyncStatus();
 
 const flowlyAuthSessionFactory = window.FlowlyAuthSession;
 if (flowlyAuthSessionFactory) {
@@ -7517,7 +7671,12 @@ if (flowlyAuthSessionFactory) {
 }
 
 window.addEventListener('online', () => {
+  setSyncStatus('syncing', 'Conexao restabelecida. Sincronizando...');
   scheduleUnsyncedTasksSync(300);
+});
+
+window.addEventListener('offline', () => {
+  setSyncStatus('offline', 'Sem conexao. Salvando no dispositivo');
 });
 
 document.addEventListener('visibilitychange', () => {
