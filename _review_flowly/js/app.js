@@ -5958,6 +5958,21 @@ function getWeeklyRecurringForDay(dateStr, dayOfWeek) {
 }
 
 function renderView() {
+  if (currentView === 'finance') {
+    document.getElementById('monthView').classList.add('hidden');
+    document.getElementById('weekGrid').classList.add('hidden');
+    document.getElementById('weekGrid').classList.remove('today-container');
+    document.getElementById('routineView').classList.add('hidden');
+    document.getElementById('analyticsView').classList.add('hidden');
+    document.getElementById('settingsView').classList.add('hidden');
+    document.getElementById('sextaView').classList.add('hidden');
+    document.getElementById('weekNav').classList.add('hidden');
+    document.getElementById('financeView').classList.remove('hidden');
+    renderFinanceView();
+    setTimeout(() => lucide.createIcons(), 0);
+    return;
+  }
+
   if (currentView === 'sexta') {
     document.getElementById('monthView').classList.add('hidden');
     document.getElementById('weekGrid').classList.add('hidden');
