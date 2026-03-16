@@ -4804,6 +4804,9 @@ function renderSextaView() {
   }
   const lastAction = sextaState.lastAction || 'Ainda sem ação rodada aqui dentro. Usa os botões abaixo pra eu começar a operar no painel.';
   const notes = Array.isArray(sextaState.notes) ? sextaState.notes.slice().reverse().slice(0, 3) : [];
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const focusLabel = pending <= 2 ? 'Fechamento' : pending <= 5 ? 'Execução' : 'Limpeza';
+  const momentumLabel = completionRate >= 70 ? 'Alto' : completionRate >= 35 ? 'Médio' : 'Baixo';
 
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--narrow sexta-shell">
@@ -4812,6 +4815,10 @@ function renderSextaView() {
           <div class="sexta-kicker">Sexta inside Flowly</div>
           <h2>Sala de comando</h2>
           <p>Camada de inteligência, contexto e ação para transformar o Flowly em sistema vivo.</p>
+          <div class="sexta-hero-pills">
+            <span class="sexta-pill">Modo ${focusLabel}</span>
+            <span class="sexta-pill sexta-pill--soft">Momentum ${momentumLabel}</span>
+          </div>
         </div>
         <div class="sexta-hero-side">
           <div class="sexta-mini-stat">
@@ -4827,6 +4834,24 @@ function renderSextaView() {
         </div>
       </div>
 
+      <div class="sexta-overview-grid">
+        <div class="sexta-overview-card">
+          <span class="sexta-panel-label">Taxa de conclusão hoje</span>
+          <strong>${completionRate}%</strong>
+          <p>${completionRate >= 70 ? 'Dia sob controle.' : completionRate >= 35 ? 'Tem tração, mas ainda dá pra apertar.' : 'Baixa tração. Fecha uma tarefa curta e entra no fluxo.'}</p>
+        </div>
+        <div class="sexta-overview-card">
+          <span class="sexta-panel-label">Próximo modo</span>
+          <strong>${focusLabel}</strong>
+          <p>${pending > 5 ? 'Cortar excesso e escolher uma frente principal.' : pending > 2 ? 'Atacar entrega ou prioridade financeira.' : 'Fechar o que falta e revisar o dia.'}</p>
+        </div>
+        <div class="sexta-overview-card">
+          <span class="sexta-panel-label">Comandos que já funcionam</span>
+          <strong>criar • priorizar • concluir</strong>
+          <p>Escreve natural. Ex.: criar tarefa cobrar cliente, priorizar lévessy, concluir próxima.</p>
+        </div>
+      </div>
+
       <div class="sexta-grid">
         <section class="sexta-card sexta-card--chat">
           <div class="sexta-card-head">
@@ -4834,7 +4859,7 @@ function renderSextaView() {
               <h3>Chat operacional</h3>
               <p>Espaço para pedir estratégia, foco, revisão e próximos passos.</p>
             </div>
-            <span class="sexta-badge">Preview</span>
+            <span class="sexta-badge">Ao vivo</span>
           </div>
           <div class="sexta-chat-placeholder">
             <div class="sexta-chat-bubble ai">Posso virar teu copiloto dentro do Flowly: sugerir prioridade, limpar ruído e destravar execução.</div>
@@ -4850,6 +4875,11 @@ function renderSextaView() {
             <button class="btn-secondary" type="button" onclick="runSextaQuickAction('review')">Revisar hoje</button>
             <button class="btn-secondary" type="button" onclick="runSextaQuickAction('tomorrow')">Planejar amanhã</button>
             <button class="btn-secondary" type="button" onclick="runSextaQuickAction('plan')">Montar plano base</button>
+          </div>
+          <div class="sexta-command-examples">
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='priorizar lévessy'">priorizar lévessy</button>
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='criar tarefa cobrar cliente antigo'">criar tarefa cobrar cliente antigo</button>
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='concluir próxima'">concluir próxima</button>
           </div>
         </section>
 
@@ -5755,10 +5785,25 @@ function getWeeklyRecurringForDay(dateStr, dayOfWeek) {
 }
 
 function renderView() {
+  if (currentView === 'sexta') {
+    document.getElementById('monthView').classList.add('hidden');
+    document.getElementById('weekGrid').classList.add('hidden');
+    document.getElementById('weekGrid').classList.remove('today-container');
+    document.getElementById('routineView').classList.add('hidden');
+    document.getElementById('analyticsView').classList.add('hidden');
+    document.getElementById('settingsView').classList.add('hidden');
+    document.getElementById('weekNav').classList.add('hidden');
+    document.getElementById('sextaView').classList.remove('hidden');
+    renderSextaView();
+    setTimeout(() => lucide.createIcons(), 0);
+    return;
+  }
+
   if (!viewDispatcher && window.FlowlyViews) {
     viewDispatcher = window.FlowlyViews.createDispatcher({
       renderMonth,
       renderAnalyticsView,
+      renderSextaView,
       renderSettingsView,
       renderWeek,
       renderToday

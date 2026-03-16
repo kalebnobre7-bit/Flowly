@@ -57,6 +57,14 @@ body {
 @media (max-width: 768px) {
     .hidden-mobile { display: none !important; }
 }
+
+@media (max-width: 980px) {
+    .sexta-hero,
+    .sexta-grid,
+    .sexta-overview-grid {
+        grid-template-columns: 1fr;
+    }
+}
 /* Navigation */
 .sync-status-bar {
     display: flex;
@@ -132,6 +140,14 @@ body {
     width: 100%;
     flex-wrap: wrap;
     gap: 16px;
+}
+
+.nav-container > .segmented-control {
+    margin-inline: auto;
+}
+
+.utility-btns:empty {
+    display: none;
 }
 
 .logo-area {
@@ -3146,6 +3162,63 @@ body.dragging-active .task-drop-zone {
     gap: 18px;
 }
 
+.sexta-hero-pills,
+.sexta-command-examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.sexta-pill,
+.sexta-chip {
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.sexta-pill {
+    background: rgba(242, 116, 5, 0.12);
+    border: 1px solid rgba(242, 116, 5, 0.18);
+    color: #ffd9bf;
+}
+
+.sexta-pill--soft {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+}
+
+.sexta-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.sexta-overview-card {
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 18px;
+}
+
+.sexta-overview-card strong {
+    display: block;
+    margin: 6px 0 8px;
+    font-size: 22px;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+
+.sexta-overview-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 .sexta-hero {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
@@ -3234,6 +3307,20 @@ body.dragging-active .task-drop-zone {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+}
+
+.sexta-chip {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sexta-chip:hover {
+    color: var(--text-primary);
+    border-color: rgba(242, 116, 5, 0.22);
+    background: rgba(242, 116, 5, 0.08);
 }
 
 .sexta-list {
