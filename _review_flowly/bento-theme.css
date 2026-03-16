@@ -215,7 +215,11 @@ body::before {
     .today-hero-main h1 { font-size: 32px; }
     .today-hero,
     .today-summary-strip,
-    .today-hero-metrics { grid-template-columns: 1fr; }
+    .today-hero-metrics,
+    .sexta-hero,
+    .sexta-hero-side,
+    .sexta-grid,
+    .sexta-command-row { grid-template-columns: 1fr; }
     .analytics-kpi-v2 { border-radius: 20px; }
     .analytics-kpi-v2-value { font-size: 32px; }
 }

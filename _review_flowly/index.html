@@ -49,6 +49,7 @@
                 <button id="btnWeek" class="segment-btn" onclick="setView('week')">Semana</button>
                 <button id="btnToday" class="segment-btn active" onclick="setView('today')">Hoje</button>
                 <button id="btnAnalytics" class="segment-btn" onclick="setView('analytics')">Analytics</button>
+                <button id="btnSexta" class="segment-btn" onclick="setView('sexta')">Sexta</button>
                 <button id="btnSettings" class="segment-btn" onclick="setView('settings')"><i data-lucide="settings"
                         style="width: 16px; height: 16px;"></i></button>
             </div>
@@ -82,6 +83,7 @@
             <div id="weekGrid" class="grid gap-0"></div>
             <div id="routineView" class="hidden"></div>
             <div id="analyticsView" class="hidden"></div>
+            <div id="sextaView" class="hidden"></div>
             <div id="settingsView" class="hidden"></div>
             <div id="todayView" class="hidden"></div>
         </div>
@@ -105,6 +107,11 @@
                 onclick="setView('today')">
                 <i data-lucide="sun" class="w-6 h-6"></i>
                 <span class="text-[10px] font-medium">Hoje</span>
+            </button>
+            <button id="btnMobileSexta" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
+                onclick="setView('sexta')">
+                <i data-lucide="sparkles" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium">Sexta</span>
             </button>
             <button id="btnMobileSettings" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
                 onclick="setView('settings')">

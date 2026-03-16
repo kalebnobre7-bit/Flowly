@@ -3140,6 +3140,178 @@ body.dragging-active .task-drop-zone {
     width: min(100%, 1400px);
 }
 
+.sexta-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.sexta-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    gap: 16px;
+}
+
+.sexta-hero-main,
+.sexta-mini-stat,
+.sexta-card {
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.035);
+    padding: 20px;
+}
+
+.sexta-hero-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.sexta-kicker,
+.sexta-mini-label,
+.sexta-badge {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    font-weight: 700;
+}
+
+.sexta-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+    gap: 16px;
+}
+
+.sexta-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.sexta-badge {
+    color: #f7d6bd;
+}
+
+.sexta-chat-placeholder {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.sexta-chat-bubble {
+    padding: 14px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.sexta-chat-bubble.ai {
+    background: rgba(242, 116, 5, 0.1);
+    border: 1px solid rgba(242, 116, 5, 0.14);
+}
+
+.sexta-chat-bubble.human {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sexta-command-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.sexta-command-input {
+    min-width: 0;
+}
+
+.sexta-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.sexta-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sexta-panel-block {
+    border: 1px solid rgba(242, 116, 5, 0.12);
+    background: rgba(242, 116, 5, 0.06);
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+
+.sexta-panel-block--soft {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.06);
+    margin-top: 16px;
+    margin-bottom: 0;
+}
+
+.sexta-panel-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.sexta-panel-highlight {
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.sexta-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sexta-log-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sexta-log-item strong {
+    color: #f7d6bd;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.sexta-log-item span {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.sexta-list-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.sexta-dot {
+    width: 10px;
+    height: 10px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: #F27405;
+    box-shadow: 0 0 12px rgba(242, 116, 5, 0.35);
+}
+
 .analytics-container-v2 {
     width: 100%;
     margin: 0 auto;

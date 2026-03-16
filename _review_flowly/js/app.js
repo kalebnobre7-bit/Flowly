@@ -65,6 +65,11 @@ let currentEditingTask = null;
 const width = 600;
 let currentWeekOffset = 0; // 0 = semana atual, -1 = semana passada, +1 = próxima semana
 let currentMonthOffset = 0; // 0 = mês atual
+let sextaState = safeJSONParse(localStorage.getItem('flowly_sexta_state'), {
+  lastAction: '',
+  notes: [],
+  suggestions: []
+});
 let syncStatus = {
   state: navigator.onLine ? 'saved' : 'offline',
   text: navigator.onLine ? 'Tudo salvo' : 'Sem conexao',
@@ -143,6 +148,7 @@ function setView(view) {
     'todayView',
     'routineView',
     'analyticsView',
+    'sextaView',
     'settingsView'
   ];
   views.forEach((v) => {
@@ -157,6 +163,7 @@ function setView(view) {
     week: 'btnWeek',
     today: 'btnToday',
     analytics: 'btnAnalytics',
+    sexta: 'btnSexta',
     settings: 'btnSettings'
   };
   const activeBtn = document.getElementById(btnMap[view]);
@@ -167,6 +174,7 @@ function setView(view) {
     week: 'btnMobileWeek',
     analytics: 'btnMobileAnalytics',
     today: 'btnMobileToday',
+    sexta: 'btnMobileSexta',
     settings: 'btnMobileSettings'
   };
   const mobileActiveBtn = document.getElementById(mobileBtnMap[view]);
@@ -4626,6 +4634,257 @@ function renderRoutineView(embeddedEl) {
   if (window.lucide) lucide.createIcons();
 }
 
+function persistSextaState() {
+  localStorage.setItem('flowly_sexta_state', JSON.stringify(sextaState || {}));
+}
+
+function buildSextaSuggestions() {
+  const todayDate = localDateStr();
+  const dayData = allTasksData[todayDate] || {};
+  const allTodayTasks = [];
+  Object.entries(dayData).forEach(([period, tasks]) => {
+    if (!Array.isArray(tasks) || period === 'Rotina') return;
+    tasks.forEach((task) => {
+      if (task && task.text) allTodayTasks.push({ ...task, period });
+    });
+  });
+
+  const pendingTasks = allTodayTasks.filter((task) => !task.completed);
+  const completedTasks = allTodayTasks.filter((task) => task.completed);
+  const suggestions = [];
+
+  if (pendingTasks.length > 0) {
+    suggestions.push({
+      title: 'Prioridade imediata',
+      body: `Ataca primeiro: ${pendingTasks[0].text}`
+    });
+  }
+
+  if (completedTasks.length === 0 && pendingTasks.length > 0) {
+    suggestions.push({
+      title: 'Momentum',
+      body: 'Fecha uma tarefa curta logo no início para ganhar tração.'
+    });
+  }
+
+  if (pendingTasks.length >= 5) {
+    suggestions.push({
+      title: 'Corte de ruído',
+      body: 'Tem tarefa demais aberta. Vale escolher 3 principais e ignorar o resto por agora.'
+    });
+  }
+
+  if (suggestions.length === 0) {
+    suggestions.push({
+      title: 'Ritmo bom',
+      body: 'Hoje está mais limpo. Mantém o foco e evita abrir frente nova sem fechar ciclo.'
+    });
+  }
+
+  return suggestions;
+}
+
+function runSextaQuickAction(action) {
+  const suggestions = buildSextaSuggestions();
+  if (action === 'focus') {
+    sextaState.lastAction = suggestions[0] ? suggestions[0].body : 'Sem sugestão agora.';
+  } else if (action === 'review') {
+    const todayDate = localDateStr();
+    const { total, completed } = countDayTasks(todayDate);
+    sextaState.lastAction = `Hoje: ${completed}/${total} concluídas. Fecha o que ficou aberto antes de virar o dia.`;
+  } else if (action === 'tomorrow') {
+    sextaState.lastAction = 'Amanhã: separa 3 prioridades, 1 tarefa rápida e 1 tarefa de alavancagem.';
+  } else if (action === 'plan') {
+    const todayDate = localDateStr();
+    const created = [
+      createTaskViaSexta(todayDate, 'Definir 3 prioridades reais do dia'),
+      createTaskViaSexta(todayDate, 'Fechar 1 tarefa rápida para ganhar momentum'),
+      createTaskViaSexta(todayDate, 'Atacar a tarefa de maior alavancagem sem abrir outra frente')
+    ].filter(Boolean).length;
+    sextaState.lastAction = created > 0
+      ? `Criei ${created} tarefas-base para organizar tua execução de hoje.`
+      : 'Não consegui criar novas tarefas agora.';
+  }
+  sextaState.suggestions = suggestions;
+  sextaState.notes = [
+    ...(sextaState.notes || []).slice(-4),
+    {
+      action,
+      text: sextaState.lastAction,
+      at: new Date().toISOString()
+    }
+  ];
+  persistSextaState();
+  renderSextaView();
+}
+
+function runSextaCommand() {
+  const input = document.getElementById('sextaCommandInput');
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) return;
+
+  const lower = raw.toLowerCase();
+  const todayDate = localDateStr();
+  let handled = false;
+
+  if (lower.startsWith('criar tarefa ')) {
+    const taskText = raw.slice('criar tarefa '.length).trim();
+    handled = createTaskViaSexta(todayDate, taskText);
+    sextaState.lastAction = handled
+      ? `Criei a tarefa: ${taskText}`
+      : 'Não consegui criar essa tarefa.';
+  } else if (lower.startsWith('priorizar ')) {
+    const query = raw.slice('priorizar '.length).trim();
+    const task = prioritizeTaskViaSexta(todayDate, query);
+    handled = !!task;
+    sextaState.lastAction = task
+      ? `Joguei "${task.text}" para o topo das prioridades de hoje.`
+      : 'Não achei uma tarefa com esse texto para priorizar.';
+  } else if (lower.includes('concluir próxima') || lower.includes('concluir proxima')) {
+    const next = findFirstPendingTask(todayDate);
+    if (next) {
+      window.toggleTaskStatus(todayDate, next.period, next.index, true, null);
+      handled = true;
+      sextaState.lastAction = `Concluí a próxima tarefa pendente: ${next.task.text}`;
+    } else {
+      handled = true;
+      sextaState.lastAction = 'Não achei tarefa pendente para concluir agora.';
+    }
+  } else if (lower.includes('foco')) {
+    runSextaQuickAction('focus');
+    input.value = '';
+    return;
+  } else if (lower.includes('amanhã') || lower.includes('amanha')) {
+    runSextaQuickAction('tomorrow');
+    input.value = '';
+    return;
+  } else if (lower.includes('planeja') || lower.includes('plano')) {
+    runSextaQuickAction('plan');
+    input.value = '';
+    return;
+  } else {
+    sextaState.lastAction = 'Ainda não entendi esse comando. Tenta algo como: criar tarefa revisar proposta, foco, planejar amanhã.';
+    handled = true;
+  }
+
+  sextaState.notes = [
+    ...(sextaState.notes || []).slice(-4),
+    {
+      action: 'command',
+      text: sextaState.lastAction,
+      at: new Date().toISOString()
+    }
+  ];
+  persistSextaState();
+  input.value = '';
+  renderSextaView();
+}
+
+function renderSextaView() {
+  const view = document.getElementById('sextaView');
+  if (!view) return;
+
+  const todayDate = localDateStr();
+  const { total, completed } = countDayTasks(todayDate);
+  const pending = Math.max(0, total - completed);
+  const weekDates = getWeekDates(0);
+  let weekTotal = 0;
+  let weekCompleted = 0;
+  weekDates.forEach(({ dateStr }) => {
+    const stats = countDayTasks(dateStr);
+    weekTotal += stats.total;
+    weekCompleted += stats.completed;
+  });
+  const weekRate = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
+  const suggestions = buildSextaSuggestions();
+  if (!Array.isArray(sextaState.suggestions) || sextaState.suggestions.length === 0) {
+    sextaState.suggestions = suggestions;
+    persistSextaState();
+  }
+  const lastAction = sextaState.lastAction || 'Ainda sem ação rodada aqui dentro. Usa os botões abaixo pra eu começar a operar no painel.';
+  const notes = Array.isArray(sextaState.notes) ? sextaState.notes.slice().reverse().slice(0, 3) : [];
+
+  view.innerHTML = `
+    <div class="flowly-shell flowly-shell--narrow sexta-shell">
+      <div class="sexta-hero">
+        <div class="sexta-hero-main">
+          <div class="sexta-kicker">Sexta inside Flowly</div>
+          <h2>Sala de comando</h2>
+          <p>Camada de inteligência, contexto e ação para transformar o Flowly em sistema vivo.</p>
+        </div>
+        <div class="sexta-hero-side">
+          <div class="sexta-mini-stat">
+            <span class="sexta-mini-label">Hoje</span>
+            <strong>${completed}/${total}</strong>
+            <span>${pending} pendentes</span>
+          </div>
+          <div class="sexta-mini-stat">
+            <span class="sexta-mini-label">Semana</span>
+            <strong>${weekRate}%</strong>
+            <span>${weekCompleted}/${weekTotal} concluídas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sexta-grid">
+        <section class="sexta-card sexta-card--chat">
+          <div class="sexta-card-head">
+            <div>
+              <h3>Chat operacional</h3>
+              <p>Espaço para pedir estratégia, foco, revisão e próximos passos.</p>
+            </div>
+            <span class="sexta-badge">Preview</span>
+          </div>
+          <div class="sexta-chat-placeholder">
+            <div class="sexta-chat-bubble ai">Posso virar teu copiloto dentro do Flowly: sugerir prioridade, limpar ruído e destravar execução.</div>
+            <div class="sexta-chat-bubble human">O que eu ataco agora?</div>
+            <div class="sexta-chat-bubble ai">Começa pela próxima tarefa de maior alavancagem e fecha o ciclo antes de abrir outra frente. Também já aceito comandos como criar tarefa, priorizar e concluir próxima.</div>
+          </div>
+          <div class="sexta-command-row">
+            <input id="sextaCommandInput" class="task-input sexta-command-input" type="text" placeholder="Ex.: criar tarefa revisar proposta, priorizar proposta, concluir próxima">
+            <button class="btn-primary" type="button" onclick="runSextaCommand()">Executar</button>
+          </div>
+          <div class="sexta-quick-actions">
+            <button class="btn-secondary" type="button" onclick="runSextaQuickAction('focus')">Sugerir foco</button>
+            <button class="btn-secondary" type="button" onclick="runSextaQuickAction('review')">Revisar hoje</button>
+            <button class="btn-secondary" type="button" onclick="runSextaQuickAction('tomorrow')">Planejar amanhã</button>
+            <button class="btn-secondary" type="button" onclick="runSextaQuickAction('plan')">Montar plano base</button>
+          </div>
+        </section>
+
+        <section class="sexta-card">
+          <div class="sexta-card-head">
+            <div>
+              <h3>Motor estratégico</h3>
+              <p>Sugestões reais calculadas a partir do estado atual do teu dia.</p>
+            </div>
+          </div>
+          <div class="sexta-panel-block">
+            <div class="sexta-panel-label">Última ação</div>
+            <div class="sexta-panel-highlight">${lastAction}</div>
+          </div>
+          <div class="sexta-list">
+            ${suggestions
+              .map(
+                (item) => `<div class="sexta-list-item"><span class="sexta-dot"></span><div><strong>${item.title}</strong><p>${item.body}</p></div></div>`
+              )
+              .join('')}
+          </div>
+          <div class="sexta-panel-block sexta-panel-block--soft">
+            <div class="sexta-panel-label">Log recente</div>
+            <div class="sexta-log-list">
+              ${notes.length > 0 ? notes
+                .map((note) => `<div class="sexta-log-item"><strong>${note.action}</strong><span>${note.text}</span></div>`)
+                .join('') : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma ação rápida rodada ainda.</span></div>'}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  `;
+}
+
 function renderSettingsView() {
   const view = document.getElementById('settingsView');
   if (!view) return;
@@ -5514,6 +5773,7 @@ function renderView() {
     document.getElementById('weekGrid').classList.remove('today-container');
     document.getElementById('routineView').classList.add('hidden');
     document.getElementById('analyticsView').classList.add('hidden');
+    document.getElementById('sextaView').classList.add('hidden');
     document.getElementById('settingsView').classList.add('hidden');
     document.getElementById('weekNav').classList.add('hidden');
 
@@ -5524,6 +5784,9 @@ function renderView() {
     } else if (currentView === 'analytics') {
       document.getElementById('analyticsView').classList.remove('hidden');
       renderAnalyticsView();
+    } else if (currentView === 'sexta') {
+      document.getElementById('sextaView').classList.remove('hidden');
+      renderSextaView();
     } else if (currentView === 'settings') {
       document.getElementById('settingsView').classList.remove('hidden');
       renderSettingsView();
@@ -6590,6 +6853,73 @@ function renderToday() {
 }
 
 // Função unificada para inserção de input de tarefa
+function findFirstPendingTask(dateStr = localDateStr()) {
+  const dayData = allTasksData[dateStr] || {};
+  for (const [period, tasks] of Object.entries(dayData)) {
+    if (!Array.isArray(tasks) || period === 'Rotina') continue;
+    const index = tasks.findIndex((task) => task && !task.completed);
+    if (index >= 0) {
+      return { period, index, task: tasks[index] };
+    }
+  }
+  return null;
+}
+
+function prioritizeTaskViaSexta(dateStr = localDateStr(), query = '') {
+  const cleanQuery = String(query || '').trim().toLowerCase();
+  if (!cleanQuery) return false;
+  const dayData = allTasksData[dateStr] || {};
+
+  for (const [period, tasks] of Object.entries(dayData)) {
+    if (!Array.isArray(tasks) || tasks.length === 0) continue;
+    const index = tasks.findIndex((task) => String(task.text || '').toLowerCase().includes(cleanQuery));
+    if (index >= 0) {
+      const [task] = tasks.splice(index, 1);
+      task.completed = false;
+      task.completedAt = null;
+      tasks.unshift(task);
+      tasks.forEach((item, idx) => {
+        item.position = idx;
+      });
+      saveToLocalStorage();
+      syncDateToSupabase(dateStr);
+      renderView();
+      return task;
+    }
+  }
+
+  return false;
+}
+
+function createTaskViaSexta(dateStr, text, period = 'Tarefas') {
+  const cleanText = String(text || '').trim();
+  if (!cleanText) return false;
+
+  const currentList = allTasksData[dateStr]?.[period] || [];
+  const newTask = {
+    text: cleanText,
+    completed: false,
+    color: 'default',
+    type: 'OPERATIONAL',
+    priority: null,
+    parent_id: null,
+    position: currentList.length,
+    isHabit: false,
+    supabaseId: null
+  };
+
+  if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+  if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
+  allTasksData[dateStr][period].push(newTask);
+  saveToLocalStorage();
+  renderView();
+  syncTaskToSupabase(dateStr, period, newTask).then((result) => {
+    if (!result.success) console.error('[Sexta] Sync falhou:', result.errorText);
+    else saveToLocalStorage();
+  });
+  return true;
+}
+
 function insertQuickTaskInput(container, dateStr, period, beforeElement = null) {
   // Verificar se já existe um input ativo no container
   const existingInput = container.querySelector('.quick-task-input');
@@ -6635,32 +6965,8 @@ function insertQuickTaskInput(container, dateStr, period, beforeElement = null) 
     if (e.key === 'Enter' && input.value.trim()) {
       e.preventDefault();
 
-      const currentList = allTasksData[dateStr]?.[period] || [];
-      const newTask = {
-        text: input.value.trim(),
-        completed: false,
-        color: 'default',
-        type: 'OPERATIONAL',
-        priority: null,
-        parent_id: null,
-        position: currentList.length,
-        isHabit: false,
-        supabaseId: null // Supabase will generate this on insert
-      };
-
-      // Adicionar localmente imediatamente (optimistic)
-      if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
-      if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
-      allTasksData[dateStr][period].push(newTask);
-      saveToLocalStorage();
+      createTaskViaSexta(dateStr, input.value.trim(), period);
       inputContainer.remove();
-      renderView();
-
-      // Sync para Supabase em background
-      syncTaskToSupabase(dateStr, period, newTask).then((result) => {
-        if (!result.success) console.error('[Task] Sync falhou:', result.errorText);
-        else saveToLocalStorage(); // persiste supabaseId
-      });
     }
 
     if ((e.key === 'Backspace' || e.key === 'Delete') && input.value.trim() === '') {
@@ -7889,6 +8195,8 @@ saveToLocalStorage = function () {
 // Expose functions to window for HTML onclick compatibility
 window.setView = setView;
 window.renderView = renderView;
+window.runSextaQuickAction = runSextaQuickAction;
+window.runSextaCommand = runSextaCommand;
 window.showWeeklyRecurrenceDialog = showWeeklyRecurrenceDialog;
 window.showAddRoutineTask = showAddRoutineTask;
 
