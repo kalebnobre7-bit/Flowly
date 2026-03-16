@@ -77,8 +77,8 @@ body::before {
 .utility-btn:hover { background: rgba(242, 116, 5, 0.08); border-color: rgba(242, 116, 5, 0.24); transform: translateY(-1px); color: #fff; }
 
 /* TODAY */
-#weekGrid.today-container { gap: 36px; max-width: 1120px; padding: 8px 20px 24px; }
-.today-header { margin-bottom: 18px; }
+#weekGrid.today-container { gap: 28px; max-width: 1120px; padding: 4px 8px 20px; }
+.today-header { margin-bottom: 16px; }
 .today-header h1,
 .today-hero-main h1 { font-family: var(--font-display); font-size: 42px; font-weight: 900; letter-spacing: -0.06em; margin: 0; }
 .today-header p,
@@ -96,17 +96,44 @@ body::before {
 .today-sidebar { width: 300px; display: flex; flex-direction: column; gap: 12px; }
 
 .today-summary-strip {
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .today-summary-card,
 .today-hero-card {
-    padding: 16px 16px 15px;
+    padding: 14px 14px 13px;
 }
 
 .today-summary-card.compact .today-summary-value {
-    font-size: 18px;
+    font-size: 17px;
+}
+
+.today-hero-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.today-hero-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.today-hero-pill--accent {
+    background: rgba(242,116,5,0.1);
+    border-color: rgba(242,116,5,0.12);
+    color: #ffd7be;
 }
 
 .stat-section {
@@ -133,8 +160,8 @@ body::before {
 /* TASKS */
 .task-item { border-radius: 12px; padding-block: 8px; transition: background 0.18s var(--ease-out-expo), transform 0.18s var(--ease-out-expo), border-color 0.18s var(--ease-out-expo); }
 .task-item:hover { background: rgba(255, 255, 255, 0.025); transform: translateX(2px); }
-.today-task-list .task-item { padding: 10px 6px; transition: all 0.2s var(--ease-out-expo); }
-.today-task-list .task-item:hover { background: rgba(242, 116, 5, 0.045) !important; border-radius: 16px; padding-left: 14px !important; margin-left: -8px; margin-right: -8px; }
+.today-task-list .task-item { padding: 9px 6px; transition: all 0.2s var(--ease-out-expo); }
+.today-task-list .task-item:hover { background: rgba(242, 116, 5, 0.038) !important; border-radius: 14px; padding-left: 12px !important; margin-left: -6px; margin-right: -6px; }
 .today-task-list .task-item .task-label { font-size: 16px; font-weight: 520; font-family: var(--font-main); letter-spacing: -0.01em; }
 .task-label { font-family: var(--font-main); color: rgba(255,255,255,0.88); }
 .checkbox-custom { border-radius: 6px; transition: all 0.25s var(--ease-out-expo); border-color: rgba(255,255,255,0.18); }

@@ -6217,6 +6217,10 @@ function renderToday() {
         <div class="today-hero-kicker">Painel de hoje</div>
         <h1>${today}</h1>
         <p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <div class="today-hero-pills">
+          <span class="today-hero-pill today-hero-pill--accent">Modo ${focusModeLabel}</span>
+          <span class="today-hero-pill">Meta 5 concluídas</span>
+        </div>
       </div>
       <div class="today-hero-metrics">
         <div class="today-hero-card accent">
@@ -6225,9 +6229,9 @@ function renderToday() {
           <span class="today-hero-card-sub">tarefas mapeadas pro dia</span>
         </div>
         <div class="today-hero-card">
-          <span class="today-hero-card-label">Meta</span>
-          <strong class="today-hero-card-value">5</strong>
-          <span class="today-hero-card-sub">mínimo operacional do dia</span>
+          <span class="today-hero-card-label">Pendentes</span>
+          <strong class="today-hero-card-value">${pendingEntries.length}</strong>
+          <span class="today-hero-card-sub">${routinePending} de rotina ainda abertas</span>
         </div>
       </div>
     `;
@@ -6269,9 +6273,12 @@ function renderToday() {
 
   const completedCount = allTasks.filter((entry) => entry.task && entry.task.completed).length;
   const pendingEntries = allTasks.filter((entry) => entry.task && !entry.task.completed);
-  const nextTask = pendingEntries[0] || null;
+  const routinePending = pendingEntries.filter((entry) => entry.period === 'Rotina').length;
+  const moneyEntries = pendingEntries.filter((entry) => String(entry.task.priority || '').toLowerCase() === 'money');
+  const nextTask = moneyEntries[0] || pendingEntries[0] || null;
   const focusLabel = nextTask ? nextTask.task.text : 'Dia zerado por aqui';
   const progressPct = allTasks.length > 0 ? Math.round((completedCount / allTasks.length) * 100) : 0;
+  const focusModeLabel = moneyEntries.length > 0 ? 'Caixa' : pendingEntries.length > 5 ? 'Ataque' : pendingEntries.length > 0 ? 'Fechamento' : 'Livre';
 
   if (!focusOnlyMode) {
     const summaryStrip = document.createElement('div');
@@ -6280,7 +6287,7 @@ function renderToday() {
       <div class="today-summary-card primary">
         <span class="today-summary-label">Próxima ação</span>
         <strong class="today-summary-value">${focusLabel}</strong>
-        <span class="today-summary-sub">${nextTask ? 'puxa essa primeiro e gera momentum' : 'aproveita pra puxar algo novo com intenção'}</span>
+        <span class="today-summary-sub">${nextTask ? 'fecha essa antes de abrir outra frente' : 'aproveita pra puxar algo novo com intenção'}</span>
       </div>
       <div class="today-summary-card compact">
         <span class="today-summary-label">Progresso</span>
@@ -6288,9 +6295,9 @@ function renderToday() {
         <span class="today-summary-sub">${progressPct}% concluído</span>
       </div>
       <div class="today-summary-card compact">
-        <span class="today-summary-label">Pendentes</span>
-        <strong class="today-summary-value">${pendingEntries.length}</strong>
-        <span class="today-summary-sub">tarefas ainda abertas</span>
+        <span class="today-summary-label">Prioridade</span>
+        <strong class="today-summary-value">${moneyEntries.length > 0 ? 'Dinheiro' : focusModeLabel}</strong>
+        <span class="today-summary-sub">${moneyEntries.length > 0 ? moneyEntries.length + ' tarefa(s) com impacto financeiro' : 'estado operacional do dia'}</span>
       </div>
     `;
     main.appendChild(summaryStrip);
