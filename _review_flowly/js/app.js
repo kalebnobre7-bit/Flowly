@@ -6257,37 +6257,6 @@ function renderToday() {
       ) + getRoutineTasksForDate(dateStr).length
     : getRoutineTasksForDate(dateStr).length;
 
-  if (!focusOnlyMode) {
-    const todayHero = document.createElement('div');
-    todayHero.className = 'today-hero';
-    todayHero.innerHTML = `
-      <div class="today-hero-main">
-        <div class="today-hero-kicker">Painel de hoje</div>
-        <h1>${today}</h1>
-        <p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-        <div class="today-hero-pills">
-          <span class="today-hero-pill today-hero-pill--accent">Modo ${focusModeLabel}</span>
-          <span class="today-hero-pill">Meta 5 concluídas</span>
-        </div>
-      </div>
-      <div class="today-hero-metrics">
-        <div class="today-hero-card accent">
-          <span class="today-hero-card-label">Planejadas</span>
-          <strong class="today-hero-card-value">${totalTasksPreview}</strong>
-          <span class="today-hero-card-sub">tarefas mapeadas pro dia</span>
-        </div>
-        <div class="today-hero-card">
-          <span class="today-hero-card-label">Pendentes</span>
-          <strong class="today-hero-card-value">${pendingEntries.length}</strong>
-          <span class="today-hero-card-sub">${routinePending} de rotina ainda abertas</span>
-        </div>
-      </div>
-    `;
-    main.appendChild(todayHero);
-  } else {
-    main.appendChild(header);
-  }
-
   // Task list container
   const taskList = document.createElement('div');
   taskList.className = 'today-task-list';
@@ -6329,6 +6298,33 @@ function renderToday() {
   const focusModeLabel = moneyEntries.length > 0 ? 'Caixa' : pendingEntries.length > 5 ? 'Ataque' : pendingEntries.length > 0 ? 'Fechamento' : 'Livre';
 
   if (!focusOnlyMode) {
+    const todayHero = document.createElement('div');
+    todayHero.className = 'today-hero';
+    todayHero.innerHTML = `
+      <div class="today-hero-main">
+        <div class="today-hero-kicker">Painel de hoje</div>
+        <h1>${today}</h1>
+        <p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <div class="today-hero-pills">
+          <span class="today-hero-pill today-hero-pill--accent">Modo ${focusModeLabel}</span>
+          <span class="today-hero-pill">Meta 5 concluídas</span>
+        </div>
+      </div>
+      <div class="today-hero-metrics">
+        <div class="today-hero-card accent">
+          <span class="today-hero-card-label">Planejadas</span>
+          <strong class="today-hero-card-value">${totalTasksPreview}</strong>
+          <span class="today-hero-card-sub">tarefas mapeadas pro dia</span>
+        </div>
+        <div class="today-hero-card">
+          <span class="today-hero-card-label">Pendentes</span>
+          <strong class="today-hero-card-value">${pendingEntries.length}</strong>
+          <span class="today-hero-card-sub">${routinePending} de rotina ainda abertas</span>
+        </div>
+      </div>
+    `;
+    main.appendChild(todayHero);
+
     const summaryStrip = document.createElement('div');
     summaryStrip.className = 'today-summary-strip';
     summaryStrip.innerHTML = `
