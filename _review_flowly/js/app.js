@@ -5461,11 +5461,11 @@ function renderFinanceView() {
     : [];
 
   view.innerHTML = `
-    <div class="flowly-shell flowly-shell--narrow finance-shell finance-shell--rebuilt finance-shell--premium">
+    <div class="flowly-shell flowly-shell--wide finance-shell finance-shell--rebuilt finance-shell--premium">
       <section class="finance-dashboard-hero">
         <div class="finance-hero-copy">
           <div class="finance-kicker">Finance intelligence</div>
-          <h2>Entenda de onde vem e pra onde vai tua grana</h2>
+          <h2>Visão financeira clara, rápida e útil</h2>
           <p>${analytics.analysisTone}</p>
           <div class="finance-inline-pills">
             <span class="sexta-pill">${analytics.monthTransactionCount} movimentações</span>
@@ -5496,7 +5496,7 @@ function renderFinanceView() {
           <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>Leitura mensal</h3>
-              <p>Curva principal de entradas e saídas ao longo do mês.</p>
+              <p>Entradas vs saídas, sem ruído.</p>
             </div>
           </div>
           <div class="finance-chart-wrap finance-chart-wrap--lg">
@@ -5508,7 +5508,7 @@ function renderFinanceView() {
           <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>Mapa rápido</h3>
-              <p>O resumo que interessa antes de mergulhar nos detalhes.</p>
+              <p>Só os sinais que importam.</p>
             </div>
           </div>
           <div class="finance-mini-stack">
@@ -5531,6 +5531,17 @@ function renderFinanceView() {
           <div class="finance-chart-wrap finance-chart-wrap--donut">
             ${Object.keys(analytics.categoryTotals).length > 0 ? '<canvas id="financeCategoryChart"></canvas>' : '<div class="finance-empty">Sem categorias registradas ainda.</div>'}
           </div>
+          <div class="finance-legend-grid">
+            ${expenseShare.slice(0, 4).map((item, index) => `
+              <div class="finance-legend-item">
+                <span class="finance-legend-dot finance-legend-dot--${index + 1}"></span>
+                <div>
+                  <strong>${item.label}</strong>
+                  <small>${item.share}% das saídas</small>
+                </div>
+              </div>
+            `).join('')}
+          </div>
         </section>
       </section>
 
@@ -5539,7 +5550,7 @@ function renderFinanceView() {
           <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>De onde vem a grana</h3>
-              <p>Fontes de entrada mais relevantes no mês.</p>
+              <p>Quem está colocando dinheiro pra dentro.</p>
             </div>
           </div>
           <div class="finance-breakdown-list">
@@ -5560,7 +5571,7 @@ function renderFinanceView() {
           <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>Pra onde sai a grana</h3>
-              <p>Categorias que mais pesam nas saídas.</p>
+              <p>O que mais está puxando teu caixa.</p>
             </div>
           </div>
           <div class="finance-breakdown-list">
@@ -5583,7 +5594,7 @@ function renderFinanceView() {
           <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>Movimentações recentes</h3>
-              <p>Últimos lançamentos para leitura rápida.</p>
+              <p>Leitura limpa do que aconteceu agora.</p>
             </div>
           </div>
           <div class="finance-list finance-list--compact">
@@ -5603,7 +5614,7 @@ function renderFinanceView() {
           <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>Receita ligada a trabalho</h3>
-              <p>O que já trouxe caixa de forma identificável.</p>
+              <p>Receitas já conectadas a trabalho real.</p>
             </div>
           </div>
           <div class="finance-list finance-list--compact">
@@ -5625,7 +5636,7 @@ function renderFinanceView() {
           <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>Lançar movimentação</h3>
-              <p>Entrada, saída e vínculo direto com a tarefa que trouxe dinheiro.</p>
+              <p>Lançamento manual limpo e direto.</p>
             </div>
           </div>
           <div class="finance-form-grid">
@@ -5652,7 +5663,7 @@ function renderFinanceView() {
           <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>Meta mensal</h3>
-              <p>Importante, mas secundária frente à leitura real da operação.</p>
+              <p>Meta fica abaixo da análise operacional.</p>
             </div>
           </div>
           <div class="finance-goal-panel">
