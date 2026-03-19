@@ -14,6 +14,7 @@
       localStorage.setItem('routineCompletions', JSON.stringify(state.routineCompletions));
       localStorage.setItem('habitsHistory', JSON.stringify(state.habitsHistory));
       localStorage.setItem('flowlyFinanceState', JSON.stringify(state.financeState || null));
+      localStorage.setItem('flowlyProjectsState', JSON.stringify(state.projectsState || null));
       localStorage.setItem('dailyRoutine', JSON.stringify([]));
       localStorage.setItem('weeklyRecurringTasks', JSON.stringify([]));
     }

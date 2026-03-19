@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --bg-body: #050505;
     --bg-card: rgba(30, 30, 32, 0.7);
     --bg-card-hover: rgba(45, 45, 48, 0.9);
@@ -4943,4 +4943,18 @@ body.dragging-active .task-drop-zone {
     .analytics-container-v3 .analytics-kpi-grid-v2 {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+}
+
+
+.task-project-chip {
+    margin-left: 10px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(96,165,250,0.12);
+    border: 1px solid rgba(96,165,250,0.18);
+    color: #bfdbfe;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }

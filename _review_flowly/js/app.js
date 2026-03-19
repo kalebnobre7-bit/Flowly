@@ -355,7 +355,9 @@ const weekData = {
 };
 let habitsHistory = safeJSONParse(localStorage.getItem('habitsHistory'), {});
 let financeState = normalizeFinanceState(safeJSONParse(localStorage.getItem('flowlyFinanceState'), null));
+let projectsState = normalizeProjectsState(safeJSONParse(localStorage.getItem('flowlyProjectsState'), null));
 let financeSyncTimer = null;
+let projectsSyncTimer = null;
 let financeChartsState = { cashflow: null, category: null };
 
 // Estado de conclusão de tarefas recorrentes por data
@@ -404,6 +406,7 @@ window.toggleTaskExpansion = function (task, el) {
   };
 
   const recDefinition = isRecurring ? allRecurringTasks.find((rt) => rt.text === task.text) : null;
+  const repeatedMatch = getProjectOptions().find((project) => task.text && task.text.toLowerCase().includes(project.name.toLowerCase()));
 
   // === HELPER: Create a property row (Notion-style) ===
   const createPropertyRow = (icon, labelTxt) => {
@@ -419,6 +422,38 @@ window.toggleTaskExpansion = function (task, el) {
     row.appendChild(lbl);
     return row;
   };
+
+  const projectRow = createPropertyRow('briefcase', 'Projeto');
+  const projectSelect = document.createElement('select');
+  projectSelect.className = 'finance-input';
+  projectSelect.style.maxWidth = '320px';
+  const projectOptions = [{ id: '', name: 'Sem projeto', clientName: '' }, ...getProjectOptions()];
+  projectSelect.innerHTML = projectOptions
+    .map((project) => `<option value="${project.id}">${project.name}${project.clientName ? ` · ${project.clientName}` : ''}</option>`)
+    .join('');
+  projectSelect.value = task.projectId || '';
+  projectSelect.onchange = () => {
+    const project = getProjectOptions().find((item) => item.id === projectSelect.value) || null;
+    task.projectId = project ? project.id : null;
+    task.projectName = project ? project.name : '';
+    saveChangesAndReRender();
+  };
+  projectRow.appendChild(projectSelect);
+  if (!task.projectId && repeatedMatch) {
+    const suggest = document.createElement('button');
+    suggest.type = 'button';
+    suggest.className = 'btn-secondary';
+    suggest.style.width = 'auto';
+    suggest.style.padding = '8px 10px';
+    suggest.textContent = `Sugerir: ${repeatedMatch.name}`;
+    suggest.onclick = () => {
+      task.projectId = repeatedMatch.id;
+      task.projectName = repeatedMatch.name;
+      saveChangesAndReRender();
+    };
+    projectRow.appendChild(suggest);
+  }
+  exp.appendChild(projectRow);
 
   // === HELPER: Create pill button ===
   const createPill = (text, isActive, activeColor, onClick) => {
@@ -715,6 +750,136 @@ function getPriorityColorName(priority) {
   }
 }
 
+function createProjectId(prefix = 'proj') {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeProjectsState(state) {
+  const base = state && typeof state === 'object' ? state : {};
+  const normalizeProject = (item) => {
+    if (!item || typeof item !== 'object') return null;
+    return {
+      id: item.id || createProjectId('proj'),
+      name: String(item.name || '').trim(),
+      clientName: String(item.clientName || '').trim(),
+      status: String(item.status || 'active').trim() || 'active',
+      serviceType: String(item.serviceType || '').trim(),
+      expectedValue: Number(item.expectedValue || 0) || 0,
+      closedValue: Number(item.closedValue || 0) || 0,
+      notes: String(item.notes || '').trim(),
+      createdAt: item.createdAt || new Date().toISOString(),
+      updatedAt: item.updatedAt || new Date().toISOString()
+    };
+  };
+  return {
+    projects: Array.isArray(base.projects) ? base.projects.map(normalizeProject).filter((p) => p && p.name) : []
+  };
+}
+
+function persistProjectsStateLocal() {
+  projectsState = normalizeProjectsState(projectsState);
+  localStorage.setItem('flowlyProjectsState', JSON.stringify(projectsState));
+}
+
+function getProjectOptions() {
+  projectsState = normalizeProjectsState(projectsState);
+  return projectsState.projects.slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+}
+
+function scheduleProjectsSync(delay = 900) {
+  if (projectsSyncTimer) clearTimeout(projectsSyncTimer);
+  projectsSyncTimer = setTimeout(() => {
+    projectsSyncTimer = null;
+    syncProjectsStateToSupabase();
+  }, delay);
+}
+
+async function loadProjectsStateFromSupabase() {
+  const user = await ensureCurrentUserForSync();
+  if (!user) {
+    persistProjectsStateLocal();
+    return;
+  }
+  try {
+    const result = await supabaseClient.from('projects').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(200);
+    if (result.error) {
+      const code = String(result.error.code || '');
+      if (code === '42P01') {
+        persistProjectsStateLocal();
+        return;
+      }
+      throw result.error;
+    }
+    projectsState = normalizeProjectsState({
+      projects: (result.data || []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        clientName: row.client_name,
+        status: row.status,
+        serviceType: row.service_type,
+        expectedValue: row.expected_value,
+        closedValue: row.closed_value,
+        notes: row.notes,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }))
+    });
+    persistProjectsStateLocal();
+  } catch (error) {
+    console.error('[Projects] Falha ao carregar projetos:', error);
+  }
+}
+
+async function syncProjectsStateToSupabase() {
+  const user = await ensureCurrentUserForSync();
+  if (!user) return;
+  projectsState = normalizeProjectsState(projectsState);
+  try {
+    if (projectsState.projects.length === 0) return;
+    const payload = projectsState.projects.map((item) => ({
+      id: item.id,
+      user_id: user.id,
+      name: item.name,
+      client_name: item.clientName || null,
+      status: item.status || 'active',
+      service_type: item.serviceType || null,
+      expected_value: Number(item.expectedValue || 0),
+      closed_value: Number(item.closedValue || 0),
+      notes: item.notes || null,
+      created_at: item.createdAt || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }));
+    const result = await supabaseClient.from('projects').upsert(payload, { onConflict: 'id' });
+    if (result.error && String(result.error.code || '') !== '42P01') throw result.error;
+  } catch (error) {
+    console.error('[Projects] Falha ao sincronizar projetos:', error);
+  }
+}
+
+window.createProjectQuick = async function () {
+  const name = (document.getElementById('projectQuickName')?.value || '').trim();
+  const clientName = (document.getElementById('projectQuickClient')?.value || '').trim();
+  if (!name) {
+    alert('Dá um nome pro projeto primeiro.');
+    return;
+  }
+  projectsState.projects.unshift({
+    id: createProjectId('proj'),
+    name,
+    clientName,
+    status: 'active',
+    serviceType: '',
+    expectedValue: 0,
+    closedValue: 0,
+    notes: '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+  persistProjectsStateLocal();
+  scheduleProjectsSync();
+  renderFinanceView();
+};
+
 function createFinanceId(prefix = 'fin') {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -735,6 +900,8 @@ function normalizeFinanceState(state) {
       source: String(item.source || 'manual').trim() || 'manual',
       taskSupabaseId: item.taskSupabaseId ? String(item.taskSupabaseId) : null,
       taskText: item.taskText ? String(item.taskText) : '',
+      projectId: item.projectId ? String(item.projectId) : null,
+      projectName: item.projectName ? String(item.projectName) : '',
       notes: item.notes ? String(item.notes) : '',
       createdAt: item.createdAt || new Date().toISOString(),
       updatedAt: item.updatedAt || new Date().toISOString(),
@@ -823,6 +990,8 @@ async function loadFinanceStateFromSupabase() {
         source: row.source,
         taskSupabaseId: row.task_supabase_id,
         taskText: row.task_text,
+        projectId: row.project_id,
+        projectName: row.project_name,
         notes: row.notes,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -872,6 +1041,8 @@ async function syncFinanceStateToSupabase() {
         source: item.source || 'manual',
         task_supabase_id: item.taskSupabaseId || null,
         task_text: item.taskText || null,
+        project_id: item.projectId || null,
+        project_name: item.projectName || null,
         notes: item.notes || null,
         metadata: item.metadata || {},
         created_at: item.createdAt || new Date().toISOString(),
@@ -909,7 +1080,8 @@ function saveToLocalStorage() {
       allRecurringTasks,
       routineCompletions,
       habitsHistory,
-      financeState
+      financeState,
+      projectsState
     });
     if (eventBus) eventBus.emit('storage:saved', { at: Date.now() });
     if (navigator.onLine) setSyncStatus('saving', 'Alteracoes locais salvas');
@@ -921,6 +1093,7 @@ function saveToLocalStorage() {
   localStorage.setItem('routineCompletions', JSON.stringify(routineCompletions));
   localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
   persistFinanceStateLocal();
+  persistProjectsStateLocal();
   if (navigator.onLine) setSyncStatus('saving', 'Alteracoes locais salvas');
   else setSyncStatus('offline', 'Alteracoes salvas no dispositivo');
 }
@@ -1321,6 +1494,7 @@ async function loadDataFromSupabase() {
   if (!tasksRepo) return;
   await tasksRepo.loadDataFromSupabase();
   await loadFinanceStateFromSupabase();
+  await loadProjectsStateFromSupabase();
 }
 async function syncDailyRoutineToSupabase() {
   // Deprecated or Legacy handled silently
@@ -5467,8 +5641,10 @@ window.saveFinanceTransactionFromForm = async function () {
   const category = (document.getElementById('financeEntryCategory')?.value || '').trim();
   const date = document.getElementById('financeEntryDate')?.value || localDateStr();
   const taskRef = document.getElementById('financeEntryTask')?.value || '';
+  const projectRef = document.getElementById('financeEntryProject')?.value || '';
   const taskCandidates = getFinanceTaskCandidates();
   const selectedTask = taskCandidates.find((item) => item.id === taskRef) || null;
+  const selectedProject = getProjectOptions().find((item) => item.id === projectRef) || null;
 
   if (!description || !Number.isFinite(amount) || amount <= 0) {
     alert('Preenche descrição e valor certinho.');
@@ -5704,10 +5880,39 @@ function renderFinanceView() {
               <option value="">Vincular a uma tarefa (opcional)</option>
               ${analytics.taskCandidates.map((task) => `<option value="${task.id}">${task.dateStr} · ${task.text}</option>`).join('')}
             </select>
+            <select id="financeEntryProject" class="finance-input finance-input--full">
+              <option value="">Vincular a um projeto (opcional)</option>
+              ${getProjectOptions().map((project) => `<option value="${project.id}">${project.name}${project.clientName ? ` · ${project.clientName}` : ''}</option>`).join('')}
+            </select>
           </div>
           <div class="finance-form-actions">
             <button class="btn-primary" style="width:auto;padding:12px 18px;" onclick="saveFinanceTransactionFromForm()">Salvar movimentação</button>
             <span class="finance-form-hint">Quanto mais você vincular entrada com tarefa/projeto, melhor fica a leitura do teu motor de caixa.</span>
+          </div>
+        </section>
+
+        <section class="finance-card">
+          <div class="finance-card-head finance-card-head--dense">
+            <div>
+              <h3>Projetos</h3>
+              <p>Cria o projeto uma vez e usa ele para conectar tarefa e receita.</p>
+            </div>
+          </div>
+          <div class="finance-form-grid">
+            <input id="projectQuickName" class="finance-input" type="text" placeholder="Nome do projeto">
+            <input id="projectQuickClient" class="finance-input" type="text" placeholder="Cliente (opcional)">
+            <button class="btn-secondary" style="width:auto;padding:12px 18px;" onclick="createProjectQuick()">Criar projeto</button>
+          </div>
+          <div class="finance-list finance-list--compact" style="margin-top:14px;">
+            ${getProjectOptions().length > 0 ? getProjectOptions().slice(0, 8).map((project) => `
+              <div class="finance-list-item finance-list-item--stacked">
+                <div>
+                  <strong>${project.name}</strong>
+                  <p>${project.clientName || 'sem cliente'} • ${project.status}</p>
+                </div>
+                <span>${project.closedValue > 0 ? analytics.formatBRL(project.closedValue) : '-'}</span>
+              </div>
+            `).join('') : '<div class="finance-empty">Cria teus projetos aqui pra começar a ligar receita e tarefa em algo real.</div>'}
           </div>
         </section>
 
@@ -8094,6 +8299,12 @@ function createTaskElement(day, dateStr, period, task, index) {
   }
 
   el.appendChild(label);
+  if (task.projectName) {
+    const projectChip = document.createElement('span');
+    projectChip.className = 'task-project-chip';
+    projectChip.textContent = task.projectName;
+    el.appendChild(projectChip);
+  }
   el.appendChild(hoverMenuBtn);
 
   // Drag Events
