@@ -1941,6 +1941,67 @@ function renderAnalyticsView() {
   const totalHabits = allHabitsArr.length;
   const completedHabitsToday = allHabitsArr.filter((h) => h.completedToday).length;
 
+  const performanceHistory = [];
+  const perfCursor = new Date();
+  perfCursor.setHours(0, 0, 0, 0);
+  for (let i = 29; i >= 0; i--) {
+    const targetDate = new Date(perfCursor);
+    targetDate.setDate(perfCursor.getDate() - i);
+    const dStr = localDateStr(targetDate);
+    const dt = allTasksData[dStr] || {};
+    let total = 0,
+      completed = 0;
+    Object.entries(dt).forEach(([p, tasks]) => {
+      if (p === 'Rotina') return;
+      if (Array.isArray(tasks)) {
+        total += tasks.length;
+        completed += tasks.filter((t) => t.completed).length;
+      }
+    });
+    const rr = getRoutineTasksForDate(dStr);
+    total += rr.length;
+    completed += rr.filter((t) => t.completed).length;
+    performanceHistory.push({
+      dateStr: dStr,
+      total,
+      completed,
+      rate: total > 0 ? Math.round((completed / total) * 100) : 0
+    });
+  }
+  const activeHistory = performanceHistory.filter((d) => d.total > 0);
+  const avgCompletedBaseline = activeHistory.length > 0
+    ? activeHistory.reduce((sum, d) => sum + d.completed, 0) / activeHistory.length
+    : 0;
+  const recent7 = performanceHistory.slice(-7);
+  const prev7 = performanceHistory.slice(-14, -7);
+  const recent7Active = recent7.filter((d) => d.total > 0);
+  const prev7Active = prev7.filter((d) => d.total > 0);
+  const recent7Completed = recent7.reduce((sum, d) => sum + d.completed, 0);
+  const prev7Completed = prev7.reduce((sum, d) => sum + d.completed, 0);
+  const recent7Avg = recent7Active.length > 0 ? recent7Completed / recent7Active.length : 0;
+  const prev7Avg = prev7Active.length > 0 ? prev7Completed / prev7Active.length : 0;
+  const todayCompletedVolume = completedTasksToday;
+  const todayPerformanceScore = avgCompletedBaseline > 0
+    ? Math.round((todayCompletedVolume / avgCompletedBaseline) * 100)
+    : todayCompletedVolume > 0
+      ? 100
+      : 0;
+  const weeklyPerformanceScore = prev7Avg > 0
+    ? Math.round((recent7Avg / prev7Avg) * 100)
+    : recent7Avg > 0
+      ? 100
+      : 0;
+  const volumeDelta = Math.round(todayCompletedVolume - avgCompletedBaseline);
+  const weeklyDeltaTasks = Math.round(recent7Avg - prev7Avg);
+  const consistencyDays = performanceHistory.filter(
+    (d) => d.total > 0 && d.completed >= avgCompletedBaseline
+  ).length;
+  const bestVolumeDay = activeHistory.length > 0
+    ? activeHistory.reduce((best, d) => (d.completed > best.completed ? d : best))
+    : null;
+  const monthlyVolumeSeries = performanceHistory.map((d) => d.completed);
+  const monthlyVolumeLabels = performanceHistory.map((d) => d.dateStr.slice(8, 10));
+
   // -- Rates --------------------------------------------------------------
   const todayRate =
     totalTasksToday > 0 ? Math.round((completedTasksToday / totalTasksToday) * 100) : 0;
@@ -2049,10 +2110,12 @@ function renderAnalyticsView() {
     dayRates.length > 1 ? dayRates.reduce((w, d) => (d.rate < w.rate ? d : w)) : null;
 
   // -- KPI derived values -------------------------------------------------
-  const todayKpiColor = todayRate >= 70 ? '#30D158' : todayRate >= 40 ? '#FF9F0A' : '#FF453A';
-  const trendClass = weekDiff > 0 ? 'up' : weekDiff < 0 ? 'down' : 'neutral';
-  const trendLabel = weekDiff > 0 ? `? +${weekDiff}%` : weekDiff < 0 ? `? ${weekDiff}%` : '? igual';
-  const trendTooltip = 'vs mesmo período sem. ant.';
+  const todayKpiColor =
+    todayPerformanceScore >= 110 ? '#30D158' : todayPerformanceScore >= 85 ? '#0A84FF' : '#FF9F0A';
+  const trendClass = weeklyDeltaTasks > 0 ? 'up' : weeklyDeltaTasks < 0 ? 'down' : 'neutral';
+  const trendLabel =
+    weeklyDeltaTasks > 0 ? `↑ +${weeklyDeltaTasks}` : weeklyDeltaTasks < 0 ? `↓ ${weeklyDeltaTasks}` : '≈ estável';
+  const trendTooltip = 'comparado à média dos 7 dias anteriores';
 
   // -- Habit ranking -----------------------------------------------------
   const habitRanking = allHabitsArr
@@ -2276,12 +2339,26 @@ function renderAnalyticsView() {
       title: `Destaque: ${bestDay.name}`,
       text: `${bestDay.rate}% de conclusão — seu melhor dia da semana!`
     });
+  if (todayPerformanceScore >= 120)
+    insights.push({
+      color: 'green',
+      icon: '↗',
+      title: 'Acima da tua média',
+      text: `Hoje você entregou ${todayPerformanceScore}% da tua média recente.`
+    });
+  if (todayPerformanceScore > 0 && todayPerformanceScore < 80)
+    insights.push({
+      color: 'orange',
+      icon: '•',
+      title: 'Abaixo da média',
+      text: `Hoje ficou em ${todayPerformanceScore}% da tua média recente.`
+    });
   if (insights.length === 0 && weekRate > 0)
     insights.push({
       color: 'blue',
       icon: '??',
       title: 'Continue Evoluindo',
-      text: `${weekRate}% de conclusão esta semana. Cada dia conta!`
+      text: `${Math.round(recent7Avg || 0)} tarefas/dia na última semana. Cada dia conta!`
     });
   if (insights.length === 0)
     insights.push({
@@ -2322,38 +2399,7 @@ function renderAnalyticsView() {
   const nowDate = new Date();
   const nowYear = nowDate.getFullYear(),
     nowMonth = nowDate.getMonth();
-  const daysInMonth = new Date(nowYear, nowMonth + 1, 0).getDate();
-  const todayDay = nowDate.getDate();
-  const monthLabels = [],
-    monthData = [],
-    monthPointColors = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    monthLabels.push(d);
-    const dStr = `${nowYear}-${String(nowMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const dt = allTasksData[dStr] || {};
-    let mt = 0,
-      mc = 0;
-    Object.entries(dt).forEach(([p, tasks]) => {
-      if (p === 'Rotina') return;
-      if (Array.isArray(tasks)) {
-        mt += tasks.length;
-        mc += tasks.filter((t) => t.completed).length;
-      }
-    });
-    const rm = getRoutineTasksForDate(dStr);
-    mt += rm.length;
-    mc += rm.filter((t) => t.completed).length;
-    const rate = d <= todayDay ? (mt > 0 ? Math.round((mc / mt) * 100) : null) : null;
-    monthData.push(rate);
-    if (d === todayDay) monthPointColors.push('#30D158');
-    else if (rate === null) monthPointColors.push('transparent');
-    else if (rate >= 80) monthPointColors.push('#30D158');
-    else if (rate >= 50) monthPointColors.push('#0A84FF');
-    else monthPointColors.push('#FF453A');
-  }
-  const monthAvg = monthData.filter((v) => v !== null);
-  const monthAvgRate =
-    monthAvg.length > 0 ? Math.round(monthAvg.reduce((a, b) => a + b, 0) / monthAvg.length) : 0;
+  const monthAvgRate = avgCompletedBaseline > 0 ? avgCompletedBaseline.toFixed(1) : '0';
 
   // -- Week chart data ----------------------------------------------------
   const weekChartData = weekDates.map(({ name }) => {
@@ -2366,7 +2412,9 @@ function renderAnalyticsView() {
   });
 
   // -- BUILD HTML ---------------------------------------------------------
-  view.innerHTML = `<div class="flowly-shell"><div class="analytics-container-v2">
+  const analyticsSafe = (value) =>
+    Number.isFinite(value) ? Number(value).toFixed(1).replace('.0', '') : '0';
+  view.innerHTML = `<div class="flowly-shell flowly-shell--wide"><div class="analytics-container-v2 analytics-container-v3">
 
         <!-- Outer tabs -->
         ${outerTabsHTML}
@@ -2411,7 +2459,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-label"><i data-lucide="sun" style="width:12px;height:12px"></i> Hoje</div>
+                <div class="analytics-kpi-v2-label"><i data-lucide="activity" style="width:12px;height:12px"></i> Performance Hoje</div>
                 
                 
                 
@@ -2419,7 +2467,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-value" style="color:${todayKpiColor}">${todayRate}%</div>
+                <div class="analytics-kpi-v2-value" style="color:${todayKpiColor}">${todayPerformanceScore}%</div>
                 
                 
                 
@@ -2427,7 +2475,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${completedTasksToday} de ${totalTasksToday} tarefas</div>
+                <div class="analytics-kpi-v2-sub">${todayCompletedVolume} concluídas • média ${analyticsSafe(avgCompletedBaseline)}</div>
                 
                 
                 
@@ -2435,7 +2483,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                ${todayRate === 100 && totalTasksToday > 0 ? `<span class="analytics-kpi-v2-badge up">? Perfeito</span>` : ''}
+                ${todayCompletedVolume > 0 ? `<span class="analytics-kpi-v2-badge ${todayPerformanceScore >= 100 ? 'up' : 'neutral'}">${volumeDelta >= 0 ? '↑' : '↓'} ${Math.abs(volumeDelta)} vs média</span>` : ''}
             </div>
             <div class="analytics-kpi-v2">
                 
@@ -2453,7 +2501,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-label"><i data-lucide="calendar" style="width:12px;height:12px"></i> Semana</div>
+                <div class="analytics-kpi-v2-label"><i data-lucide="bar-chart-3" style="width:12px;height:12px"></i> Ritmo semanal</div>
                 
                 
                 
@@ -2461,7 +2509,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-value" style="color:${weekDiff > 0 ? '#30D158' : weekDiff < 0 ? '#FF453A' : '#0A84FF'}">${weekRate}%</div>
+                <div class="analytics-kpi-v2-value" style="color:${weeklyDeltaTasks > 0 ? '#30D158' : weeklyDeltaTasks < 0 ? '#FF453A' : '#0A84FF'}">${weeklyPerformanceScore}%</div>
                 
                 
                 
@@ -2469,7 +2517,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${completedTasksWeek} de ${totalTasksWeek} tarefas</div>
+                <div class="analytics-kpi-v2-sub">${recent7Completed} concluídas nos últimos 7 dias</div>
                 
                 
                 
@@ -2477,7 +2525,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <span class="analytics-kpi-v2-badge ${trendClass}" title="${trendTooltip}">${trendLabel} vs sem. ant. (até ${weekDates[weekDates.findIndex((w) => w.dateStr === today)]?.name?.substring(0, 3) || 'hoje'})</span>
+                <span class="analytics-kpi-v2-badge ${trendClass}" title="${trendTooltip}">${trendLabel} vs 7 dias anteriores</span>
             </div>
             <div class="analytics-kpi-v2">
                 
@@ -2495,7 +2543,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-label"><i data-lucide="target" style="width:12px;height:12px"></i> Hábitos</div>
+                <div class="analytics-kpi-v2-label"><i data-lucide="gauge" style="width:12px;height:12px"></i> Consistência</div>
                 
                 
                 
@@ -2503,7 +2551,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-value" style="color:${habitRate >= 80 ? '#30D158' : '#BF5AF2'}">${habitRate}%</div>
+                <div class="analytics-kpi-v2-value" style="color:${consistencyDays >= 15 ? '#30D158' : consistencyDays >= 8 ? '#0A84FF' : '#BF5AF2'}">${activeHistory.length > 0 ? Math.round((consistencyDays / activeHistory.length) * 100) : 0}%</div>
                 
                 
                 
@@ -2511,7 +2559,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${completedHabitsToday} de ${totalHabits} concluídos</div>
+                <div class="analytics-kpi-v2-sub">${consistencyDays} dias na/acima da média em 30 dias</div>
             </div>
             <div class="analytics-kpi-v2">
                 
@@ -2529,7 +2577,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-label"><i data-lucide="flame" style="width:12px;height:12px"></i> Streak</div>
+                <div class="analytics-kpi-v2-label"><i data-lucide="zap" style="width:12px;height:12px"></i> Capacidade</div>
                 
                 
                 
@@ -2537,7 +2585,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-value" style="color:${currentStreak >= 7 ? '#FF9F0A' : currentStreak > 0 ? '#30D158' : 'var(--text-tertiary)'}">${currentStreak}</div>
+                <div class="analytics-kpi-v2-value" style="color:${bestVolumeDay && bestVolumeDay.completed >= 8 ? '#FF9F0A' : bestVolumeDay ? '#30D158' : 'var(--text-tertiary)'}">${bestVolumeDay ? bestVolumeDay.completed : 0}</div>
                 
                 
                 
@@ -2545,7 +2593,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${currentStreak > 0 ? `?? dias perfeitos consecutivos` : 'Complete 100% hoje!'}</div>
+                <div class="analytics-kpi-v2-sub">${bestVolumeDay ? `melhor dia: ${bestVolumeDay.dateStr}` : 'sem histórico suficiente'}</div>
             </div>
         </div>
 
@@ -2766,7 +2814,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-chart-v2-title"><i data-lucide="calendar-days" style="width:14px;height:14px"></i> Evolução do Mês — ${MONTH_NAMES_PT[nowMonth]}</div>
+                <div class="analytics-chart-v2-title"><i data-lucide="line-chart" style="width:14px;height:14px"></i> Volume diário — ${MONTH_NAMES_PT[nowMonth]}</div>
                 
                 
                 
@@ -2774,7 +2822,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <span class="analytics-chart-v2-badge">Média ${monthAvgRate}%</span>
+                <span class="analytics-chart-v2-badge">Média ${monthAvgRate} tarefas/dia</span>
             </div>
             <div style="position:relative;height:180px">
                 
@@ -3151,20 +3199,20 @@ function renderAnalyticsView() {
       new Chart(monthCtx, {
         type: 'line',
         data: {
-          labels: monthLabels,
+          labels: monthlyVolumeLabels,
           datasets: [
             {
-              label: 'Conclusão diária (%)',
-              data: monthData,
+              label: 'Tarefas concluídas',
+              data: monthlyVolumeSeries,
               borderColor: '#0A84FF',
               backgroundColor: 'rgba(10,132,255,0.08)',
               tension: 0.35,
               fill: true,
               borderWidth: 2,
-              pointRadius: monthData.map((v, i) => (v === null ? 0 : i + 1 === todayDay ? 6 : 3)),
+              pointRadius: monthlyVolumeSeries.map((_, i) => (i + 1 === monthlyVolumeSeries.length ? 6 : 3)),
               pointHoverRadius: 7,
-              pointBackgroundColor: monthPointColors,
-              pointBorderColor: monthPointColors,
+              pointBackgroundColor: monthlyVolumeSeries.map((_, i) => (i + 1 === monthlyVolumeSeries.length ? '#f27405' : '#7dd3fc')),
+              pointBorderColor: monthlyVolumeSeries.map((_, i) => (i + 1 === monthlyVolumeSeries.length ? '#f27405' : '#7dd3fc')),
               spanGaps: false
             }
           ]
@@ -3182,30 +3230,30 @@ function renderAnalyticsView() {
               padding: 10,
               callbacks: {
                 title: (items) => `Dia ${items[0].label}`,
-
-                label: (item) => (item.raw !== null ? ` ${item.raw}% concluído` : ' Sem tarefas')
+                label: (item) =>
+                  item.raw !== null ? ` ${item.raw} tarefa(s) concluída(s)` : ' Sem tarefas'
               }
             }
           },
           scales: {
             y: {
               beginAtZero: true,
-              max: 100,
               grid: { color: chartDefaults.gridColor },
-              ticks: { color: chartDefaults.color, callback: (v) => v + '%', stepSize: 25 },
+              ticks: {
+                color: chartDefaults.color,
+                callback: (v) => `${v}`,
+                precision: 0
+              },
               border: { display: false }
             },
             x: {
               grid: { display: false },
               ticks: {
                 color: chartDefaults.color,
-
-                maxTicksLimit: 12,
-
+                maxTicksLimit: 10,
                 callback: function (val, index) {
-                  const d = index + 1;
-
-                  return d === 1 || d % 5 === 0 || d === daysInMonth ? d : '';
+                  const total = monthlyVolumeLabels.length;
+                  return index === 0 || index === total - 1 || index % 5 === 0 ? monthlyVolumeLabels[index] : '';
                 }
               },
               border: { display: false }
