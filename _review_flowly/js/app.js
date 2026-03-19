@@ -5307,8 +5307,12 @@ function buildFinanceAnalytics() {
   const recentTransactions = financeState.transactions.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 8);
   const incomeSources = {};
   incomes.forEach((item) => {
-    const key = item.category || item.description || 'Receita';
-    incomeSources[key] = (incomeSources[key] || 0) + Number(item.amount || 0);
+    const key = item.description || item.taskText || item.category || 'Receita';
+    if (!incomeSources[key]) {
+      incomeSources[key] = { amount: 0, count: 0, category: item.category || 'Receita' };
+    }
+    incomeSources[key].amount += Number(item.amount || 0);
+    incomeSources[key].count += 1;
   });
   const expenseBreakdown = {};
   expenses.forEach((item) => {
@@ -5316,9 +5320,9 @@ function buildFinanceAnalytics() {
     expenseBreakdown[key] = (expenseBreakdown[key] || 0) + Number(item.amount || 0);
   });
   const topIncomeSources = Object.entries(incomeSources)
-    .map(([label, amount]) => ({ label, amount }))
+    .map(([label, meta]) => ({ label, amount: meta.amount, count: meta.count, category: meta.category }))
     .sort((a, b) => b.amount - a.amount)
-    .slice(0, 6);
+    .slice(0, 8);
   const topExpenseCategories = Object.entries(expenseBreakdown)
     .map(([label, amount]) => ({ label, amount }))
     .sort((a, b) => b.amount - a.amount)
@@ -5598,7 +5602,7 @@ function renderFinanceView() {
           <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>De onde vem a grana</h3>
-              <p>Quem está colocando dinheiro pra dentro.</p>
+              <p>Entradas detalhadas pelo nome real de quem pagou ou da origem do valor.</p>
             </div>
           </div>
           <div class="finance-breakdown-list">
@@ -5609,7 +5613,7 @@ function renderFinanceView() {
                   <span>${analytics.formatBRL(item.amount)}</span>
                 </div>
                 <div class="finance-breakdown-bar"><span style="width:${Math.max(item.share, 6)}%"></span></div>
-                <small>${item.share}% das entradas</small>
+                <small>${item.share}% das entradas • ${item.count || 1} lançamento(s) • ${item.category || 'Receita'}</small>
               </div>
             `).join('') : '<div class="finance-empty">Sem entradas registradas ainda.</div>'}
           </div>
