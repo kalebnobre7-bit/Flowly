@@ -1,4 +1,4 @@
-﻿// --- Supabase & Storage Logic ---
+// --- Supabase & Storage Logic ---
 const SUPABASE_URL = window._FLOWLY_SUPABASE_URL || '';
 const SUPABASE_KEY = window._FLOWLY_SUPABASE_KEY || '';
 const { createClient } = window.supabase;
@@ -354,6 +354,9 @@ const weekData = {
   Domingo: {}
 };
 let habitsHistory = safeJSONParse(localStorage.getItem('habitsHistory'), {});
+let financeState = normalizeFinanceState(safeJSONParse(localStorage.getItem('flowlyFinanceState'), null));
+let financeSyncTimer = null;
+let financeChartsState = { cashflow: null, category: null };
 
 // Estado de conclusão de tarefas recorrentes por data
 let routineCompletions = safeJSONParse(localStorage.getItem('routineCompletions'), {});
@@ -712,6 +715,192 @@ function getPriorityColorName(priority) {
   }
 }
 
+function createFinanceId(prefix = 'fin') {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeFinanceState(state) {
+  const base = state && typeof state === 'object' ? state : {};
+  const settings = base.settings && typeof base.settings === 'object' ? base.settings : {};
+  const normalizeTransaction = (item) => {
+    if (!item || typeof item !== 'object') return null;
+    const amount = Number(item.amount || 0);
+    return {
+      id: item.id || createFinanceId('txn'),
+      type: item.type === 'expense' ? 'expense' : 'income',
+      amount: Number.isFinite(amount) ? amount : 0,
+      description: String(item.description || '').trim(),
+      category: String(item.category || (item.type === 'expense' ? 'Operacional' : 'Receita')).trim() || 'Geral',
+      date: /^\d{4}-\d{2}-\d{2}$/.test(String(item.date || '')) ? String(item.date) : localDateStr(),
+      source: String(item.source || 'manual').trim() || 'manual',
+      taskSupabaseId: item.taskSupabaseId ? String(item.taskSupabaseId) : null,
+      taskText: item.taskText ? String(item.taskText) : '',
+      notes: item.notes ? String(item.notes) : '',
+      createdAt: item.createdAt || new Date().toISOString(),
+      updatedAt: item.updatedAt || new Date().toISOString(),
+      metadata: item.metadata && typeof item.metadata === 'object' ? item.metadata : {}
+    };
+  };
+
+  const normalizeImport = (item) => {
+    if (!item || typeof item !== 'object') return null;
+    return {
+      id: item.id || createFinanceId('import'),
+      source: String(item.source || 'sexta').trim() || 'sexta',
+      status: String(item.status || 'processed').trim() || 'processed',
+      summary: String(item.summary || '').trim(),
+      importedAt: item.importedAt || new Date().toISOString(),
+      transactionCount: Number(item.transactionCount || 0) || 0,
+      metadata: item.metadata && typeof item.metadata === 'object' ? item.metadata : {}
+    };
+  };
+
+  return {
+    settings: {
+      monthlyGoal: Number(settings.monthlyGoal || 10000) || 10000,
+      defaultIncomeCategory: settings.defaultIncomeCategory || 'Receita',
+      defaultExpenseCategory: settings.defaultExpenseCategory || 'Operacional'
+    },
+    transactions: Array.isArray(base.transactions) ? base.transactions.map(normalizeTransaction).filter(Boolean) : [],
+    imports: Array.isArray(base.imports) ? base.imports.map(normalizeImport).filter(Boolean) : []
+  };
+}
+
+function persistFinanceStateLocal() {
+  financeState = normalizeFinanceState(financeState);
+  localStorage.setItem('flowlyFinanceState', JSON.stringify(financeState));
+}
+
+function scheduleFinanceSync(delay = 900) {
+  if (financeSyncTimer) clearTimeout(financeSyncTimer);
+  financeSyncTimer = setTimeout(() => {
+    financeSyncTimer = null;
+    syncFinanceStateToSupabase();
+  }, delay);
+}
+
+async function loadFinanceStateFromSupabase() {
+  const user = await ensureCurrentUserForSync();
+  if (!user) {
+    persistFinanceStateLocal();
+    return;
+  }
+
+  try {
+    const [settingsResult, transactionsResult, importsResult] = await Promise.all([
+      supabaseClient.from('finance_settings').select('*').eq('user_id', user.id).maybeSingle(),
+      supabaseClient.from('finance_transactions').select('*').eq('user_id', user.id).order('occurred_on', { ascending: false }).limit(300),
+      supabaseClient.from('finance_imports').select('*').eq('user_id', user.id).order('imported_at', { ascending: false }).limit(50)
+    ]);
+
+    const missingTable = [settingsResult, transactionsResult, importsResult].some((result) => {
+      const code = result && result.error ? String(result.error.code || '') : '';
+      return code === '42P01';
+    });
+    if (missingTable) {
+      console.warn('[Finance] Tabelas financeiras ainda nao existem no Supabase.');
+      persistFinanceStateLocal();
+      return;
+    }
+
+    if (settingsResult.error) throw settingsResult.error;
+    if (transactionsResult.error) throw transactionsResult.error;
+    if (importsResult.error) throw importsResult.error;
+
+    financeState = normalizeFinanceState({
+      settings: {
+        monthlyGoal: settingsResult.data?.monthly_goal || financeState.settings.monthlyGoal,
+        defaultIncomeCategory: settingsResult.data?.default_income_category || financeState.settings.defaultIncomeCategory,
+        defaultExpenseCategory: settingsResult.data?.default_expense_category || financeState.settings.defaultExpenseCategory
+      },
+      transactions: (transactionsResult.data || []).map((row) => ({
+        id: row.id,
+        type: row.entry_type,
+        amount: row.amount,
+        description: row.description,
+        category: row.category,
+        date: row.occurred_on,
+        source: row.source,
+        taskSupabaseId: row.task_supabase_id,
+        taskText: row.task_text,
+        notes: row.notes,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        metadata: row.metadata || {}
+      })),
+      imports: (importsResult.data || []).map((row) => ({
+        id: row.id,
+        source: row.source,
+        status: row.status,
+        summary: row.summary,
+        importedAt: row.imported_at,
+        transactionCount: row.transaction_count,
+        metadata: row.metadata || {}
+      }))
+    });
+    persistFinanceStateLocal();
+  } catch (error) {
+    console.error('[Finance] Falha ao carregar estado financeiro:', error);
+  }
+}
+
+async function syncFinanceStateToSupabase() {
+  const user = await ensureCurrentUserForSync();
+  if (!user) return;
+  financeState = normalizeFinanceState(financeState);
+
+  try {
+    const settingsPayload = {
+      user_id: user.id,
+      monthly_goal: Number(financeState.settings.monthlyGoal || 0),
+      default_income_category: financeState.settings.defaultIncomeCategory || 'Receita',
+      default_expense_category: financeState.settings.defaultExpenseCategory || 'Operacional',
+      updated_at: new Date().toISOString()
+    };
+    const settingsResult = await supabaseClient.from('finance_settings').upsert(settingsPayload, { onConflict: 'user_id' });
+    if (settingsResult.error && String(settingsResult.error.code || '') !== '42P01') throw settingsResult.error;
+
+    if (financeState.transactions.length > 0) {
+      const transactionsPayload = financeState.transactions.map((item) => ({
+        id: item.id,
+        user_id: user.id,
+        entry_type: item.type,
+        amount: Number(item.amount || 0),
+        description: item.description || '',
+        category: item.category || 'Geral',
+        occurred_on: item.date || localDateStr(),
+        source: item.source || 'manual',
+        task_supabase_id: item.taskSupabaseId || null,
+        task_text: item.taskText || null,
+        notes: item.notes || null,
+        metadata: item.metadata || {},
+        created_at: item.createdAt || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+      const txResult = await supabaseClient.from('finance_transactions').upsert(transactionsPayload, { onConflict: 'id' });
+      if (txResult.error && String(txResult.error.code || '') !== '42P01') throw txResult.error;
+    }
+
+    if (financeState.imports.length > 0) {
+      const importsPayload = financeState.imports.map((item) => ({
+        id: item.id,
+        user_id: user.id,
+        source: item.source || 'sexta',
+        status: item.status || 'processed',
+        summary: item.summary || '',
+        imported_at: item.importedAt || new Date().toISOString(),
+        transaction_count: Number(item.transactionCount || 0),
+        metadata: item.metadata || {},
+        updated_at: new Date().toISOString()
+      }));
+      const importsResult = await supabaseClient.from('finance_imports').upsert(importsPayload, { onConflict: 'id' });
+      if (importsResult.error && String(importsResult.error.code || '') !== '42P01') throw importsResult.error;
+    }
+  } catch (error) {
+    console.error('[Finance] Falha ao sincronizar estado financeiro:', error);
+  }
+}
+
 // ===== FUNÇÕES DE SALVAMENTO =====
 function saveToLocalStorage() {
   if (localStore) {
@@ -719,7 +908,8 @@ function saveToLocalStorage() {
       allTasksData,
       allRecurringTasks,
       routineCompletions,
-      habitsHistory
+      habitsHistory,
+      financeState
     });
     if (eventBus) eventBus.emit('storage:saved', { at: Date.now() });
     if (navigator.onLine) setSyncStatus('saving', 'Alteracoes locais salvas');
@@ -730,6 +920,7 @@ function saveToLocalStorage() {
   localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
   localStorage.setItem('routineCompletions', JSON.stringify(routineCompletions));
   localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
+  persistFinanceStateLocal();
   if (navigator.onLine) setSyncStatus('saving', 'Alteracoes locais salvas');
   else setSyncStatus('offline', 'Alteracoes salvas no dispositivo');
 }
@@ -1129,6 +1320,7 @@ async function migrateLocalDataToSupabase() {
 async function loadDataFromSupabase() {
   if (!tasksRepo) return;
   await tasksRepo.loadDataFromSupabase();
+  await loadFinanceStateFromSupabase();
 }
 async function syncDailyRoutineToSupabase() {
   // Deprecated or Legacy handled silently
@@ -4966,81 +5158,370 @@ function renderSextaView() {
   `;
 }
 
-function renderFinanceView() {
-  const view = document.getElementById('financeView');
-  if (!view) return;
-
-  const monthKey = localDateStr().slice(0, 7);
-  const allEntries = [];
-
+function getFinanceTaskCandidates() {
+  const items = [];
   Object.entries(allTasksData || {}).forEach(([dateStr, periods]) => {
     Object.entries(periods || {}).forEach(([period, tasks]) => {
       if (!Array.isArray(tasks)) return;
-      tasks.forEach((task) => {
+      tasks.forEach((task, index) => {
         if (!task || !task.text) return;
-        const matches = String(task.text).match(/R\$\s*([\d\.]+(?:,\d{1,2})?)/i);
-        const value = matches ? Number(matches[1].replace(/\./g, '').replace(',', '.')) : 0;
-        const type = String(task.type || '').toUpperCase();
-        const priority = String(task.priority || '').toLowerCase();
-        const isMoney = type === 'MONEY' || /dinheiro|cobrar|proposta|orcamento|orçamento|cliente|venda|pagamento|receber|follow/i.test(task.text) || value > 0 || priority === 'money';
-        if (!isMoney) return;
-        allEntries.push({
+        items.push({
+          id: task.supabaseId || `${dateStr}::${period}::${index}`,
           text: task.text,
           dateStr,
           period,
-          completed: task.completed === true,
-          value,
-          priority,
-          type
+          amountHint: extractCurrencyValueFromText(task.text),
+          completed: task.completed === true
         });
       });
     });
   });
 
-  const monthEntries = allEntries.filter((item) => item.dateStr.startsWith(monthKey));
-  const openEntries = monthEntries.filter((item) => !item.completed);
-  const doneEntries = monthEntries.filter((item) => item.completed);
-  const receivable = openEntries.reduce((sum, item) => sum + item.value, 0);
-  const received = doneEntries.reduce((sum, item) => sum + item.value, 0);
-  const goal = 10000;
-  const progress = goal > 0 ? Math.min(100, Math.round((received / goal) * 100)) : 0;
-  const topOpen = openEntries.slice().sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 4);
-  const topDone = doneEntries.slice().sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 4);
+  items.sort((a, b) => `${b.dateStr} ${b.period}`.localeCompare(`${a.dateStr} ${a.period}`));
+  return items.slice(0, 120);
+}
 
+function extractCurrencyValueFromText(text) {
+  const matches = String(text || '').match(/R\$\s*([\d\.]+(?:,\d{1,2})?)/i);
+  if (!matches) return 0;
+  return Number(matches[1].replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+function buildFinanceAnalytics() {
+  financeState = normalizeFinanceState(financeState);
+  const monthKey = localDateStr().slice(0, 7);
   const formatBRL = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+  const currentMonthTransactions = financeState.transactions.filter((item) => String(item.date || '').startsWith(monthKey));
+  const incomes = currentMonthTransactions.filter((item) => item.type === 'income');
+  const expenses = currentMonthTransactions.filter((item) => item.type === 'expense');
+  const incomeTotal = incomes.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const expenseTotal = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const balance = incomeTotal - expenseTotal;
+  const goal = Number(financeState.settings.monthlyGoal || 0);
+  const progress = goal > 0 ? Math.max(0, Math.min(100, Math.round((incomeTotal / goal) * 100))) : 0;
+
+  const taskDerivedOpen = [];
+  const taskDerivedDone = [];
+  Object.entries(allTasksData || {}).forEach(([dateStr, periods]) => {
+    Object.entries(periods || {}).forEach(([period, tasks]) => {
+      if (!Array.isArray(tasks)) return;
+      tasks.forEach((task, index) => {
+        if (!task || !task.text) return;
+        const amount = extractCurrencyValueFromText(task.text);
+        const type = String(task.type || '').toUpperCase();
+        const priority = String(task.priority || '').toLowerCase();
+        const looksFinancial = type === 'MONEY' || priority === 'money' || /dinheiro|cobrar|proposta|orcamento|orçamento|cliente|venda|pagamento|receber|pix|fee|briefing|cobran/i.test(task.text) || amount > 0;
+        if (!looksFinancial) return;
+        const row = {
+          taskId: task.supabaseId || `${dateStr}::${period}::${index}`,
+          text: task.text,
+          dateStr,
+          period,
+          amount,
+          completed: task.completed === true,
+          priority,
+          type
+        };
+        if (row.completed) taskDerivedDone.push(row);
+        else taskDerivedOpen.push(row);
+      });
+    });
+  });
+
+  const linkedTaskMap = new Map();
+  financeState.transactions.forEach((transaction) => {
+    if (transaction.type !== 'income' || (!transaction.taskSupabaseId && !transaction.taskText)) return;
+    const key = transaction.taskSupabaseId || transaction.taskText;
+    const prev = linkedTaskMap.get(key) || { key, taskSupabaseId: transaction.taskSupabaseId || null, taskText: transaction.taskText || 'Sem nome', total: 0, count: 0, lastDate: transaction.date };
+    prev.total += Number(transaction.amount || 0);
+    prev.count += 1;
+    prev.lastDate = transaction.date || prev.lastDate;
+    linkedTaskMap.set(key, prev);
+  });
+
+  const categoryTotals = {};
+  currentMonthTransactions.forEach((item) => {
+    const key = item.category || (item.type === 'expense' ? 'Operacional' : 'Receita');
+    categoryTotals[key] = (categoryTotals[key] || 0) + Number(item.amount || 0);
+  });
+
+  const dailyCashflowMap = {};
+  currentMonthTransactions.forEach((item) => {
+    const key = item.date || monthKey + '-01';
+    if (!dailyCashflowMap[key]) dailyCashflowMap[key] = { income: 0, expense: 0 };
+    if (item.type === 'expense') dailyCashflowMap[key].expense += Number(item.amount || 0);
+    else dailyCashflowMap[key].income += Number(item.amount || 0);
+  });
+
+  const chartLabels = Object.keys(dailyCashflowMap).sort();
+  const chartIncome = chartLabels.map((key) => dailyCashflowMap[key].income);
+  const chartExpense = chartLabels.map((key) => dailyCashflowMap[key].expense);
+  const recentTransactions = financeState.transactions.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 8);
+
+  return {
+    formatBRL,
+    goal,
+    progress,
+    incomeTotal,
+    expenseTotal,
+    balance,
+    gap: Math.max(0, goal - incomeTotal),
+    monthTransactionCount: currentMonthTransactions.length,
+    imports: financeState.imports.slice().sort((a, b) => String(b.importedAt || '').localeCompare(String(a.importedAt || ''))).slice(0, 6),
+    taskDerivedOpen: taskDerivedOpen.sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 6),
+    taskDerivedDone: taskDerivedDone.sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 6),
+    linkedTasks: Array.from(linkedTaskMap.values()).sort((a, b) => b.total - a.total).slice(0, 8),
+    recentTransactions,
+    categoryTotals,
+    chartLabels,
+    chartIncome,
+    chartExpense,
+    taskCandidates: getFinanceTaskCandidates()
+  };
+}
+
+function renderFinanceCharts(analytics) {
+  if (financeChartsState.cashflow) {
+    financeChartsState.cashflow.destroy();
+    financeChartsState.cashflow = null;
+  }
+  if (financeChartsState.category) {
+    financeChartsState.category.destroy();
+    financeChartsState.category = null;
+  }
+
+  const cashflowCanvas = document.getElementById('financeCashflowChart');
+  if (cashflowCanvas && analytics.chartLabels.length > 0) {
+    financeChartsState.cashflow = new Chart(cashflowCanvas, {
+      type: 'bar',
+      data: {
+        labels: analytics.chartLabels.map((label) => label.slice(8, 10) + '/' + label.slice(5, 7)),
+        datasets: [
+          {
+            label: 'Entradas',
+            data: analytics.chartIncome,
+            backgroundColor: 'rgba(72, 187, 120, 0.72)',
+            borderRadius: 12,
+            borderSkipped: false
+          },
+          {
+            label: 'Saídas',
+            data: analytics.chartExpense,
+            backgroundColor: 'rgba(242, 116, 5, 0.72)',
+            borderRadius: 12,
+            borderSkipped: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#d3d6df' } } },
+        scales: {
+          x: { ticks: { color: '#8b90a0' }, grid: { display: false } },
+          y: { ticks: { color: '#8b90a0', callback: (value) => 'R$ ' + value }, grid: { color: 'rgba(255,255,255,0.06)' } }
+        }
+      }
+    });
+  }
+
+  const categoryCanvas = document.getElementById('financeCategoryChart');
+  const categoryLabels = Object.keys(analytics.categoryTotals || {});
+  if (categoryCanvas && categoryLabels.length > 0) {
+    financeChartsState.category = new Chart(categoryCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: categoryLabels,
+        datasets: [{
+          data: categoryLabels.map((label) => analytics.categoryTotals[label]),
+          backgroundColor: ['#f27405', '#48bb78', '#5e5ce6', '#bf5af2', '#38bdf8', '#facc15', '#fb7185'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: '#d3d6df', boxWidth: 12 } } }
+      }
+    });
+  }
+}
+
+window.saveFinanceGoal = async function () {
+  const input = document.getElementById('financeMonthlyGoalInput');
+  const nextGoal = Number((input && input.value) || 0);
+  financeState.settings.monthlyGoal = nextGoal > 0 ? nextGoal : 10000;
+  persistFinanceStateLocal();
+  scheduleFinanceSync();
+  renderFinanceView();
+};
+
+window.saveFinanceTransactionFromForm = async function () {
+  const type = document.getElementById('financeEntryType')?.value || 'income';
+  const amount = Number(document.getElementById('financeEntryAmount')?.value || 0);
+  const description = (document.getElementById('financeEntryDescription')?.value || '').trim();
+  const category = (document.getElementById('financeEntryCategory')?.value || '').trim();
+  const date = document.getElementById('financeEntryDate')?.value || localDateStr();
+  const taskRef = document.getElementById('financeEntryTask')?.value || '';
+  const taskCandidates = getFinanceTaskCandidates();
+  const selectedTask = taskCandidates.find((item) => item.id === taskRef) || null;
+
+  if (!description || !Number.isFinite(amount) || amount <= 0) {
+    alert('Preenche descrição e valor certinho.');
+    return;
+  }
+
+  financeState.transactions.unshift({
+    id: createFinanceId('txn'),
+    type,
+    amount,
+    description,
+    category: category || (type === 'expense' ? financeState.settings.defaultExpenseCategory : financeState.settings.defaultIncomeCategory),
+    date,
+    source: 'manual',
+    taskSupabaseId: selectedTask ? selectedTask.id : null,
+    taskText: selectedTask ? selectedTask.text : '',
+    notes: '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    metadata: selectedTask ? { linkedFrom: 'finance-form', taskDate: selectedTask.dateStr, taskPeriod: selectedTask.period } : {}
+  });
+
+  persistFinanceStateLocal();
+  scheduleFinanceSync();
+  renderFinanceView();
+};
+
+function renderFinanceView() {
+  const view = document.getElementById('financeView');
+  if (!view) return;
+
+  const analytics = buildFinanceAnalytics();
+  const sourceHint = analytics.imports[0]
+    ? `Último import da Sexta: ${new Date(analytics.imports[0].importedAt).toLocaleString('pt-BR')}`
+    : 'Quando você mandar print do extrato pra Sexta, a ideia é cair aqui já estruturado.';
 
   view.innerHTML = `
-    <div class="flowly-shell flowly-shell--narrow finance-shell">
-      <div class="finance-hero">
+    <div class="flowly-shell flowly-shell--narrow finance-shell finance-shell--rebuilt">
+      <div class="finance-hero finance-hero--rebuilt">
         <div class="finance-hero-main">
-          <div class="finance-kicker">Finance</div>
-          <h2>Caixa e oportunidades</h2>
-          <p>Leitura financeira operacional baseada nas tarefas que carregam dinheiro, cobrança, proposta ou valor explícito.</p>
+          <div class="finance-kicker">Finance + Sexta</div>
+          <h2>Caixa real, não só intenção</h2>
+          <p>Agora a área de finanças lê transações, saída, entrada, vínculo com tarefas e importações que a Sexta trouxer pelo extrato.</p>
+          <div class="finance-inline-pills">
+            <span class="sexta-pill">${analytics.monthTransactionCount} movimentações no mês</span>
+            <span class="sexta-pill sexta-pill--soft">${sourceHint}</span>
+          </div>
         </div>
-        <div class="finance-goal-card">
-          <span class="finance-label">Meta do mês</span>
-          <strong>${formatBRL(goal)}</strong>
-          <span>${progress}% da meta já capturada</span>
-          <div class="finance-progress"><span style="width:${progress}%"></span></div>
+        <div class="finance-goal-card finance-goal-card--rebuilt">
+          <span class="finance-label">Meta mensal</span>
+          <div class="finance-goal-row">
+            <strong>${analytics.formatBRL(analytics.goal)}</strong>
+            <div class="finance-goal-inline">
+              <input id="financeMonthlyGoalInput" class="finance-input finance-input--sm" type="number" min="0" step="100" value="${analytics.goal}">
+              <button class="btn-secondary" style="width:auto;padding:10px 14px;" onclick="saveFinanceGoal()">Salvar meta</button>
+            </div>
+          </div>
+          <span>${analytics.progress}% da meta capturada</span>
+          <div class="finance-progress"><span style="width:${analytics.progress}%"></span></div>
         </div>
       </div>
 
-      <div class="finance-kpi-grid">
-        <div class="finance-kpi-card">
-          <span class="finance-label">A receber</span>
-          <strong>${formatBRL(receivable)}</strong>
-          <p>${openEntries.length} oportunidade(s) em aberto</p>
+      <div class="finance-kpi-grid finance-kpi-grid--rebuilt">
+        <div class="finance-kpi-card finance-kpi-card--accent-soft">
+          <span class="finance-label">Entradas</span>
+          <strong>${analytics.formatBRL(analytics.incomeTotal)}</strong>
+          <p>Quanto realmente entrou esse mês.</p>
         </div>
-        <div class="finance-kpi-card finance-kpi-card--accent">
-          <span class="finance-label">Recebido</span>
-          <strong>${formatBRL(received)}</strong>
-          <p>${doneEntries.length} item(ns) concluídos com valor</p>
+        <div class="finance-kpi-card">
+          <span class="finance-label">Saídas</span>
+          <strong>${analytics.formatBRL(analytics.expenseTotal)}</strong>
+          <p>Custos e vazamentos operacionais.</p>
+        </div>
+        <div class="finance-kpi-card">
+          <span class="finance-label">Saldo</span>
+          <strong>${analytics.formatBRL(analytics.balance)}</strong>
+          <p>${analytics.balance >= 0 ? 'Mês positivo até aqui.' : 'Saída maior que entrada. Hora de ajustar.'}</p>
         </div>
         <div class="finance-kpi-card">
           <span class="finance-label">Gap da meta</span>
-          <strong>${formatBRL(Math.max(0, goal - received))}</strong>
-          <p>${Math.max(0, 100 - progress)}% ainda falta capturar</p>
+          <strong>${analytics.formatBRL(analytics.gap)}</strong>
+          <p>Quanto ainda falta capturar.</p>
         </div>
+      </div>
+
+      <div class="finance-grid finance-grid--charts">
+        <section class="finance-card finance-card--chart">
+          <div class="finance-card-head">
+            <div>
+              <h3>Fluxo do mês</h3>
+              <p>Entradas vs saídas por dia.</p>
+            </div>
+          </div>
+          <div class="finance-chart-wrap">
+            ${analytics.chartLabels.length > 0 ? '<canvas id="financeCashflowChart"></canvas>' : '<div class="finance-empty">Ainda não há transações suficientes para desenhar o gráfico.</div>'}
+          </div>
+        </section>
+        <section class="finance-card finance-card--chart">
+          <div class="finance-card-head">
+            <div>
+              <h3>Categorias</h3>
+              <p>Pra onde a grana está indo e de onde ela vem.</p>
+            </div>
+          </div>
+          <div class="finance-chart-wrap">
+            ${Object.keys(analytics.categoryTotals).length > 0 ? '<canvas id="financeCategoryChart"></canvas>' : '<div class="finance-empty">Sem categorias registradas ainda.</div>'}
+          </div>
+        </section>
+      </div>
+
+      <div class="finance-grid finance-grid--ops">
+        <section class="finance-card finance-card--form">
+          <div class="finance-card-head">
+            <div>
+              <h3>Lançar movimentação</h3>
+              <p>Entrada, saída e vínculo direto com a tarefa que trouxe dinheiro.</p>
+            </div>
+          </div>
+          <div class="finance-form-grid">
+            <select id="financeEntryType" class="finance-input">
+              <option value="income">Entrada</option>
+              <option value="expense">Saída</option>
+            </select>
+            <input id="financeEntryAmount" class="finance-input" type="number" min="0" step="0.01" placeholder="Valor">
+            <input id="financeEntryDate" class="finance-input" type="date" value="${localDateStr()}">
+            <input id="financeEntryCategory" class="finance-input" type="text" placeholder="Categoria (ex: Cliente, Ferramenta, Tráfego)">
+            <input id="financeEntryDescription" class="finance-input finance-input--full" type="text" placeholder="Descrição da movimentação">
+            <select id="financeEntryTask" class="finance-input finance-input--full">
+              <option value="">Vincular a uma tarefa (opcional)</option>
+              ${analytics.taskCandidates.map((task) => `<option value="${task.id}">${task.dateStr} · ${task.text}</option>`).join('')}
+            </select>
+          </div>
+          <div class="finance-form-actions">
+            <button class="btn-primary" style="width:auto;padding:12px 18px;" onclick="saveFinanceTransactionFromForm()">Salvar movimentação</button>
+            <span class="finance-form-hint">Se a entrada veio de uma tarefa, vincula aqui. Isso vai criando tua inteligência de geração de caixa.</span>
+          </div>
+        </section>
+
+        <section class="finance-card">
+          <div class="finance-card-head">
+            <div>
+              <h3>Sexta + extrato</h3>
+              <p>Base pronta para guardar imports vindos dos prints que você mandar no chat.</p>
+            </div>
+          </div>
+          <div class="finance-list">
+            ${analytics.imports.length > 0 ? analytics.imports.map((item) => `
+              <div class="finance-list-item finance-list-item--stacked">
+                <div>
+                  <strong>${item.summary || 'Importação do extrato'}</strong>
+                  <p>${new Date(item.importedAt).toLocaleString('pt-BR')} • ${item.status}</p>
+                </div>
+                <span>${item.transactionCount} item(ns)</span>
+              </div>
+            `).join('') : '<div class="finance-empty">Nenhum extrato importado ainda. A estrutura já está preparada para a Sexta registrar isso no banco.</div>'}
+          </div>
+        </section>
       </div>
 
       <div class="finance-grid">
@@ -5048,37 +5529,79 @@ function renderFinanceView() {
           <div class="finance-card-head">
             <div>
               <h3>Entradas em aberto</h3>
-              <p>Prioriza o que pode virar caixa mais rápido.</p>
+              <p>Tarefas com potencial financeiro que ainda não viraram caixa.</p>
             </div>
           </div>
           <div class="finance-list">
-            ${topOpen.length > 0 ? topOpen.map((item) => `
+            ${analytics.taskDerivedOpen.length > 0 ? analytics.taskDerivedOpen.map((item) => `
               <div class="finance-list-item">
                 <div>
                   <strong>${item.text}</strong>
                   <p>${item.dateStr} • ${item.priority || 'sem prioridade'}</p>
                 </div>
-                <span>${item.value > 0 ? formatBRL(item.value) : 'sem valor'}</span>
+                <span>${item.amount > 0 ? analytics.formatBRL(item.amount) : 'sem valor'}</span>
               </div>
-            `).join('') : '<div class="finance-empty">Nenhuma entrada em aberto detectada ainda.</div>'}
+            `).join('') : '<div class="finance-empty">Nenhuma oportunidade em aberto detectada ainda.</div>'}
           </div>
         </section>
 
         <section class="finance-card">
           <div class="finance-card-head">
             <div>
-              <h3>Já capturado</h3>
-              <p>O que já foi concluído e pode contar como caixa fechado.</p>
+              <h3>Tarefas que já trouxeram dinheiro</h3>
+              <p>Memória crescente do que de fato gera receita.</p>
             </div>
           </div>
           <div class="finance-list">
-            ${topDone.length > 0 ? topDone.map((item) => `
+            ${analytics.linkedTasks.length > 0 ? analytics.linkedTasks.map((item) => `
+              <div class="finance-list-item finance-list-item--done finance-list-item--stacked">
+                <div>
+                  <strong>${item.taskText}</strong>
+                  <p>${item.count} lançamento(s) vinculados • último em ${item.lastDate}</p>
+                </div>
+                <span>${analytics.formatBRL(item.total)}</span>
+              </div>
+            `).join('') : '<div class="finance-empty">Ainda não existem entradas vinculadas a tarefas. Usa o campo de vínculo ao lançar receita e isso começa a ficar inteligente.</div>'}
+          </div>
+        </section>
+      </div>
+
+      <div class="finance-grid">
+        <section class="finance-card">
+          <div class="finance-card-head">
+            <div>
+              <h3>Movimentações recentes</h3>
+              <p>Leitura rápida do que entrou e saiu.</p>
+            </div>
+          </div>
+          <div class="finance-list">
+            ${analytics.recentTransactions.length > 0 ? analytics.recentTransactions.map((item) => `
+              <div class="finance-list-item ${item.type === 'income' ? 'finance-list-item--done' : ''}">
+                <div>
+                  <strong>${item.description}</strong>
+                  <p>${item.date} • ${item.category}${item.taskText ? ` • ${item.taskText}` : ''}</p>
+                </div>
+                <span>${item.type === 'expense' ? '-' : '+'}${analytics.formatBRL(item.amount)}</span>
+              </div>
+            `).join('') : '<div class="finance-empty">Ainda não há movimentações registradas nesse painel.</div>'}
+          </div>
+        </section>
+
+        <section class="finance-card">
+          <div class="finance-card-head">
+            <div>
+              <h3>Já capturado nas tarefas</h3>
+              <p>Tarefas financeiras concluídas no mês.</p>
+            </div>
+          </div>
+          <div class="finance-list">
+            ${analytics.taskDerivedDone.length > 0 ? analytics.taskDerivedDone.map((item) => `
               <div class="finance-list-item finance-list-item--done">
                 <div>
                   <strong>${item.text}</strong>
                   <p>${item.dateStr}</p>
                 </div>
-                <span>${item.value > 0 ? formatBRL(item.value) : 'sem valor'}</span>
+                <span>${item.amount > 0 ? analytics.formatBRL(item.amount) : 'sem valor'}</span>
               </div>
             `).join('') : '<div class="finance-empty">Nada concluído com valor ainda neste mês.</div>'}
           </div>
@@ -5086,6 +5609,8 @@ function renderFinanceView() {
       </div>
     </div>
   `;
+
+  renderFinanceCharts(analytics);
 }
 
 function renderSettingsView() {

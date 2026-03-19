@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   function safeJSONParse(str, fallback) {
     try {
       return str ? JSON.parse(str) : fallback;
@@ -13,6 +13,7 @@
       localStorage.setItem('allRecurringTasks', JSON.stringify(state.allRecurringTasks));
       localStorage.setItem('routineCompletions', JSON.stringify(state.routineCompletions));
       localStorage.setItem('habitsHistory', JSON.stringify(state.habitsHistory));
+      localStorage.setItem('flowlyFinanceState', JSON.stringify(state.financeState || null));
       localStorage.setItem('dailyRoutine', JSON.stringify([]));
       localStorage.setItem('weeklyRecurringTasks', JSON.stringify([]));
     }
