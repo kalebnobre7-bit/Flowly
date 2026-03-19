@@ -149,6 +149,7 @@ function setView(view) {
     'routineView',
     'analyticsView',
     'financeView',
+    'projectsView',
     'sextaView',
     'settingsView'
   ];
@@ -165,6 +166,7 @@ function setView(view) {
     today: 'btnToday',
     analytics: 'btnAnalytics',
     finance: 'btnFinance',
+    projects: 'btnProjects',
     sexta: 'btnSexta',
     settings: 'btnSettings'
   };
@@ -176,6 +178,7 @@ function setView(view) {
     week: 'btnMobileWeek',
     analytics: 'btnMobileAnalytics',
     finance: 'btnMobileFinance',
+    projects: 'btnMobileProjects',
     today: 'btnMobileToday',
     sexta: 'btnMobileSexta',
     settings: 'btnMobileSettings'
@@ -5953,6 +5956,180 @@ function renderFinanceView() {
   renderFinanceCharts(analytics);
 }
 
+
+function suggestProjectForTask(task) {
+  const options = getProjectOptions();
+  if (!task || !task.text || options.length === 0) return null;
+  const text = task.text.toLowerCase();
+  return options.find((project) => {
+    const name = String(project.name || '').toLowerCase();
+    const client = String(project.clientName || '').toLowerCase();
+    return (name && text.includes(name)) || (client && text.includes(client));
+  }) || null;
+}
+
+function suggestProjectForTransaction(transaction) {
+  const options = getProjectOptions();
+  if (!transaction || options.length === 0) return null;
+  const text = `${transaction.description || ''} ${transaction.taskText || ''} ${transaction.projectName || ''}`.toLowerCase();
+  return options.find((project) => {
+    const name = String(project.name || '').toLowerCase();
+    const client = String(project.clientName || '').toLowerCase();
+    return (name && text.includes(name)) || (client && text.includes(client));
+  }) || null;
+}
+
+function buildProjectsAnalytics() {
+  const projects = getProjectOptions();
+  const projectMap = new Map(projects.map((project) => [project.id, { ...project, income: 0, expense: 0, tasks: 0, completedTasks: 0, linkedTransactions: [] }]));
+
+  Object.entries(allTasksData || {}).forEach(([dateStr, periods]) => {
+    Object.entries(periods || {}).forEach(([period, tasks]) => {
+      if (!Array.isArray(tasks)) return;
+      tasks.forEach((task) => {
+        const suggested = !task.projectId ? suggestProjectForTask(task) : null;
+        const key = task.projectId || (suggested ? suggested.id : null);
+        if (!key || !projectMap.has(key)) return;
+        const bucket = projectMap.get(key);
+        bucket.tasks += 1;
+        if (task.completed) bucket.completedTasks += 1;
+      });
+    });
+  });
+
+  financeState.transactions.forEach((transaction) => {
+    const suggested = !transaction.projectId ? suggestProjectForTransaction(transaction) : null;
+    const key = transaction.projectId || (suggested ? suggested.id : null);
+    if (!key || !projectMap.has(key)) return;
+    const bucket = projectMap.get(key);
+    if (transaction.type === 'income') bucket.income += Number(transaction.amount || 0);
+    else bucket.expense += Number(transaction.amount || 0);
+    bucket.linkedTransactions.push(transaction);
+  });
+
+  const enriched = Array.from(projectMap.values()).map((project) => ({
+    ...project,
+    profit: project.income - project.expense,
+    completionRate: project.tasks > 0 ? Math.round((project.completedTasks / project.tasks) * 100) : 0
+  })).sort((a,b)=> b.income - a.income || b.tasks - a.tasks);
+
+  const suggestionTasks = [];
+  Object.entries(allTasksData || {}).forEach(([dateStr, periods]) => {
+    Object.entries(periods || {}).forEach(([period, tasks]) => {
+      if (!Array.isArray(tasks)) return;
+      tasks.forEach((task, index) => {
+        if (task.projectId || !task.text) return;
+        const suggestion = suggestProjectForTask(task);
+        if (suggestion) suggestionTasks.push({ dateStr, period, index, text: task.text, suggestion });
+      });
+    });
+  });
+
+  const suggestionTransactions = financeState.transactions
+    .filter((transaction) => !transaction.projectId)
+    .map((transaction) => ({ transaction, suggestion: suggestProjectForTransaction(transaction) }))
+    .filter((item) => item.suggestion)
+    .slice(0, 8);
+
+  return { projects: enriched, suggestionTasks: suggestionTasks.slice(0, 10), suggestionTransactions };
+}
+
+window.applySuggestedTaskProject = function (dateStr, period, index, projectId) {
+  const task = allTasksData?.[dateStr]?.[period]?.[index];
+  if (!task) return;
+  const project = getProjectOptions().find((item) => item.id === projectId);
+  if (!project) return;
+  task.projectId = project.id;
+  task.projectName = project.name;
+  saveToLocalStorage();
+  syncTaskToSupabase(dateStr, period, task);
+  if (currentView === 'projects') renderProjectsView();
+};
+
+window.applySuggestedTransactionProject = function (transactionId, projectId) {
+  const transaction = financeState.transactions.find((item) => item.id === transactionId);
+  const project = getProjectOptions().find((item) => item.id === projectId);
+  if (!transaction || !project) return;
+  transaction.projectId = project.id;
+  transaction.projectName = project.name;
+  persistFinanceStateLocal();
+  scheduleFinanceSync();
+  if (currentView === 'projects') renderProjectsView();
+  if (currentView === 'finance') renderFinanceView();
+};
+
+function renderProjectsView() {
+  const view = document.getElementById('projectsView');
+  if (!view) return;
+  const analytics = buildProjectsAnalytics();
+  const formatBRL = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+  view.innerHTML = `
+    <div class="flowly-shell flowly-shell--wide projects-shell">
+      <section class="projects-hero">
+        <div class="projects-hero-copy">
+          <div class="finance-kicker">Projects intelligence</div>
+          <h2>Projetos ligados à operação e à receita</h2>
+          <p>Agora o Flowly começa a mostrar qual projeto consome tarefa, qual gera caixa e onde você ainda está deixando trabalho sem contexto.</p>
+        </div>
+        <div class="projects-hero-stats">
+          <div class="projects-stat-card"><span>Projetos</span><strong>${analytics.projects.length}</strong><small>${analytics.projects.filter((p) => p.status === 'active').length} ativos</small></div>
+          <div class="projects-stat-card"><span>Receita mapeada</span><strong>${formatBRL(analytics.projects.reduce((s,p)=>s+p.income,0))}</strong><small>entradas já conectadas</small></div>
+          <div class="projects-stat-card"><span>Tarefas ligadas</span><strong>${analytics.projects.reduce((s,p)=>s+p.tasks,0)}</strong><small>trabalho com contexto</small></div>
+        </div>
+      </section>
+
+      <section class="projects-grid">
+        <section class="finance-card">
+          <div class="finance-card-head finance-card-head--dense"><div><h3>Projetos ativos</h3><p>Receita, esforço e progresso por projeto.</p></div></div>
+          <div class="projects-list">
+            ${analytics.projects.length > 0 ? analytics.projects.map((project) => `
+              <div class="projects-row">
+                <div>
+                  <strong>${project.name}</strong>
+                  <p>${project.clientName || 'sem cliente'} • ${project.tasks} tarefa(s) • ${project.completionRate}% concluído</p>
+                </div>
+                <div class="projects-row-metrics">
+                  <span class="projects-metric">${formatBRL(project.income)}</span>
+                  <small>${project.income > 0 ? `lucro ${formatBRL(project.profit)}` : 'sem receita ligada'}</small>
+                </div>
+              </div>
+            `).join('') : '<div class="finance-empty">Nenhum projeto criado ainda.</div>'}
+          </div>
+        </section>
+
+        <section class="finance-card">
+          <div class="finance-card-head finance-card-head--dense"><div><h3>Sugestões automáticas</h3><p>Tarefas e receitas que o sistema acha que pertencem a um projeto.</p></div></div>
+          <div class="projects-suggestions">
+            <div>
+              <div class="projects-suggest-title">Tarefas repetidas / com nome reconhecido</div>
+              ${analytics.suggestionTasks.length > 0 ? analytics.suggestionTasks.map((item) => `
+                <div class="projects-suggest-item">
+                  <div>
+                    <strong>${item.text}</strong>
+                    <p>${item.dateStr} • sugerido: ${item.suggestion.name}</p>
+                  </div>
+                  <button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="applySuggestedTaskProject('${item.dateStr}','${item.period}',${item.index},'${item.suggestion.id}')">Aplicar</button>
+                </div>
+              `).join('') : '<div class="finance-empty">Nenhuma tarefa pendente de sugestão agora.</div>'}
+            </div>
+            <div>
+              <div class="projects-suggest-title">Receitas com projeto provável</div>
+              ${analytics.suggestionTransactions.length > 0 ? analytics.suggestionTransactions.map((item) => `
+                <div class="projects-suggest-item">
+                  <div>
+                    <strong>${item.transaction.description}</strong>
+                    <p>${formatBRL(item.transaction.amount)} • sugerido: ${item.suggestion.name}</p>
+                  </div>
+                  <button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="applySuggestedTransactionProject('${item.transaction.id}','${item.suggestion.id}')">Aplicar</button>
+                </div>
+              `).join('') : '<div class="finance-empty">Nenhuma receita pendente de sugestão agora.</div>'}
+            </div>
+          </div>
+        </section>
+      </section>
+    </div>`;
+}
+
 function renderSettingsView() {
   const view = document.getElementById('settingsView');
   if (!view) return;
@@ -6823,6 +7000,23 @@ function getWeeklyRecurringForDay(dateStr, dayOfWeek) {
 }
 
 function renderView() {
+  if (currentView === 'projects') {
+    document.getElementById('monthView').classList.add('hidden');
+    document.getElementById('weekGrid').classList.add('hidden');
+    document.getElementById('weekGrid').classList.remove('today-container');
+    document.getElementById('routineView').classList.add('hidden');
+    document.getElementById('analyticsView').classList.add('hidden');
+    document.getElementById('financeView').classList.add('hidden');
+    document.getElementById('projectsView').classList.add('hidden');
+    document.getElementById('settingsView').classList.add('hidden');
+    document.getElementById('sextaView').classList.add('hidden');
+    document.getElementById('weekNav').classList.add('hidden');
+    document.getElementById('projectsView').classList.remove('hidden');
+    renderProjectsView();
+    setTimeout(() => lucide.createIcons(), 0);
+    return;
+  }
+
   if (currentView === 'finance') {
     document.getElementById('monthView').classList.add('hidden');
     document.getElementById('weekGrid').classList.add('hidden');
@@ -6858,6 +7052,7 @@ function renderView() {
       renderMonth,
       renderAnalyticsView,
       renderFinanceView,
+      renderProjectsView,
       renderSextaView,
       renderSettingsView,
       renderWeek,
@@ -6874,6 +7069,7 @@ function renderView() {
     document.getElementById('routineView').classList.add('hidden');
     document.getElementById('analyticsView').classList.add('hidden');
     document.getElementById('financeView').classList.add('hidden');
+    document.getElementById('projectsView').classList.add('hidden');
     document.getElementById('sextaView').classList.add('hidden');
     document.getElementById('settingsView').classList.add('hidden');
     document.getElementById('weekNav').classList.add('hidden');
@@ -6888,6 +7084,9 @@ function renderView() {
     } else if (currentView === 'finance') {
       document.getElementById('financeView').classList.remove('hidden');
       renderFinanceView();
+    } else if (currentView === 'projects') {
+      document.getElementById('projectsView').classList.remove('hidden');
+      renderProjectsView();
     } else if (currentView === 'sexta') {
       document.getElementById('sextaView').classList.remove('hidden');
       renderSextaView();
