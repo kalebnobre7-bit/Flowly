@@ -5257,6 +5257,29 @@ function buildFinanceAnalytics() {
   const chartIncome = chartLabels.map((key) => dailyCashflowMap[key].income);
   const chartExpense = chartLabels.map((key) => dailyCashflowMap[key].expense);
   const recentTransactions = financeState.transactions.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 8);
+  const incomeSources = {};
+  incomes.forEach((item) => {
+    const key = item.category || item.description || 'Receita';
+    incomeSources[key] = (incomeSources[key] || 0) + Number(item.amount || 0);
+  });
+  const expenseBreakdown = {};
+  expenses.forEach((item) => {
+    const key = item.category || item.description || 'Saída';
+    expenseBreakdown[key] = (expenseBreakdown[key] || 0) + Number(item.amount || 0);
+  });
+  const topIncomeSources = Object.entries(incomeSources)
+    .map(([label, amount]) => ({ label, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 6);
+  const topExpenseCategories = Object.entries(expenseBreakdown)
+    .map(([label, amount]) => ({ label, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 8);
+  const avgTicketIn = incomes.length ? incomeTotal / incomes.length : 0;
+  const avgTicketOut = expenses.length ? expenseTotal / expenses.length : 0;
+  const analysisTone = balance >= 0
+    ? 'Entradas segurando o mês. Agora é identificar os motores que mais repetem.'
+    : 'As saídas estão acima das entradas. O foco é reduzir vazamentos e mapear o que realmente traz caixa.';
 
   return {
     formatBRL,
@@ -5267,12 +5290,19 @@ function buildFinanceAnalytics() {
     balance,
     gap: Math.max(0, goal - incomeTotal),
     monthTransactionCount: currentMonthTransactions.length,
+    incomeCount: incomes.length,
+    expenseCount: expenses.length,
+    avgTicketIn,
+    avgTicketOut,
+    analysisTone,
     imports: financeState.imports.slice().sort((a, b) => String(b.importedAt || '').localeCompare(String(a.importedAt || ''))).slice(0, 6),
     taskDerivedOpen: taskDerivedOpen.sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 6),
     taskDerivedDone: taskDerivedDone.sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 6),
     linkedTasks: Array.from(linkedTaskMap.values()).sort((a, b) => b.total - a.total).slice(0, 8),
     recentTransactions,
     categoryTotals,
+    topIncomeSources,
+    topExpenseCategories,
     chartLabels,
     chartIncome,
     chartExpense,
@@ -5290,36 +5320,53 @@ function renderFinanceCharts(analytics) {
     financeChartsState.category = null;
   }
 
+  const sharedGrid = { color: 'rgba(255,255,255,0.06)', drawBorder: false };
+  const sharedTicks = { color: '#8b90a0', font: { size: 11 } };
   const cashflowCanvas = document.getElementById('financeCashflowChart');
   if (cashflowCanvas && analytics.chartLabels.length > 0) {
     financeChartsState.cashflow = new Chart(cashflowCanvas, {
-      type: 'bar',
+      type: 'line',
       data: {
         labels: analytics.chartLabels.map((label) => label.slice(8, 10) + '/' + label.slice(5, 7)),
         datasets: [
           {
             label: 'Entradas',
             data: analytics.chartIncome,
-            backgroundColor: 'rgba(72, 187, 120, 0.72)',
-            borderRadius: 12,
-            borderSkipped: false
+            borderColor: '#4ade80',
+            backgroundColor: 'rgba(74, 222, 128, 0.18)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointHoverRadius: 5
           },
           {
             label: 'Saídas',
             data: analytics.chartExpense,
-            backgroundColor: 'rgba(242, 116, 5, 0.72)',
-            borderRadius: 12,
-            borderSkipped: false
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249, 115, 22, 0.14)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointHoverRadius: 5
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#d3d6df' } } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#d3d6df', usePointStyle: true, boxWidth: 8 } },
+          tooltip: {
+            backgroundColor: 'rgba(10,10,14,0.96)',
+            borderColor: 'rgba(255,255,255,0.08)',
+            borderWidth: 1,
+            callbacks: { label: (ctx) => `${ctx.dataset.label}: ${analytics.formatBRL(ctx.raw)}` }
+          }
+        },
         scales: {
-          x: { ticks: { color: '#8b90a0' }, grid: { display: false } },
-          y: { ticks: { color: '#8b90a0', callback: (value) => 'R$ ' + value }, grid: { color: 'rgba(255,255,255,0.06)' } }
+          x: { ticks: sharedTicks, grid: { display: false } },
+          y: { ticks: { ...sharedTicks, callback: (value) => analytics.formatBRL(value) }, grid: sharedGrid }
         }
       }
     });
@@ -5334,14 +5381,19 @@ function renderFinanceCharts(analytics) {
         labels: categoryLabels,
         datasets: [{
           data: categoryLabels.map((label) => analytics.categoryTotals[label]),
-          backgroundColor: ['#f27405', '#48bb78', '#5e5ce6', '#bf5af2', '#38bdf8', '#facc15', '#fb7185'],
-          borderWidth: 0
+          backgroundColor: ['#4ade80', '#22c55e', '#60a5fa', '#8b5cf6', '#f97316', '#facc15', '#38bdf8', '#fb7185', '#c084fc', '#a78bfa'],
+          borderWidth: 0,
+          hoverOffset: 10
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { color: '#d3d6df', boxWidth: 12 } } }
+        cutout: '62%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${analytics.formatBRL(ctx.raw)}` } }
+        }
       }
     });
   }
@@ -5399,85 +5451,178 @@ function renderFinanceView() {
   const analytics = buildFinanceAnalytics();
   const sourceHint = analytics.imports[0]
     ? `Último import da Sexta: ${new Date(analytics.imports[0].importedAt).toLocaleString('pt-BR')}`
-    : 'Quando você mandar print do extrato pra Sexta, a ideia é cair aqui já estruturado.';
+    : 'Quando você mandar print do extrato pra Sexta, isso vai cair aqui organizado.';
+
+  const expenseShare = analytics.expenseTotal > 0
+    ? analytics.topExpenseCategories.map((item) => ({ ...item, share: Math.round((item.amount / analytics.expenseTotal) * 100) }))
+    : [];
+  const incomeShare = analytics.incomeTotal > 0
+    ? analytics.topIncomeSources.map((item) => ({ ...item, share: Math.round((item.amount / analytics.incomeTotal) * 100) }))
+    : [];
 
   view.innerHTML = `
-    <div class="flowly-shell flowly-shell--narrow finance-shell finance-shell--rebuilt">
-      <div class="finance-hero finance-hero--rebuilt">
-        <div class="finance-hero-main">
-          <div class="finance-kicker">Finance + Sexta</div>
-          <h2>Caixa real, não só intenção</h2>
-          <p>Agora a área de finanças lê transações, saída, entrada, vínculo com tarefas e importações que a Sexta trouxer pelo extrato.</p>
+    <div class="flowly-shell flowly-shell--narrow finance-shell finance-shell--rebuilt finance-shell--premium">
+      <section class="finance-dashboard-hero">
+        <div class="finance-hero-copy">
+          <div class="finance-kicker">Finance intelligence</div>
+          <h2>Entenda de onde vem e pra onde vai tua grana</h2>
+          <p>${analytics.analysisTone}</p>
           <div class="finance-inline-pills">
-            <span class="sexta-pill">${analytics.monthTransactionCount} movimentações no mês</span>
+            <span class="sexta-pill">${analytics.monthTransactionCount} movimentações</span>
             <span class="sexta-pill sexta-pill--soft">${sourceHint}</span>
           </div>
         </div>
-        <div class="finance-goal-card finance-goal-card--rebuilt">
-          <span class="finance-label">Meta mensal</span>
-          <div class="finance-goal-row">
-            <strong>${analytics.formatBRL(analytics.goal)}</strong>
-            <div class="finance-goal-inline">
-              <input id="financeMonthlyGoalInput" class="finance-input finance-input--sm" type="number" min="0" step="100" value="${analytics.goal}">
-              <button class="btn-secondary" style="width:auto;padding:10px 14px;" onclick="saveFinanceGoal()">Salvar meta</button>
-            </div>
+        <div class="finance-kpi-strip">
+          <div class="finance-kpi-spot finance-kpi-spot--income">
+            <span>Entradas</span>
+            <strong>${analytics.formatBRL(analytics.incomeTotal)}</strong>
+            <small>${analytics.incomeCount} entrada(s) • ticket médio ${analytics.formatBRL(analytics.avgTicketIn)}</small>
           </div>
-          <span>${analytics.progress}% da meta capturada</span>
-          <div class="finance-progress"><span style="width:${analytics.progress}%"></span></div>
+          <div class="finance-kpi-spot finance-kpi-spot--expense">
+            <span>Saídas</span>
+            <strong>${analytics.formatBRL(analytics.expenseTotal)}</strong>
+            <small>${analytics.expenseCount} saída(s) • ticket médio ${analytics.formatBRL(analytics.avgTicketOut)}</small>
+          </div>
+          <div class="finance-kpi-spot finance-kpi-spot--balance">
+            <span>Saldo do mês</span>
+            <strong>${analytics.formatBRL(analytics.balance)}</strong>
+            <small>${analytics.balance >= 0 ? 'Operação no azul.' : 'Operação pressionada pelo gasto.'}</small>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="finance-kpi-grid finance-kpi-grid--rebuilt">
-        <div class="finance-kpi-card finance-kpi-card--accent-soft">
-          <span class="finance-label">Entradas</span>
-          <strong>${analytics.formatBRL(analytics.incomeTotal)}</strong>
-          <p>Quanto realmente entrou esse mês.</p>
-        </div>
-        <div class="finance-kpi-card">
-          <span class="finance-label">Saídas</span>
-          <strong>${analytics.formatBRL(analytics.expenseTotal)}</strong>
-          <p>Custos e vazamentos operacionais.</p>
-        </div>
-        <div class="finance-kpi-card">
-          <span class="finance-label">Saldo</span>
-          <strong>${analytics.formatBRL(analytics.balance)}</strong>
-          <p>${analytics.balance >= 0 ? 'Mês positivo até aqui.' : 'Saída maior que entrada. Hora de ajustar.'}</p>
-        </div>
-        <div class="finance-kpi-card">
-          <span class="finance-label">Gap da meta</span>
-          <strong>${analytics.formatBRL(analytics.gap)}</strong>
-          <p>Quanto ainda falta capturar.</p>
-        </div>
-      </div>
-
-      <div class="finance-grid finance-grid--charts">
-        <section class="finance-card finance-card--chart">
-          <div class="finance-card-head">
+      <section class="finance-grid finance-grid--topline">
+        <section class="finance-card finance-card--chart finance-card--hero-chart">
+          <div class="finance-card-head finance-card-head--dense">
             <div>
-              <h3>Fluxo do mês</h3>
-              <p>Entradas vs saídas por dia.</p>
+              <h3>Leitura mensal</h3>
+              <p>Curva principal de entradas e saídas ao longo do mês.</p>
             </div>
           </div>
-          <div class="finance-chart-wrap">
+          <div class="finance-chart-wrap finance-chart-wrap--lg">
             ${analytics.chartLabels.length > 0 ? '<canvas id="financeCashflowChart"></canvas>' : '<div class="finance-empty">Ainda não há transações suficientes para desenhar o gráfico.</div>'}
           </div>
         </section>
-        <section class="finance-card finance-card--chart">
-          <div class="finance-card-head">
+
+        <section class="finance-card finance-card--analysis">
+          <div class="finance-card-head finance-card-head--dense">
             <div>
-              <h3>Categorias</h3>
-              <p>Pra onde a grana está indo e de onde ela vem.</p>
+              <h3>Mapa rápido</h3>
+              <p>O resumo que interessa antes de mergulhar nos detalhes.</p>
             </div>
           </div>
-          <div class="finance-chart-wrap">
+          <div class="finance-mini-stack">
+            <div class="finance-mini-card">
+              <span>Principal origem</span>
+              <strong>${incomeShare[0] ? incomeShare[0].label : 'Sem entradas ainda'}</strong>
+              <small>${incomeShare[0] ? `${analytics.formatBRL(incomeShare[0].amount)} • ${incomeShare[0].share}% das entradas` : 'Ainda sem base suficiente.'}</small>
+            </div>
+            <div class="finance-mini-card finance-mini-card--warn">
+              <span>Maior vazamento</span>
+              <strong>${expenseShare[0] ? expenseShare[0].label : 'Sem saídas ainda'}</strong>
+              <small>${expenseShare[0] ? `${analytics.formatBRL(expenseShare[0].amount)} • ${expenseShare[0].share}% das saídas` : 'Ainda sem base suficiente.'}</small>
+            </div>
+            <div class="finance-mini-card">
+              <span>Import da Sexta</span>
+              <strong>${analytics.imports[0] ? analytics.imports[0].transactionCount + ' itens' : 'Nenhum import'}</strong>
+              <small>${analytics.imports[0] ? new Date(analytics.imports[0].importedAt).toLocaleString('pt-BR') : 'Sem extrato carregado.'}</small>
+            </div>
+          </div>
+          <div class="finance-chart-wrap finance-chart-wrap--donut">
             ${Object.keys(analytics.categoryTotals).length > 0 ? '<canvas id="financeCategoryChart"></canvas>' : '<div class="finance-empty">Sem categorias registradas ainda.</div>'}
           </div>
         </section>
-      </div>
+      </section>
 
-      <div class="finance-grid finance-grid--ops">
+      <section class="finance-grid finance-grid--insights">
+        <section class="finance-card">
+          <div class="finance-card-head finance-card-head--dense">
+            <div>
+              <h3>De onde vem a grana</h3>
+              <p>Fontes de entrada mais relevantes no mês.</p>
+            </div>
+          </div>
+          <div class="finance-breakdown-list">
+            ${incomeShare.length > 0 ? incomeShare.map((item) => `
+              <div class="finance-breakdown-item finance-breakdown-item--income">
+                <div class="finance-breakdown-head">
+                  <strong>${item.label}</strong>
+                  <span>${analytics.formatBRL(item.amount)}</span>
+                </div>
+                <div class="finance-breakdown-bar"><span style="width:${Math.max(item.share, 6)}%"></span></div>
+                <small>${item.share}% das entradas</small>
+              </div>
+            `).join('') : '<div class="finance-empty">Sem entradas registradas ainda.</div>'}
+          </div>
+        </section>
+
+        <section class="finance-card">
+          <div class="finance-card-head finance-card-head--dense">
+            <div>
+              <h3>Pra onde sai a grana</h3>
+              <p>Categorias que mais pesam nas saídas.</p>
+            </div>
+          </div>
+          <div class="finance-breakdown-list">
+            ${expenseShare.length > 0 ? expenseShare.map((item) => `
+              <div class="finance-breakdown-item finance-breakdown-item--expense">
+                <div class="finance-breakdown-head">
+                  <strong>${item.label}</strong>
+                  <span>${analytics.formatBRL(item.amount)}</span>
+                </div>
+                <div class="finance-breakdown-bar"><span style="width:${Math.max(item.share, 6)}%"></span></div>
+                <small>${item.share}% das saídas</small>
+              </div>
+            `).join('') : '<div class="finance-empty">Sem saídas registradas ainda.</div>'}
+          </div>
+        </section>
+      </section>
+
+      <section class="finance-grid finance-grid--lists">
+        <section class="finance-card">
+          <div class="finance-card-head finance-card-head--dense">
+            <div>
+              <h3>Movimentações recentes</h3>
+              <p>Últimos lançamentos para leitura rápida.</p>
+            </div>
+          </div>
+          <div class="finance-list finance-list--compact">
+            ${analytics.recentTransactions.length > 0 ? analytics.recentTransactions.map((item) => `
+              <div class="finance-list-item ${item.type === 'income' ? 'finance-list-item--done' : ''}">
+                <div>
+                  <strong>${item.description}</strong>
+                  <p>${item.date} • ${item.category}${item.taskText ? ` • ${item.taskText}` : ''}</p>
+                </div>
+                <span>${item.type === 'expense' ? '-' : '+'}${analytics.formatBRL(item.amount)}</span>
+              </div>
+            `).join('') : '<div class="finance-empty">Ainda não há movimentações registradas nesse painel.</div>'}
+          </div>
+        </section>
+
+        <section class="finance-card">
+          <div class="finance-card-head finance-card-head--dense">
+            <div>
+              <h3>Receita ligada a trabalho</h3>
+              <p>O que já trouxe caixa de forma identificável.</p>
+            </div>
+          </div>
+          <div class="finance-list finance-list--compact">
+            ${analytics.linkedTasks.length > 0 ? analytics.linkedTasks.map((item) => `
+              <div class="finance-list-item finance-list-item--done finance-list-item--stacked">
+                <div>
+                  <strong>${item.taskText}</strong>
+                  <p>${item.count} lançamento(s) vinculados • último em ${item.lastDate}</p>
+                </div>
+                <span>${analytics.formatBRL(item.total)}</span>
+              </div>
+            `).join('') : '<div class="finance-empty">Ainda não existem entradas vinculadas a tarefas. Esse bloco vai ficar brutal quando você começar a relacionar receita com trabalho.</div>'}
+          </div>
+        </section>
+      </section>
+
+      <section class="finance-grid finance-grid--bottom">
         <section class="finance-card finance-card--form">
-          <div class="finance-card-head">
+          <div class="finance-card-head finance-card-head--dense">
             <div>
               <h3>Lançar movimentação</h3>
               <p>Entrada, saída e vínculo direto com a tarefa que trouxe dinheiro.</p>
@@ -5499,114 +5644,41 @@ function renderFinanceView() {
           </div>
           <div class="finance-form-actions">
             <button class="btn-primary" style="width:auto;padding:12px 18px;" onclick="saveFinanceTransactionFromForm()">Salvar movimentação</button>
-            <span class="finance-form-hint">Se a entrada veio de uma tarefa, vincula aqui. Isso vai criando tua inteligência de geração de caixa.</span>
+            <span class="finance-form-hint">Quanto mais você vincular entrada com tarefa/projeto, melhor fica a leitura do teu motor de caixa.</span>
           </div>
         </section>
 
-        <section class="finance-card">
-          <div class="finance-card-head">
+        <section class="finance-card finance-card--goal-low">
+          <div class="finance-card-head finance-card-head--dense">
             <div>
-              <h3>Sexta + extrato</h3>
-              <p>Base pronta para guardar imports vindos dos prints que você mandar no chat.</p>
+              <h3>Meta mensal</h3>
+              <p>Importante, mas secundária frente à leitura real da operação.</p>
             </div>
           </div>
-          <div class="finance-list">
+          <div class="finance-goal-panel">
+            <div class="finance-goal-row">
+              <strong>${analytics.formatBRL(analytics.goal)}</strong>
+              <div class="finance-goal-inline">
+                <input id="financeMonthlyGoalInput" class="finance-input finance-input--sm" type="number" min="0" step="100" value="${analytics.goal}">
+                <button class="btn-secondary" style="width:auto;padding:10px 14px;" onclick="saveFinanceGoal()">Salvar meta</button>
+              </div>
+            </div>
+            <span>${analytics.progress}% da meta capturada • gap de ${analytics.formatBRL(analytics.gap)}</span>
+            <div class="finance-progress"><span style="width:${analytics.progress}%"></span></div>
+          </div>
+          <div class="finance-list finance-list--compact">
             ${analytics.imports.length > 0 ? analytics.imports.map((item) => `
               <div class="finance-list-item finance-list-item--stacked">
                 <div>
                   <strong>${item.summary || 'Importação do extrato'}</strong>
                   <p>${new Date(item.importedAt).toLocaleString('pt-BR')} • ${item.status}</p>
                 </div>
-                <span>${item.transactionCount} item(ns)</span>
+                <span>${item.transactionCount} itens</span>
               </div>
-            `).join('') : '<div class="finance-empty">Nenhum extrato importado ainda. A estrutura já está preparada para a Sexta registrar isso no banco.</div>'}
+            `).join('') : '<div class="finance-empty">Nenhum extrato importado ainda.</div>'}
           </div>
         </section>
-      </div>
-
-      <div class="finance-grid">
-        <section class="finance-card">
-          <div class="finance-card-head">
-            <div>
-              <h3>Entradas em aberto</h3>
-              <p>Tarefas com potencial financeiro que ainda não viraram caixa.</p>
-            </div>
-          </div>
-          <div class="finance-list">
-            ${analytics.taskDerivedOpen.length > 0 ? analytics.taskDerivedOpen.map((item) => `
-              <div class="finance-list-item">
-                <div>
-                  <strong>${item.text}</strong>
-                  <p>${item.dateStr} • ${item.priority || 'sem prioridade'}</p>
-                </div>
-                <span>${item.amount > 0 ? analytics.formatBRL(item.amount) : 'sem valor'}</span>
-              </div>
-            `).join('') : '<div class="finance-empty">Nenhuma oportunidade em aberto detectada ainda.</div>'}
-          </div>
-        </section>
-
-        <section class="finance-card">
-          <div class="finance-card-head">
-            <div>
-              <h3>Tarefas que já trouxeram dinheiro</h3>
-              <p>Memória crescente do que de fato gera receita.</p>
-            </div>
-          </div>
-          <div class="finance-list">
-            ${analytics.linkedTasks.length > 0 ? analytics.linkedTasks.map((item) => `
-              <div class="finance-list-item finance-list-item--done finance-list-item--stacked">
-                <div>
-                  <strong>${item.taskText}</strong>
-                  <p>${item.count} lançamento(s) vinculados • último em ${item.lastDate}</p>
-                </div>
-                <span>${analytics.formatBRL(item.total)}</span>
-              </div>
-            `).join('') : '<div class="finance-empty">Ainda não existem entradas vinculadas a tarefas. Usa o campo de vínculo ao lançar receita e isso começa a ficar inteligente.</div>'}
-          </div>
-        </section>
-      </div>
-
-      <div class="finance-grid">
-        <section class="finance-card">
-          <div class="finance-card-head">
-            <div>
-              <h3>Movimentações recentes</h3>
-              <p>Leitura rápida do que entrou e saiu.</p>
-            </div>
-          </div>
-          <div class="finance-list">
-            ${analytics.recentTransactions.length > 0 ? analytics.recentTransactions.map((item) => `
-              <div class="finance-list-item ${item.type === 'income' ? 'finance-list-item--done' : ''}">
-                <div>
-                  <strong>${item.description}</strong>
-                  <p>${item.date} • ${item.category}${item.taskText ? ` • ${item.taskText}` : ''}</p>
-                </div>
-                <span>${item.type === 'expense' ? '-' : '+'}${analytics.formatBRL(item.amount)}</span>
-              </div>
-            `).join('') : '<div class="finance-empty">Ainda não há movimentações registradas nesse painel.</div>'}
-          </div>
-        </section>
-
-        <section class="finance-card">
-          <div class="finance-card-head">
-            <div>
-              <h3>Já capturado nas tarefas</h3>
-              <p>Tarefas financeiras concluídas no mês.</p>
-            </div>
-          </div>
-          <div class="finance-list">
-            ${analytics.taskDerivedDone.length > 0 ? analytics.taskDerivedDone.map((item) => `
-              <div class="finance-list-item finance-list-item--done">
-                <div>
-                  <strong>${item.text}</strong>
-                  <p>${item.dateStr}</p>
-                </div>
-                <span>${item.amount > 0 ? analytics.formatBRL(item.amount) : 'sem valor'}</span>
-              </div>
-            `).join('') : '<div class="finance-empty">Nada concluído com valor ainda neste mês.</div>'}
-          </div>
-        </section>
-      </div>
+      </section>
     </div>
   `;
 
