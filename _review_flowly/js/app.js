@@ -330,8 +330,7 @@ function getTaskTypes() {
   ];
 }
 
-function getTaskPriorities() {
-  if (customTaskPriorities && customTaskPriorities.length > 0) return customTaskPriorities;
+function getDefaultTaskPriorities() {
   return [
     { id: 'money', name: 'Dinheiro', color: '#30D158' },
     { id: 'urgent', name: 'Urgente', color: '#FF453A' },
@@ -340,17 +339,23 @@ function getTaskPriorities() {
   ];
 }
 
+function getTaskPriorities() {
+  if (customTaskPriorities && customTaskPriorities.length > 0) return customTaskPriorities;
+  return getDefaultTaskPriorities();
+}
+
 function ensureMoneyPriorityOption() {
-  const hasMoney = customTaskPriorities.some((item) => String(item.id || '').toLowerCase() === 'money');
-  if (!hasMoney) {
-    customTaskPriorities.unshift({ id: 'money', name: 'Dinheiro', color: '#30D158' });
-  } else {
-    customTaskPriorities = customTaskPriorities.map((item) =>
-      String(item.id || '').toLowerCase() === 'money'
-        ? { ...item, name: 'Dinheiro', color: '#30D158' }
-        : item
-    );
+  const defaults = getDefaultTaskPriorities();
+  if (!Array.isArray(customTaskPriorities) || customTaskPriorities.length === 0) {
+    customTaskPriorities = defaults.map((item) => ({ ...item }));
+    return;
   }
+
+  const existingMap = new Map(customTaskPriorities.map((item) => [String(item.id || '').toLowerCase(), item]));
+  customTaskPriorities = defaults.map((item) => {
+    const existing = existingMap.get(String(item.id).toLowerCase());
+    return existing ? { ...existing, name: item.name, color: item.color } : { ...item };
+  });
 }
 
 // Compatibilidade: manter dailyRoutine para migração (será removido após migrar)
