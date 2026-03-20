@@ -779,7 +779,10 @@ function normalizeProjectsState(state) {
       expectedValue: Number(item.expectedValue || 0) || 0,
       closedValue: Number(item.closedValue || 0) || 0,
       notes: String(item.notes || '').trim(),
+      startDate: item.startDate ? String(item.startDate) : '',
       deadline: item.deadline ? String(item.deadline) : '',
+      completionDate: item.completionDate ? String(item.completionDate) : '',
+      isPaid: item.isPaid === true,
       isDraft: item.isDraft === true || String(item.status || '').trim() === 'draft',
       templateTasks: normalizeTemplateTasks(item.templateTasks),
       collapseSubtasks: item.collapseSubtasks !== false,
@@ -857,7 +860,10 @@ async function loadProjectsStateFromSupabase() {
           expectedValue: row.expected_value,
           closedValue: row.closed_value,
           notes: row.notes,
-          deadline: localProject.deadline || '',
+          startDate: row.start_date || localProject.startDate || '',
+          deadline: row.deadline || localProject.deadline || '',
+          completionDate: row.completion_date || localProject.completionDate || '',
+          isPaid: row.is_paid === true || localProject.isPaid === true,
           isDraft: localProject.isDraft === true || String(row.status || '').trim() === 'draft',
           templateTasks: localProject.templateTasks || [],
           collapseSubtasks: localProject.collapseSubtasks !== false,
@@ -888,6 +894,10 @@ async function syncProjectsStateToSupabase() {
       expected_value: Number(item.expectedValue || 0),
       closed_value: Number(item.closedValue || 0),
       notes: item.notes || null,
+      start_date: item.startDate || null,
+      deadline: item.deadline || null,
+      completion_date: item.completionDate || null,
+      is_paid: item.isPaid === true,
       created_at: item.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString()
     }));
@@ -970,9 +980,12 @@ window.createProjectWithLinks = function () {
   const name = (document.getElementById('projectQuickName')?.value || '').trim();
   const clientName = (document.getElementById('projectQuickClient')?.value || '').trim();
   const serviceType = (document.getElementById('projectQuickServiceType')?.value || '').trim();
+  const startDate = (document.getElementById('projectQuickStartDate')?.value || '').trim();
   const deadline = (document.getElementById('projectQuickDeadline')?.value || '').trim();
+  const completionDate = (document.getElementById('projectQuickCompletionDate')?.value || '').trim();
   const expectedValue = Number(document.getElementById('projectQuickExpectedValue')?.value || 0) || 0;
   const closedValue = Number(document.getElementById('projectQuickClosedValue')?.value || 0) || 0;
+  const isPaid = document.getElementById('projectQuickIsPaid')?.checked === true;
   const templateId = document.getElementById('projectTemplateSource')?.value || '';
   const template = templateId ? findProjectById(templateId) : null;
 
@@ -991,7 +1004,10 @@ window.createProjectWithLinks = function () {
     expectedValue,
     closedValue,
     notes: '',
+    startDate,
     deadline,
+    completionDate,
+    isPaid,
     isDraft: false,
     templateTasks: template?.templateTasks || [],
     collapseSubtasks: true,
@@ -1038,10 +1054,12 @@ window.createProjectWithLinks = function () {
     saveToLocalStorage();
   }
 
-  ['projectQuickName','projectQuickClient','projectQuickServiceType','projectQuickDeadline','projectQuickExpectedValue','projectQuickClosedValue','projectTemplateSource'].forEach((id) => {
+  ['projectQuickName','projectQuickClient','projectQuickServiceType','projectQuickStartDate','projectQuickDeadline','projectQuickCompletionDate','projectQuickExpectedValue','projectQuickClosedValue','projectTemplateSource'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  const paidCheckbox = document.getElementById('projectQuickIsPaid');
+  if (paidCheckbox) paidCheckbox.checked = false;
 
   if (currentView === 'projects') renderProjectsView();
   if (currentView === 'finance') renderFinanceView();
@@ -1050,7 +1068,7 @@ window.createProjectWithLinks = function () {
 window.updateProjectField = function (projectId, field, value) {
   updateProjectRecord(projectId, (project) => {
     if (field === 'expectedValue' || field === 'closedValue') project[field] = Number(value || 0) || 0;
-    else if (field === 'isDraft' || field === 'collapseSubtasks') project[field] = value === true || value === 'true';
+    else if (field === 'isDraft' || field === 'collapseSubtasks' || field === 'isPaid') project[field] = value === true || value === 'true';
     else project[field] = String(value || '').trim();
 
     if (field === 'isDraft') {
@@ -6254,6 +6272,7 @@ function renderProjectsView() {
   const draftTemplates = getProjectOptions().filter((project) => project.isDraft || project.status === 'draft');
   const activeCount = analytics.projects.filter((p) => !p.isDraft && p.status === 'active').length;
   const draftCount = analytics.projects.filter((p) => p.isDraft || p.status === 'draft').length;
+  const today = localDateStr();
 
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--wide projects-shell projects-shell--clean">
@@ -6280,11 +6299,15 @@ function renderProjectsView() {
             </div>
             <div class="projects-form-row">
               <input id="projectQuickServiceType" class="finance-input" type="text" placeholder="Tipo de projeto">
-              <input id="projectQuickDeadline" class="finance-input" type="date">
+              <input id="projectQuickStartDate" class="finance-input" type="date" placeholder="Início">
             </div>
             <div class="projects-form-row">
-              <input id="projectQuickExpectedValue" class="finance-input" type="number" min="0" step="0.01" placeholder="Meta de ganho">
-              <input id="projectQuickClosedValue" class="finance-input" type="number" min="0" step="0.01" placeholder="Valor fechado">
+              <input id="projectQuickDeadline" class="finance-input" type="date" placeholder="Conclusão prevista">
+              <input id="projectQuickCompletionDate" class="finance-input" type="date" placeholder="Conclusão real">
+            </div>
+            <div class="projects-form-row">
+              <input id="projectQuickExpectedValue" class="finance-input" type="number" min="0" step="0.01" placeholder="Valor do projeto">
+              <label class="projects-toggle-pill projects-toggle-pill--field"><input id="projectQuickIsPaid" type="checkbox"><span>Pago</span></label>
             </div>
             <div class="projects-form-row">
               <select id="projectTemplateSource" class="finance-input finance-input--full">
@@ -6323,6 +6346,8 @@ function renderProjectsView() {
             ${analytics.projects.length > 0 ? analytics.projects.map((project) => {
               const linkedTasks = collectProjectTaskCandidates({ includeLinked: true, max: 8, projectId: project.id });
               const templateTextareaId = `projectTemplate_${project.id}`;
+              const isLate = !project.completionDate && project.deadline && project.deadline < today;
+              const paymentLabel = project.isPaid ? 'Pago' : 'Não pago';
               return `
                 <details class="projects-item ${project.isDraft ? 'projects-item--draft' : ''}" ${analytics.projects.length === 1 ? 'open' : ''}>
                   <summary class="projects-item-summary">
@@ -6330,28 +6355,33 @@ function renderProjectsView() {
                       <div class="projects-row-badges">
                         <span class="projects-badge ${project.isDraft ? 'projects-badge--draft' : 'projects-badge--active'}">${project.isDraft ? 'Rascunho' : 'Ativo'}</span>
                         ${project.serviceType ? `<span class="projects-badge">${project.serviceType}</span>` : ''}
+                        <span class="projects-badge ${project.isPaid ? 'projects-badge--paid' : 'projects-badge--unpaid'}">${paymentLabel}</span>
+                        ${isLate ? '<span class="projects-badge projects-badge--late">Atrasado</span>' : ''}
                       </div>
                       <strong>${project.name}</strong>
                       <p>${project.clientName || 'sem cliente'} • ${project.tasks} tarefa(s) • ${project.completionRate}% concluído</p>
                     </div>
                     <div class="projects-item-side">
-                      <span class="projects-metric">${formatBRL(project.closedValue || project.income || 0)}</span>
-                      <small>${project.deadline ? `prazo ${project.deadline}` : 'sem prazo'}</small>
+                      <span class="projects-metric">${formatBRL(project.expectedValue || 0)}</span>
+                      <small>${project.deadline ? `previsto ${project.deadline}` : 'sem previsão'}</small>
                     </div>
                   </summary>
 
                   <div class="projects-item-body">
-                    <div class="projects-health-grid">
+                    <div class="projects-health-grid projects-health-grid--four">
                       <div class="projects-health-card"><span>Valor do projeto</span><strong>${formatBRL(project.expectedValue || 0)}</strong></div>
-                      <div class="projects-health-card"><span>Recebido até agora</span><strong>${formatBRL(project.closedValue || 0)}</strong></div>
-                      <div class="projects-health-card"><span>Falta receber</span><strong>${formatBRL(Math.max((project.expectedValue || 0) - (project.closedValue || 0), 0))}</strong></div>
+                      <div class="projects-health-card"><span>Início</span><strong>${project.startDate || '—'}</strong></div>
+                      <div class="projects-health-card"><span>Conclusão prevista</span><strong>${project.deadline || '—'}</strong></div>
+                      <div class="projects-health-card"><span>Conclusão real</span><strong>${project.completionDate || '—'}</strong></div>
                     </div>
 
-                    <div class="projects-config-grid">
-                      <label class="projects-config-field"><span>Prazo</span><input class="finance-input" type="date" value="${project.deadline || ''}" onchange="updateProjectField('${project.id}','deadline',this.value)"></label>
+                    <div class="projects-config-grid projects-config-grid--project-meta">
                       <label class="projects-config-field"><span>Tipo</span><input class="finance-input" type="text" value="${project.serviceType || ''}" placeholder="Shopify, LP, etc" onchange="updateProjectField('${project.id}','serviceType',this.value)"></label>
                       <label class="projects-config-field"><span>Valor do projeto</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.expectedValue || 0)}" onchange="updateProjectField('${project.id}','expectedValue',this.value)"></label>
-                      <label class="projects-config-field"><span>Recebido até agora</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.closedValue || 0)}" onchange="updateProjectField('${project.id}','closedValue',this.value)"></label>
+                      <label class="projects-config-field"><span>Data de início</span><input class="finance-input" type="date" value="${project.startDate || ''}" onchange="updateProjectField('${project.id}','startDate',this.value)"></label>
+                      <label class="projects-config-field"><span>Data de conclusão</span><input class="finance-input" type="date" value="${project.deadline || ''}" onchange="updateProjectField('${project.id}','deadline',this.value)"></label>
+                      <label class="projects-config-field"><span>Data de conclusão real</span><input class="finance-input" type="date" value="${project.completionDate || ''}" onchange="updateProjectField('${project.id}','completionDate',this.value)"></label>
+                      <label class="projects-toggle-pill projects-toggle-pill--field"><input type="checkbox" ${project.isPaid ? 'checked' : ''} onchange="updateProjectField('${project.id}','isPaid',this.checked)"><span>Pago</span></label>
                     </div>
 
                     <div class="projects-toggle-row">
