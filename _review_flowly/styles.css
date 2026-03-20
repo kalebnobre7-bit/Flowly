@@ -610,20 +610,27 @@ body.no-week-hover .day-column:hover {
 }
 
 /* Typography - clean */
-.task-collapse-btn,
-.task-collapse-spacer {
-    width: 34px;
+.task-project-dot {
+    width: 7px;
+    height: 7px;
+    display: inline-block;
+    border-radius: 999px;
+    background: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96,165,250,0.12);
+    margin-right: 8px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.task-collapse-btn {
     min-width: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
-    margin-right: 4px;
+    margin-left: auto;
     color: rgba(255,255,255,0.38);
     flex-shrink: 0;
-}
-
-.task-collapse-btn {
     border: none;
     background: transparent;
     cursor: pointer;

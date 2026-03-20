@@ -8656,8 +8656,9 @@ function createTaskElement(day, dateStr, period, task, index) {
   const hasChildren = childrenCount > 0;
   const isCollapsed = hasChildren ? isTaskGroupCollapsed(task) : false;
 
+  let collapseBtn = null;
   if (hasChildren) {
-    const collapseBtn = document.createElement('button');
+    collapseBtn = document.createElement('button');
     collapseBtn.className = 'task-collapse-btn';
     collapseBtn.type = 'button';
     collapseBtn.innerHTML = `${isCollapsed ? '▶' : '▼'} <span>${childrenCount}</span>`;
@@ -8666,11 +8667,6 @@ function createTaskElement(day, dateStr, period, task, index) {
       e.stopPropagation();
       window.toggleTaskChildrenCollapse(dateStr, period, normalizedIndex);
     };
-    el.appendChild(collapseBtn);
-  } else if (task.depth && task.depth > 0) {
-    const collapseSpacer = document.createElement('span');
-    collapseSpacer.className = 'task-collapse-spacer';
-    el.appendChild(collapseSpacer);
   }
 
   // Label (criado primeiro para ser referenciado pelos callbacks)
@@ -8709,6 +8705,11 @@ function createTaskElement(day, dateStr, period, task, index) {
     label.setAttribute('data-placeholder', 'Clique para editar...');
     label.style.position = 'relative';
   } else {
+    if (task.projectId) {
+      const projectDot = document.createElement('span');
+      projectDot.className = 'task-project-dot';
+      label.appendChild(projectDot);
+    }
     textContentSpan.textContent = task.text;
     if (task.completed) {
       textContentSpan.classList.add('task-completed');
@@ -8817,7 +8818,10 @@ function createTaskElement(day, dateStr, period, task, index) {
     projectChip.textContent = task.projectName;
     el.appendChild(projectChip);
   }
-  el.appendChild(hoverMenuBtn);
+  if (collapseBtn) {
+    collapseBtn.style.marginLeft = 'auto';
+    el.appendChild(collapseBtn);
+  }
 
   // Drag Events
   el.ondragstart = handleDragStart;
