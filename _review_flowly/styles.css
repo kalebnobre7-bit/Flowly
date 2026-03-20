@@ -680,12 +680,12 @@ body.no-week-hover .day-column:hover {
 /* Usando ID para sobrescrever o display: grid do #weekGrid padrÃ£o */
 #weekGrid.today-container {
     display: grid !important;
-    grid-template-columns: 450px 140px !important;
-    gap: 14px;
+    grid-template-columns: minmax(0, 620px) 180px !important;
+    gap: 28px;
     width: 100%;
-    max-width: 620px;
+    max-width: 860px;
     margin: 0 auto;
-    padding: 20px 12px;
+    padding: 32px 20px;
     align-items: flex-start;
     justify-content: center;
     min-height: 80vh;
@@ -693,14 +693,15 @@ body.no-week-hover .day-column:hover {
 
 #weekGrid.today-container.today-focus-mode {
     display: block !important;
-    max-width: 760px;
-    padding: 18px 20px 28px;
+    max-width: 540px;
+    padding: 18px 16px 28px;
     min-height: auto;
 }
 
 #weekGrid.today-container.today-focus-mode .today-main {
-    width: 100%;
-    max-width: 760px;
+    width: 450px;
+    min-width: 450px;
+    max-width: 450px;
     margin: 0 auto;
 }
 
@@ -741,15 +742,15 @@ body.no-week-hover .day-column:hover {
 }
 
 .today-main {
-    width: 450px;
-    min-width: 450px;
-    max-width: 450px;
+    width: 100%;
+    min-width: 0;
+    max-width: 620px;
     padding-top: 0;
     margin: 0 auto;
 }
 
 .today-sidebar {
-    width: 140px;
+    width: 180px;
     justify-self: start;
     flex-shrink: 0;
     position: sticky;
@@ -1395,9 +1396,7 @@ body.dragging-active .task-drop-zone {
     }
 
     .today-main {
-        width: 450px;
-        min-width: 450px;
-        max-width: 450px;
+        max-width: 100%;
     }
 
     .today-sidebar {
