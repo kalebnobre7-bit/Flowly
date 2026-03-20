@@ -109,6 +109,8 @@
               type: task.type || 'OPERATIONAL',
               priority: task.priority || null,
               parent_id: task.parent_id || null,
+              project_id: task.projectId || null,
+              project_name: task.projectName || null,
               position: typeof task.position === 'number' ? task.position : index,
               is_habit: task.isHabit || false,
               created_at: task.createdAt || undefined,
@@ -250,6 +252,8 @@
             type: task.type || 'OPERATIONAL',
             priority: task.priority || null,
             parent_id: task.parent_id || null,
+            projectId: task.project_id || null,
+            projectName: task.project_name || '',
             position: Number(task.position) || 0,
             isHabit: task.is_habit,
             supabaseId: task.id,
@@ -310,6 +314,8 @@
                 type: localTask.type || 'OPERATIONAL',
                 priority: localTask.priority || null,
                 parent_id: localTask.parent_id || null,
+                projectId: localTask.projectId || null,
+                projectName: localTask.projectName || '',
                 position:
                   typeof localTask.position === 'number'
                     ? localTask.position
