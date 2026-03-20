@@ -8723,29 +8723,6 @@ function createTaskElement(day, dateStr, period, task, index) {
     window.toggleTaskExpansion(task, el);
   };
 
-  // ? Action Button (Hover Context Menu replacement)
-  const hoverMenuBtn = document.createElement('button');
-  hoverMenuBtn.className = 'task-hover-menu-btn text-gray-500 hover:text-white';
-  hoverMenuBtn.innerHTML = '?';
-  hoverMenuBtn.style.opacity = '0';
-  hoverMenuBtn.style.transition = 'opacity 150ms ease';
-  hoverMenuBtn.style.background = 'transparent';
-  hoverMenuBtn.style.border = 'none';
-  hoverMenuBtn.style.padding = '0 6px';
-  hoverMenuBtn.style.fontSize = '16px';
-  hoverMenuBtn.style.fontWeight = 'bold';
-  hoverMenuBtn.style.cursor = 'pointer';
-  hoverMenuBtn.style.marginLeft = 'auto'; // push to extreme right
-  hoverMenuBtn.onclick = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    window.toggleTaskExpansion(task, el);
-  };
-
-  el.addEventListener('mouseenter', () => (hoverMenuBtn.style.opacity = '1'));
-  el.addEventListener('mouseleave', () => (hoverMenuBtn.style.opacity = '0'));
-  el.addEventListener('touchstart', () => (hoverMenuBtn.style.opacity = '1'), { passive: true });
-
   // Make element flex and handle alignment
   el.style.display = 'flex';
   el.style.alignItems = 'center';

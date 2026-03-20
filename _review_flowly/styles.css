@@ -623,12 +623,12 @@ body.no-week-hover .day-column:hover {
 }
 
 .task-collapse-btn {
-    min-width: 34px;
+    min-width: 28px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    margin-left: auto;
+    gap: 3px;
+    margin-left: 8px;
     color: rgba(255,255,255,0.38);
     flex-shrink: 0;
     border: none;
@@ -680,12 +680,12 @@ body.no-week-hover .day-column:hover {
 /* Usando ID para sobrescrever o display: grid do #weekGrid padrÃ£o */
 #weekGrid.today-container {
     display: grid !important;
-    grid-template-columns: minmax(0, 620px) 180px !important;
-    gap: 28px;
+    grid-template-columns: minmax(0, 560px) 170px !important;
+    gap: 22px;
     width: 100%;
-    max-width: 860px;
+    max-width: 780px;
     margin: 0 auto;
-    padding: 32px 20px;
+    padding: 28px 18px;
     align-items: flex-start;
     justify-content: center;
     min-height: 80vh;
@@ -743,13 +743,13 @@ body.no-week-hover .day-column:hover {
 .today-main {
     width: 100%;
     min-width: 0;
-    max-width: 620px;
+    max-width: 560px;
     padding-top: 0;
     margin: 0 auto;
 }
 
 .today-sidebar {
-    width: 180px;
+    width: 170px;
     justify-self: start;
     flex-shrink: 0;
     position: sticky;
@@ -880,7 +880,7 @@ body.no-week-hover .day-column:hover {
     transition: background 0.1s ease;
     display: flex;
     align-items: flex-start;
-    gap: 14px;
+    gap: 10px;
 }
 
 .today-task-list .task-item:hover {
