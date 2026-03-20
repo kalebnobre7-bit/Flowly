@@ -333,10 +333,24 @@ function getTaskTypes() {
 function getTaskPriorities() {
   if (customTaskPriorities && customTaskPriorities.length > 0) return customTaskPriorities;
   return [
+    { id: 'money', name: 'Dinheiro', color: '#30D158' },
     { id: 'urgent', name: 'Urgente', color: '#FF453A' },
     { id: 'important', name: 'Importante', color: '#FF9F0A' },
     { id: 'simple', name: 'Simples', color: '#FFD60A' }
   ];
+}
+
+function ensureMoneyPriorityOption() {
+  const hasMoney = customTaskPriorities.some((item) => String(item.id || '').toLowerCase() === 'money');
+  if (!hasMoney) {
+    customTaskPriorities.unshift({ id: 'money', name: 'Dinheiro', color: '#30D158' });
+  } else {
+    customTaskPriorities = customTaskPriorities.map((item) =>
+      String(item.id || '').toLowerCase() === 'money'
+        ? { ...item, name: 'Dinheiro', color: '#30D158' }
+        : item
+    );
+  }
 }
 
 // Compatibilidade: manter dailyRoutine para migração (será removido após migrar)
@@ -553,25 +567,9 @@ window.toggleTaskExpansion = function (task, el) {
   nameRow.appendChild(nameInput);
   exp.appendChild(nameRow);
 
-  // 1. TYPE ROW
-  const typeRow = createPropertyRow('tag', 'Tipo');
-  const types = getTaskTypes();
-  const typesWrap = document.createElement('div');
-  typesWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;';
-  const currentType = task.type || null;
-  types.forEach((t) => {
-    typesWrap.appendChild(
-      createPill(t.name, currentType === t.id, t.color, () => {
-        task.type = task.type === t.id ? null : t.id;
-        saveChangesAndReRender();
-      })
-    );
-  });
-  typeRow.appendChild(typesWrap);
-  exp.appendChild(typeRow);
-
-  // 2. PRIORITY ROW
+  // 1. PRIORITY ROW
   const prioRow = createPropertyRow('signal', 'Prioridade');
+  ensureMoneyPriorityOption();
   const prios = getTaskPriorities();
   let currentPrio = task.priority || null;
   if (isRecurring && recDefinition && recDefinition.priority) currentPrio = recDefinition.priority;
@@ -6633,19 +6631,12 @@ function renderSettingsView() {
 
         <div class="space-y-4">
           ${sectionCard(
-            'Tipos de tarefa',
-            'Edite categorias e prioridades personalizadas',
-            'tags',
+            'Prioridades',
+            'Edite as prioridades personalizadas da sua operação',
+            'signal',
             `
               <div class="space-y-3">
                 <div>
-                  <div class="mb-2 flex items-center justify-between gap-2">
-                    <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Tipos</span>
-                    <button id="btnAddType" class="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10">Adicionar</button>
-                  </div>
-                  <div id="typesList" class="space-y-2"></div>
-                </div>
-                <div class="border-t border-white/10 pt-3">
                   <div class="mb-2 flex items-center justify-between gap-2">
                     <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Prioridades</span>
                     <button id="btnAddPrio" class="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-gray-200 hover:bg-white/10">Adicionar</button>
@@ -7039,16 +7030,13 @@ function renderSettingsView() {
 }
 
 async function renderInlineEditors() {
-  const typesList = document.getElementById('typesList');
   const priosList = document.getElementById('priosList');
-  if (!typesList || !priosList) return;
+  if (!priosList) return;
 
-  if (customTaskTypes.length === 0) {
-    customTaskTypes.push(...getTaskTypes().map((t) => ({ ...t })));
-  }
   if (customTaskPriorities.length === 0) {
     customTaskPriorities.push(...getTaskPriorities().map((p) => ({ ...p })));
   }
+  ensureMoneyPriorityOption();
 
   const renderItem = (item, type, container, arr, dbTable) => {
     const row = document.createElement('div');
@@ -7113,27 +7101,10 @@ async function renderInlineEditors() {
     container.appendChild(row);
   };
 
-  typesList.innerHTML = '';
-  customTaskTypes.forEach((t) => renderItem(t, 'type', typesList, customTaskTypes, 'task_types'));
-
   priosList.innerHTML = '';
   customTaskPriorities.forEach((p) =>
     renderItem(p, 'priority', priosList, customTaskPriorities, 'task_priorities')
   );
-
-  document.getElementById('btnAddType').onclick = async () => {
-    const newItem = { id: 'NOVO_TIPO_' + Date.now(), name: 'Novo Tipo', color: '#8E8E93' };
-    customTaskTypes.push(newItem);
-    renderItem(newItem, 'type', typesList, customTaskTypes, 'task_types');
-    if (currentUser)
-      await supabaseClient.from('task_types').upsert({
-        id: newItem.id,
-        name: newItem.name,
-        color: newItem.color,
-        user_id: currentUser.id
-      });
-    lucide.createIcons();
-  };
 
   document.getElementById('btnAddPrio').onclick = async () => {
     const newItem = { id: 'NOVA_PRIO_' + Date.now(), name: 'Nova Prio', color: '#FFD60A' };
@@ -8663,23 +8634,6 @@ function createTaskElement(day, dateStr, period, task, index) {
     label.setAttribute('data-placeholder', 'Clique para editar...');
     label.style.position = 'relative';
   } else {
-    const tType = task.type || null;
-    if (tType && tType !== 'none' && tType !== 'null') {
-      const customType = getTaskTypes().find((t) => t.id === tType);
-      if (customType) {
-        const typeDot = document.createElement('span');
-        typeDot.style.display = 'inline-block';
-        typeDot.style.width = '6px';
-        typeDot.style.height = '6px';
-        typeDot.style.borderRadius = '50%';
-        typeDot.style.backgroundColor = customType.color;
-        typeDot.style.opacity = '0.8';
-        typeDot.style.marginRight = '8px';
-        typeDot.style.verticalAlign = 'middle';
-        label.appendChild(typeDot);
-      }
-    }
-
     textContentSpan.textContent = task.text;
     if (task.completed) {
       textContentSpan.classList.add('task-completed');
