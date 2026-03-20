@@ -304,8 +304,19 @@
                   : null;
               const localTaskHasValidRemoteId = localTaskId && remoteTaskIds.has(localTaskId);
 
-              // If the task was already loaded from remote by id, keep cloud payload.
-              if (localTaskHasValidRemoteId) return;
+              // If the task was already loaded from remote by id, merge local-only metadata
+              // (ex.: vínculo de projeto) when the remote payload still doesn't carry it.
+              if (localTaskHasValidRemoteId) {
+                const remoteMatch = serverTasks.find(function (serverTask) {
+                  return serverTask && serverTask.supabaseId === localTaskId;
+                });
+                if (remoteMatch) {
+                  if (!remoteMatch.projectId && localTask.projectId) remoteMatch.projectId = localTask.projectId;
+                  if (!remoteMatch.projectName && localTask.projectName) remoteMatch.projectName = localTask.projectName;
+                  if ((!remoteMatch.color || remoteMatch.color === 'default') && localTask.color) remoteMatch.color = localTask.color;
+                }
+                return;
+              }
 
               const taskToKeep = {
                 text: normalizedText,
