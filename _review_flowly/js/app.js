@@ -759,6 +759,11 @@ function createProjectId(prefix = 'proj') {
 
 function normalizeProjectsState(state) {
   const base = state && typeof state === 'object' ? state : {};
+  const normalizeTemplateTasks = (value) => {
+    if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+    if (typeof value === 'string') return value.split('\n').map((item) => item.trim()).filter(Boolean);
+    return [];
+  };
   const normalizeProject = (item) => {
     if (!item || typeof item !== 'object') return null;
     return {
@@ -770,6 +775,10 @@ function normalizeProjectsState(state) {
       expectedValue: Number(item.expectedValue || 0) || 0,
       closedValue: Number(item.closedValue || 0) || 0,
       notes: String(item.notes || '').trim(),
+      deadline: item.deadline ? String(item.deadline) : '',
+      isDraft: item.isDraft === true || String(item.status || '').trim() === 'draft',
+      templateTasks: normalizeTemplateTasks(item.templateTasks),
+      collapseSubtasks: item.collapseSubtasks !== false,
       createdAt: item.createdAt || new Date().toISOString(),
       updatedAt: item.updatedAt || new Date().toISOString()
     };
@@ -789,6 +798,23 @@ function getProjectOptions() {
   return projectsState.projects.slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
 }
 
+function findProjectById(projectId) {
+  return getProjectOptions().find((project) => project.id === projectId) || null;
+}
+
+function updateProjectRecord(projectId, updater) {
+  projectsState = normalizeProjectsState(projectsState);
+  const index = projectsState.projects.findIndex((project) => project.id === projectId);
+  if (index < 0) return null;
+  const current = projectsState.projects[index];
+  const next = typeof updater === 'function' ? updater({ ...current }) : { ...current, ...(updater || {}) };
+  next.updatedAt = new Date().toISOString();
+  projectsState.projects[index] = next;
+  persistProjectsStateLocal();
+  scheduleProjectsSync();
+  return next;
+}
+
 function scheduleProjectsSync(delay = 900) {
   if (projectsSyncTimer) clearTimeout(projectsSyncTimer);
   projectsSyncTimer = setTimeout(() => {
@@ -804,6 +830,8 @@ async function loadProjectsStateFromSupabase() {
     return;
   }
   try {
+    const localProjects = normalizeProjectsState(projectsState).projects;
+    const localMap = new Map(localProjects.map((project) => [project.id, project]));
     const result = await supabaseClient.from('projects').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(200);
     if (result.error) {
       const code = String(result.error.code || '');
@@ -814,18 +842,25 @@ async function loadProjectsStateFromSupabase() {
       throw result.error;
     }
     projectsState = normalizeProjectsState({
-      projects: (result.data || []).map((row) => ({
-        id: row.id,
-        name: row.name,
-        clientName: row.client_name,
-        status: row.status,
-        serviceType: row.service_type,
-        expectedValue: row.expected_value,
-        closedValue: row.closed_value,
-        notes: row.notes,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
-      }))
+      projects: (result.data || []).map((row) => {
+        const localProject = localMap.get(row.id) || {};
+        return {
+          id: row.id,
+          name: row.name,
+          clientName: row.client_name,
+          status: row.status,
+          serviceType: row.service_type,
+          expectedValue: row.expected_value,
+          closedValue: row.closed_value,
+          notes: row.notes,
+          deadline: localProject.deadline || '',
+          isDraft: localProject.isDraft === true || String(row.status || '').trim() === 'draft',
+          templateTasks: localProject.templateTasks || [],
+          collapseSubtasks: localProject.collapseSubtasks !== false,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        };
+      })
     });
     persistProjectsStateLocal();
   } catch (error) {
@@ -880,7 +915,163 @@ window.createProjectQuick = async function () {
   });
   persistProjectsStateLocal();
   scheduleProjectsSync();
-  renderFinanceView();
+  if (currentView === 'projects') renderProjectsView();
+  if (currentView === 'finance') renderFinanceView();
+};
+
+function collectProjectTaskCandidates({ includeLinked = false, max = 24, projectId = null } = {}) {
+  const entries = [];
+  Object.entries(allTasksData || {}).forEach(([dateStr, periods]) => {
+    Object.entries(periods || {}).forEach(([period, tasks]) => {
+      if (!Array.isArray(tasks) || period === 'Rotina') return;
+      tasks.forEach((task, index) => {
+        if (!task || !task.text) return;
+        if (projectId && task.projectId !== projectId) return;
+        if (!includeLinked && !projectId && task.projectId) return;
+        entries.push({ dateStr, period, index, task });
+      });
+    });
+  });
+
+  const scoreDate = (dateStr) => {
+    const today = new Date(localDateStr() + 'T00:00:00');
+    const target = new Date(String(dateStr) + 'T00:00:00');
+    return Math.abs(target.getTime() - today.getTime());
+  };
+
+  return entries
+    .sort((a, b) => {
+      if (Boolean(a.task.completed) !== Boolean(b.task.completed)) return a.task.completed ? 1 : -1;
+      const diff = scoreDate(a.dateStr) - scoreDate(b.dateStr);
+      if (diff !== 0) return diff;
+      return String(a.task.text || '').localeCompare(String(b.task.text || ''));
+    })
+    .slice(0, max);
+}
+
+function applyProjectLinkToTask(dateStr, period, index, projectId) {
+  const task = allTasksData?.[dateStr]?.[period]?.[index];
+  if (!task) return false;
+  const project = projectId ? getProjectOptions().find((item) => item.id === projectId) : null;
+  task.projectId = project ? project.id : null;
+  task.projectName = project ? project.name : '';
+  saveToLocalStorage();
+  syncTaskToSupabase(dateStr, period, task);
+  if (currentView === 'projects') renderProjectsView();
+  if (currentView === 'finance') renderFinanceView();
+  return true;
+}
+
+window.createProjectWithLinks = function () {
+  const name = (document.getElementById('projectQuickName')?.value || '').trim();
+  const clientName = (document.getElementById('projectQuickClient')?.value || '').trim();
+  const serviceType = (document.getElementById('projectQuickServiceType')?.value || '').trim();
+  const deadline = (document.getElementById('projectQuickDeadline')?.value || '').trim();
+  const expectedValue = Number(document.getElementById('projectQuickExpectedValue')?.value || 0) || 0;
+  const closedValue = Number(document.getElementById('projectQuickClosedValue')?.value || 0) || 0;
+  const templateId = document.getElementById('projectTemplateSource')?.value || '';
+  const template = templateId ? findProjectById(templateId) : null;
+
+  if (!name) {
+    alert('Dá um nome pro projeto primeiro.');
+    return;
+  }
+
+  const projectId = createProjectId('proj');
+  const project = {
+    id: projectId,
+    name,
+    clientName,
+    status: 'active',
+    serviceType,
+    expectedValue,
+    closedValue,
+    notes: '',
+    deadline,
+    isDraft: false,
+    templateTasks: template?.templateTasks || [],
+    collapseSubtasks: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  projectsState.projects.unshift(project);
+  persistProjectsStateLocal();
+  scheduleProjectsSync();
+
+  const selectedTasks = Array.from(document.querySelectorAll('.project-create-task-check:checked'));
+  selectedTasks.forEach((input) => {
+    applyProjectLinkToTask(input.dataset.date, input.dataset.period, Number(input.dataset.index), projectId);
+  });
+
+  if (template && Array.isArray(template.templateTasks)) {
+    template.templateTasks.forEach((taskText) => {
+      const cleanText = String(taskText || '').trim();
+      if (!cleanText) return;
+      const dateStr = localDateStr();
+      const period = 'Tarefas';
+      const currentList = allTasksData[dateStr]?.[period] || [];
+      const newTask = {
+        text: cleanText,
+        completed: false,
+        color: 'default',
+        type: 'OPERATIONAL',
+        priority: null,
+        parent_id: null,
+        position: currentList.length,
+        isHabit: false,
+        supabaseId: null,
+        createdAt: new Date().toISOString(),
+        completedAt: null,
+        projectId,
+        projectName: name
+      };
+      if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+      if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
+      allTasksData[dateStr][period].push(newTask);
+      syncTaskToSupabase(dateStr, period, newTask);
+    });
+    saveToLocalStorage();
+  }
+
+  ['projectQuickName','projectQuickClient','projectQuickServiceType','projectQuickDeadline','projectQuickExpectedValue','projectQuickClosedValue','projectTemplateSource'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  if (currentView === 'projects') renderProjectsView();
+  if (currentView === 'finance') renderFinanceView();
+};
+
+window.updateProjectField = function (projectId, field, value) {
+  updateProjectRecord(projectId, (project) => {
+    if (field === 'expectedValue' || field === 'closedValue') project[field] = Number(value || 0) || 0;
+    else if (field === 'isDraft' || field === 'collapseSubtasks') project[field] = value === true || value === 'true';
+    else project[field] = String(value || '').trim();
+
+    if (field === 'isDraft') {
+      project.status = project.isDraft ? 'draft' : 'active';
+    }
+    return project;
+  });
+  if (currentView === 'projects') renderProjectsView();
+};
+
+window.saveProjectTemplateTasks = function (projectId, textareaId) {
+  const value = document.getElementById(textareaId)?.value || '';
+  updateProjectRecord(projectId, (project) => ({
+    ...project,
+    templateTasks: value.split('\n').map((item) => item.trim()).filter(Boolean)
+  }));
+  if (currentView === 'projects') renderProjectsView();
+};
+
+window.linkTaskToProject = function (dateStr, period, index, projectId) {
+  return applyProjectLinkToTask(dateStr, period, Number(index), projectId);
+};
+
+window.unlinkTaskFromProject = function (dateStr, period, index) {
+  return applyProjectLinkToTask(dateStr, period, Number(index), null);
 };
 
 function createFinanceId(prefix = 'fin') {
@@ -6035,15 +6226,7 @@ function buildProjectsAnalytics() {
 }
 
 window.applySuggestedTaskProject = function (dateStr, period, index, projectId) {
-  const task = allTasksData?.[dateStr]?.[period]?.[index];
-  if (!task) return;
-  const project = getProjectOptions().find((item) => item.id === projectId);
-  if (!project) return;
-  task.projectId = project.id;
-  task.projectName = project.name;
-  saveToLocalStorage();
-  syncTaskToSupabase(dateStr, period, task);
-  if (currentView === 'projects') renderProjectsView();
+  return applyProjectLinkToTask(dateStr, period, Number(index), projectId);
 };
 
 window.applySuggestedTransactionProject = function (transactionId, projectId) {
@@ -6063,42 +6246,137 @@ function renderProjectsView() {
   if (!view) return;
   const analytics = buildProjectsAnalytics();
   const formatBRL = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+  const taskCandidates = collectProjectTaskCandidates({ includeLinked: false, max: 18 });
+  const draftTemplates = getProjectOptions().filter((project) => project.isDraft || project.status === 'draft');
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--wide projects-shell">
       <section class="projects-hero">
         <div class="projects-hero-copy">
-          <div class="finance-kicker">Projects intelligence</div>
-          <h2>Projetos ligados à operação e à receita</h2>
-          <p>Agora o Flowly começa a mostrar qual projeto consome tarefa, qual gera caixa e onde você ainda está deixando trabalho sem contexto.</p>
+          <div class="finance-kicker">Projects workspace</div>
+          <h2>Projetos com tarefa ligada desde o começo</h2>
+          <p>Em vez de só mostrar analytics, essa área agora vira teu painel de criação: cria o projeto, escolhe as tarefas e deixa tudo com contexto logo de saída.</p>
         </div>
         <div class="projects-hero-stats">
           <div class="projects-stat-card"><span>Projetos</span><strong>${analytics.projects.length}</strong><small>${analytics.projects.filter((p) => p.status === 'active').length} ativos</small></div>
-          <div class="projects-stat-card"><span>Receita mapeada</span><strong>${formatBRL(analytics.projects.reduce((s,p)=>s+p.income,0))}</strong><small>entradas já conectadas</small></div>
-          <div class="projects-stat-card"><span>Tarefas ligadas</span><strong>${analytics.projects.reduce((s,p)=>s+p.tasks,0)}</strong><small>trabalho com contexto</small></div>
+          <div class="projects-stat-card"><span>Tarefas ligadas</span><strong>${analytics.projects.reduce((s,p)=>s+p.tasks,0)}</strong><small>trabalho já contextualizado</small></div>
+          <div class="projects-stat-card"><span>Receita mapeada</span><strong>${formatBRL(analytics.projects.reduce((s,p)=>s+p.income,0))}</strong><small>entradas conectadas</small></div>
         </div>
       </section>
 
-      <section class="projects-grid">
-        <section class="finance-card">
-          <div class="finance-card-head finance-card-head--dense"><div><h3>Projetos ativos</h3><p>Receita, esforço e progresso por projeto.</p></div></div>
-          <div class="projects-list">
-            ${analytics.projects.length > 0 ? analytics.projects.map((project) => `
-              <div class="projects-row">
-                <div>
-                  <strong>${project.name}</strong>
-                  <p>${project.clientName || 'sem cliente'} • ${project.tasks} tarefa(s) • ${project.completionRate}% concluído</p>
+      <section class="projects-grid projects-grid--setup">
+        <section class="finance-card projects-create-card">
+          <div class="finance-card-head finance-card-head--dense"><div><h3>Criar projeto</h3><p>Dá nome, cliente, prazo, valor e já puxa tarefas ou template padrão.</p></div></div>
+          <div class="projects-create-form">
+            <div class="projects-form-row">
+              <input id="projectQuickName" class="finance-input" type="text" placeholder="Nome do projeto">
+              <input id="projectQuickClient" class="finance-input" type="text" placeholder="Cliente (opcional)">
+            </div>
+            <div class="projects-form-row">
+              <input id="projectQuickServiceType" class="finance-input" type="text" placeholder="Tipo de projeto / serviço">
+              <input id="projectQuickDeadline" class="finance-input" type="date" placeholder="Prazo">
+            </div>
+            <div class="projects-form-row">
+              <input id="projectQuickExpectedValue" class="finance-input" type="number" min="0" step="0.01" placeholder="Quanto preciso ganhar">
+              <input id="projectQuickClosedValue" class="finance-input" type="number" min="0" step="0.01" placeholder="Quanto já estou ganhando">
+            </div>
+            <div class="projects-form-row">
+              <select id="projectTemplateSource" class="finance-input finance-input--full">
+                <option value="">Começar do zero</option>
+                ${draftTemplates.map((project) => `<option value="${project.id}">${project.name}${project.templateTasks?.length ? ` · ${project.templateTasks.length} tarefas padrão` : ''}</option>`).join('')}
+              </select>
+            </div>
+            <div class="projects-task-picker">
+              <div class="projects-suggest-title">Linkar tarefas agora</div>
+              ${taskCandidates.length > 0 ? `
+                <div class="projects-task-list">
+                  ${taskCandidates.map((item) => `
+                    <label class="projects-task-option">
+                      <input type="checkbox" class="project-create-task-check" data-date="${item.dateStr}" data-period="${item.period}" data-index="${item.index}">
+                      <div>
+                        <strong>${item.task.text}</strong>
+                        <p>${item.dateStr} • ${item.period}${item.task.completed ? ' • concluída' : ''}</p>
+                      </div>
+                    </label>
+                  `).join('')}
                 </div>
-                <div class="projects-row-metrics">
-                  <span class="projects-metric">${formatBRL(project.income)}</span>
-                  <small>${project.income > 0 ? `lucro ${formatBRL(project.profit)}` : 'sem receita ligada'}</small>
-                </div>
-              </div>
-            `).join('') : '<div class="finance-empty">Nenhum projeto criado ainda.</div>'}
+              ` : '<div class="finance-empty">Nenhuma tarefa solta disponível pra vincular agora.</div>'}
+            </div>
+            <div class="projects-create-actions">
+              <button class="btn-secondary" style="width:auto;padding:12px 18px;" onclick="createProjectQuick()">Criar sem linkar</button>
+              <button class="btn-primary" style="width:auto;padding:12px 18px;" onclick="createProjectWithLinks()">Criar e linkar tarefas</button>
+            </div>
           </div>
         </section>
 
         <section class="finance-card">
-          <div class="finance-card-head finance-card-head--dense"><div><h3>Sugestões automáticas</h3><p>Tarefas e receitas que o sistema acha que pertencem a um projeto.</p></div></div>
+          <div class="finance-card-head finance-card-head--dense"><div><h3>Projetos ativos</h3><p>Agora com visão de vínculo, não só de status.</p></div></div>
+          <div class="projects-list">
+            ${analytics.projects.length > 0 ? analytics.projects.map((project) => {
+              const linkedTasks = collectProjectTaskCandidates({ includeLinked: true, max: 8, projectId: project.id });
+              const templateTextareaId = `projectTemplate_${project.id}`;
+              return `
+                <div class="projects-row projects-row--stacked">
+                  <div class="projects-row-top">
+                    <div class="projects-row-title">
+                      <div class="projects-row-badges">
+                        <span class="projects-badge ${project.isDraft ? 'projects-badge--draft' : 'projects-badge--active'}">${project.isDraft ? 'Rascunho' : 'Ativo'}</span>
+                        ${project.serviceType ? `<span class="projects-badge">${project.serviceType}</span>` : ''}
+                        ${project.deadline ? `<span class="projects-badge">Prazo ${project.deadline}</span>` : ''}
+                      </div>
+                      <strong>${project.name}</strong>
+                      <p>${project.clientName || 'sem cliente'} • ${project.tasks} tarefa(s) • ${project.completionRate}% concluído</p>
+                    </div>
+                    <div class="projects-row-metrics">
+                      <span class="projects-metric">${formatBRL(project.income)}</span>
+                      <small>${project.income > 0 ? `lucro ${formatBRL(project.profit)}` : 'sem receita ligada'}</small>
+                    </div>
+                  </div>
+                  <div class="projects-health-grid">
+                    <div class="projects-health-card"><span>Meta</span><strong>${formatBRL(project.expectedValue || 0)}</strong></div>
+                    <div class="projects-health-card"><span>Fechado</span><strong>${formatBRL(project.closedValue || 0)}</strong></div>
+                    <div class="projects-health-card"><span>Gap</span><strong>${formatBRL((project.expectedValue || 0) - (project.closedValue || 0))}</strong></div>
+                  </div>
+                  <div class="projects-config-grid">
+                    <label class="projects-config-field"><span>Prazo</span><input class="finance-input" type="date" value="${project.deadline || ''}" onchange="updateProjectField('${project.id}','deadline',this.value)"></label>
+                    <label class="projects-config-field"><span>Tipo</span><input class="finance-input" type="text" value="${project.serviceType || ''}" placeholder="Shopify, LP, etc" onchange="updateProjectField('${project.id}','serviceType',this.value)"></label>
+                    <label class="projects-config-field"><span>Quanto preciso ganhar</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.expectedValue || 0)}" onchange="updateProjectField('${project.id}','expectedValue',this.value)"></label>
+                    <label class="projects-config-field"><span>Quanto estou ganhando</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.closedValue || 0)}" onchange="updateProjectField('${project.id}','closedValue',this.value)"></label>
+                  </div>
+                  <div class="projects-toggle-row">
+                    <label class="projects-toggle-pill"><input type="checkbox" ${project.isDraft ? 'checked' : ''} onchange="updateProjectField('${project.id}','isDraft',this.checked)"><span>Salvar como rascunho/template</span></label>
+                    <label class="projects-toggle-pill"><input type="checkbox" ${project.collapseSubtasks !== false ? 'checked' : ''} onchange="updateProjectField('${project.id}','collapseSubtasks',this.checked)"><span>Minimizar subtarefas no Flowly</span></label>
+                  </div>
+                  <div class="projects-template-block">
+                    <div class="projects-linked-header">Tarefas padrão do rascunho</div>
+                    <textarea id="${templateTextareaId}" class="finance-input projects-template-textarea" placeholder="Uma tarefa por linha. Ex: criar logo&#10;configurar tema&#10;subir produtos">${(project.templateTasks || []).join('\n')}</textarea>
+                    <div class="projects-template-actions"><button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="saveProjectTemplateTasks('${project.id}','${templateTextareaId}')">Salvar tarefas padrão</button></div>
+                  </div>
+                  <div class="projects-linked-block">
+                    <div class="projects-linked-header">Tarefas vinculadas</div>
+                    ${linkedTasks.length > 0 ? `
+                      <div class="projects-linked-list">
+                        ${linkedTasks.map((item) => `
+                          <div class="projects-linked-item">
+                            <div>
+                              <strong>${item.task.text}</strong>
+                              <p>${item.dateStr} • ${item.period}</p>
+                            </div>
+                            <button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="unlinkTaskFromProject('${item.dateStr}','${item.period}',${item.index})">Desvincular</button>
+                          </div>
+                        `).join('')}
+                      </div>
+                    ` : '<div class="finance-empty">Nenhuma tarefa ligada ainda.</div>'}
+                  </div>
+                </div>
+              `;
+            }).join('') : '<div class="finance-empty">Nenhum projeto criado ainda.</div>'}
+          </div>
+        </section>
+      </section>
+
+      <section class="projects-grid">
+        <section class="finance-card">
+          <div class="finance-card-head finance-card-head--dense"><div><h3>Sugestões automáticas</h3><p>O que o sistema acha que ainda deveria ser ligado.</p></div></div>
           <div class="projects-suggestions">
             <div>
               <div class="projects-suggest-title">Tarefas repetidas / com nome reconhecido</div>
@@ -7232,6 +7510,12 @@ function renderWeek() {
 }
 
 // Função de Ordenação Unificada (Regra: Rotina -> Concluídas -> Pendentes)
+function isProjectSubtasksCollapsed(task) {
+  if (!task || !task.projectId) return false;
+  const project = findProjectById(task.projectId);
+  return project ? project.collapseSubtasks !== false : false;
+}
+
 function unifiedTaskSort(taskList) {
   if (!taskList || taskList.length === 0) return [];
 
@@ -7300,7 +7584,7 @@ function unifiedTaskSort(taskList) {
     flattened.push(item);
 
     const id = item.task.supabaseId || item.task.text;
-    if (childrenMap.has(id)) {
+    if (childrenMap.has(id) && !isProjectSubtasksCollapsed(item.task)) {
       const children = childrenMap.get(id);
       children.sort(sortFn);
       children.forEach((child) => traverse(child, depth + 1));
