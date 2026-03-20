@@ -680,7 +680,7 @@ body.no-week-hover .day-column:hover {
 /* Usando ID para sobrescrever o display: grid do #weekGrid padrÃ£o */
 #weekGrid.today-container {
     display: grid !important;
-    grid-template-columns: minmax(0, 440px) 140px !important;
+    grid-template-columns: 450px 140px !important;
     gap: 14px;
     width: 100%;
     max-width: 620px;
@@ -741,9 +741,9 @@ body.no-week-hover .day-column:hover {
 }
 
 .today-main {
-    width: 100%;
-    min-width: 0;
-    max-width: 440px;
+    width: 450px;
+    min-width: 450px;
+    max-width: 450px;
     padding-top: 0;
     margin: 0 auto;
 }
@@ -1395,7 +1395,9 @@ body.dragging-active .task-drop-zone {
     }
 
     .today-main {
-        max-width: 440px;
+        width: 450px;
+        min-width: 450px;
+        max-width: 450px;
     }
 
     .today-sidebar {
