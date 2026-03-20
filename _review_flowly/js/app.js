@@ -6341,21 +6341,21 @@ function renderProjectsView() {
 
                   <div class="projects-item-body">
                     <div class="projects-health-grid">
-                      <div class="projects-health-card"><span>Meta</span><strong>${formatBRL(project.expectedValue || 0)}</strong></div>
-                      <div class="projects-health-card"><span>Fechado</span><strong>${formatBRL(project.closedValue || 0)}</strong></div>
-                      <div class="projects-health-card"><span>Gap</span><strong>${formatBRL((project.expectedValue || 0) - (project.closedValue || 0))}</strong></div>
+                      <div class="projects-health-card"><span>Valor do projeto</span><strong>${formatBRL(project.expectedValue || 0)}</strong></div>
+                      <div class="projects-health-card"><span>Recebido até agora</span><strong>${formatBRL(project.closedValue || 0)}</strong></div>
+                      <div class="projects-health-card"><span>Falta receber</span><strong>${formatBRL(Math.max((project.expectedValue || 0) - (project.closedValue || 0), 0))}</strong></div>
                     </div>
 
                     <div class="projects-config-grid">
                       <label class="projects-config-field"><span>Prazo</span><input class="finance-input" type="date" value="${project.deadline || ''}" onchange="updateProjectField('${project.id}','deadline',this.value)"></label>
                       <label class="projects-config-field"><span>Tipo</span><input class="finance-input" type="text" value="${project.serviceType || ''}" placeholder="Shopify, LP, etc" onchange="updateProjectField('${project.id}','serviceType',this.value)"></label>
-                      <label class="projects-config-field"><span>Meta</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.expectedValue || 0)}" onchange="updateProjectField('${project.id}','expectedValue',this.value)"></label>
-                      <label class="projects-config-field"><span>Fechado</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.closedValue || 0)}" onchange="updateProjectField('${project.id}','closedValue',this.value)"></label>
+                      <label class="projects-config-field"><span>Valor do projeto</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.expectedValue || 0)}" onchange="updateProjectField('${project.id}','expectedValue',this.value)"></label>
+                      <label class="projects-config-field"><span>Recebido até agora</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.closedValue || 0)}" onchange="updateProjectField('${project.id}','closedValue',this.value)"></label>
                     </div>
 
                     <div class="projects-toggle-row">
                       <label class="projects-toggle-pill"><input type="checkbox" ${project.isDraft ? 'checked' : ''} onchange="updateProjectField('${project.id}','isDraft',this.checked)"><span>Usar como template</span></label>
-                      <label class="projects-toggle-pill"><input type="checkbox" ${project.collapseSubtasks !== false ? 'checked' : ''} onchange="updateProjectField('${project.id}','collapseSubtasks',this.checked)"><span>Minimizar subtarefas</span></label>
+                      <label class="projects-toggle-pill"><input type="checkbox" ${project.collapseSubtasks !== false ? 'checked' : ''} onchange="updateProjectField('${project.id}','collapseSubtasks',this.checked)"><span>Recolher tarefas do projeto na lista</span></label>
                     </div>
 
                     <div class="projects-item-sections">
@@ -8634,6 +8634,8 @@ function createTaskElement(day, dateStr, period, task, index) {
     if (customPrio) {
       label.style.color = customPrio.color;
     }
+  } else if (task.projectId) {
+    label.style.color = '#dbeafe';
   }
 
   // Normalizar texto da tarefa (garantir que não seja undefined)

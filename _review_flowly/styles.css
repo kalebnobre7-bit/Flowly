@@ -4959,6 +4959,9 @@ body.dragging-active .task-drop-zone {
     text-transform: uppercase;
 }
 
+.task-item:has(.task-project-chip) .task-label {
+    color: #dbeafe;
+}
 
 .projects-shell { display:flex; flex-direction:column; gap:16px; }
 .projects-shell--clean { gap:14px; }
