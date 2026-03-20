@@ -679,14 +679,13 @@ body.no-week-hover .day-column:hover {
 /* ====== TODAY VIEW ====== */
 /* Usando ID para sobrescrever o display: grid do #weekGrid padrÃ£o */
 #weekGrid.today-container {
-    display: flex !important;
-    /* ForÃ§ar override do grid */
-    grid-template-columns: none !important;
-    gap: 64px;
+    display: grid !important;
+    grid-template-columns: minmax(0, 620px) 180px !important;
+    gap: 28px;
     width: 100%;
-    max-width: 1050px;
+    max-width: 860px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 32px 20px;
     align-items: flex-start;
     justify-content: center;
     min-height: 80vh;
@@ -742,18 +741,20 @@ body.no-week-hover .day-column:hover {
 }
 
 .today-main {
-    flex: 1;
-    /* Ocupa o espaÃ§o restante */
+    width: 100%;
     min-width: 0;
+    max-width: 620px;
     padding-top: 0;
+    margin: 0 auto;
 }
 
 .today-sidebar {
-    width: 280px;
+    width: 180px;
+    justify-self: start;
     flex-shrink: 0;
     position: sticky;
-    top: 40px;
-    padding-top: 10px;
+    top: 32px;
+    padding-top: 6px;
 }
 
 /* Header alinhado Ã  esquerda seguindo a coluna de tarefas */

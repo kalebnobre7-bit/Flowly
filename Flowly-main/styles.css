@@ -29,7 +29,40 @@ body {
     line-height: 1.5;
     overflow-x: hidden;
     margin: 0;
-    padding: 20px clamp(12px, 2vw, 40px);
+    padding: 0;
+}
+
+.app-shell {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.app-main {
+    min-width: 0;
+    padding: 24px clamp(16px, 2vw, 36px);
+}
+
+.app-sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    height: 100vh;
+    padding: 18px 14px;
+    background: rgba(10, 10, 14, 0.9);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+}
+
+body.sidebar-collapsed .app-shell {
+    grid-template-columns: 88px minmax(0, 1fr);
+}
+
+body.sidebar-collapsed .app-sidebar {
+    padding-inline: 10px;
 }
 
 /* Scrollbar Premium */
@@ -62,6 +95,14 @@ body {
     width: 100%;
     flex-wrap: wrap;
     gap: 16px;
+}
+
+.nav-container > .segmented-control {
+    margin-inline: auto;
+}
+
+.utility-btns:empty {
+    display: none;
 }
 
 .logo-area {
@@ -341,32 +382,33 @@ h2.text-blue-400 {
 /* ====== TODAY VIEW ====== */
 /* Usando ID para sobrescrever o display: grid do #weekGrid padrão */
 #weekGrid.today-container {
-    display: flex !important;
-    /* Forçar override do grid */
-    grid-template-columns: none !important;
-    gap: 64px;
+    display: grid !important;
+    grid-template-columns: minmax(0, 620px) 180px !important;
+    gap: 28px;
     width: 100%;
-    max-width: 1050px;
+    max-width: 860px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 32px 20px;
     align-items: flex-start;
     justify-content: center;
     min-height: 80vh;
 }
 
 .today-main {
-    flex: 1;
-    /* Ocupa o espaço restante */
+    width: 100%;
     min-width: 0;
+    max-width: 620px;
     padding-top: 0;
+    margin: 0 auto;
 }
 
 .today-sidebar {
-    width: 280px;
+    width: 180px;
+    justify-self: start;
     flex-shrink: 0;
     position: sticky;
-    top: 40px;
-    padding-top: 10px;
+    top: 32px;
+    padding-top: 6px;
 }
 
 /* Header alinhado à esquerda seguindo a coluna de tarefas */
