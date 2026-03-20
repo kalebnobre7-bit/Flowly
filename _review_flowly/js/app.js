@@ -6244,47 +6244,51 @@ function renderProjectsView() {
   if (!view) return;
   const analytics = buildProjectsAnalytics();
   const formatBRL = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
-  const taskCandidates = collectProjectTaskCandidates({ includeLinked: false, max: 18 });
+  const taskCandidates = collectProjectTaskCandidates({ includeLinked: false, max: 12 });
   const draftTemplates = getProjectOptions().filter((project) => project.isDraft || project.status === 'draft');
+  const activeCount = analytics.projects.filter((p) => !p.isDraft && p.status === 'active').length;
+  const draftCount = analytics.projects.filter((p) => p.isDraft || p.status === 'draft').length;
+
   view.innerHTML = `
-    <div class="flowly-shell flowly-shell--wide projects-shell">
-      <section class="projects-hero">
-        <div class="projects-hero-copy">
-          <div class="finance-kicker">Projects workspace</div>
-          <h2>Projetos com tarefa ligada desde o começo</h2>
-          <p>Em vez de só mostrar analytics, essa área agora vira teu painel de criação: cria o projeto, escolhe as tarefas e deixa tudo com contexto logo de saída.</p>
+    <div class="flowly-shell flowly-shell--wide projects-shell projects-shell--clean">
+      <section class="projects-topbar">
+        <div>
+          <div class="finance-kicker">Projetos</div>
+          <h2>Projetos</h2>
+          <p>Cria, organiza e acompanha sem fricção.</p>
         </div>
-        <div class="projects-hero-stats">
-          <div class="projects-stat-card"><span>Projetos</span><strong>${analytics.projects.length}</strong><small>${analytics.projects.filter((p) => p.status === 'active').length} ativos</small></div>
-          <div class="projects-stat-card"><span>Tarefas ligadas</span><strong>${analytics.projects.reduce((s,p)=>s+p.tasks,0)}</strong><small>trabalho já contextualizado</small></div>
-          <div class="projects-stat-card"><span>Receita mapeada</span><strong>${formatBRL(analytics.projects.reduce((s,p)=>s+p.income,0))}</strong><small>entradas conectadas</small></div>
+        <div class="projects-topbar-stats">
+          <div class="projects-mini-stat"><span>Ativos</span><strong>${activeCount}</strong></div>
+          <div class="projects-mini-stat"><span>Rascunhos</span><strong>${draftCount}</strong></div>
+          <div class="projects-mini-stat"><span>Receita</span><strong>${formatBRL(analytics.projects.reduce((s,p)=>s+p.income,0))}</strong></div>
         </div>
       </section>
 
-      <section class="projects-grid projects-grid--setup">
+      <section class="projects-grid projects-grid--setup projects-grid--compact">
         <section class="finance-card projects-create-card">
-          <div class="finance-card-head finance-card-head--dense"><div><h3>Criar projeto</h3><p>Dá nome, cliente, prazo, valor e já puxa tarefas ou template padrão.</p></div></div>
+          <div class="finance-card-head finance-card-head--dense"><div><h3>Novo projeto</h3><p>Preenche o básico e, se quiser, já liga tarefas.</p></div></div>
           <div class="projects-create-form">
             <div class="projects-form-row">
               <input id="projectQuickName" class="finance-input" type="text" placeholder="Nome do projeto">
-              <input id="projectQuickClient" class="finance-input" type="text" placeholder="Cliente (opcional)">
+              <input id="projectQuickClient" class="finance-input" type="text" placeholder="Cliente">
             </div>
             <div class="projects-form-row">
-              <input id="projectQuickServiceType" class="finance-input" type="text" placeholder="Tipo de projeto / serviço">
-              <input id="projectQuickDeadline" class="finance-input" type="date" placeholder="Prazo">
+              <input id="projectQuickServiceType" class="finance-input" type="text" placeholder="Tipo de projeto">
+              <input id="projectQuickDeadline" class="finance-input" type="date">
             </div>
             <div class="projects-form-row">
-              <input id="projectQuickExpectedValue" class="finance-input" type="number" min="0" step="0.01" placeholder="Quanto preciso ganhar">
-              <input id="projectQuickClosedValue" class="finance-input" type="number" min="0" step="0.01" placeholder="Quanto já estou ganhando">
+              <input id="projectQuickExpectedValue" class="finance-input" type="number" min="0" step="0.01" placeholder="Meta de ganho">
+              <input id="projectQuickClosedValue" class="finance-input" type="number" min="0" step="0.01" placeholder="Valor fechado">
             </div>
             <div class="projects-form-row">
               <select id="projectTemplateSource" class="finance-input finance-input--full">
-                <option value="">Começar do zero</option>
-                ${draftTemplates.map((project) => `<option value="${project.id}">${project.name}${project.templateTasks?.length ? ` · ${project.templateTasks.length} tarefas padrão` : ''}</option>`).join('')}
+                <option value="">Sem template</option>
+                ${draftTemplates.map((project) => `<option value="${project.id}">${project.name}${project.templateTasks?.length ? ` · ${project.templateTasks.length} tarefas` : ''}</option>`).join('')}
               </select>
             </div>
-            <div class="projects-task-picker">
-              <div class="projects-suggest-title">Linkar tarefas agora</div>
+
+            <details class="projects-collapsible ${taskCandidates.length > 0 ? 'is-open' : ''}" ${taskCandidates.length > 0 ? 'open' : ''}>
+              <summary>Linkar tarefas agora ${taskCandidates.length > 0 ? `<span>${taskCandidates.length}</span>` : ''}</summary>
               ${taskCandidates.length > 0 ? `
                 <div class="projects-task-list">
                   ${taskCandidates.map((item) => `
@@ -6297,112 +6301,121 @@ function renderProjectsView() {
                     </label>
                   `).join('')}
                 </div>
-              ` : '<div class="finance-empty">Nenhuma tarefa solta disponível pra vincular agora.</div>'}
-            </div>
+              ` : '<div class="finance-empty">Nenhuma tarefa solta disponível agora.</div>'}
+            </details>
+
             <div class="projects-create-actions">
-              <button class="btn-secondary" style="width:auto;padding:12px 18px;" onclick="createProjectQuick()">Criar sem linkar</button>
-              <button class="btn-primary" style="width:auto;padding:12px 18px;" onclick="createProjectWithLinks()">Criar e linkar tarefas</button>
+              <button class="btn-secondary" style="width:auto;padding:12px 18px;" onclick="createProjectQuick()">Criar rápido</button>
+              <button class="btn-primary" style="width:auto;padding:12px 18px;" onclick="createProjectWithLinks()">Criar projeto</button>
             </div>
           </div>
         </section>
 
-        <section class="finance-card">
-          <div class="finance-card-head finance-card-head--dense"><div><h3>Projetos ativos</h3><p>Agora com visão de vínculo, não só de status.</p></div></div>
+        <section class="finance-card projects-list-card">
+          <div class="finance-card-head finance-card-head--dense"><div><h3>Projetos</h3><p>${analytics.projects.length > 0 ? `${analytics.projects.length} projeto(s) no total` : 'Ainda não tem projeto criado.'}</p></div></div>
           <div class="projects-list">
             ${analytics.projects.length > 0 ? analytics.projects.map((project) => {
               const linkedTasks = collectProjectTaskCandidates({ includeLinked: true, max: 8, projectId: project.id });
               const templateTextareaId = `projectTemplate_${project.id}`;
               return `
-                <div class="projects-row projects-row--stacked">
-                  <div class="projects-row-top">
-                    <div class="projects-row-title">
+                <details class="projects-item ${project.isDraft ? 'projects-item--draft' : ''}" ${analytics.projects.length === 1 ? 'open' : ''}>
+                  <summary class="projects-item-summary">
+                    <div class="projects-item-main">
                       <div class="projects-row-badges">
                         <span class="projects-badge ${project.isDraft ? 'projects-badge--draft' : 'projects-badge--active'}">${project.isDraft ? 'Rascunho' : 'Ativo'}</span>
                         ${project.serviceType ? `<span class="projects-badge">${project.serviceType}</span>` : ''}
-                        ${project.deadline ? `<span class="projects-badge">Prazo ${project.deadline}</span>` : ''}
                       </div>
                       <strong>${project.name}</strong>
                       <p>${project.clientName || 'sem cliente'} • ${project.tasks} tarefa(s) • ${project.completionRate}% concluído</p>
                     </div>
-                    <div class="projects-row-metrics">
-                      <span class="projects-metric">${formatBRL(project.income)}</span>
-                      <small>${project.income > 0 ? `lucro ${formatBRL(project.profit)}` : 'sem receita ligada'}</small>
+                    <div class="projects-item-side">
+                      <span class="projects-metric">${formatBRL(project.closedValue || project.income || 0)}</span>
+                      <small>${project.deadline ? `prazo ${project.deadline}` : 'sem prazo'}</small>
+                    </div>
+                  </summary>
+
+                  <div class="projects-item-body">
+                    <div class="projects-health-grid">
+                      <div class="projects-health-card"><span>Meta</span><strong>${formatBRL(project.expectedValue || 0)}</strong></div>
+                      <div class="projects-health-card"><span>Fechado</span><strong>${formatBRL(project.closedValue || 0)}</strong></div>
+                      <div class="projects-health-card"><span>Gap</span><strong>${formatBRL((project.expectedValue || 0) - (project.closedValue || 0))}</strong></div>
+                    </div>
+
+                    <div class="projects-config-grid">
+                      <label class="projects-config-field"><span>Prazo</span><input class="finance-input" type="date" value="${project.deadline || ''}" onchange="updateProjectField('${project.id}','deadline',this.value)"></label>
+                      <label class="projects-config-field"><span>Tipo</span><input class="finance-input" type="text" value="${project.serviceType || ''}" placeholder="Shopify, LP, etc" onchange="updateProjectField('${project.id}','serviceType',this.value)"></label>
+                      <label class="projects-config-field"><span>Meta</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.expectedValue || 0)}" onchange="updateProjectField('${project.id}','expectedValue',this.value)"></label>
+                      <label class="projects-config-field"><span>Fechado</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.closedValue || 0)}" onchange="updateProjectField('${project.id}','closedValue',this.value)"></label>
+                    </div>
+
+                    <div class="projects-toggle-row">
+                      <label class="projects-toggle-pill"><input type="checkbox" ${project.isDraft ? 'checked' : ''} onchange="updateProjectField('${project.id}','isDraft',this.checked)"><span>Usar como template</span></label>
+                      <label class="projects-toggle-pill"><input type="checkbox" ${project.collapseSubtasks !== false ? 'checked' : ''} onchange="updateProjectField('${project.id}','collapseSubtasks',this.checked)"><span>Minimizar subtarefas</span></label>
+                    </div>
+
+                    <div class="projects-item-sections">
+                      <div class="projects-template-block">
+                        <div class="projects-linked-header">Tarefas padrão</div>
+                        <textarea id="${templateTextareaId}" class="finance-input projects-template-textarea" placeholder="Uma tarefa por linha">${(project.templateTasks || []).join('\n')}</textarea>
+                        <div class="projects-template-actions"><button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="saveProjectTemplateTasks('${project.id}','${templateTextareaId}')">Salvar</button></div>
+                      </div>
+
+                      <div class="projects-linked-block">
+                        <div class="projects-linked-header">Tarefas vinculadas</div>
+                        ${linkedTasks.length > 0 ? `
+                          <div class="projects-linked-list">
+                            ${linkedTasks.map((item) => `
+                              <div class="projects-linked-item">
+                                <div>
+                                  <strong>${item.task.text}</strong>
+                                  <p>${item.dateStr} • ${item.period}</p>
+                                </div>
+                                <button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="unlinkTaskFromProject('${item.dateStr}','${item.period}',${item.index})">Desvincular</button>
+                              </div>
+                            `).join('')}
+                          </div>
+                        ` : '<div class="finance-empty">Nenhuma tarefa ligada.</div>'}
+                      </div>
                     </div>
                   </div>
-                  <div class="projects-health-grid">
-                    <div class="projects-health-card"><span>Meta</span><strong>${formatBRL(project.expectedValue || 0)}</strong></div>
-                    <div class="projects-health-card"><span>Fechado</span><strong>${formatBRL(project.closedValue || 0)}</strong></div>
-                    <div class="projects-health-card"><span>Gap</span><strong>${formatBRL((project.expectedValue || 0) - (project.closedValue || 0))}</strong></div>
-                  </div>
-                  <div class="projects-config-grid">
-                    <label class="projects-config-field"><span>Prazo</span><input class="finance-input" type="date" value="${project.deadline || ''}" onchange="updateProjectField('${project.id}','deadline',this.value)"></label>
-                    <label class="projects-config-field"><span>Tipo</span><input class="finance-input" type="text" value="${project.serviceType || ''}" placeholder="Shopify, LP, etc" onchange="updateProjectField('${project.id}','serviceType',this.value)"></label>
-                    <label class="projects-config-field"><span>Quanto preciso ganhar</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.expectedValue || 0)}" onchange="updateProjectField('${project.id}','expectedValue',this.value)"></label>
-                    <label class="projects-config-field"><span>Quanto estou ganhando</span><input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.closedValue || 0)}" onchange="updateProjectField('${project.id}','closedValue',this.value)"></label>
-                  </div>
-                  <div class="projects-toggle-row">
-                    <label class="projects-toggle-pill"><input type="checkbox" ${project.isDraft ? 'checked' : ''} onchange="updateProjectField('${project.id}','isDraft',this.checked)"><span>Salvar como rascunho/template</span></label>
-                    <label class="projects-toggle-pill"><input type="checkbox" ${project.collapseSubtasks !== false ? 'checked' : ''} onchange="updateProjectField('${project.id}','collapseSubtasks',this.checked)"><span>Minimizar subtarefas no Flowly</span></label>
-                  </div>
-                  <div class="projects-template-block">
-                    <div class="projects-linked-header">Tarefas padrão do rascunho</div>
-                    <textarea id="${templateTextareaId}" class="finance-input projects-template-textarea" placeholder="Uma tarefa por linha. Ex: criar logo&#10;configurar tema&#10;subir produtos">${(project.templateTasks || []).join('\n')}</textarea>
-                    <div class="projects-template-actions"><button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="saveProjectTemplateTasks('${project.id}','${templateTextareaId}')">Salvar tarefas padrão</button></div>
-                  </div>
-                  <div class="projects-linked-block">
-                    <div class="projects-linked-header">Tarefas vinculadas</div>
-                    ${linkedTasks.length > 0 ? `
-                      <div class="projects-linked-list">
-                        ${linkedTasks.map((item) => `
-                          <div class="projects-linked-item">
-                            <div>
-                              <strong>${item.task.text}</strong>
-                              <p>${item.dateStr} • ${item.period}</p>
-                            </div>
-                            <button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="unlinkTaskFromProject('${item.dateStr}','${item.period}',${item.index})">Desvincular</button>
-                          </div>
-                        `).join('')}
-                      </div>
-                    ` : '<div class="finance-empty">Nenhuma tarefa ligada ainda.</div>'}
-                  </div>
-                </div>
+                </details>
               `;
             }).join('') : '<div class="finance-empty">Nenhum projeto criado ainda.</div>'}
           </div>
         </section>
       </section>
 
-      <section class="projects-grid">
-        <section class="finance-card">
-          <div class="finance-card-head finance-card-head--dense"><div><h3>Sugestões automáticas</h3><p>O que o sistema acha que ainda deveria ser ligado.</p></div></div>
-          <div class="projects-suggestions">
+      ${(analytics.suggestionTasks.length > 0 || analytics.suggestionTransactions.length > 0) ? `
+        <section class="finance-card projects-suggestions-card">
+          <div class="finance-card-head finance-card-head--dense"><div><h3>Sugestões</h3><p>Vínculos que o Flowly acha que fazem sentido.</p></div></div>
+          <div class="projects-suggestions projects-suggestions--split">
             <div>
-              <div class="projects-suggest-title">Tarefas repetidas / com nome reconhecido</div>
+              <div class="projects-suggest-title">Tarefas</div>
               ${analytics.suggestionTasks.length > 0 ? analytics.suggestionTasks.map((item) => `
                 <div class="projects-suggest-item">
                   <div>
                     <strong>${item.text}</strong>
-                    <p>${item.dateStr} • sugerido: ${item.suggestion.name}</p>
+                    <p>${item.suggestion.name}</p>
                   </div>
                   <button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="applySuggestedTaskProject('${item.dateStr}','${item.period}',${item.index},'${item.suggestion.id}')">Aplicar</button>
                 </div>
-              `).join('') : '<div class="finance-empty">Nenhuma tarefa pendente de sugestão agora.</div>'}
+              `).join('') : '<div class="finance-empty">Nada por aqui.</div>'}
             </div>
             <div>
-              <div class="projects-suggest-title">Receitas com projeto provável</div>
+              <div class="projects-suggest-title">Receitas</div>
               ${analytics.suggestionTransactions.length > 0 ? analytics.suggestionTransactions.map((item) => `
                 <div class="projects-suggest-item">
                   <div>
                     <strong>${item.transaction.description}</strong>
-                    <p>${formatBRL(item.transaction.amount)} • sugerido: ${item.suggestion.name}</p>
+                    <p>${formatBRL(item.transaction.amount)} • ${item.suggestion.name}</p>
                   </div>
                   <button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="applySuggestedTransactionProject('${item.transaction.id}','${item.suggestion.id}')">Aplicar</button>
                 </div>
-              `).join('') : '<div class="finance-empty">Nenhuma receita pendente de sugestão agora.</div>'}
+              `).join('') : '<div class="finance-empty">Nada por aqui.</div>'}
             </div>
           </div>
         </section>
-      </section>
+      ` : ''}
     </div>`;
 }
 
