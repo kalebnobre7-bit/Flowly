@@ -5020,12 +5020,15 @@ body.dragging-active .task-drop-zone {
 .projects-grid--setup { grid-template-columns:minmax(360px,0.9fr) minmax(0,1.1fr); align-items:start; }
 .projects-grid--compact { gap:14px; }
 .projects-list, .projects-suggestions, .projects-create-form, .projects-task-list, .projects-linked-list, .projects-template-block, .projects-item-main, .projects-item-body, .projects-item-sections { display:flex; flex-direction:column; gap:12px; }
-.projects-form-row, .projects-create-actions, .projects-toggle-row, .projects-template-actions, .projects-row-badges { display:flex; gap:12px; }
+.projects-form-row, .projects-create-actions, .projects-toggle-row, .projects-template-actions, .projects-row-badges, .projects-row-actions, .projects-filters-bar { display:flex; gap:12px; }
 .projects-form-row .finance-input { flex:1; }
 .projects-task-option, .projects-linked-item, .projects-suggest-item { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px 16px; }
 .projects-task-option input { margin-top:4px; accent-color:#60a5fa; }
 .projects-task-option strong, .projects-linked-item strong, .projects-suggest-item strong, .projects-suggest-title, .projects-linked-header, .projects-item-main strong { color:var(--text-primary); }
 .projects-task-option p, .projects-linked-item p, .projects-suggest-item p, .projects-item-main p { color:var(--text-secondary); }
+.projects-filters-bar { flex-wrap:wrap; }
+.projects-filter-chip { border:none; background:rgba(255,255,255,0.04); color:var(--text-secondary); padding:10px 14px; border-radius:999px; cursor:pointer; font-size:12px; font-weight:700; }
+.projects-filter-chip.is-active { background:rgba(96,165,250,0.14); color:#dbeafe; box-shadow:0 0 0 1px rgba(96,165,250,0.22) inset; }
 .projects-collapsible { border-top:1px solid rgba(255,255,255,0.06); padding-top:10px; }
 .projects-collapsible summary { display:flex; align-items:center; justify-content:space-between; cursor:pointer; list-style:none; color:#bfdbfe; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px; }
 .projects-collapsible summary::-webkit-details-marker { display:none; }
@@ -5043,6 +5046,9 @@ body.dragging-active .task-drop-zone {
 .projects-badge--paid { background:rgba(34,197,94,0.12); border-color:rgba(34,197,94,0.25); color:#bbf7d0; }
 .projects-badge--unpaid { background:rgba(244,63,94,0.12); border-color:rgba(244,63,94,0.25); color:#fecdd3; }
 .projects-badge--late { background:rgba(249,115,22,0.12); border-color:rgba(249,115,22,0.25); color:#fdba74; }
+.projects-badge--archived { background:rgba(148,163,184,0.12); border-color:rgba(148,163,184,0.25); color:#cbd5e1; }
+.projects-badge--done { background:rgba(99,102,241,0.12); border-color:rgba(99,102,241,0.25); color:#c7d2fe; }
+.projects-badge--done-paid { background:rgba(16,185,129,0.16); border-color:rgba(16,185,129,0.28); color:#a7f3d0; }
 .projects-health-grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
 .projects-health-grid--four { grid-template-columns:repeat(4, minmax(0,1fr)); }
 .projects-health-card { padding:12px 14px; border-radius:18px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03); }
@@ -5060,4 +5066,4 @@ body.dragging-active .task-drop-zone {
 .projects-suggestions--split { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; }
 .projects-suggest-title, .projects-linked-header { font-size:12px; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px; color:#bfdbfe; }
 @media (max-width: 1200px) { .projects-topbar, .projects-grid, .projects-grid--setup, .projects-suggestions--split { grid-template-columns:1fr; display:grid; } .projects-topbar-stats { min-width:0; } }
-@media (max-width: 720px) { .projects-topbar { display:flex; flex-direction:column; align-items:stretch; } .projects-topbar-stats, .projects-config-grid, .projects-config-grid--project-meta, .projects-health-grid, .projects-health-grid--four, .projects-suggestions--split { grid-template-columns:1fr; } .projects-form-row, .projects-create-actions, .projects-task-option, .projects-linked-item, .projects-toggle-row, .projects-row-badges, .projects-item-summary { flex-direction:column; } .projects-item-side { text-align:left; } }
+@media (max-width: 720px) { .projects-topbar { display:flex; flex-direction:column; align-items:stretch; } .projects-topbar-stats, .projects-config-grid, .projects-config-grid--project-meta, .projects-health-grid, .projects-health-grid--four, .projects-suggestions--split { grid-template-columns:1fr; } .projects-form-row, .projects-create-actions, .projects-task-option, .projects-linked-item, .projects-toggle-row, .projects-row-badges, .projects-item-summary, .projects-row-actions, .projects-filters-bar { flex-direction:column; } .projects-item-side { text-align:left; } }

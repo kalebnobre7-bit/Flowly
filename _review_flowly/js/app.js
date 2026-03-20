@@ -6263,6 +6263,82 @@ window.applySuggestedTransactionProject = function (transactionId, projectId) {
   if (currentView === 'finance') renderFinanceView();
 };
 
+let projectsFilter = 'all';
+window.setProjectsFilter = function (filter) {
+  projectsFilter = filter || 'all';
+  renderProjectsView();
+};
+
+window.addTaskInsideProject = function (projectId) {
+  const text = prompt('Nome da tarefa:');
+  if (!text || !text.trim()) return;
+  const dateStr = localDateStr();
+  const period = 'Tarefas';
+  const project = findProjectById(projectId);
+  if (!project) return;
+  const currentList = allTasksData[dateStr]?.[period] || [];
+  const newTask = {
+    text: text.trim(),
+    completed: false,
+    color: 'default',
+    type: 'OPERATIONAL',
+    priority: null,
+    parent_id: null,
+    position: currentList.length,
+    isHabit: false,
+    supabaseId: null,
+    createdAt: new Date().toISOString(),
+    completedAt: null,
+    projectId: project.id,
+    projectName: project.name
+  };
+  if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+  if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
+  allTasksData[dateStr][period].push(newTask);
+  saveToLocalStorage();
+  syncTaskToSupabase(dateStr, period, newTask);
+  if (currentView === 'projects') renderProjectsView();
+  renderView();
+};
+
+window.archiveProject = function (projectId) {
+  if (!confirm('Tem certeza que quer arquivar esse projeto?')) return;
+  updateProjectRecord(projectId, (project) => ({ ...project, status: 'archived' }));
+  if (currentView === 'projects') renderProjectsView();
+};
+
+window.deleteProject = function (projectId) {
+  if (!confirm('Remover esse projeto permanentemente?')) return;
+  projectsState = normalizeProjectsState(projectsState);
+  projectsState.projects = projectsState.projects.filter((p) => p.id !== projectId);
+  persistProjectsStateLocal();
+  scheduleProjectsSync();
+  if (currentView === 'projects') renderProjectsView();
+};
+
+function getProjectStatus(project, today) {
+  if (project.isDraft || project.status === 'draft') return { label: 'Rascunho', cls: 'projects-badge--draft' };
+  if (project.status === 'archived') return { label: 'Arquivado', cls: 'projects-badge--archived' };
+  if (project.completionDate) {
+    if (project.isPaid) return { label: 'Concluído e pago', cls: 'projects-badge--done-paid' };
+    return { label: 'Concluído', cls: 'projects-badge--done' };
+  }
+  if (project.deadline && project.deadline < today) return { label: 'Atrasado', cls: 'projects-badge--late' };
+  return { label: 'Em andamento', cls: 'projects-badge--active' };
+}
+
+function filterProjects(projects, filter, today) {
+  if (filter === 'all') return projects;
+  if (filter === 'active') return projects.filter((p) => !p.completionDate && !p.isDraft && p.status !== 'archived');
+  if (filter === 'late') return projects.filter((p) => !p.completionDate && p.deadline && p.deadline < today && !p.isDraft);
+  if (filter === 'paid') return projects.filter((p) => p.isPaid);
+  if (filter === 'unpaid') return projects.filter((p) => !p.isPaid && !p.isDraft);
+  if (filter === 'draft') return projects.filter((p) => p.isDraft || p.status === 'draft');
+  if (filter === 'done') return projects.filter((p) => !!p.completionDate);
+  if (filter === 'archived') return projects.filter((p) => p.status === 'archived');
+  return projects;
+}
+
 function renderProjectsView() {
   const view = document.getElementById('projectsView');
   if (!view) return;
@@ -6270,9 +6346,15 @@ function renderProjectsView() {
   const formatBRL = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
   const taskCandidates = collectProjectTaskCandidates({ includeLinked: false, max: 12 });
   const draftTemplates = getProjectOptions().filter((project) => project.isDraft || project.status === 'draft');
-  const activeCount = analytics.projects.filter((p) => !p.isDraft && p.status === 'active').length;
-  const draftCount = analytics.projects.filter((p) => p.isDraft || p.status === 'draft').length;
   const today = localDateStr();
+  const allProjects = analytics.projects;
+  const filteredProjects = filterProjects(allProjects, projectsFilter, today);
+  const activeCount = allProjects.filter((p) => !p.isDraft && !p.completionDate && p.status !== 'archived').length;
+  const lateCount = allProjects.filter((p) => !p.completionDate && p.deadline && p.deadline < today && !p.isDraft).length;
+  const draftCount = allProjects.filter((p) => p.isDraft || p.status === 'draft').length;
+  const paidCount = allProjects.filter((p) => p.isPaid).length;
+  const unpaidCount = allProjects.filter((p) => !p.isPaid && !p.isDraft).length;
+  const totalRevenue = allProjects.reduce((s,p) => s + (p.expectedValue || 0), 0);
 
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--wide projects-shell projects-shell--clean">
@@ -6284,9 +6366,18 @@ function renderProjectsView() {
         </div>
         <div class="projects-topbar-stats">
           <div class="projects-mini-stat"><span>Ativos</span><strong>${activeCount}</strong></div>
-          <div class="projects-mini-stat"><span>Rascunhos</span><strong>${draftCount}</strong></div>
-          <div class="projects-mini-stat"><span>Receita</span><strong>${formatBRL(analytics.projects.reduce((s,p)=>s+p.income,0))}</strong></div>
+          <div class="projects-mini-stat"><span>Atrasados</span><strong>${lateCount}</strong></div>
+          <div class="projects-mini-stat"><span>Receita potencial</span><strong>${formatBRL(totalRevenue)}</strong></div>
         </div>
+      </section>
+
+      <section class="projects-filters-bar">
+        <button class="projects-filter-chip ${projectsFilter === 'all' ? 'is-active' : ''}" onclick="setProjectsFilter('all')">Todos</button>
+        <button class="projects-filter-chip ${projectsFilter === 'active' ? 'is-active' : ''}" onclick="setProjectsFilter('active')">Ativos (${activeCount})</button>
+        <button class="projects-filter-chip ${projectsFilter === 'late' ? 'is-active' : ''}" onclick="setProjectsFilter('late')">Atrasados (${lateCount})</button>
+        <button class="projects-filter-chip ${projectsFilter === 'paid' ? 'is-active' : ''}" onclick="setProjectsFilter('paid')">Pagos (${paidCount})</button>
+        <button class="projects-filter-chip ${projectsFilter === 'unpaid' ? 'is-active' : ''}" onclick="setProjectsFilter('unpaid')">Não pagos (${unpaidCount})</button>
+        <button class="projects-filter-chip ${projectsFilter === 'draft' ? 'is-active' : ''}" onclick="setProjectsFilter('draft')">Rascunhos (${draftCount})</button>
       </section>
 
       <section class="projects-grid projects-grid--setup projects-grid--compact">
@@ -6341,9 +6432,9 @@ function renderProjectsView() {
         </section>
 
         <section class="finance-card projects-list-card">
-          <div class="finance-card-head finance-card-head--dense"><div><h3>Projetos</h3><p>${analytics.projects.length > 0 ? `${analytics.projects.length} projeto(s) no total` : 'Ainda não tem projeto criado.'}</p></div></div>
+          <div class="finance-card-head finance-card-head--dense"><div><h3>Projetos</h3><p>${filteredProjects.length > 0 ? `${filteredProjects.length} projeto(s) nessa visão` : 'Nada nessa visão agora.'}</p></div></div>
           <div class="projects-list">
-            ${analytics.projects.length > 0 ? analytics.projects.map((project) => {
+            ${filteredProjects.length > 0 ? filteredProjects.map((project) => {
               const linkedTasks = collectProjectTaskCandidates({ includeLinked: true, max: 8, projectId: project.id });
               const templateTextareaId = `projectTemplate_${project.id}`;
               const isLate = !project.completionDate && project.deadline && project.deadline < today;
@@ -6387,6 +6478,12 @@ function renderProjectsView() {
                     <div class="projects-toggle-row">
                       <label class="projects-toggle-pill"><input type="checkbox" ${project.isDraft ? 'checked' : ''} onchange="updateProjectField('${project.id}','isDraft',this.checked)"><span>Usar como template</span></label>
                       <label class="projects-toggle-pill"><input type="checkbox" ${project.collapseSubtasks !== false ? 'checked' : ''} onchange="updateProjectField('${project.id}','collapseSubtasks',this.checked)"><span>Recolher tarefas do projeto na lista</span></label>
+                    </div>
+
+                    <div class="projects-row-actions">
+                      <button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="addTaskInsideProject('${project.id}')">Adicionar tarefa</button>
+                      ${project.status !== 'archived' ? `<button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="archiveProject('${project.id}')">Arquivar</button>` : ''}
+                      <button class="btn-secondary" style="width:auto;padding:8px 12px;" onclick="deleteProject('${project.id}')">Remover</button>
                     </div>
 
                     <div class="projects-item-sections">
