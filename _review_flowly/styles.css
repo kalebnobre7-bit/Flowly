@@ -610,6 +610,37 @@ body.no-week-hover .day-column:hover {
 }
 
 /* Typography - clean */
+.task-collapse-btn,
+.task-collapse-spacer {
+    width: 34px;
+    min-width: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-right: 4px;
+    color: rgba(255,255,255,0.38);
+    flex-shrink: 0;
+}
+
+.task-collapse-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.task-collapse-btn:hover {
+    color: #dbeafe;
+}
+
+.task-collapse-btn span {
+    font-size: 10px;
+    opacity: 0.8;
+}
+
 .task-label {
     font-size: 14px;
     line-height: 1.55;

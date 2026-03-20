@@ -364,6 +364,7 @@ let weeklyRecurringTasks = safeJSONParse(localStorage.getItem('weeklyRecurringTa
 
 // Estrutura expandida: armazena tarefas por data ISO (YYYY-MM-DD) e período
 let allTasksData = safeJSONParse(localStorage.getItem('allTasksData'), {});
+let collapsedTaskGroups = safeJSONParse(localStorage.getItem('flowlyCollapsedTaskGroups'), {});
 
 // Compatibilidade: estrutura antiga para a semana atual
 const weekData = {
@@ -7499,6 +7500,38 @@ function renderWeek() {
 }
 
 // Função de Ordenação Unificada (Regra: Rotina -> Concluídas -> Pendentes)
+function getTaskTreeId(task) {
+  if (!task) return '';
+  return String(task.supabaseId || task.text || '').trim();
+}
+
+function persistCollapsedTaskGroups() {
+  localStorage.setItem('flowlyCollapsedTaskGroups', JSON.stringify(collapsedTaskGroups || {}));
+}
+
+function isTaskGroupCollapsed(task) {
+  const id = getTaskTreeId(task);
+  return Boolean(id && collapsedTaskGroups && collapsedTaskGroups[id] === true);
+}
+
+function getTaskChildrenCount(dateStr, period, task) {
+  const list = allTasksData?.[dateStr]?.[period] || [];
+  const parentId = getTaskTreeId(task);
+  if (!parentId) return 0;
+  return list.filter((item) => item && item.parent_id === parentId).length;
+}
+
+window.toggleTaskChildrenCollapse = function (dateStr, period, index) {
+  const task = allTasksData?.[dateStr]?.[period]?.[index];
+  if (!task) return;
+  const id = getTaskTreeId(task);
+  if (!id) return;
+  collapsedTaskGroups[id] = !collapsedTaskGroups[id];
+  if (!collapsedTaskGroups[id]) delete collapsedTaskGroups[id];
+  persistCollapsedTaskGroups();
+  renderView();
+};
+
 function isProjectSubtasksCollapsed(task) {
   if (!task || !task.projectId) return false;
   const project = findProjectById(task.projectId);
@@ -7573,7 +7606,8 @@ function unifiedTaskSort(taskList) {
     flattened.push(item);
 
     const id = item.task.supabaseId || item.task.text;
-    if (childrenMap.has(id) && !isProjectSubtasksCollapsed(item.task)) {
+    const shouldCollapseChildren = isTaskGroupCollapsed(item.task) || isProjectSubtasksCollapsed(item.task);
+    if (childrenMap.has(id) && !shouldCollapseChildren) {
       const children = childrenMap.get(id);
       children.sort(sortFn);
       children.forEach((child) => traverse(child, depth + 1));
@@ -8617,6 +8651,27 @@ function createTaskElement(day, dateStr, period, task, index) {
       }
     }
   };
+
+  const childrenCount = normalizedIndex >= 0 ? getTaskChildrenCount(dateStr, period, task) : 0;
+  const hasChildren = childrenCount > 0;
+  const isCollapsed = hasChildren ? isTaskGroupCollapsed(task) : false;
+
+  if (hasChildren) {
+    const collapseBtn = document.createElement('button');
+    collapseBtn.className = 'task-collapse-btn';
+    collapseBtn.type = 'button';
+    collapseBtn.innerHTML = `${isCollapsed ? '▶' : '▼'} <span>${childrenCount}</span>`;
+    collapseBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.toggleTaskChildrenCollapse(dateStr, period, normalizedIndex);
+    };
+    el.appendChild(collapseBtn);
+  } else if (task.depth && task.depth > 0) {
+    const collapseSpacer = document.createElement('span');
+    collapseSpacer.className = 'task-collapse-spacer';
+    el.appendChild(collapseSpacer);
+  }
 
   // Label (criado primeiro para ser referenciado pelos callbacks)
   // Label (criado primeiro para ser referenciado pelos callbacks)
