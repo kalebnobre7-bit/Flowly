@@ -1315,9 +1315,6 @@ function saveToLocalStorage() {
 }
 
 // ===== DRAG AND DROP =====
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-}
 
 // Retorna tarefas de rotina para exibição (NÃO persiste em allTasksData)
 function getRoutineTasksForDate(dateStr) {
@@ -6106,7 +6103,7 @@ window.openQuickProjectModal = function () {
   overlay.id = 'projectsQuickModal';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
 
-  overlay.innerHTML = \`
+  overlay.innerHTML = `
     <div style="background:#12121c;border:1px solid rgba(255,255,255,0.1);border-radius:28px;padding:36px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:20px;box-shadow:0 32px 80px rgba(0,0,0,0.6);">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
@@ -6145,7 +6142,7 @@ window.openQuickProjectModal = function () {
         <button onclick="document.getElementById('projectsQuickModal').remove()" class="btn-secondary" style="width:auto;padding:13px 20px;border-radius:16px">Cancelar</button>
         <button onclick="quickCreateProject()" class="btn-primary" style="width:auto;padding:13px 20px;border-radius:16px;background:#4D6BFE">Criar projeto</button>
       </div>
-    </div>\`;
+    </div>`;
 
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
