@@ -60,7 +60,7 @@ let eventBus = null;
 let errorHandler = null;
 let viewDispatcher = null;
 let currentView = 'today';
-let draggedTask = null;
+let draggedTask = null; // usado pelo sistema real de D&D (handleDragStart / handleDropZoneDrop)
 let currentEditingTask = null;
 const width = 600;
 let currentWeekOffset = 0; // 0 = semana atual, -1 = semana passada, +1 = próxima semana
@@ -1315,40 +1315,6 @@ function saveToLocalStorage() {
 }
 
 // ===== DRAG AND DROP =====
-let dragState = {
-  sourceDate: null,
-  sourcePeriod: null,
-  sourceIndex: null,
-  taskData: null
-};
-
-function handleDragStart(e) {
-  const el = e.target;
-  const dateStr = el.dataset.date;
-  const period = el.dataset.period;
-  const index = parseInt(el.dataset.index);
-
-  if (index === -1) return; // Tarefas recorrentes não podem ser arrastadas
-
-  const tasksArray = allTasksData[dateStr]?.[period] || [];
-  const task = tasksArray[index];
-
-  dragState.sourceDate = dateStr;
-  dragState.sourcePeriod = period;
-  dragState.sourceIndex = index;
-  dragState.taskData = { ...task };
-
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', JSON.stringify(dragState));
-  el.style.opacity = '0.4';
-}
-
-function handleDragEnd(e) {
-  e.target.style.opacity = '1';
-  document.querySelectorAll('.drop-zone').forEach((dz) => dz.classList.remove('active'));
-}
-
-function handleDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
 }
@@ -1409,171 +1375,38 @@ function reorderRoutineTasksForDate(dateStr, sourceRoutineKey, insertAt) {
   return true;
 }
 
-function handleDrop(e) {
+// Fallback: drop na coluna (não em drop zone) → insere no fim da lista do dia
+function columnDropFallback(e) {
   e.preventDefault();
   e.stopPropagation();
+  if (!draggedTask || draggedTask.isRoutineDrag) return;
 
-  if (!dragState.taskData) return;
-
-  // Determinar período de destino
-  // Se dropped na coluna (currentTarget), usa dataset da coluna.
-  // Se dropped em dropZone específica, usa dataset dela.
-  let targetDate, targetPeriod, insertAt;
-
-  const dropZone = e.target.closest('.drop-zone');
   const col = e.target.closest('.day-column');
+  if (!col) return;
 
-  if (dropZone) {
-    targetDate = dropZone.dataset.date;
-    targetPeriod = dropZone.dataset.period;
-    insertAt = parseInt(dropZone.dataset.insertAt);
-  } else if (col) {
-    targetDate = col.dataset.date;
-    targetPeriod = 'Tarefas';
-    insertAt = 999999;
-  } else {
-    return; // Drop inválido
-  }
+  const targetDateStr = col.dataset.date;
+  const targetPeriod = 'Tarefas';
+  const sourceDateStr = draggedTask.dateStr;
+  const sourcePeriod = draggedTask.period;
+  const sourceIndex = draggedTask.index;
 
-  // Remover da posição antiga
-  const sourceArray = allTasksData[dragState.sourceDate]?.[dragState.sourcePeriod];
-  if (sourceArray) {
-    sourceArray.splice(dragState.sourceIndex, 1);
+  const task = allTasksData[sourceDateStr]?.[sourcePeriod]?.[sourceIndex];
+  if (!task) return;
 
-    // Ajustar index se for a mesma lista e moveu pra cima
-    if (
-      dragState.sourceDate === targetDate &&
-      dragState.sourcePeriod === targetPeriod &&
-      dragState.sourceIndex < insertAt
-    ) {
-      insertAt--;
-    }
+  // Remover da posição original
+  allTasksData[sourceDateStr][sourcePeriod].splice(sourceIndex, 1);
 
-    // Limpar período vazio
-    if (sourceArray.length === 0) {
-      delete allTasksData[dragState.sourceDate][dragState.sourcePeriod];
-    }
-  }
+  // Inserir no fim do dia de destino
+  if (!allTasksData[targetDateStr]) allTasksData[targetDateStr] = {};
+  if (!allTasksData[targetDateStr][targetPeriod]) allTasksData[targetDateStr][targetPeriod] = [];
+  allTasksData[targetDateStr][targetPeriod].push(task);
 
-  // Adicionar na nova posição
-  if (!allTasksData[targetDate]) allTasksData[targetDate] = {};
-  if (!allTasksData[targetDate][targetPeriod]) allTasksData[targetDate][targetPeriod] = [];
-
-  // Inserir na posição correta (insertAt)
-  // Se insertAt for muito grande, splice coloca no final, que é o comportamento desejado para colunas
-  // Se insertAt for indefinido?
-  if (isNaN(insertAt)) insertAt = allTasksData[targetDate][targetPeriod].length;
-
-  allTasksData[targetDate][targetPeriod].splice(insertAt, 0, dragState.taskData);
-
-  // SALVAR!
   saveToLocalStorage();
+  syncDateToSupabase(sourceDateStr);
+  if (targetDateStr !== sourceDateStr) syncDateToSupabase(targetDateStr);
 
-  // Sincronizar com Supabase
-  if (typeof syncDateToSupabase === 'function') {
-    syncDateToSupabase(dragState.sourceDate);
-    if (targetDate !== dragState.sourceDate) {
-      syncDateToSupabase(targetDate);
-    }
-  }
-
-  // Limpar estado
-  dragState = {
-    sourceDate: null,
-    sourcePeriod: null,
-    sourceIndex: null,
-    taskData: null
-  };
-
-  document
-    .querySelectorAll('.day-column, .drop-zone')
-    .forEach((el) => el.classList.remove('active', 'drag-over'));
-
-  // Re-renderizar
+  draggedTask = null;
   renderView();
-}
-
-function createDropZone(day, dateStr, period, index) {
-  const dz = document.createElement('div');
-  dz.className = 'drop-zone';
-  dz.dataset.date = dateStr;
-  dz.dataset.period = period;
-  dz.dataset.insertAt = index.toString();
-
-  dz.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dz.classList.add('active');
-  });
-
-  dz.addEventListener('dragleave', () => {
-    dz.classList.remove('active');
-  });
-
-  dz.addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dz.classList.remove('active');
-
-    if (!dragState.taskData) return;
-
-    const targetDateStr = dateStr;
-    const targetPeriod = period;
-    let insertAt = parseInt(dz.dataset.insertAt);
-
-    const sourceDateStr = dragState.sourceDate;
-    const sourcePeriod = dragState.sourcePeriod;
-    const sourceIndex = dragState.sourceIndex;
-
-    // Remover da posição antiga
-    const sourceArray = allTasksData[sourceDateStr]?.[sourcePeriod];
-    if (sourceArray) {
-      sourceArray.splice(sourceIndex, 1);
-
-      // Ajustar index se for a mesma lista
-      if (
-        sourceDateStr === targetDateStr &&
-        sourcePeriod === targetPeriod &&
-        sourceIndex < insertAt
-      ) {
-        insertAt--;
-      }
-
-      // Limpar período vazio
-      if (sourceArray.length === 0) {
-        delete allTasksData[sourceDateStr][sourcePeriod];
-      }
-    }
-
-    // Garantir estruturas
-    if (!allTasksData[targetDateStr]) allTasksData[targetDateStr] = {};
-    if (!allTasksData[targetDateStr][targetPeriod]) allTasksData[targetDateStr][targetPeriod] = [];
-
-    // Inserir na nova posição
-    allTasksData[targetDateStr][targetPeriod].splice(insertAt, 0, dragState.taskData);
-
-    // SALVAR!
-    saveToLocalStorage();
-
-    // Sincronizar com Supabase
-    syncDateToSupabase(sourceDateStr);
-    if (targetDateStr !== sourceDateStr) {
-      syncDateToSupabase(targetDateStr);
-    }
-
-    // Limpar estado
-    dragState = {
-      sourceDate: null,
-      sourcePeriod: null,
-      sourceIndex: null,
-      taskData: null
-    };
-
-    // Re-renderizar
-    renderView();
-  });
-
-  return dz;
 }
 
 // Helper Time Formatter (Global)
@@ -7521,9 +7354,9 @@ function renderWeek() {
     col.dataset.day = day;
     col.dataset.date = dateStr;
 
-    // Drag Events
-    col.addEventListener('dragover', handleDragOver);
-    col.addEventListener('drop', handleDrop);
+    // Drag Events (coluna como drop zone de fallback)
+    col.addEventListener('dragover', (e) => e.preventDefault());
+    col.addEventListener('drop', columnDropFallback);
 
     const todayStr = localDateStr();
     const isToday = dateStr === todayStr;
@@ -7854,7 +7687,7 @@ window.toggleTaskStatus = function (dateStr, period, index, isChecked, element) 
 };
 
 function renderToday() {
-  const grid = document.getElementById('weekGrid');
+  const grid = document.getElementById('todayView');
   const todayViewSettings = safeJSONParse(localStorage.getItem('flowly_today_view_settings'), {});
   const focusOnlyMode = todayViewSettings.focusOnlyMode === true;
 
@@ -9394,12 +9227,6 @@ async function syncDateToSupabase(dateStr) {
     _isSyncingDate = false;
   }
 }
-function handleDrop(e) {
-  // Fallback drop on column
-  e.preventDefault();
-  // Logic to drop at end of list if dropped on column
-}
-
 // --- Menus ---
 function showEditToolbar(e, task, label) {
   const toolbar = document.getElementById('editToolbar');
@@ -9719,6 +9546,8 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('offline', () => {
+  // Reset busyCount so finishSyncActivity won't block status transition when coming back online
+  syncStatus.busyCount = 0;
   setSyncStatus('offline', 'Sem conexao. Salvando no dispositivo');
 });
 
@@ -10091,17 +9920,35 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Quick Menu Actions (Add Task, Add Routine, Add Weekly)
-  const btnQuickTask = document.querySelector('[data-action="quick-task"]');
-  if (btnQuickTask) {
-    btnQuickTask.onclick = () => {
-      document.getElementById('quickAddMenu').style.display = 'none';
-      // Scroll to Today and Focus?
-      // Simple: Just focus first empty input of Today if exists?
-      // Or Add new input to Today.
+  const quickAddMenu = document.getElementById('quickAddMenu');
+  const quickAddTypeHandlers = {
+    custom: () => {
+      if (quickAddMenu) quickAddMenu.style.display = 'none';
       const todayStr = localDateStr();
       const container = document.querySelector(`.day-column[data-date="${todayStr}"]`);
       if (container) insertQuickTaskInput(container, todayStr, 'Tarefas');
+    },
+    routine: () => {
+      if (quickAddMenu) quickAddMenu.style.display = 'none';
+      if (typeof showAddRoutineTask === 'function') showAddRoutineTask();
+    },
+    weekly: () => {
+      if (quickAddMenu) quickAddMenu.style.display = 'none';
+      if (typeof showWeeklyRecurrenceDialog === 'function') showWeeklyRecurrenceDialog();
+    }
+  };
+
+  document.querySelectorAll('#quickAddMenu .quick-add-option').forEach((btn) => {
+    btn.onclick = () => {
+      const type = btn.dataset.type || btn.dataset.action;
+      const handler = quickAddTypeHandlers[type];
+      if (handler) handler();
     };
+  });
+
+  const btnQuickTask = document.querySelector('[data-action="quick-task"]');
+  if (btnQuickTask) {
+    btnQuickTask.onclick = quickAddTypeHandlers.custom;
   }
 
   // Refresh Icons
