@@ -5064,6 +5064,8 @@ body.dragging-active .task-drop-zone {
 .projects-template-textarea { min-height:110px; resize:vertical; }
 .projects-metric, .projects-row-metrics .projects-metric { display:block; font-size:20px; font-weight:800; color:#d8fbe5; }
 .projects-suggestions--split { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; }
+.projects-urgent-strip { background:rgba(249,115,22,0.06); border:1px solid rgba(249,115,22,0.15); border-radius:18px; padding:10px 14px; }
+.projects-urgent-strip:hover { background:rgba(249,115,22,0.1); }
 .projects-suggest-title, .projects-linked-header { font-size:12px; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px; color:#bfdbfe; }
 @media (max-width: 1200px) { .projects-topbar, .projects-grid, .projects-grid--setup, .projects-suggestions--split { grid-template-columns:1fr; display:grid; } .projects-topbar-stats { min-width:0; } }
 @media (max-width: 720px) { .projects-topbar { display:flex; flex-direction:column; align-items:stretch; } .projects-topbar-stats, .projects-config-grid, .projects-config-grid--project-meta, .projects-health-grid, .projects-health-grid--four, .projects-suggestions--split { grid-template-columns:1fr; } .projects-form-row, .projects-create-actions, .projects-task-option, .projects-linked-item, .projects-toggle-row, .projects-row-badges, .projects-item-summary, .projects-row-actions, .projects-filters-bar { flex-direction:column; } .projects-item-side { text-align:left; } }

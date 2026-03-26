@@ -6096,6 +6096,111 @@ window.applySuggestedTransactionProject = function (transactionId, projectId) {
   if (currentView === 'finance') renderFinanceView();
 };
 
+
+// === Quick Project Modal (1-click create) ===
+window.openQuickProjectModal = function () {
+  const existing = document.getElementById('projectsQuickModal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'projectsQuickModal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+
+  overlay.innerHTML = \`
+    <div style="background:#12121c;border:1px solid rgba(255,255,255,0.1);border-radius:28px;padding:36px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:20px;box-shadow:0 32px 80px rgba(0,0,0,0.6);">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h2 style="margin:0;font-size:20px;font-weight:800;color:#fff">Novo projeto</h2>
+          <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.4)">Cria em 3 segundos.</p>
+        </div>
+        <button onclick="document.getElementById('projectsQuickModal').remove()" style="background:rgba(255,255,255,0.06);border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;color:rgba(255,255,255,0.6);font-size:18px;display:flex;align-items:center;justify-content:center">x</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Nome do projeto *</label>
+          <input id="qpmName" class="finance-input" type="text" placeholder="Ex: Landing Page - Cliente X" autofocus style="width:100%;box-sizing:border-box">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Cliente</label>
+            <input id="qpmClient" class="finance-input" type="text" placeholder="Nome do cliente" style="width:100%;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Tipo</label>
+            <input id="qpmType" class="finance-input" type="text" placeholder="LP, Loja, etc" style="width:100%;box-sizing:border-box">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Valor (R$)</label>
+            <input id="qpmValue" class="finance-input" type="number" min="0" step="0.01" placeholder="650,00" style="width:100%;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Deadline</label>
+            <input id="qpmDeadline" class="finance-input" type="date" style="width:100%;box-sizing:border-box">
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button onclick="document.getElementById('projectsQuickModal').remove()" class="btn-secondary" style="width:auto;padding:13px 20px;border-radius:16px">Cancelar</button>
+        <button onclick="quickCreateProject()" class="btn-primary" style="width:auto;padding:13px 20px;border-radius:16px;background:#4D6BFE">Criar projeto</button>
+      </div>
+    </div>\`;
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('qpmName') && document.getElementById('qpmName').focus(), 50);
+};
+
+window.quickCreateProject = function () {
+  const name = document.getElementById('qpmName').value.trim();
+  if (!name) { document.getElementById('qpmName').focus(); return; }
+  const newProject = {
+    id: createProjectId('proj'),
+    name,
+    clientName: document.getElementById('qpmClient').value.trim(),
+    serviceType: document.getElementById('qpmType').value.trim(),
+    status: 'active',
+    expectedValue: Number(document.getElementById('qpmValue').value) || 0,
+    deadline: document.getElementById('qpmDeadline').value || '',
+    isPaid: false,
+    isDraft: false,
+    startDate: localDateStr(),
+    completionDate: '',
+    notes: '',
+    templateTasks: [],
+    collapseSubtasks: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  updateProjectRecord(newProject.id, newProject);
+  const modal = document.getElementById('projectsQuickModal');
+  if (modal) modal.remove();
+  renderProjectsView();
+};
+
+function getUrgentProjects(allProjects, days = 5) {
+  const today = new Date();
+  const cutoff = new Date(today);
+  cutoff.setDate(today.getDate() + days);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const todayStr = localDateStr();
+  return allProjects
+    .filter((p) =>
+      !p.isDraft && !p.completionDate && p.status !== 'archived' &&
+      p.deadline && p.deadline >= todayStr && p.deadline <= cutoffStr
+    )
+    .sort((a, b) => String(a.deadline).localeCompare(String(b.deadline)));
+}
+
+function getProjectProgressRate(projectId) {
+  const candidates = collectProjectTaskCandidates({ includeLinked: true, max: 200, projectId });
+  if (candidates.length === 0) return null;
+  const done = candidates.filter((c) => c.task.completed).length;
+  return { done, total: candidates.length, pct: Math.round((done / candidates.length) * 100) };
+}
+
+
 let projectsFilter = 'all';
 window.setProjectsFilter = function (filter) {
   projectsFilter = filter || 'all';
@@ -6181,6 +6286,7 @@ function renderProjectsView() {
   const draftTemplates = getProjectOptions().filter((project) => project.isDraft || project.status === 'draft');
   const today = localDateStr();
   const allProjects = analytics.projects;
+  const urgentProjects = getUrgentProjects(allProjects, 5);
   const filteredProjects = filterProjects(allProjects, projectsFilter, today);
   const activeCount = allProjects.filter((p) => !p.isDraft && !p.completionDate && p.status !== 'archived').length;
   const lateCount = allProjects.filter((p) => !p.completionDate && p.deadline && p.deadline < today && !p.isDraft).length;
@@ -6192,16 +6298,27 @@ function renderProjectsView() {
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--wide projects-shell projects-shell--clean">
       <section class="projects-topbar">
-        <div>
-          <div class="finance-kicker">Projetos</div>
-          <h2>Projetos</h2>
-          <p>Cria, organiza e acompanha sem fricção.</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:16px">
+          <div>
+            <div class="finance-kicker">Projetos</div>
+            <h2 style="margin:2px 0 4px">Projetos</h2>
+            <p style="margin:0;font-size:13px">${filteredProjects.length} projeto${filteredProjects.length !== 1 ? 's' : ''} nessavisao.</p>
+          </div>
+          <button onclick="openQuickProjectModal()" style="background:#4D6BFE;border:none;border-radius:18px;padding:14px 24px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 4px 20px rgba(77,107,254,0.35);flex-shrink:0;display:flex;align-items:center;gap:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Novo projeto
+          </button>
         </div>
         <div class="projects-topbar-stats">
           <div class="projects-mini-stat"><span>Ativos</span><strong>${activeCount}</strong></div>
-          <div class="projects-mini-stat"><span>Atrasados</span><strong>${lateCount}</strong></div>
+          <div class="projects-mini-stat"><span>Atrasados</span><strong style="${lateCount > 0 ? 'color:#f97316' : ''}">${lateCount}</strong></div>
           <div class="projects-mini-stat"><span>Receita potencial</span><strong>${formatBRL(totalRevenue)}</strong></div>
+          ${urgentProjects.length > 0 ? `<div class="projects-mini-stat"><span>Proximo</span><strong style="color:#fb923c">${urgentProjects.length}</strong></div>` : ''}
         </div>
+        ${urgentProjects.length > 0 ? `<div class="projects-urgent-strip" style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#fb923c;white-space:nowrap">Proximos 5 dias:</span>
+          ${urgentProjects.map((p) => `<span style="padding:5px 12px;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);border-radius:999px;font-size:12px;color:#fdba74;cursor:pointer">${p.name} <em style="font-style:normal;opacity:0.7">${(p.deadline||'').split('-').slice(1).reverse().join('/')}</em></span>`).join('')}
+        </div>` : ''}
       </section>
 
       <section class="projects-filters-bar">
@@ -6292,6 +6409,12 @@ function renderProjectsView() {
                   </summary>
 
                   <div class="projects-item-body">
+                    ${(() => {
+                      const rate = getProjectProgressRate(project.id);
+                      if (!rate) return '<div class="projects-progress-bar-wrap" style="margin-bottom:14px"><div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06)"></div></div>';
+                      const color = rate.pct === 100 ? '#30D158' : rate.pct >= 50 ? '#4D6BFE' : '#fb923c';
+                      return '<div class="projects-progress-bar-wrap" style="margin-bottom:14px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;color:rgba(255,255,255,0.4)">Progresso</span><span style="font-size:11px;font-weight:700;color:' + color + '">' + rate.pct + '% (' + rate.done + '/' + rate.total + ')</span></div><div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden"><div style="height:100%;width:' + rate.pct + '%;background:' + color + ';border-radius:3px;transition:width 0.3s"></div></div></div>';
+                    })()}
                     <div class="projects-health-grid projects-health-grid--four">
                       <div class="projects-health-card"><span>Valor do projeto</span><strong>${formatBRL(project.expectedValue || 0)}</strong></div>
                       <div class="projects-health-card"><span>Início</span><strong>${project.startDate || '—'}</strong></div>
