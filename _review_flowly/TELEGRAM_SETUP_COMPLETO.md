@@ -33,7 +33,7 @@ scoop install supabase
 supabase login
 
 # Link com seu projeto (substitua o ID)
-cd C:\Users\cupin\OneDrive\Desktop\Flowly-main\Flowly-main
+cd /workspace/Flowly/_review_flowly
 supabase link --project-ref SEU_PROJECT_ID
 ```
 
