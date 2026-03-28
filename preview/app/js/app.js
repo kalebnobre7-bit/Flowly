@@ -68,7 +68,23 @@ let currentMonthOffset = 0; // 0 = mês atual
 let sextaState = safeJSONParse(localStorage.getItem('flowly_sexta_state'), {
   lastAction: '',
   notes: [],
-  suggestions: []
+  suggestions: [],
+  agentMode: 'local',
+  agentLabel: 'Sexta',
+  providerEnabled: false,
+  provider: 'Local Flowly',
+  model: 'flowly-local-ops',
+  endpoint: '',
+  apiKey: '',
+  promptBase: 'Voce e a Sexta, assistente operacional do Flowly. Responda com objetividade, priorizacao e foco em execucao.',
+  capabilities: {
+    tasks: true,
+    projects: true,
+    finance: true,
+    files: true
+  },
+  memory: [],
+  pendingImports: []
 });
 let syncStatus = {
   state: navigator.onLine ? 'saved' : 'offline',
@@ -5101,6 +5117,372 @@ function persistSextaState() {
   localStorage.setItem('flowly_sexta_state', JSON.stringify(sextaState || {}));
 }
 
+function ensureSextaStateShape() {
+  const base = {
+    lastAction: '',
+    notes: [],
+    suggestions: [],
+    agentMode: 'local',
+    agentLabel: 'Sexta',
+    providerEnabled: false,
+    provider: 'Local Flowly',
+    model: 'flowly-local-ops',
+    endpoint: '',
+    apiKey: '',
+    promptBase: 'Voce e a Sexta, assistente operacional do Flowly. Responda com objetividade, priorizacao e foco em execucao.',
+    capabilities: {
+      tasks: true,
+      projects: true,
+      finance: true,
+      files: true
+    },
+    memory: [],
+    pendingImports: []
+  };
+
+  const current = sextaState && typeof sextaState === 'object' ? sextaState : {};
+  sextaState = {
+    ...base,
+    ...current,
+    capabilities: {
+      ...base.capabilities,
+      ...(current.capabilities || {})
+    },
+    notes: Array.isArray(current.notes) ? current.notes : [],
+    suggestions: Array.isArray(current.suggestions) ? current.suggestions : [],
+    memory: Array.isArray(current.memory) ? current.memory : [],
+    pendingImports: Array.isArray(current.pendingImports) ? current.pendingImports : []
+  };
+  return sextaState;
+}
+
+function formatCurrencyBRL(value) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+}
+
+function slugifySextaText(value = '') {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .trim();
+}
+
+function rememberSextaEvent(kind, text, meta = {}) {
+  ensureSextaStateShape();
+  const entry = {
+    kind: kind || 'event',
+    text: String(text || '').trim(),
+    at: new Date().toISOString(),
+    meta: meta && typeof meta === 'object' ? meta : {}
+  };
+  if (!entry.text) return entry;
+  sextaState.memory = [...(sextaState.memory || []).slice(-11), entry];
+  persistSextaState();
+  return entry;
+}
+
+function createTaskViaSexta(dateStr, text, period = 'Tarefas', extra = {}) {
+  const cleanText = String(text || '').trim();
+  if (!cleanText) return false;
+
+  const currentList = allTasksData[dateStr]?.[period] || [];
+  const newTask = {
+    text: cleanText,
+    completed: false,
+    color: extra.color || 'default',
+    type: extra.type || 'OPERATIONAL',
+    priority: extra.priority || null,
+    parent_id: null,
+    position: currentList.length,
+    isHabit: false,
+    supabaseId: null,
+    createdAt: new Date().toISOString(),
+    completedAt: null,
+    projectId: extra.projectId || null,
+    projectName: extra.projectName || ''
+  };
+
+  if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+  if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
+  allTasksData[dateStr][period].push(newTask);
+  saveToLocalStorage();
+  renderView();
+  syncTaskToSupabase(dateStr, period, newTask).then((result) => {
+    if (!result.success) console.error('[Sexta] Sync falhou:', result.errorText);
+    else saveToLocalStorage();
+  });
+  return newTask;
+}
+
+function createProjectViaSexta(payload = {}) {
+  const name = String(payload.name || '').trim();
+  if (!name) return { ok: false, error: 'missing_name' };
+
+  const project = {
+    id: createProjectId('proj'),
+    name,
+    clientName: String(payload.clientName || '').trim(),
+    serviceType: String(payload.serviceType || '').trim(),
+    status: payload.status || (payload.isDraft ? 'draft' : 'active'),
+    expectedValue: Number(payload.expectedValue || 0) || 0,
+    closedValue: Number(payload.closedValue || 0) || 0,
+    startDate: payload.startDate || '',
+    deadline: payload.deadline || '',
+    completionDate: payload.completionDate || '',
+    isPaid: payload.isPaid === true,
+    isDraft: payload.isDraft === true,
+    templateTasks: Array.isArray(payload.templateTasks) ? payload.templateTasks.filter(Boolean) : [],
+    collapseSubtasks: payload.collapseSubtasks !== false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  projectsState = normalizeProjectsState(projectsState);
+  projectsState.projects.unshift(project);
+  persistProjectsStateLocal();
+  scheduleProjectsSync();
+
+  const linkedTasks = Array.isArray(payload.tasks) ? payload.tasks.filter(Boolean) : [];
+  linkedTasks.forEach((taskText) => {
+    const createdTask = createTaskViaSexta(payload.taskDate || localDateStr(), taskText, payload.taskPeriod || 'Tarefas', {
+      projectId: project.id,
+      projectName: project.name,
+      priority: payload.taskPriority || null,
+      type: payload.taskType || 'OPERATIONAL'
+    });
+    if (createdTask && createdTask.projectId !== project.id) {
+      createdTask.projectId = project.id;
+      createdTask.projectName = project.name;
+    }
+  });
+
+  if (currentView === 'projects') renderProjectsView();
+  if (currentView === 'finance') renderFinanceView();
+  rememberSextaEvent('project_created', `Projeto criado: ${project.name}`, { projectId: project.id });
+  return { ok: true, project };
+}
+
+function removeProjectViaSexta(query = '') {
+  const clean = String(query || '').trim().toLowerCase();
+  if (!clean) return { ok: false, error: 'missing_query' };
+  projectsState = normalizeProjectsState(projectsState);
+  const project = projectsState.projects.find((item) => String(item.name || '').toLowerCase().includes(clean));
+  if (!project) return { ok: false, error: 'not_found' };
+  projectsState.projects = projectsState.projects.filter((item) => item.id !== project.id);
+  persistProjectsStateLocal();
+  scheduleProjectsSync();
+  if (currentView === 'projects') renderProjectsView();
+  if (currentView === 'finance') renderFinanceView();
+  rememberSextaEvent('project_deleted', `Projeto removido: ${project.name}`, { projectId: project.id });
+  return { ok: true, project };
+}
+
+function createFinanceTransactionViaSexta(payload = {}) {
+  const description = String(payload.description || '').trim();
+  const amount = Number(payload.amount || 0);
+  const type = payload.type === 'expense' ? 'expense' : 'income';
+  if (!description || !Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: 'invalid_transaction' };
+  }
+
+  const selectedProject = payload.projectId ? findProjectById(payload.projectId) : null;
+  const transaction = {
+    id: createFinanceId('txn'),
+    type,
+    amount,
+    description,
+    category: String(payload.category || '').trim() || (type === 'expense' ? financeState.settings.defaultExpenseCategory : financeState.settings.defaultIncomeCategory),
+    date: payload.date || localDateStr(),
+    source: payload.source || 'sexta',
+    taskSupabaseId: payload.taskSupabaseId || null,
+    taskText: payload.taskText || '',
+    projectId: selectedProject ? selectedProject.id : payload.projectId || null,
+    projectName: selectedProject ? selectedProject.name : payload.projectName || '',
+    notes: payload.notes || '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    metadata: payload.metadata || { via: 'sexta-agent' }
+  };
+
+  financeState.transactions.unshift(transaction);
+  persistFinanceStateLocal();
+  scheduleFinanceSync();
+  if (currentView === 'finance') renderFinanceView();
+  rememberSextaEvent('finance_transaction', `${type === 'expense' ? 'Saída' : 'Entrada'} lançada: ${description} (${formatCurrencyBRL(amount)})`, { transactionId: transaction.id });
+  return { ok: true, transaction };
+}
+
+function queueFinanceImportViaSexta(fileName, summary = '') {
+  ensureSextaStateShape();
+  const item = {
+    id: createFinanceId('import'),
+    fileName: String(fileName || 'documento').trim() || 'documento',
+    summary: String(summary || 'Aguardando parser/Edge Function para extrair os lançamentos.').trim(),
+    status: 'queued',
+    createdAt: new Date().toISOString()
+  };
+  sextaState.pendingImports = [item, ...(sextaState.pendingImports || [])].slice(0, 12);
+  rememberSextaEvent('finance_import_queued', `Import financeiro pendente: ${item.fileName}`, { importId: item.id });
+  persistSextaState();
+  return item;
+}
+
+function setSextaAgentMode(mode = 'local') {
+  ensureSextaStateShape();
+  const allowed = ['local', 'openclaw', 'custom'];
+  sextaState.agentMode = allowed.includes(mode) ? mode : 'local';
+  if (sextaState.agentMode === 'openclaw') {
+    sextaState.agentLabel = 'Sexta (OpenClaw)';
+  } else if (sextaState.agentMode === 'custom') {
+    sextaState.agentLabel = 'Sexta (Custom)';
+  } else {
+    sextaState.agentLabel = 'Sexta';
+  }
+  persistSextaState();
+}
+
+function getSextaSystemSnapshot() {
+  ensureSextaStateShape();
+  const todayDate = localDateStr();
+  const todayStats = countDayTasks(todayDate);
+  const projectOptions = getProjectOptions();
+  const financeAnalytics = buildFinanceAnalytics();
+  return {
+    today: {
+      date: todayDate,
+      total: todayStats.total,
+      completed: todayStats.completed,
+      pending: Math.max(0, todayStats.total - todayStats.completed)
+    },
+    projects: projectOptions.slice(0, 8).map((project) => ({
+      id: project.id,
+      name: project.name,
+      clientName: project.clientName || '',
+      status: project.status || (project.isDraft ? 'draft' : 'active'),
+      expectedValue: Number(project.expectedValue || 0),
+      deadline: project.deadline || ''
+    })),
+    finance: {
+      income: financeAnalytics.incomeTotal,
+      expense: financeAnalytics.expenseTotal,
+      balance: financeAnalytics.balance,
+      transactionCount: financeAnalytics.monthTransactionCount
+    },
+    memory: (sextaState.memory || []).slice(-5)
+  };
+}
+
+function parseSextaStructuredCommand(raw = '') {
+  const text = String(raw || '').trim();
+  const lower = text.toLowerCase();
+  if (!text) return { type: 'empty' };
+
+  if (/^criar projeto\s+/i.test(text)) {
+    const body = text.replace(/^criar projeto\s+/i, '').trim();
+    const [namePart, ...metaParts] = body.split('|').map((chunk) => chunk.trim()).filter(Boolean);
+    const payload = { name: namePart || '' };
+    metaParts.forEach((part) => {
+      const [rawKey, ...rawValue] = part.split(':');
+      const key = slugifySextaText(rawKey).replace(/-/g, '');
+      const value = rawValue.join(':').trim();
+      if (!value) return;
+      if (key in { cliente:1, client:1, clientename:1 }) payload.clientName = value;
+      else if (key in { tipo:1, servico:1, servicetype:1 }) payload.serviceType = value;
+      else if (key in { valor:1, expectedvalue:1 }) payload.expectedValue = Number(value.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+      else if (key in { prazo:1, deadline:1 }) payload.deadline = value;
+      else if (key in { inicio:1, startdate:1 }) payload.startDate = value;
+      else if (key in { pago:1, ispaid:1 }) payload.isPaid = /sim|true|1|pago/i.test(value);
+    });
+    return { type: 'create_project', payload };
+  }
+
+  if (/^(remover|apagar|deletar) projeto\s+/i.test(text)) {
+    return { type: 'delete_project', query: text.replace(/^(remover|apagar|deletar) projeto\s+/i, '').trim() };
+  }
+
+  if (/^(lancar|lançar) (entrada|saida|saída)\s+/i.test(lower)) {
+    const match = text.match(/^(lancar|lançar)\s+(entrada|saida|saída)\s+(.+)$/i);
+    const type = /saida|saída/i.test(match?.[2] || '') ? 'expense' : 'income';
+    const body = match?.[3] || '';
+    const amountMatch = body.match(/(r\$\s*)?([\d\.]+(?:,\d{1,2})?)/i);
+    const amount = amountMatch ? Number(amountMatch[2].replace(/\./g, '').replace(',', '.')) : 0;
+    const description = body.replace(amountMatch?.[0] || '', '').replace(/^[\-:\s]+/, '').trim();
+    return { type: 'create_finance', payload: { type, amount, description } };
+  }
+
+  if (/^(importar|anexar) (financeiro|pdf|extrato)\s+/i.test(lower)) {
+    const fileName = text.replace(/^(importar|anexar)\s+(financeiro|pdf|extrato)\s+/i, '').trim();
+    return { type: 'queue_import', fileName };
+  }
+
+  if (/^(modo agente|usar agente)\s+/i.test(lower)) {
+    const mode = text.replace(/^(modo agente|usar agente)\s+/i, '').trim();
+    return { type: 'set_agent_mode', mode: slugifySextaText(mode) };
+  }
+
+  if (/^(status|resumo) sexta$/i.test(lower) || lower === 'contexto sexta') {
+    return { type: 'summary' };
+  }
+
+  return { type: 'fallback' };
+}
+
+function runSextaAgentCommand(raw = '') {
+  ensureSextaStateShape();
+  const parsed = parseSextaStructuredCommand(raw);
+  if (parsed.type === 'empty') {
+    return { handled: false, message: 'Escreve um comando primeiro.' };
+  }
+
+  if (parsed.type === 'create_project') {
+    const result = createProjectViaSexta(parsed.payload || {});
+    if (!result.ok) return { handled: true, message: 'Não consegui criar o projeto. Me passa pelo menos o nome.' };
+    return { handled: true, message: `Projeto criado: ${result.project.name}.` };
+  }
+
+  if (parsed.type === 'delete_project') {
+    const result = removeProjectViaSexta(parsed.query || '');
+    if (!result.ok) return { handled: true, message: 'Não achei esse projeto para remover.' };
+    return { handled: true, message: `Projeto removido: ${result.project.name}.` };
+  }
+
+  if (parsed.type === 'create_finance') {
+    const result = createFinanceTransactionViaSexta(parsed.payload || {});
+    if (!result.ok) return { handled: true, message: 'Não consegui lançar essa movimentação. Usa algo como: lançar entrada 1200 cliente X.' };
+    return { handled: true, message: `${result.transaction.type === 'expense' ? 'Saída' : 'Entrada'} lançada: ${result.transaction.description} (${formatCurrencyBRL(result.transaction.amount)}).` };
+  }
+
+  if (parsed.type === 'queue_import') {
+    const item = queueFinanceImportViaSexta(parsed.fileName || 'documento.pdf');
+    return { handled: true, message: `Import deixado na fila: ${item.fileName}. Falta ligar parser/edge function para extrair e lançar sozinho.` };
+  }
+
+  if (parsed.type === 'set_agent_mode') {
+    const modeMap = {
+      local: 'local',
+      flowly: 'local',
+      openclaw: 'openclaw',
+      sextaopenclaw: 'openclaw',
+      custom: 'custom'
+    };
+    setSextaAgentMode(modeMap[parsed.mode] || 'local');
+    return { handled: true, message: `Modo da Sexta atualizado para ${sextaState.agentLabel}.` };
+  }
+
+  if (parsed.type === 'summary') {
+    const snapshot = getSextaSystemSnapshot();
+    return {
+      handled: true,
+      message: `Hoje: ${snapshot.today.completed}/${snapshot.today.total}. Projetos: ${snapshot.projects.length} ativos na memória curta. Financeiro do mês: saldo ${formatCurrencyBRL(snapshot.finance.balance)}.`
+    };
+  }
+
+  return { handled: false, message: '' };
+}
+
 function buildSextaSuggestions() {
   const todayDate = localDateStr();
   const dayData = allTasksData[todayDate] || {};
@@ -5197,6 +5579,7 @@ function runSextaQuickAction(action) {
 }
 
 function runSextaCommand() {
+  ensureSextaStateShape();
   const input = document.getElementById('sextaCommandInput');
   if (!input) return;
   const raw = input.value.trim();
@@ -5206,9 +5589,14 @@ function runSextaCommand() {
   const todayDate = localDateStr();
   let handled = false;
 
-  if (lower.startsWith('criar tarefa ')) {
+  const agentResult = runSextaAgentCommand(raw);
+  if (agentResult.handled) {
+    handled = true;
+    sextaState.lastAction = agentResult.message;
+  } else if (lower.startsWith('criar tarefa ')) {
     const taskText = raw.slice('criar tarefa '.length).trim();
-    handled = createTaskViaSexta(todayDate, taskText);
+    const createdTask = createTaskViaSexta(todayDate, taskText);
+    handled = !!createdTask;
     sextaState.lastAction = handled
       ? `Criei a tarefa: ${taskText}`
       : 'Não consegui criar essa tarefa.';
@@ -5242,7 +5630,7 @@ function runSextaCommand() {
     input.value = '';
     return;
   } else {
-    sextaState.lastAction = 'Ainda não entendi esse comando. Tenta algo como: criar tarefa revisar proposta, foco, planejar amanhã.';
+    sextaState.lastAction = 'Ainda não entendi esse comando. Tenta algo como: criar projeto Lévessy | cliente: Lévessy, lançar entrada 1200 cliente XPTO, criar tarefa revisar proposta, foco, planejar amanhã.';
     handled = true;
   }
 
@@ -5254,6 +5642,7 @@ function runSextaCommand() {
       at: new Date().toISOString()
     }
   ];
+  rememberSextaEvent('command', sextaState.lastAction, { raw });
   persistSextaState();
   input.value = '';
   renderSextaView();
@@ -5262,6 +5651,7 @@ function runSextaCommand() {
 function renderSextaView() {
   const view = document.getElementById('sextaView');
   if (!view) return;
+  ensureSextaStateShape();
 
   const todayDate = localDateStr();
   const todayData = allTasksData[todayDate] || {};
@@ -5308,6 +5698,13 @@ function renderSextaView() {
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
   const focusLabel = pending <= 2 ? 'Fechamento' : pending <= 5 ? 'Execução' : 'Limpeza';
   const momentumLabel = completionRate >= 70 ? 'Alto' : completionRate >= 35 ? 'Médio' : 'Baixo';
+  const agentModeLabel = sextaState.agentMode === 'openclaw'
+    ? 'Sexta (OpenClaw)'
+    : sextaState.agentMode === 'custom'
+      ? 'Sexta (Custom)'
+      : 'Sexta local';
+  const pendingImports = Array.isArray(sextaState.pendingImports) ? sextaState.pendingImports.slice(0, 3) : [];
+  const memoryItems = Array.isArray(sextaState.memory) ? sextaState.memory.slice().reverse().slice(0, 4) : [];
 
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--narrow sexta-shell">
@@ -5360,7 +5757,7 @@ function renderSextaView() {
               <h3>Chat operacional</h3>
               <p>Espaço para pedir estratégia, foco, revisão e próximos passos.</p>
             </div>
-            <span class="sexta-badge">Ao vivo</span>
+            <span class="sexta-badge">${agentModeLabel}</span>
           </div>
           <div class="sexta-chat-placeholder">
             <div class="sexta-chat-bubble ai">Posso virar teu copiloto dentro do Flowly: sugerir prioridade, limpar ruído e destravar execução.</div>
@@ -5379,7 +5776,9 @@ function renderSextaView() {
           </div>
           <div class="sexta-command-examples">
             <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='priorizar lévessy'">priorizar lévessy</button>
-            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='criar tarefa cobrar cliente antigo'">criar tarefa cobrar cliente antigo</button>
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='criar projeto Lévessy | cliente: Lévessy | valor: 2500'">criar projeto</button>
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='lançar entrada 1200 cliente antigo'">lançar entrada</button>
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='importar pdf extrato-marco.pdf'">importar pdf</button>
             <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='concluir próxima'">concluir próxima</button>
           </div>
         </section>
@@ -5418,6 +5817,18 @@ function renderSextaView() {
               ${notes.length > 0 ? notes
                 .map((note) => `<div class="sexta-log-item"><strong>${note.action}</strong><span>${note.text}</span></div>`)
                 .join('') : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma ação rápida rodada ainda.</span></div>'}
+            </div>
+          </div>
+          <div class="sexta-panel-block sexta-panel-block--soft">
+            <div class="sexta-panel-label">Memória curta do agente</div>
+            <div class="sexta-log-list">
+              ${memoryItems.length > 0 ? memoryItems.map((item) => `<div class="sexta-log-item"><strong>${item.kind}</strong><span>${item.text}</span></div>`).join('') : '<div class="sexta-log-item"><strong>vazio</strong><span>Sem memória recente ainda.</span></div>'}
+            </div>
+          </div>
+          <div class="sexta-panel-block sexta-panel-block--soft">
+            <div class="sexta-panel-label">Imports financeiros pendentes</div>
+            <div class="sexta-log-list">
+              ${pendingImports.length > 0 ? pendingImports.map((item) => `<div class="sexta-log-item"><strong>${item.fileName}</strong><span>${item.summary}</span></div>`).join('') : '<div class="sexta-log-item"><strong>nenhum</strong><span>Nada na fila de import por enquanto.</span></div>'}
             </div>
           </div>
         </section>
@@ -6540,6 +6951,15 @@ function renderSettingsView() {
     localStorage.getItem('flowly_display_name') ||
     (currentUser ? currentUser.email.split('@')[0] : 'Usuario');
 
+  ensureSextaStateShape();
+  const sextaProviderEnabled = sextaState.providerEnabled === true;
+  const sextaProvider = sextaState.provider || 'Local Flowly';
+  const sextaModel = sextaState.model || 'flowly-local-ops';
+  const sextaEndpoint = sextaState.endpoint || '';
+  const sextaApiKey = sextaState.apiKey || '';
+  const sextaPromptBase = sextaState.promptBase || 'Voce e a Sexta, assistente operacional do Flowly. Responda com objetividade, priorizacao e foco em execucao.';
+  const sextaAgentMode = sextaState.agentMode || 'local';
+
   const permBadge =
     notifPerm === 'granted'
       ? '<span class="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Ativo</span>'
@@ -6723,6 +7143,55 @@ function renderSettingsView() {
                 ${settingRow('calendar-range', 'Mostrar fins de semana', 'Exibe Sabado e Domingo na semana', toggle('toggleWeekends', showWeekends))}
                 ${settingRow('vibrate', 'Feedback haptico', 'Vibracao em interacoes suportadas', toggle('toggleHaptics', hapticsEnabled))}
                 ${settingRow('sparkles', 'Animacao no hover semanal', 'Destaque visual ao passar mouse na semana', toggle('toggleWeekHover', dbUserSettings.enable_week_hover_animation !== false))}
+              </div>
+            `
+          )}
+
+          ${sectionCard(
+            'IA · Sexta',
+            'Escolha o agente e prepare a conexao externa do Flowly',
+            'bot',
+            `
+              <div class="space-y-3">
+                <label class="block rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                  <span class="mb-1 block uppercase tracking-wide text-gray-400">Agente</span>
+                  <select id="selectSextaAgentMode" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">
+                    <option value="local" ${sextaAgentMode === 'local' ? 'selected' : ''}>Sexta (local Flowly)</option>
+                    <option value="openclaw" ${sextaAgentMode === 'openclaw' ? 'selected' : ''}>Sexta (OpenClaw)</option>
+                    <option value="custom" ${sextaAgentMode === 'custom' ? 'selected' : ''}>Sexta (custom)</option>
+                  </select>
+                </label>
+                ${settingRow('plug-zap', 'Ativar conector externo', 'Mantem a integracao pronta para backend seguro', toggle('toggleSextaProvider', sextaProviderEnabled))}
+                <label class="block rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                  <span class="mb-1 block uppercase tracking-wide text-gray-400">Provedor</span>
+                  <select id="selectSextaProvider" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">
+                    <option value="Local Flowly" ${sextaProvider === 'Local Flowly' ? 'selected' : ''}>Local Flowly</option>
+                    <option value="OpenClaw" ${sextaProvider === 'OpenClaw' ? 'selected' : ''}>OpenClaw</option>
+                    <option value="OpenAI" ${sextaProvider === 'OpenAI' ? 'selected' : ''}>OpenAI</option>
+                    <option value="Custom" ${sextaProvider === 'Custom' ? 'selected' : ''}>Custom</option>
+                  </select>
+                </label>
+                <label class="block rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                  <span class="mb-1 block uppercase tracking-wide text-gray-400">Modelo</span>
+                  <input id="inputSextaModel" type="text" value="${sextaModel}" placeholder="flowly-local-ops" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                </label>
+                <label class="block rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                  <span class="mb-1 block uppercase tracking-wide text-gray-400">Endpoint / Edge Function</span>
+                  <input id="inputSextaEndpoint" type="text" value="${sextaEndpoint}" placeholder="https://.../functions/v1/ask-flowly" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                </label>
+                <label class="block rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                  <span class="mb-1 block uppercase tracking-wide text-gray-400">API key</span>
+                  <input id="inputSextaApiKey" type="password" value="${sextaApiKey}" placeholder="Cole a chave aqui" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+                </label>
+                <label class="block rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
+                  <span class="mb-1 block uppercase tracking-wide text-gray-400">Prompt base da Sexta</span>
+                  <textarea id="inputSextaPromptBase" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-2 text-sm text-white outline-none min-h-[96px]">${sextaPromptBase}</textarea>
+                </label>
+                <div class="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-xs text-gray-400">
+                  <div class="font-semibold text-gray-200 mb-1">Estado atual</div>
+                  <div>Agente ativo: <strong>${sextaAgentMode === 'openclaw' ? 'Sexta (OpenClaw)' : sextaAgentMode === 'custom' ? 'Sexta (custom)' : 'Sexta local'}</strong></div>
+                  <div>Escopo pronto: tarefas, projetos, financeiro e fila de import de documentos.</div>
+                </div>
               </div>
             `
           )}
@@ -6937,6 +7406,39 @@ function renderSettingsView() {
 
     bindNotifToggle('toggleInactivityNotif', 'inactivityEnabled');
     bindNotifToggle('toggleProgressNotif', 'progressEnabled');
+
+    const persistSextaSettings = () => {
+      ensureSextaStateShape();
+      sextaState.providerEnabled = document.getElementById('toggleSextaProvider')?.getAttribute('aria-checked') === 'true';
+      sextaState.provider = document.getElementById('selectSextaProvider')?.value || 'Local Flowly';
+      sextaState.model = document.getElementById('inputSextaModel')?.value?.trim() || 'flowly-local-ops';
+      sextaState.endpoint = document.getElementById('inputSextaEndpoint')?.value?.trim() || '';
+      sextaState.apiKey = document.getElementById('inputSextaApiKey')?.value || '';
+      sextaState.promptBase = document.getElementById('inputSextaPromptBase')?.value?.trim() || sextaState.promptBase;
+      setSextaAgentMode(document.getElementById('selectSextaAgentMode')?.value || 'local');
+      rememberSextaEvent('settings', `Configuração da Sexta atualizada para ${sextaState.agentLabel}.`, { provider: sextaState.provider });
+      persistSextaState();
+    };
+
+    const toggleSextaProvider = document.getElementById('toggleSextaProvider');
+    if (toggleSextaProvider) {
+      toggleSextaProvider.onclick = function () {
+        const current = this.getAttribute('aria-checked') === 'true';
+        const next = !current;
+        this.setAttribute('aria-checked', String(next));
+        this.className = `relative h-6 w-11 rounded-full border border-white/20 transition-colors ${next ? 'bg-blue-600' : 'bg-gray-700'}`;
+        const knob = this.querySelector('span');
+        if (knob) knob.className = `absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform ${next ? 'translate-x-5' : 'translate-x-0'}`;
+        persistSextaSettings();
+      };
+    }
+
+    ['selectSextaProvider', 'inputSextaModel', 'inputSextaEndpoint', 'inputSextaApiKey', 'inputSextaPromptBase', 'selectSextaAgentMode'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.onchange = persistSextaSettings;
+      if (id === 'inputSextaPromptBase') el.onblur = persistSextaSettings;
+    });
 
     // Week Hover Toggle
     const toggleWH = document.getElementById('toggleWeekHover');
