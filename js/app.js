@@ -68,7 +68,10 @@ let currentMonthOffset = 0; // 0 = mês atual
 let sextaState = safeJSONParse(localStorage.getItem('flowly_sexta_state'), {
   lastAction: '',
   notes: [],
-  suggestions: []
+  suggestions: [],
+  chatHistory: [],
+  memories: [],
+  activeTab: 'chat'
 });
 let syncStatus = {
   state: navigator.onLine ? 'saved' : 'offline',
@@ -363,6 +366,31 @@ function normalizeFlowlyThemeSettings(rawSettings = {}) {
   return base;
 }
 
+function normalizeFlowlyAISettings(rawSettings = {}) {
+  const base = { ...FLOWLY_AI_DEFAULTS, ...(rawSettings || {}) };
+  base.enabled = base.enabled === true;
+  base.provider = String(base.provider || 'local').trim() || 'local';
+  base.model = String(base.model || FLOWLY_AI_DEFAULTS.model).trim() || FLOWLY_AI_DEFAULTS.model;
+  base.endpoint = String(base.endpoint || '').trim();
+  base.apiKey = String(base.apiKey || '').trim();
+  base.systemPrompt =
+    String(base.systemPrompt || FLOWLY_AI_DEFAULTS.systemPrompt).trim() ||
+    FLOWLY_AI_DEFAULTS.systemPrompt;
+  return base;
+}
+
+function getFlowlyAISettings() {
+  return normalizeFlowlyAISettings(
+    safeJSONParse(localStorage.getItem(FLOWLY_AI_STORAGE_KEY), FLOWLY_AI_DEFAULTS)
+  );
+}
+
+function saveFlowlyAISettings(nextSettings) {
+  const normalized = normalizeFlowlyAISettings(nextSettings);
+  localStorage.setItem(FLOWLY_AI_STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
 function getFlowlyThemeSettings() {
   return normalizeFlowlyThemeSettings(
     safeJSONParse(localStorage.getItem(FLOWLY_THEME_STORAGE_KEY), FLOWLY_THEME_DEFAULTS)
@@ -574,8 +602,18 @@ let projectsState = normalizeProjectsState(safeJSONParse(localStorage.getItem('f
 let financeSyncTimer = null;
 let projectsSyncTimer = null;
 let financeChartsState = { cashflow: null, category: null };
+const FLOWLY_AI_STORAGE_KEY = 'flowly_ai_settings';
 const FLOWLY_THEME_STORAGE_KEY = 'flowly_theme_settings';
 const FLOWLY_SETTINGS_TAB_KEY = 'flowly_settings_tab';
+const FLOWLY_AI_DEFAULTS = {
+  enabled: false,
+  provider: 'local',
+  model: 'flowly-local-ops',
+  endpoint: '',
+  apiKey: '',
+  systemPrompt:
+    'Voce e a Sexta, assistente operacional do Flowly. Responda com objetividade, priorizacao e foco em execucao.'
+};
 const FLOWLY_THEME_DEFAULTS = {
   primaryColor: '#0A84FF',
   secondaryColor: '#FF9F0A',
@@ -5568,6 +5606,282 @@ function persistSextaState() {
   localStorage.setItem('flowly_sexta_state', JSON.stringify(sextaState || {}));
 }
 
+function pushSextaNote(action, text) {
+  sextaState.lastAction = text;
+  sextaState.notes = [
+    ...(Array.isArray(sextaState.notes) ? sextaState.notes : []).slice(-7),
+    {
+      action,
+      text,
+      at: new Date().toISOString()
+    }
+  ];
+}
+
+function pushSextaChatMessage(role, text, meta = '') {
+  sextaState.chatHistory = [
+    ...(Array.isArray(sextaState.chatHistory) ? sextaState.chatHistory : []).slice(-11),
+    {
+      id: `sexta_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      role,
+      text,
+      meta,
+      at: new Date().toISOString()
+    }
+  ];
+}
+
+function getSextaMemories() {
+  return Array.isArray(sextaState.memories) ? sextaState.memories : [];
+}
+
+function saveSextaMemory(text, source = 'manual') {
+  const normalized = String(text || '').trim();
+  if (!normalized) return null;
+  const existing = getSextaMemories().find(
+    (item) => String(item.text || '').toLowerCase() === normalized.toLowerCase()
+  );
+  if (existing) return existing;
+
+  const memory = {
+    id: `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    text: normalized,
+    source,
+    createdAt: new Date().toISOString()
+  };
+  sextaState.memories = [...getSextaMemories().slice(-19), memory];
+  return memory;
+}
+
+function removeSextaMemory(query) {
+  const normalized = String(query || '').trim().toLowerCase();
+  if (!normalized) return null;
+  const memories = getSextaMemories();
+  const target = memories.find((item) => String(item.text || '').toLowerCase().includes(normalized));
+  if (!target) return null;
+  sextaState.memories = memories.filter((item) => item.id !== target.id);
+  return target;
+}
+
+function clearSextaMemories() {
+  sextaState.memories = [];
+}
+
+function getSextaOperationalSnapshot() {
+  const todayDate = localDateStr();
+  const todayData = allTasksData[todayDate] || {};
+  const pendingEntries = [];
+  const completedEntries = [];
+
+  Object.entries(todayData).forEach(([period, tasks]) => {
+    if (!Array.isArray(tasks)) return;
+    tasks.forEach((task, index) => {
+      if (!task || !task.text) return;
+      const entry = { task, period, index, dateStr: todayDate };
+      if (task.completed) completedEntries.push(entry);
+      else pendingEntries.push(entry);
+    });
+  });
+
+  const projects = getProjectOptions();
+  const activeProjects = projects.filter((project) => !project.completionDate && project.status !== 'archived');
+  const unpaidProjects = projects.filter((project) => !project.isPaid && !project.isDraft && !project.completionDate);
+  const lateProjects = activeProjects.filter(
+    (project) => project.deadline && project.deadline < todayDate
+  );
+  const standaloneTasks = pendingEntries.filter((entry) => !entry.task.projectId);
+  const moneyEntries = pendingEntries.filter(
+    (entry) => String(entry.task.priority || '').toLowerCase() === 'money'
+  );
+  const followupEntries = pendingEntries.filter((entry) =>
+    /follow|cobrar|cliente|whats|proposta|responder/i.test(String(entry.task.text || ''))
+  );
+
+  return {
+    todayDate,
+    pendingEntries,
+    completedEntries,
+    activeProjects,
+    unpaidProjects,
+    lateProjects,
+    standaloneTasks,
+    moneyEntries,
+    followupEntries
+  };
+}
+
+function buildSextaContextSummary(snapshot = getSextaOperationalSnapshot()) {
+  const topPending = snapshot.pendingEntries.slice(0, 8).map((entry) => ({
+    text: entry.task.text,
+    priority: entry.task.priority || 'default',
+    project: entry.task.projectName || null,
+    period: entry.period
+  }));
+  const activeProjects = snapshot.activeProjects.slice(0, 6).map((project) => ({
+    name: project.name,
+    client: project.clientName || null,
+    deadline: project.deadline || null,
+    paid: project.isPaid === true
+  }));
+  const memories = getSextaMemories().slice(-8).map((item) => item.text);
+
+  return {
+    date: snapshot.todayDate,
+    pendingCount: snapshot.pendingEntries.length,
+    completedCount: snapshot.completedEntries.length,
+    moneyCount: snapshot.moneyEntries.length,
+    followupCount: snapshot.followupEntries.length,
+    unpaidProjects: snapshot.unpaidProjects.length,
+    topPending,
+    activeProjects,
+    memories
+  };
+}
+
+async function requestSextaExternalReply(userPrompt) {
+  const aiSettings = getFlowlyAISettings();
+  if (!aiSettings.enabled || !aiSettings.apiKey) return null;
+
+  const provider = String(aiSettings.provider || '').toLowerCase();
+  const snapshot = getSextaOperationalSnapshot();
+  const contextSummary = buildSextaContextSummary(snapshot);
+  const baseHistory = (Array.isArray(sextaState.chatHistory) ? sextaState.chatHistory : [])
+    .filter((item) => item && (item.role === 'user' || item.role === 'assistant'))
+    .slice(-8)
+    .map((item) => ({
+      role: item.role,
+      content: String(item.text || '')
+    }));
+
+  const systemContent = `${aiSettings.systemPrompt}\n\nContexto atual do Flowly:\n${JSON.stringify(contextSummary)}`;
+  const messages = [{ role: 'system', content: systemContent }, ...baseHistory];
+
+  const model =
+    provider === 'minimax' && (!aiSettings.model || aiSettings.model === 'flowly-local-ops')
+      ? 'M2-her'
+      : aiSettings.model;
+
+  let endpoint = aiSettings.endpoint;
+  if (!endpoint && provider === 'minimax') endpoint = 'https://api.minimax.io/v1/chat/completions';
+  if (!endpoint && provider === 'openai') endpoint = 'https://api.openai.com/v1/chat/completions';
+  if (!endpoint) return null;
+
+  const payload = {
+    model,
+    messages,
+    temperature: provider === 'minimax' ? 1.0 : 0.7,
+    max_tokens: 600
+  };
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${aiSettings.apiKey}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`IA ${response.status}: ${text.slice(0, 220)}`);
+  }
+
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) throw new Error('IA sem resposta em choices[0].message.content');
+  return String(content).trim();
+}
+
+function buildSextaAssistantReply(prompt) {
+  const question = String(prompt || '').trim();
+  const lower = question.toLowerCase();
+  const aiSettings = getFlowlyAISettings();
+  const snapshot = getSextaOperationalSnapshot();
+  const memories = getSextaMemories();
+  const memoryHint =
+    memories.length > 0
+      ? `Memoria ativa: ${memories
+          .slice(-3)
+          .map((item) => item.text)
+          .join(' | ')}.`
+      : '';
+
+  if (!question) {
+    return 'Me manda uma pergunta direta. Ex.: o que eu ataco agora, quais projetos estão em risco, o que está sem projeto.';
+  }
+
+  if (/(o que|oq|que eu faço|ataco|prioridade|foco)/i.test(lower)) {
+    const topMoney = snapshot.moneyEntries[0]?.task?.text;
+    const topPending = snapshot.pendingEntries[0]?.task?.text;
+    if (topMoney) {
+      return `Ataca primeiro "${topMoney}". E uma tarefa com impacto direto em caixa, entao vale fechar esse ciclo antes de abrir outra frente. ${memoryHint}`.trim();
+    }
+    if (topPending) {
+      return `Eu iria em "${topPending}" agora. Fecha essa peca inteira e depois revisa o resto da fila. ${memoryHint}`.trim();
+    }
+    return `Hoje esta limpo. Puxa uma tarefa curta que gere tracao ou organiza amanha com 3 prioridades reais. ${memoryHint}`.trim();
+  }
+
+  if (/(projeto|projetos|risco|atras)/i.test(lower)) {
+    if (snapshot.lateProjects.length > 0) {
+      const names = snapshot.lateProjects.slice(0, 3).map((project) => project.name).join(', ');
+      return `Projetos em risco agora: ${names}. Eu revisaria prazo, proximo passo e pendencia de cliente ainda hoje. ${memoryHint}`.trim();
+    }
+    if (snapshot.activeProjects.length > 0) {
+      const nextProject = snapshot.activeProjects[0];
+      return `Voce tem ${snapshot.activeProjects.length} projeto(s) ativo(s). O mais sensivel agora parece ser "${nextProject.name}". Vale puxar um proximo passo claro dentro dele. ${memoryHint}`.trim();
+    }
+    return 'Nao encontrei projeto ativo agora. Talvez seja um bom momento para transformar tarefas soltas em projetos.';
+  }
+
+  if (/(dinheiro|caixa|receita|pago|pagamento)/i.test(lower)) {
+    if (snapshot.moneyEntries.length > 0) {
+      return `Existem ${snapshot.moneyEntries.length} tarefa(s) com prioridade dinheiro. A primeira da fila e "${snapshot.moneyEntries[0].task.text}". ${memoryHint}`.trim();
+    }
+    if (snapshot.unpaidProjects.length > 0) {
+      return `Nao vi tarefa de dinheiro no topo, mas ha ${snapshot.unpaidProjects.length} projeto(s) ainda nao pagos. Vale revisar cobranca e follow-up. ${memoryHint}`.trim();
+    }
+    return 'Nao apareceu nenhum sinal forte de caixa no momento. Se quiser, eu posso te puxar um plano de follow-up para destravar receita.';
+  }
+
+  if (/(sem projeto|solta|soltas|desorganizada|desorganizadas)/i.test(lower)) {
+    if (snapshot.standaloneTasks.length === 0) {
+      return 'As pendencias principais ja estao relativamente organizadas em projeto ou rotina. Nao achei tarefa solta critica agora.';
+    }
+    const sample = snapshot.standaloneTasks.slice(0, 3).map((entry) => entry.task.text).join(', ');
+    return `Voce tem ${snapshot.standaloneTasks.length} tarefa(s) pendente(s) sem projeto. As que eu olharia primeiro: ${sample}. ${memoryHint}`.trim();
+  }
+
+  if (/(amanh|planej|semana|resumo)/i.test(lower)) {
+    return `Para o proximo bloco, eu montaria assim: 3 prioridades reais, 1 follow-up que puxa cliente e 1 tarefa que mexa em caixa. Hoje voce fechou ${snapshot.completedEntries.length} e ainda tem ${snapshot.pendingEntries.length} abertas. ${memoryHint}`.trim();
+  }
+
+  if (/(memoria|lembra|lembrancas|o que voce lembra)/i.test(lower)) {
+    if (memories.length === 0) return 'Minha memoria esta vazia agora. Se quiser, me diga algo como: lembra que eu quero priorizar tarefas de dinheiro pela manha.';
+    return `O que eu tenho salvo na memoria: ${memories.map((item) => item.text).join(' | ')}.`;
+  }
+
+  if (/(ia|modelo|chatgpt|minimax|openai)/i.test(lower)) {
+    if (aiSettings.enabled && aiSettings.provider !== 'local') {
+      return `O conector de IA esta configurado para ${aiSettings.provider} com modelo ${aiSettings.model}. A interface ja esta pronta; o proximo passo e plugar isso numa Edge Function para chamadas seguras. ${memoryHint}`.trim();
+    }
+    return 'No momento a Sexta esta respondendo no modo local, usando os dados do Flowly. Se quiser IA externa, configura em Ajustes > IA e depois a gente liga isso num backend.';
+  }
+
+  if (snapshot.followupEntries.length > 0) {
+    return `Minha leitura: fecha primeiro "${snapshot.followupEntries[0].task.text}" ou a tarefa de maior impacto financeiro. O risco agora e deixar frente aberta demais. ${memoryHint}`.trim();
+  }
+
+  return `Minha leitura operacional e simples: corta ruido, escolhe uma frente de alavancagem e fecha antes de trocar. Se quiser, me pergunta sobre foco, projetos, dinheiro ou tarefas sem projeto. ${memoryHint}`.trim();
+}
+
+function openFlowlySettingsTab(tabId = 'ia') {
+  localStorage.setItem(FLOWLY_SETTINGS_TAB_KEY, tabId);
+  currentView = 'settings';
+  renderView();
+}
+
 function buildSextaSuggestions() {
   const todayDate = localDateStr();
   const dayData = allTasksData[todayDate] || {};
@@ -5651,14 +5965,8 @@ function runSextaQuickAction(action) {
       : 'Não consegui criar novas tarefas agora.';
   }
   sextaState.suggestions = suggestions;
-  sextaState.notes = [
-    ...(sextaState.notes || []).slice(-4),
-    {
-      action,
-      text: sextaState.lastAction,
-      at: new Date().toISOString()
-    }
-  ];
+  pushSextaNote(action, sextaState.lastAction);
+  pushSextaChatMessage('assistant', sextaState.lastAction, 'acao rapida');
   persistSextaState();
   renderSextaView();
 }
@@ -5726,7 +6034,166 @@ function runSextaCommand() {
   renderSextaView();
 }
 
-function renderSextaView() {
+runSextaQuickAction = function (action) {
+  const suggestions = buildSextaSuggestions();
+  if (action === 'focus') {
+    sextaState.lastAction = suggestions[0] ? suggestions[0].body : 'Sem sugestao agora.';
+  } else if (action === 'review') {
+    const todayDate = localDateStr();
+    const { total, completed } = countDayTasks(todayDate);
+    sextaState.lastAction = `Hoje: ${completed}/${total} concluidas. Fecha o que ficou aberto antes de virar o dia.`;
+  } else if (action === 'tomorrow') {
+    sextaState.lastAction = 'Amanha: separa 3 prioridades, 1 follow-up e 1 tarefa que puxe caixa.';
+  } else if (action === 'plan') {
+    const todayDate = localDateStr();
+    const created = [
+      createTaskViaSexta(todayDate, 'Definir 3 prioridades reais do dia'),
+      createTaskViaSexta(todayDate, 'Fechar 1 tarefa rapida para ganhar momentum'),
+      createTaskViaSexta(todayDate, 'Atacar a tarefa de maior alavancagem sem abrir outra frente')
+    ].filter(Boolean).length;
+    sextaState.lastAction =
+      created > 0
+        ? `Criei ${created} tarefas-base para organizar tua execucao de hoje.`
+        : 'Nao consegui criar novas tarefas agora.';
+  }
+  sextaState.suggestions = suggestions;
+  pushSextaNote(action, sextaState.lastAction);
+  pushSextaChatMessage('assistant', sextaState.lastAction, 'acao rapida');
+  persistSextaState();
+  renderSextaView();
+};
+
+runSextaCommand = async function () {
+  const input = document.getElementById('sextaCommandInput');
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) return;
+
+  const lower = raw.toLowerCase();
+  const normalizedLower = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const todayDate = localDateStr();
+  let responseText = '';
+  let responseMeta = 'sexta';
+  const createMatch = raw.match(/^(criar tarefa|cria tarefa|criar|cria|adicionar tarefa|adiciona tarefa|adicionar|adiciona|anotar|anota|nova tarefa)\s+(.+)$/i);
+  const prioritizeMatch = raw.match(/^(priorizar|prioriza|colocar no topo|coloca no topo|puxa pro topo|puxa para o topo)\s+(.+)$/i);
+  const completeMatch = raw.match(/^(concluir|conclui|fechar|fecha|finalizar|finaliza|resolver|resolve)\s+(.+)$/i);
+  const deleteMatch = raw.match(/^(apagar|apaga|excluir|exclui|deletar|deleta|remover|remove)\s+(.+)$/i);
+  const moveMatch = raw.match(/^(mover|move|jogar|joga|passar|passa)\s+(.+?)\s+para\s+(amanha|amanhã|hoje)$/i);
+
+  pushSextaChatMessage('user', raw, 'pergunta');
+  persistSextaState();
+  input.value = '';
+  renderSextaView();
+
+  if (
+    normalizedLower.startsWith('lembrar ') ||
+    normalizedLower.startsWith('lembra que ') ||
+    normalizedLower.startsWith('memorizar ') ||
+    normalizedLower.startsWith('guarde ')
+  ) {
+    const memoryText = raw
+      .replace(/^lembrar\s+/i, '')
+      .replace(/^lembra que\s+/i, '')
+      .replace(/^memorizar\s+/i, '')
+      .replace(/^guarde\s+/i, '')
+      .trim();
+    const memory = saveSextaMemory(memoryText, 'chat');
+    responseText = memory
+      ? `Guardei isso na memoria: ${memory.text}`
+      : 'Nao consegui registrar essa memoria.';
+  } else if (normalizedLower.startsWith('esquecer ') || normalizedLower.startsWith('remove da memoria ')) {
+    const memoryQuery = raw.replace(/^esquecer\s+/i, '').replace(/^remove da memoria\s+/i, '').trim();
+    const removed = removeSextaMemory(memoryQuery);
+    responseText = removed
+      ? `Removi da memoria: ${removed.text}`
+      : 'Nao achei nada parecido na memoria para remover.';
+  } else if (normalizedLower.includes('limpar memoria')) {
+    clearSextaMemories();
+    responseText = 'Limpei a memoria da Sexta.';
+  } else if (createMatch) {
+    const taskText = createMatch[2].trim();
+    const handled = createTaskViaSexta(todayDate, taskText);
+    responseText = handled ? `Criei a tarefa: ${taskText}` : 'Nao consegui criar essa tarefa.';
+    responseMeta = 'acao executada';
+  } else if (prioritizeMatch) {
+    const query = prioritizeMatch[2].trim();
+    const task = prioritizeTaskViaSexta(todayDate, query);
+    responseText = task
+      ? `Joguei "${task.text}" para o topo das prioridades de hoje.`
+      : 'Nao achei uma tarefa com esse texto para priorizar.';
+    responseMeta = 'acao executada';
+  } else if (normalizedLower.includes('concluir proxima')) {
+    const next = findFirstPendingTask(todayDate);
+    if (next) {
+      window.toggleTaskStatus(todayDate, next.period, next.index, true, null);
+      responseText = `Conclui a proxima tarefa pendente: ${next.task.text}`;
+    } else {
+      responseText = 'Nao achei tarefa pendente para concluir agora.';
+    }
+    responseMeta = 'acao executada';
+  } else if (completeMatch) {
+    const query = completeMatch[2].replace(/^(a|a tarefa|tarefa)\s+/i, '').trim();
+    const completedTask = completeTaskViaSexta(query, todayDate);
+    responseText = completedTask
+      ? `Marquei como concluida: ${completedTask.task.text}`
+      : 'Nao achei essa tarefa para concluir.';
+    responseMeta = 'acao executada';
+  } else if (deleteMatch) {
+    const query = deleteMatch[2].replace(/^(a|a tarefa|tarefa)\s+/i, '').trim();
+    const removedTask = deleteTaskViaSexta(query, todayDate);
+    responseText = removedTask
+      ? `Apaguei a tarefa: ${removedTask.task.text}`
+      : 'Nao achei essa tarefa para apagar.';
+    responseMeta = 'acao executada';
+  } else if (moveMatch) {
+    const query = moveMatch[2].replace(/^(a|a tarefa|tarefa)\s+/i, '').trim();
+    const targetDateStr = /amanha|amanhã/i.test(moveMatch[3]) ? getRelativeDateStr(1) : todayDate;
+    const movedTask = moveTaskViaSexta(query, targetDateStr, 'Tarefas', todayDate);
+    responseText = movedTask
+      ? `Mudei "${movedTask.task.text}" para ${targetDateStr === todayDate ? 'hoje' : 'amanha'}.`
+      : 'Nao achei essa tarefa para mover.';
+    responseMeta = 'acao executada';
+  } else if (normalizedLower.includes('foco')) {
+    runSextaQuickAction('focus');
+    return;
+  } else if (normalizedLower.includes('amanha')) {
+    runSextaQuickAction('tomorrow');
+    return;
+  } else if (normalizedLower.includes('planeja') || normalizedLower.includes('plano')) {
+    runSextaQuickAction('plan');
+    return;
+  } else {
+    const aiSettings = getFlowlyAISettings();
+    const providerLabel = aiSettings.provider && aiSettings.provider !== 'local'
+      ? String(aiSettings.provider).toLowerCase()
+      : 'modo local';
+
+    try {
+      const externalReply = await requestSextaExternalReply(raw);
+      if (externalReply) {
+        responseText = externalReply;
+        responseMeta = providerLabel;
+      } else {
+        responseText = buildSextaAssistantReply(raw);
+        responseMeta = 'modo local';
+      }
+    } catch (error) {
+      responseText = buildSextaAssistantReply(raw);
+      responseMeta = 'fallback local';
+      pushSextaNote(
+        'ia',
+        `Falha no conector ${providerLabel}: ${String(error?.message || 'erro desconhecido').slice(0, 180)}`
+      );
+    }
+  }
+
+  pushSextaNote('command', responseText);
+  pushSextaChatMessage('assistant', responseText, responseMeta);
+  persistSextaState();
+  renderSextaView();
+};
+
+renderSextaView = function () {
   const view = document.getElementById('sextaView');
   if (!view) return;
 
@@ -5891,7 +6358,615 @@ function renderSextaView() {
       </div>
     </div>
   `;
-}
+};
+
+renderSextaView = function () {
+  const view = document.getElementById('sextaView');
+  if (!view) return;
+
+  const aiSettings = getFlowlyAISettings();
+  const snapshot = getSextaOperationalSnapshot();
+  const activeTab = String(sextaState.activeTab || 'chat').trim() || 'chat';
+  const { total, completed } = countDayTasks(snapshot.todayDate);
+  const pending = Math.max(0, total - completed);
+  const weekDates = getWeekDates(0);
+  let weekTotal = 0;
+  let weekCompleted = 0;
+  weekDates.forEach(({ dateStr }) => {
+    const stats = countDayTasks(dateStr);
+    weekTotal += stats.total;
+    weekCompleted += stats.completed;
+  });
+
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const weekRate = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
+  const focusLabel = pending <= 2 ? 'Fechamento' : pending <= 5 ? 'Execucao' : 'Limpeza';
+  const momentumLabel = completionRate >= 70 ? 'Alto' : completionRate >= 35 ? 'Medio' : 'Baixo';
+  const bottleneckLabel =
+    snapshot.moneyEntries.length > 0
+      ? 'Caixa pendente na mesa.'
+      : snapshot.followupEntries.length > 0
+        ? 'Follow-up aberto pedindo resposta.'
+        : snapshot.pendingEntries.length > 5
+          ? 'Frente demais aberta ao mesmo tempo.'
+          : 'Fluxo sob controle.';
+  const primaryMoneyTask =
+    snapshot.moneyEntries[0]?.task?.text || 'Nenhuma tarefa marcada como dinheiro hoje.';
+  const primaryFollowupTask =
+    snapshot.followupEntries[0]?.task?.text || 'Nenhum follow-up pendente visivel.';
+  const suggestions = buildSextaSuggestions();
+  const notes = Array.isArray(sextaState.notes) ? sextaState.notes.slice().reverse().slice(0, 4) : [];
+  const memories = getSextaMemories().slice().reverse();
+  const history =
+    Array.isArray(sextaState.chatHistory) && sextaState.chatHistory.length > 0
+      ? sextaState.chatHistory.slice(-8)
+      : [
+          {
+            id: 'seed_ai_1',
+            role: 'assistant',
+            text: 'Eu leio teu Flowly e te respondo com base em tarefas, projetos e foco operacional.',
+            meta: aiSettings.enabled && aiSettings.provider !== 'local' ? 'conector pronto' : 'modo local'
+          },
+          {
+            id: 'seed_user_1',
+            role: 'user',
+            text: 'O que eu ataco agora?',
+            meta: ''
+          },
+          {
+            id: 'seed_ai_2',
+            role: 'assistant',
+            text: buildSextaAssistantReply('o que eu ataco agora'),
+            meta: 'leitura do dia'
+          }
+        ];
+
+  const assistantModeLabel =
+    aiSettings.enabled && aiSettings.provider !== 'local'
+      ? `${aiSettings.provider} · ${aiSettings.model}`
+      : 'modo local Flowly';
+  const assistantHint =
+    aiSettings.enabled && aiSettings.provider !== 'local'
+      ? `Conector ${String(aiSettings.provider).toLowerCase()} ativo. A Sexta tenta responder por ele e volta para o modo local se a chamada falhar.`
+      : 'Respondendo com heuristica local baseada nos teus dados do Flowly.';
+  const tabButtons = [
+    { id: 'chat', label: 'Chat' },
+    { id: 'command', label: 'Centro de comando' },
+    { id: 'memory', label: 'Memoria' }
+  ]
+    .map(
+      (tab) =>
+        `<button type="button" class="sexta-tab-btn${activeTab === tab.id ? ' is-active' : ''}" data-sexta-tab="${tab.id}">${tab.label}</button>`
+    )
+    .join('');
+  const chatPanel = `
+        <section class="sexta-card sexta-card--chat sexta-card--chat-shell">
+          <div class="sexta-card-head">
+            <div>
+              <h3>Chat</h3>
+              <p>Pergunta sobre foco, projetos, dinheiro, backlog e proximos passos.</p>
+            </div>
+            <button class="sexta-link-btn" type="button" onclick="openFlowlySettingsTab('ia')">Conectar IA</button>
+          </div>
+
+          <div class="sexta-chat-status">
+            <span class="sexta-badge">${assistantModeLabel}</span>
+            <span>${assistantHint}</span>
+          </div>
+
+          <div class="sexta-chat-thread">
+            ${history
+              .map((item) => {
+                const roleClass = item.role === 'user' ? 'human' : 'ai';
+                const author = item.role === 'user' ? 'Voce' : 'Sexta';
+                return `
+                  <article class="sexta-chat-row ${roleClass}">
+                    <div class="sexta-chat-author">${author}</div>
+                    <div class="sexta-chat-bubble ${roleClass}">
+                      <div>${escapeProjectHtml(item.text)}</div>
+                      ${item.meta ? `<span class="sexta-chat-meta">${escapeProjectHtml(item.meta)}</span>` : ''}
+                    </div>
+                  </article>
+                `;
+              })
+              .join('')}
+          </div>
+
+          <div class="sexta-command-row sexta-command-row--composer">
+            <input id="sextaCommandInput" class="task-input sexta-command-input" type="text" placeholder="Ex.: o que eu ataco agora?, quais projetos estao em risco?, criar tarefa cobrar cliente" />
+            <button class="btn-primary" type="button" onclick="runSextaCommand()">Enviar</button>
+          </div>
+
+          <div class="sexta-command-examples">
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='o que eu ataco agora?'">o que eu ataco agora?</button>
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='quais projetos estao em risco?'">quais projetos estao em risco?</button>
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='quais tarefas estao sem projeto?'">quais tarefas estao sem projeto?</button>
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='lembra que eu priorizo tarefas de dinheiro pela manha'">lembra que...</button>
+            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='criar tarefa cobrar cliente antigo'">criar tarefa cobrar cliente antigo</button>
+          </div>
+        </section>
+  `;
+  const commandPanel = `
+        <section class="sexta-card sexta-card--intel">
+          <div class="sexta-card-head">
+            <div>
+              <h3>Centro de comando</h3>
+              <p>O que a Sexta esta vendo agora dentro do teu Flowly.</p>
+            </div>
+          </div>
+
+          <div class="sexta-panel-block">
+            <div class="sexta-panel-label">Ultima acao</div>
+            <div class="sexta-panel-highlight">${escapeProjectHtml(sextaState.lastAction || 'Nenhuma acao rodada ainda.')}</div>
+          </div>
+
+          <div class="sexta-insight-grid">
+            <div class="sexta-panel-block sexta-panel-block--soft">
+              <div class="sexta-panel-label">Proximo foco de caixa</div>
+              <div class="sexta-panel-highlight sexta-panel-highlight--small">${escapeProjectHtml(primaryMoneyTask)}</div>
+            </div>
+            <div class="sexta-panel-block sexta-panel-block--soft">
+              <div class="sexta-panel-label">Follow-up mais proximo</div>
+              <div class="sexta-panel-highlight sexta-panel-highlight--small">${escapeProjectHtml(primaryFollowupTask)}</div>
+            </div>
+          </div>
+
+          <div class="sexta-list">
+            ${suggestions
+              .map(
+                (item) => `<div class="sexta-list-item"><span class="sexta-dot"></span><div><strong>${escapeProjectHtml(item.title)}</strong><p>${escapeProjectHtml(item.body)}</p></div></div>`
+              )
+              .join('')}
+          </div>
+
+          <div class="sexta-panel-block sexta-panel-block--soft">
+            <div class="sexta-panel-label">Estado rapido</div>
+            <div class="sexta-metrics-list">
+              <div><strong>${snapshot.pendingEntries.length}</strong><span>pendencias abertas hoje</span></div>
+              <div><strong>${snapshot.followupEntries.length}</strong><span>follow-ups esperando resposta</span></div>
+              <div><strong>${snapshot.unpaidProjects.length}</strong><span>projetos ainda nao pagos</span></div>
+            </div>
+          </div>
+
+          <div class="sexta-panel-block sexta-panel-block--soft">
+            <div class="sexta-panel-label">Log recente</div>
+            <div class="sexta-log-list">
+              ${notes.length > 0
+                ? notes
+                    .map(
+                      (note) => `<div class="sexta-log-item"><strong>${escapeProjectHtml(note.action)}</strong><span>${escapeProjectHtml(note.text)}</span></div>`
+                    )
+                    .join('')
+                : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma acao rapida rodada ainda.</span></div>'}
+            </div>
+          </div>
+        </section>
+  `;
+  const memoryPanel = `
+        <section class="sexta-card sexta-card--memory">
+          <div class="sexta-card-head">
+            <div>
+              <h3>Memoria do agente</h3>
+              <p>Comandos e preferencias que a Sexta deve carregar nas proximas conversas.</p>
+            </div>
+            <button class="sexta-link-btn" type="button" onclick="document.getElementById('sextaCommandInput').value='limpar memoria'; runSextaCommand();">Limpar memoria</button>
+          </div>
+
+          <div class="sexta-panel-block sexta-panel-block--soft">
+            <div class="sexta-panel-label">Como usar</div>
+            <div class="sexta-memory-guide">
+              <div><strong>Salvar</strong><span>lembra que eu prefiro atacar dinheiro pela manha</span></div>
+              <div><strong>Consultar</strong><span>o que voce lembra?</span></div>
+              <div><strong>Apagar</strong><span>esquecer prefiro atacar dinheiro pela manha</span></div>
+            </div>
+          </div>
+
+          <div class="sexta-memory-list">
+            ${
+              memories.length > 0
+                ? memories
+                    .map(
+                      (item) => `
+                        <article class="sexta-memory-item">
+                          <div class="sexta-memory-text">${escapeProjectHtml(item.text)}</div>
+                          <div class="sexta-memory-meta">${escapeProjectHtml(item.source || 'manual')} · ${new Date(item.createdAt).toLocaleDateString('pt-BR')}</div>
+                        </article>
+                      `
+                    )
+                    .join('')
+                : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma memoria salva ainda.</span></div>'
+            }
+          </div>
+        </section>
+  `;
+
+  view.innerHTML = `
+    <div class="flowly-shell flowly-shell--wide sexta-shell sexta-shell--rebuilt">
+      <div class="sexta-hero sexta-hero--rebuilt">
+        <div class="sexta-hero-main">
+          <div class="sexta-kicker">Sexta</div>
+          <h2>Assistente operacional do Flowly</h2>
+          <p>Chat para perguntar, revisar contexto e decidir a proxima acao sem sair do teu sistema.</p>
+          <div class="sexta-hero-pills">
+            <span class="sexta-pill">Modo ${focusLabel}</span>
+            <span class="sexta-pill sexta-pill--soft">Momentum ${momentumLabel}</span>
+            <span class="sexta-pill sexta-pill--soft">${assistantModeLabel}</span>
+          </div>
+        </div>
+        <div class="sexta-hero-side sexta-hero-side--stacked">
+          <div class="sexta-mini-stat">
+            <span class="sexta-mini-label">Hoje</span>
+            <strong>${completed}/${total}</strong>
+            <span>${pending} pendentes</span>
+          </div>
+          <div class="sexta-mini-stat">
+            <span class="sexta-mini-label">Semana</span>
+            <strong>${weekRate}%</strong>
+            <span>${weekCompleted}/${weekTotal} concluidas</span>
+          </div>
+          <div class="sexta-mini-stat">
+            <span class="sexta-mini-label">Projetos ativos</span>
+            <strong>${snapshot.activeProjects.length}</strong>
+            <span>${snapshot.lateProjects.length} em risco agora</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sexta-overview-grid sexta-overview-grid--tight">
+        <div class="sexta-overview-card">
+          <span class="sexta-panel-label">Leitura do dia</span>
+          <strong>${bottleneckLabel}</strong>
+          <p>${assistantHint}</p>
+        </div>
+        <div class="sexta-overview-card">
+          <span class="sexta-panel-label">Caixa em aberto</span>
+          <strong>${snapshot.moneyEntries.length}</strong>
+          <p>${escapeProjectHtml(primaryMoneyTask)}</p>
+        </div>
+        <div class="sexta-overview-card">
+          <span class="sexta-panel-label">Tarefas sem projeto</span>
+          <strong>${snapshot.standaloneTasks.length}</strong>
+          <p>${snapshot.standaloneTasks[0] ? escapeProjectHtml(snapshot.standaloneTasks[0].task.text) : 'Nada gritando por organizacao agora.'}</p>
+        </div>
+      </div>
+
+      <div class="sexta-tabs">
+        ${tabButtons}
+      </div>
+
+      <div class="sexta-grid sexta-grid--rebuilt ${activeTab === 'chat' ? 'sexta-grid--chat' : ''}">
+        ${
+          activeTab === 'chat'
+            ? chatPanel + commandPanel
+            : activeTab === 'memory'
+              ? memoryPanel + chatPanel
+              : commandPanel + chatPanel
+        }
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    view.querySelectorAll('[data-sexta-tab]').forEach((btn) => {
+      btn.onclick = () => {
+        sextaState.activeTab = btn.dataset.sextaTab || 'chat';
+        persistSextaState();
+        renderSextaView();
+      };
+    });
+    const input = document.getElementById('sextaCommandInput');
+    if (input) {
+      input.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          runSextaCommand();
+        }
+      };
+    }
+    const thread = view.querySelector('.sexta-chat-thread');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, 0);
+};
+
+renderSextaView = function () {
+  const view = document.getElementById('sextaView');
+  if (!view) return;
+
+  const aiSettings = getFlowlyAISettings();
+  const snapshot = getSextaOperationalSnapshot();
+  const activeTabRaw = String(sextaState.activeTab || 'chat').trim() || 'chat';
+  const activeTab = activeTabRaw === 'command' ? 'context' : activeTabRaw;
+  if (sextaState.activeTab !== activeTab) {
+    sextaState.activeTab = activeTab;
+    persistSextaState();
+  }
+
+  const { total, completed } = countDayTasks(snapshot.todayDate);
+  const pending = Math.max(0, total - completed);
+  const weekDates = getWeekDates(0);
+  let weekTotal = 0;
+  let weekCompleted = 0;
+  weekDates.forEach(({ dateStr }) => {
+    const stats = countDayTasks(dateStr);
+    weekTotal += stats.total;
+    weekCompleted += stats.completed;
+  });
+
+  const weekRate = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
+  const bottleneckLabel =
+    snapshot.moneyEntries.length > 0
+      ? 'Caixa pedindo acao agora.'
+      : snapshot.followupEntries.length > 0
+        ? 'Follow-up aberto pedindo resposta.'
+        : snapshot.pendingEntries.length > 5
+          ? 'Tem frente demais aberta ao mesmo tempo.'
+          : 'Fluxo sob controle.';
+  const primaryMoneyTask =
+    snapshot.moneyEntries[0]?.task?.text || 'Nenhuma tarefa de dinheiro puxando a fila.';
+  const primaryFollowupTask =
+    snapshot.followupEntries[0]?.task?.text || 'Nenhum follow-up pedindo retorno agora.';
+  const suggestions = buildSextaSuggestions().slice(0, 3);
+  const notes = Array.isArray(sextaState.notes) ? sextaState.notes.slice().reverse().slice(0, 4) : [];
+  const latestIaNote = notes.find((note) => note.action === 'ia');
+  const memories = getSextaMemories().slice().reverse();
+  const history =
+    Array.isArray(sextaState.chatHistory) && sextaState.chatHistory.length > 0
+      ? sextaState.chatHistory.slice(-10)
+      : [
+          {
+            id: 'seed_ai_1',
+            role: 'assistant',
+            text: 'Me chama aqui para decidir prioridade, criar tarefa, concluir, mover ou apagar sem sair do Flowly.',
+            meta: aiSettings.enabled && aiSettings.provider !== 'local' ? 'chat pronto' : 'modo local'
+          }
+        ];
+
+  const assistantModeLabel =
+    aiSettings.enabled && aiSettings.provider !== 'local'
+      ? `${aiSettings.provider} · ${aiSettings.model || 'modelo externo'}`
+      : 'modo local Flowly';
+  const assistantHint = latestIaNote
+    ? 'O conector externo falhou agora, entao a resposta voltou para o modo local.'
+    : aiSettings.enabled && aiSettings.provider !== 'local'
+      ? 'Chat conectado. Quando a IA externa falhar, a Sexta responde com os dados locais.'
+      : 'Chat local, lendo tarefas, projetos e foco direto do Flowly.';
+  const statPills = [
+    { label: 'Hoje', value: `${pending} abertas`, detail: `${completed}/${total} concluidas` },
+    { label: 'Caixa', value: String(snapshot.moneyEntries.length), detail: 'tarefas puxando receita' },
+    { label: 'Projetos', value: String(snapshot.activeProjects.length), detail: `${snapshot.lateProjects.length} em risco` },
+    { label: 'Semana', value: `${weekRate}%`, detail: `${weekCompleted}/${weekTotal} concluidas` }
+  ]
+    .map(
+      (item) => `
+        <article class="sexta-stat-pill-card">
+          <span class="sexta-panel-label">${item.label}</span>
+          <strong>${escapeProjectHtml(item.value)}</strong>
+          <span>${escapeProjectHtml(item.detail)}</span>
+        </article>
+      `
+    )
+    .join('');
+  const tabButtons = [
+    { id: 'chat', label: 'Chat' },
+    { id: 'context', label: 'Contexto' },
+    { id: 'memory', label: 'Memoria' }
+  ]
+    .map(
+      (tab) =>
+        `<button type="button" class="sexta-tab-btn${activeTab === tab.id ? ' is-active' : ''}" data-sexta-tab="${tab.id}">${tab.label}</button>`
+    )
+    .join('');
+  const quickCommands = [
+    { label: 'criar tarefa', prompt: 'cria tarefa cobrar cliente antigo' },
+    { label: 'concluir tarefa', prompt: 'conclui a tarefa fechar pacote de thumbs com a Jess' },
+    { label: 'mover para amanha', prompt: 'move a tarefa fechar pacote de thumbs com a Jess para amanha' },
+    { label: 'apagar tarefa', prompt: 'apaga a tarefa follow-up em geral' },
+    { label: 'analisar foco', prompt: 'o que eu ataco agora?' }
+  ]
+    .map(
+      (item) =>
+        `<button type="button" class="sexta-chip" data-sexta-prompt="${escapeProjectHtml(item.prompt)}">${escapeProjectHtml(item.label)}</button>`
+    )
+    .join('');
+
+  let secondaryPanel = '';
+  if (activeTab === 'context') {
+    secondaryPanel = `
+      <section class="sexta-card sexta-secondary-panel">
+        <div class="sexta-card-head sexta-card-head--compact">
+          <div>
+            <h3>Contexto</h3>
+            <p>Leitura curta do que importa agora, sem roubar foco do chat.</p>
+          </div>
+        </div>
+
+        <div class="sexta-secondary-grid">
+          <article class="sexta-secondary-card">
+            <span class="sexta-panel-label">Leitura do dia</span>
+            <strong>${escapeProjectHtml(bottleneckLabel)}</strong>
+            <p>${escapeProjectHtml(sextaState.lastAction || buildSextaAssistantReply('o que eu ataco agora'))}</p>
+          </article>
+          <article class="sexta-secondary-card">
+            <span class="sexta-panel-label">Caixa em aberto</span>
+            <strong>${snapshot.moneyEntries.length}</strong>
+            <p>${escapeProjectHtml(primaryMoneyTask)}</p>
+          </article>
+          <article class="sexta-secondary-card">
+            <span class="sexta-panel-label">Projetos</span>
+            <strong>${snapshot.activeProjects.length}</strong>
+            <p>${snapshot.activeProjects[0] ? escapeProjectHtml(snapshot.activeProjects[0].name) : 'Nenhum projeto ativo agora.'}</p>
+          </article>
+          <article class="sexta-secondary-card">
+            <span class="sexta-panel-label">Follow-up</span>
+            <strong>${snapshot.followupEntries.length}</strong>
+            <p>${escapeProjectHtml(primaryFollowupTask)}</p>
+          </article>
+        </div>
+
+        <div class="sexta-inline-actions">
+          <button class="sexta-link-btn" type="button" onclick="runSextaQuickAction('focus')">Puxar foco</button>
+          <button class="sexta-link-btn" type="button" onclick="runSextaQuickAction('review')">Revisar hoje</button>
+          <button class="sexta-link-btn" type="button" onclick="runSextaQuickAction('tomorrow')">Planejar amanha</button>
+          <button class="sexta-link-btn" type="button" onclick="runSextaQuickAction('plan')">Criar base</button>
+        </div>
+
+        <div class="sexta-list sexta-list--compact">
+          ${suggestions
+            .map(
+              (item) => `<div class="sexta-list-item"><span class="sexta-dot"></span><div><strong>${escapeProjectHtml(item.title)}</strong><p>${escapeProjectHtml(item.body)}</p></div></div>`
+            )
+            .join('')}
+        </div>
+
+        ${latestIaNote ? `
+          <div class="sexta-panel-block sexta-panel-block--soft">
+            <div class="sexta-panel-label">IA</div>
+            <div class="sexta-panel-highlight">${escapeProjectHtml(latestIaNote.text)}</div>
+          </div>
+        ` : ''}
+
+        <div class="sexta-panel-block sexta-panel-block--soft">
+          <div class="sexta-panel-label">Log recente</div>
+          <div class="sexta-log-list">
+            ${notes.length > 0
+              ? notes
+                  .map(
+                    (note) => `<div class="sexta-log-item"><strong>${escapeProjectHtml(note.action)}</strong><span>${escapeProjectHtml(note.text)}</span></div>`
+                  )
+                  .join('')
+              : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma acao registrada ainda.</span></div>'}
+          </div>
+        </div>
+      </section>
+    `;
+  } else if (activeTab === 'memory') {
+    secondaryPanel = `
+      <section class="sexta-card sexta-secondary-panel">
+        <div class="sexta-card-head sexta-card-head--compact">
+          <div>
+            <h3>Memoria</h3>
+            <p>Preferencias operacionais e comandos que o agente deve lembrar.</p>
+          </div>
+          <button class="sexta-link-btn" type="button" onclick="document.getElementById('sextaCommandInput').value='limpar memoria'; runSextaCommand();">Limpar memoria</button>
+        </div>
+
+        <div class="sexta-memory-guide sexta-memory-guide--inline">
+          <div><strong>Salvar</strong><span>lembra que eu prefiro atacar dinheiro pela manha</span></div>
+          <div><strong>Consultar</strong><span>o que voce lembra?</span></div>
+          <div><strong>Apagar</strong><span>esquecer prefiro atacar dinheiro pela manha</span></div>
+        </div>
+
+        <div class="sexta-memory-list">
+          ${
+            memories.length > 0
+              ? memories
+                  .map(
+                    (item) => `
+                      <article class="sexta-memory-item">
+                        <div class="sexta-memory-text">${escapeProjectHtml(item.text)}</div>
+                        <div class="sexta-memory-meta">${escapeProjectHtml(item.source || 'manual')} · ${new Date(item.createdAt).toLocaleDateString('pt-BR')}</div>
+                      </article>
+                    `
+                  )
+                  .join('')
+              : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma memoria salva ainda.</span></div>'
+          }
+        </div>
+      </section>
+    `;
+  }
+
+  view.innerHTML = `
+    <div class="flowly-shell flowly-shell--wide sexta-shell sexta-shell--chatfirst">
+      <section class="sexta-topbar">
+        <div class="sexta-topbar-copy">
+          <div class="sexta-kicker">Sexta</div>
+          <h2>Assistente operacional do Flowly</h2>
+          <p>Chat para conversar, criar tarefa, concluir, mover, apagar e revisar o que esta acontecendo agora.</p>
+        </div>
+        <div class="sexta-topbar-actions">
+          <span class="sexta-badge">${escapeProjectHtml(assistantModeLabel)}</span>
+          <button class="sexta-link-btn" type="button" onclick="openFlowlySettingsTab('ia')">Conectar IA</button>
+        </div>
+      </section>
+
+      <div class="sexta-stats-strip">
+        ${statPills}
+      </div>
+
+      <div class="sexta-tabs sexta-tabs--compact">
+        ${tabButtons}
+      </div>
+
+      <section class="sexta-card sexta-chat-stage">
+        <div class="sexta-chat-stage-head">
+          <div>
+            <h3>Chat</h3>
+            <p>${escapeProjectHtml(assistantHint)}</p>
+          </div>
+        </div>
+
+        <div class="sexta-chat-thread">
+          ${history
+            .map((item) => {
+              const roleClass = item.role === 'user' ? 'human' : 'ai';
+              const author = item.role === 'user' ? 'Voce' : 'Sexta';
+              return `
+                <article class="sexta-chat-row ${roleClass}">
+                  <div class="sexta-chat-author">${author}</div>
+                  <div class="sexta-chat-bubble ${roleClass}">
+                    <div>${escapeProjectHtml(item.text)}</div>
+                    ${item.meta ? `<span class="sexta-chat-meta">${escapeProjectHtml(item.meta)}</span>` : ''}
+                  </div>
+                </article>
+              `;
+            })
+            .join('')}
+        </div>
+
+        <div class="sexta-quick-actions sexta-quick-actions--minimal">
+          ${quickCommands}
+        </div>
+
+        <div class="sexta-command-row sexta-command-row--composer">
+          <input id="sextaCommandInput" class="task-input sexta-command-input" type="text" placeholder="Ex.: cria tarefa cobrar cliente, conclui follow-up, move site para amanha, o que eu ataco agora?" />
+          <button class="btn-primary" type="button" onclick="runSextaCommand()">Enviar</button>
+        </div>
+      </section>
+
+      ${secondaryPanel}
+    </div>
+  `;
+
+  setTimeout(() => {
+    view.querySelectorAll('[data-sexta-tab]').forEach((btn) => {
+      btn.onclick = () => {
+        sextaState.activeTab = btn.dataset.sextaTab || 'chat';
+        persistSextaState();
+        renderSextaView();
+      };
+    });
+    view.querySelectorAll('[data-sexta-prompt]').forEach((btn) => {
+      btn.onclick = () => {
+        const input = document.getElementById('sextaCommandInput');
+        if (!input) return;
+        input.value = btn.dataset.sextaPrompt || '';
+        input.focus();
+      };
+    });
+    const input = document.getElementById('sextaCommandInput');
+    if (input) {
+      input.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          runSextaCommand();
+        }
+      };
+    }
+    const thread = view.querySelector('.sexta-chat-thread');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, 0);
+};
 
 function getFinanceTaskCandidates() {
   const items = [];
@@ -7858,6 +8933,7 @@ function renderSettingsView() {
   const displayName =
     localStorage.getItem('flowly_display_name') ||
     (currentUser ? currentUser.email.split('@')[0] : 'Usuario');
+  const aiSettings = getFlowlyAISettings();
   const themeSettings = getFlowlyThemeSettings();
   const settingsTab = localStorage.getItem(FLOWLY_SETTINGS_TAB_KEY) || 'conta';
 
@@ -7907,6 +8983,7 @@ function renderSettingsView() {
     { id: 'notificacoes', label: 'Notificacoes', icon: 'bell-ring' },
     { id: 'app', label: 'App', icon: 'sliders-horizontal' },
     { id: 'personalizacao', label: 'Personalizacao', icon: 'palette' },
+    { id: 'ia', label: 'IA', icon: 'bot' },
     { id: 'operacao', label: 'Operacao', icon: 'signal' },
     { id: 'dados', label: 'Dados', icon: 'database' }
   ];
@@ -8122,6 +9199,65 @@ function renderSettingsView() {
     `
   );
 
+  const aiSection = sectionCard(
+    'Conexao de IA',
+    'Deixa a Sexta pronta para conversar com provedores externos',
+    'bot',
+    `
+      <div class="space-y-3">
+        ${settingRow('bot', 'Ativar conector externo', 'Mantem a configuracao de IA pronta para backend seguro', toggle('toggleAiEnabled', aiSettings.enabled === true))}
+        <div class="settings-ai-grid">
+          <label class="settings-theme-field">
+            <span>Provedor</span>
+            <select id="selectAiProvider" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">
+              <option value="local" ${aiSettings.provider === 'local' ? 'selected' : ''}>Local Flowly</option>
+              <option value="minimax" ${aiSettings.provider === 'minimax' ? 'selected' : ''}>MiniMax</option>
+              <option value="openai" ${aiSettings.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+              <option value="custom" ${aiSettings.provider === 'custom' ? 'selected' : ''}>Custom</option>
+            </select>
+          </label>
+          <label class="settings-theme-field">
+            <span>Modelo</span>
+            <input id="inputAiModel" type="text" value="${escapeProjectHtml(aiSettings.model)}" placeholder="Ex.: minimax-text-01" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+          </label>
+          <label class="settings-theme-field settings-theme-field--wide">
+            <span>Endpoint / Edge Function</span>
+            <input id="inputAiEndpoint" type="text" value="${escapeProjectHtml(aiSettings.endpoint)}" placeholder="https://.../functions/v1/ask-flowly" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+          </label>
+          <label class="settings-theme-field settings-theme-field--wide">
+            <span>API key</span>
+            <input id="inputAiApiKey" type="password" value="${escapeProjectHtml(aiSettings.apiKey)}" placeholder="Cole a chave aqui se quiser testar localmente" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+          </label>
+        </div>
+        <label class="settings-theme-field settings-theme-field--wide">
+          <span>Prompt base da Sexta</span>
+          <textarea id="inputAiSystemPrompt" rows="4" class="w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none">${escapeProjectHtml(aiSettings.systemPrompt)}</textarea>
+        </label>
+        <p class="text-[11px] text-gray-500">Hoje a Sexta ja responde localmente com base nos dados do Flowly. Essa aba deixa o conector pronto para voce plugar MiniMax, OpenAI ou outro backend depois.</p>
+      </div>
+    `
+  );
+
+  const aiStatusCard = sectionCard(
+    'Status da Sexta',
+    'Leitura do que ja esta ativo',
+    'sparkles',
+    `
+      <div class="space-y-3">
+        <div class="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+          <div class="text-xs uppercase tracking-wide text-gray-400">Modo atual</div>
+          <div class="mt-1 text-sm font-semibold text-white">${aiSettings.enabled && aiSettings.provider !== 'local' ? escapeProjectHtml(aiSettings.provider + ' · ' + aiSettings.model) : 'Local Flowly'}</div>
+          <p class="mt-2 text-xs text-gray-400">${aiSettings.enabled && aiSettings.provider !== 'local' ? 'Conector salvo. O passo seguinte e ligar esse endpoint a uma Edge Function segura.' : 'Aba Sexta operando no modo local com leitura de tarefas, projetos e contexto.'}</p>
+        </div>
+        <div class="settings-guide-list">
+          <div><strong>1. Salvar provedor</strong><span>MiniMax, OpenAI ou endpoint custom</span></div>
+          <div><strong>2. Ligar backend</strong><span>Ideal via Supabase Edge Function</span></div>
+          <div><strong>3. Conversar na Sexta</strong><span>usar o chat ja dentro do Flowly</span></div>
+        </div>
+      </div>
+    `
+  );
+
   const prioritiesSection = sectionCard(
     'Prioridades',
     'Edite as prioridades personalizadas da sua operacao',
@@ -8177,6 +9313,7 @@ function renderSettingsView() {
         <div><strong>Notificacoes</strong><span>horarios, templates e permissao</span></div>
         <div><strong>App</strong><span>semana, hover e feedback</span></div>
         <div><strong>Personalizacao</strong><span>cores, fontes e arredondamento</span></div>
+        <div><strong>IA</strong><span>provedor, modelo e endpoint da Sexta</span></div>
         <div><strong>Operacao</strong><span>prioridades e sinais</span></div>
         <div><strong>Dados</strong><span>backup, reparo e limpeza</span></div>
       </div>
@@ -8188,6 +9325,7 @@ function renderSettingsView() {
     notificacoes: { main: [notificationsSection], side: [notificationStatusCard] },
     app: { main: [appSection], side: [quickGuideCard] },
     personalizacao: { main: [personalizationSection], side: [quickGuideCard] },
+    ia: { main: [aiSection], side: [aiStatusCard] },
     operacao: { main: [prioritiesSection], side: [quickGuideCard] },
     dados: { main: [dataSection], side: [quickGuideCard] }
   };
@@ -8454,6 +9592,37 @@ function renderSettingsView() {
     if (resetThemeBtn) {
       resetThemeBtn.onclick = () => {
         saveFlowlyThemeSettings(FLOWLY_THEME_DEFAULTS);
+        renderSettingsView();
+      };
+    }
+
+    const bindAiField = (id, fieldName) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.onchange = function () {
+        const current = getFlowlyAISettings();
+        saveFlowlyAISettings({
+          ...current,
+          [fieldName]: this.value
+        });
+        renderSettingsView();
+      };
+    };
+
+    bindAiField('selectAiProvider', 'provider');
+    bindAiField('inputAiModel', 'model');
+    bindAiField('inputAiEndpoint', 'endpoint');
+    bindAiField('inputAiApiKey', 'apiKey');
+    bindAiField('inputAiSystemPrompt', 'systemPrompt');
+
+    const toggleAiEnabled = document.getElementById('toggleAiEnabled');
+    if (toggleAiEnabled) {
+      toggleAiEnabled.onclick = function () {
+        const current = getFlowlyAISettings();
+        saveFlowlyAISettings({
+          ...current,
+          enabled: !(current.enabled === true)
+        });
         renderSettingsView();
       };
     }
@@ -10472,6 +11641,114 @@ function createTaskViaSexta(dateStr, text, period = 'Tarefas') {
   return true;
 }
 
+function normalizeSextaQuery(text = '') {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function getSextaSearchEntries(preferredDateStr = localDateStr(), includeCompleted = true) {
+  const allDates = Object.keys(allTasksData || {}).sort();
+  const orderedDates = [
+    preferredDateStr,
+    ...allDates.filter((dateStr) => dateStr !== preferredDateStr)
+  ];
+  const entries = [];
+
+  orderedDates.forEach((dateStr) => {
+    const dayData = allTasksData[dateStr] || {};
+    Object.entries(dayData).forEach(([period, tasks]) => {
+      if (!Array.isArray(tasks) || period === 'Rotina') return;
+      tasks.forEach((task, index) => {
+        if (!task || !task.text) return;
+        if (!includeCompleted && task.completed) return;
+        entries.push({ dateStr, period, index, task });
+      });
+    });
+  });
+
+  return entries;
+}
+
+function findTaskEntryViaSexta(query, options = {}) {
+  const normalizedQuery = normalizeSextaQuery(query);
+  if (!normalizedQuery) return null;
+
+  const preferredDateStr = options.preferredDateStr || localDateStr();
+  const includeCompleted = options.includeCompleted !== false;
+  const entries = getSextaSearchEntries(preferredDateStr, includeCompleted);
+  const exactMatch = entries.find(
+    (entry) => normalizeSextaQuery(entry.task.text) === normalizedQuery
+  );
+  if (exactMatch) return exactMatch;
+
+  return (
+    entries.find((entry) => normalizeSextaQuery(entry.task.text).includes(normalizedQuery)) || null
+  );
+}
+
+function getRelativeDateStr(dayOffset = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + dayOffset);
+  return localDateStr(date);
+}
+
+function deleteTaskViaSexta(query, preferredDateStr = localDateStr()) {
+  const entry = findTaskEntryViaSexta(query, { preferredDateStr, includeCompleted: true });
+  if (!entry) return null;
+
+  const list = allTasksData[entry.dateStr]?.[entry.period];
+  if (!Array.isArray(list)) return null;
+
+  const subtreeTasks = collectTaskSubtree(list, entry.task);
+  const subtreeSet = new Set(subtreeTasks);
+  allTasksData[entry.dateStr][entry.period] = list.filter((task) => !subtreeSet.has(task));
+  allTasksData[entry.dateStr][entry.period].forEach((task, index) => {
+    task.position = index;
+  });
+
+  if (allTasksData[entry.dateStr][entry.period].length === 0) delete allTasksData[entry.dateStr][entry.period];
+  if (Object.keys(allTasksData[entry.dateStr] || {}).length === 0) delete allTasksData[entry.dateStr];
+
+  saveToLocalStorage();
+  syncDateToSupabase(entry.dateStr);
+  renderView();
+  return entry;
+}
+
+function completeTaskViaSexta(query, preferredDateStr = localDateStr()) {
+  const entry = findTaskEntryViaSexta(query, { preferredDateStr, includeCompleted: false });
+  if (!entry) return null;
+  window.toggleTaskStatus(entry.dateStr, entry.period, entry.index, true, null);
+  return entry;
+}
+
+function moveTaskViaSexta(query, targetDateStr, targetPeriod = 'Tarefas', preferredDateStr = localDateStr()) {
+  const entry = findTaskEntryViaSexta(query, { preferredDateStr, includeCompleted: true });
+  if (!entry) return null;
+
+  const targetList = allTasksData[targetDateStr]?.[targetPeriod] || [];
+  const moveResult = moveTaskSubtree({
+    sourceDateStr: entry.dateStr,
+    sourcePeriod: entry.period,
+    sourceIndex: entry.index,
+    targetDateStr,
+    targetPeriod,
+    insertAt: targetList.length
+  });
+
+  if (!moveResult.moved) return null;
+
+  saveToLocalStorage();
+  (async () => {
+    for (const dateStr of moveResult.datesToSync || []) await syncDateToSupabase(dateStr);
+  })();
+  renderView();
+  return entry;
+}
+
 function insertQuickTaskInput(container, dateStr, period, beforeElement = null) {
   // Verificar se já existe um input ativo no container
   const existingInput = container.querySelector('.quick-task-input');
@@ -11801,6 +13078,7 @@ window.setView = setView;
 window.renderView = renderView;
 window.runSextaQuickAction = runSextaQuickAction;
 window.runSextaCommand = runSextaCommand;
+window.openFlowlySettingsTab = openFlowlySettingsTab;
 window.showWeeklyRecurrenceDialog = showWeeklyRecurrenceDialog;
 window.showAddRoutineTask = showAddRoutineTask;
 
