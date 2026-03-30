@@ -1,138 +1,135 @@
-import { getWeekDates, localDateStr, getWeekLabel } from '../utils/date.js';
-import {
-  getAllTasksData,
-  getWeeklyRecurringTasks,
-  getDailyRoutine,
-  saveToLocalStorage
-} from '../core/state.js';
-import { createTaskElement } from '../components/task.js';
-import {
-  createDropZone,
-  handleDragStart,
-  handleDragEnd,
-  handleDragOver
-} from '../components/drag-drop.js';
-
-let _currentWeekOffset = 0;
-
-export function renderWeek(weekOffset) {
-  _currentWeekOffset = weekOffset || _currentWeekOffset;
+﻿// View extra?da de app.js
+function renderWeek() {
   const grid = document.getElementById('weekGrid');
-
-  // Clear classes and styles
   grid.className = '';
   grid.style.cssText = '';
   grid.innerHTML = '';
-  grid.classList.remove('today-container');
 
-  // Update Header Label
-  const label = document.getElementById('weekLabel');
-  if (label) label.textContent = getWeekLabel(_currentWeekOffset);
+  // Atualizar label da semana
+  document.getElementById('weekLabel').textContent = getWeekLabel(currentWeekOffset);
 
-  // Get Dates
-  const dates = getWeekDates(_currentWeekOffset);
-  const allData = getAllTasksData();
+  const weekDates = getWeekDates(currentWeekOffset);
 
-  dates.forEach(({ name: day, dateStr }) => {
+  // HIDRATAR A SEMANA: Garantir que as rotinas existam no banco para todos os dias visÃ­veis
+  weekDates.forEach(({ dateStr }) => hydrateRoutineForDate(dateStr));
+
+  weekDates.forEach(({ name: day, dateStr }) => {
+    // Ler tarefas persistidas (sem rotina/recorrentes)
+    const dayTasks = allTasksData[dateStr] || {};
+
     const col = document.createElement('div');
-    col.className =
-      'day-column bg-[#1c1c1e]/40 p-3 rounded-lg flex flex-col gap-2 min-h-[300px] border border-white/5';
+    col.className = 'day-column';
     col.dataset.day = day;
     col.dataset.date = dateStr;
 
-    // Header
-    const header = document.createElement('div');
-    const dayNum = dateStr.split('-')[2];
-    const isToday = dateStr === localDateStr();
+    // Drag Events (coluna como drop zone de fallback)
+    col.addEventListener('dragover', (e) => e.preventDefault());
+    col.addEventListener('drop', columnDropFallback);
 
+    const todayStr = localDateStr();
+    const isToday = dateStr === todayStr;
+    const isPast = dateStr < todayStr;
+
+    if (isToday) col.classList.add('today-active');
+    if (isPast) col.classList.add('past-day');
+    if (dateStr > todayStr) col.classList.add('future-day');
+
+    const header = document.createElement('h2');
+    const dayNum = dateStr.split('-')[2].replace(/^0/, '');
+
+    header.className = `flex items-center gap-2 mb-3 ${isToday ? 'text-blue-500 font-bold' : 'text-gray-400'} `;
     header.innerHTML = `
-            <div class="flex justify-between items-end pb-2 mb-2 border-b border-white/5">
-                <span class="text-xs font-bold uppercase tracking-wider ${isToday ? 'text-blue-400' : 'text-gray-400'}">${day}</span>
-                <span class="text-lg font-light ${isToday ? 'text-blue-400' : 'text-gray-400'}">${dayNum}</span>
-            </div>
-        `;
+    <span> ${day}</span>
+        <span class="${isToday ? 'bg-blue-500/10 text-blue-400' : 'bg-white/5 text-gray-500'} text-xs px-2 py-0.5 rounded-full font-mono">${dayNum}</span>
+`;
     col.appendChild(header);
 
-    // Tasks Container
-    const taskList = document.createElement('div');
-    taskList.className = 'flex flex-col gap-2 flex-1 relative';
+    // Flatten all tasks
+    let allTasks = [];
 
-    // 1. Routine Tasks (Virtual)
+    // 1. Adicionar tarefas de rotina e recorrentes semanais (geradas dinamicamente, index = -1)
     const routineTasks = getRoutineTasksForDate(dateStr);
-    routineTasks.forEach((task) => {
-      const el = createTaskElement(day, dateStr, 'Rotina', task, -1);
-      taskList.appendChild(el);
+    routineTasks.forEach((task, routineIndex) => {
+      allTasks.push({
+        task,
+        day,
+        dateStr,
+        period: 'Rotina',
+        originalIndex: routineIndex
+      });
     });
 
-    // 2. Persisted Tasks
-    const dayTasks = allData[dateStr] || {};
+    // 2. Adicionar tarefas normais persistidas (excluindo perÃ­odo 'Rotina' se foi salvo indevidamente)
     Object.entries(dayTasks).forEach(([period, tasks]) => {
-      if (period === 'Rotina') return;
+      if (period === 'Rotina') return; // Pular - rotinas sÃ£o geradas dinamicamente acima
       if (Array.isArray(tasks)) {
         tasks.forEach((task, index) => {
-          const el = createTaskElement(day, dateStr, period, task, index);
-          el.addEventListener('dragstart', handleDragStart);
-          el.addEventListener('dragend', handleDragEnd);
-          taskList.appendChild(el);
-
-          // Drop Zone AFTER task
-          const dz = createDropZone(day, dateStr, period, index + 1);
-          taskList.appendChild(dz);
+          if (task && typeof task === 'object') {
+            allTasks.push({
+              task,
+              day,
+              dateStr,
+              period,
+              originalIndex: index
+            });
+          }
         });
       }
     });
 
-    // Add Quick Task Button
-    const addBtn = document.createElement('button');
-    addBtn.className =
-      'mt-2 w-full py-2 text-xs text-gray-500 hover:text-gray-300 hover:bg-white/5 rounded transition-colors dashed-border';
-    addBtn.textContent = '+ Adicionar tarefa';
-    addBtn.onclick = () => {
-      /* showQuickAddInput(col, day, dateStr) */
-    };
+    // ===== ORDENAÃ‡ÃƒO UNIFICADA =====
+    getProjectMirrorEntriesForDate(dateStr, day).forEach((entry) => {
+      allTasks.push(entry);
+    });
 
-    col.appendChild(taskList);
-    col.appendChild(addBtn);
+    allTasks = unifiedTaskSort(allTasks);
 
-    // Drop Listeners on Column
-    col.addEventListener('dragover', handleDragOver);
-    col.addEventListener('drop', (e) => {
-      e.preventDefault();
-      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-      // Default drop at end of list
-      document.dispatchEvent(
-        new CustomEvent('task-dropped', {
-          detail: {
-            source: data,
-            target: { date: dateStr, period: 'Tarefas', index: 9999 }
-          }
-        })
-      );
+    // Renderizar
+    allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
+      col.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
+    });
+
+    // ===== DROP ZONE NO FINAL PADRONIZADA =====
+    // Usa createDropZone com index = allTasks.length para inserir no fim
+    const endDropZone = createDropZone(day.name, dateStr, 'Tarefas', allTasks.length);
+    endDropZone.classList.add('flex-grow', 'min-h-[40px]'); // Estilo para ocupar espaÃ§o
+    endDropZone.innerText = '';
+
+    // Atalho: clique na zona final abre input de nova tarefa
+    endDropZone.addEventListener('click', (e) => {
+      if (!document.body.classList.contains('dragging-active')) {
+        insertQuickTaskInput(col, dateStr, 'Tarefas', endDropZone);
+      }
+    });
+
+    col.appendChild(endDropZone);
+
+    // Adicionar Ã¡rea clicÃ¡vel para nova tarefa (estilo Notion)
+    col.addEventListener('click', (e) => {
+      // SÃ³ adicionar se clicar na Ã¡rea vazia (nÃ£o em tasks ou inputs existentes)
+      if (e.target === col || e.target.tagName === 'H2' || e.target.tagName === 'H3') {
+        insertQuickTaskInput(col, dateStr, 'Tarefas', endDropZone);
+      }
     });
 
     grid.appendChild(col);
   });
+
+  // --- Dynamic Column Hover Resizing ---
+  const columns = grid.querySelectorAll('.day-column');
+  columns.forEach((col, index) => {
+    col.addEventListener('mouseenter', () => {
+      // Use 0.9fr for others, 1.6fr for hovered
+      const tmpl = Array(columns.length).fill('0.9fr');
+      tmpl[index] = '1.6fr';
+      grid.style.gridTemplateColumns = tmpl.join(' ');
+    });
+
+    col.addEventListener('mouseleave', () => {
+      grid.style.gridTemplateColumns = `repeat(${columns.length}, 1fr)`;
+    });
+  });
 }
 
-// Helper para tarefas de rotina (não exportado)
-function getRoutineTasksForDate(dateStr) {
-  const routine = getDailyRoutine();
-  const recurs = getWeeklyRecurringTasks();
-  const dayOfWeek = new Date(dateStr).getDay(); // 0-6
+// FunÃ§Ã£o de OrdenaÃ§Ã£o Unificada (Regra: Rotina -> ConcluÃ­das -> Pendentes)
 
-  const tasks = [];
-
-  // Daily
-  routine.forEach((t) => {
-    tasks.push({ ...t, isRoutine: true, completed: false }); // Todo: check completion state history
-  });
-
-  // Weekly
-  recurs.forEach((t) => {
-    if (t.daysOfWeek.includes(dayOfWeek)) {
-      tasks.push({ ...t, isWeeklyRecurring: true, completed: false });
-    }
-  });
-
-  return tasks;
-}

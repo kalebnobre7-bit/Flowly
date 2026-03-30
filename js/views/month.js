@@ -1,92 +1,528 @@
-import { getMonthDates, localDateStr } from '../utils/date.js';
-import { getAllTasksData } from '../core/state.js';
-import { createTaskElement } from '../components/task.js';
+﻿// View extra?da de app.js
+function renderMonth() {
+  const view = document.getElementById('monthView');
+  const { firstDay, lastDay, month, year } = getMonthDates(currentMonthOffset);
 
-export function renderMonth(container = document.getElementById('monthView')) {
-  container.innerHTML = ''; // Limpar container
+  const monthNames = [
+    'Janeiro',
+    'Fevereiro',
+    'MarÃ§o',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro'
+  ];
 
-  const { firstDay, lastDay, month, year } = getMonthDates(/* currentMonthOffset */);
-  const monthName = firstDay.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  let html = `
+                
+                
+                
+                
+                
+                
+                
+                <div class="flowly-shell flowly-shell--wide">
+                
+                
+                
+                
+                
+                
+                
+                    <div class="flex items-center justify-center gap-4 mb-6">
+                
+                
+                
+                
+                
+                
+                
+                        <button onclick="currentMonthOffset--; renderView();" class="utility-btn">
+                
+                
+                
+                
+                
+                
+                
+                            <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+                
+                
+                
+                
+                
+                
+                
+                        </button>
+                
+                
+                
+                
+                
+                
+                
+                        <h2 class="text-2xl font-bold text-white min-w-[200px] text-center">
+                
+                
+                
+                
+                
+                
+                
+                            ${monthNames[month]} ${year}
+                
+                
+                
+                
+                
+                
+                
+                        </h2>
+                
+                
+                
+                
+                
+                
+                
+                        <button onclick="currentMonthOffset++; renderView();" class="utility-btn">
+                
+                
+                
+                
+                
+                
+                
+                            <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+                
+                
+                
+                
+                
+                
+                
+                        </button>
+                
+                
+                
+                
+                
+                
+                
+                        <button onclick="currentMonthOffset = 0; renderView();" class="btn-secondary text-xs px-3 py-1 ml-4" style="width: auto; padding: 6px 12px;">
+                
+                
+                
+                
+                
+                
+                
+                            MÃªs Atual
+                
+                
+                
+                
+                
+                
+                
+                        </button>
+                
+                
+                
+                
+                
+                
+                
+                    </div>
 
-  // HEADER
-  const header = document.createElement('div');
-  header.className = 'flex justify-between items-center mb-6';
-  header.innerHTML = `
-        <button class="p-2 hover:bg-white/10 rounded-full" onclick="changeMonth(-1)"><i data-lucide="chevron-left"></i></button>
-        <span class="text-xl font-bold capitalize">${monthName}</span>
-        <button class="p-2 hover:bg-white/10 rounded-full" onclick="changeMonth(1)"><i data-lucide="chevron-right"></i></button>
-    `;
-  container.appendChild(header);
+                
+                
+                
+                
+                
+                
+                
+                    <!-- CabeÃ§alho dos dias da semana -->
+                
+                
+                
+                
+                
+                
+                
+                    <div class="grid grid-cols-7 gap-2 mb-2">
+                
+                
+                
+                
+                
+                
+                
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Seg</div>
+                
+                
+                
+                
+                
+                
+                
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Ter</div>
+                
+                
+                
+                
+                
+                
+                
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Qua</div>
+                
+                
+                
+                
+                
+                
+                
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Qui</div>
+                
+                
+                
+                
+                
+                
+                
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Sex</div>
+                
+                
+                
+                
+                
+                
+                
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">SÃ¡b</div>
+                
+                
+                
+                
+                
+                
+                
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Dom</div>
+                
+                
+                
+                
+                
+                
+                
+                    </div>
 
-  // GRID
-  const grid = document.createElement('div');
-  grid.className = 'grid grid-cols-7 gap-2';
+                
+                
+                
+                
+                
+                
+                
+                    <!-- Grid do calendÃ¡rio -->
+                
+                
+                
+                
+                
+                
+                
+                    <div class="grid grid-cols-7 gap-2">
+            `;
 
-  // Dias da semana (Labels)
-  const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  days.forEach((day) => {
-    const label = document.createElement('div');
-    label.className = 'text-center text-sm text-gray-400 py-2';
-    label.textContent = day;
-    grid.appendChild(label);
-  });
+  // Calcular o primeiro dia da semana (segunda = 0)
+  const firstDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
 
-  // Células vazias antes do dia 1
-  for (let i = 0; i < firstDay.getDay(); i++) {
-    const empty = document.createElement('div');
-    empty.className = 'aspect-square';
-    grid.appendChild(empty);
+  // Preencher dias vazios antes do primeiro dia
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    html += `<div class="min-h-[120px] bg-[#1c1c1e] bg-opacity-30 rounded-lg"></div>`;
   }
 
-  // Dias do mês
+  // Preencher os dias do mÃªs
+  const today = localDateStr();
   for (let day = 1; day <= lastDay.getDate(); day++) {
     const date = new Date(year, month, day);
     const dateStr = localDateStr(date);
-    const tasks = getAllTasksData()[dateStr] || {};
+    const isToday = dateStr === today;
 
-    let totalCount = 0;
-    let completedCount = 0;
+    const dayTasks = allTasksData[dateStr] || {};
+    let totalTasks = 0;
+    let completedTasks = 0;
+    const completedTaskNames = [];
 
-    Object.values(tasks).forEach((periodTasks) => {
-      if (Array.isArray(periodTasks)) {
-        totalCount += periodTasks.length;
-        completedCount += periodTasks.filter((t) => t.completed).length;
+    // Conjunto de textos ignorados (recorrentes e rotinas)
+    const ignoredTexts = new Set([
+      ...weeklyRecurringTasks.map((t) => t.text),
+      ...dailyRoutine.map((t) => t.text)
+    ]);
+
+    // Contar apenas tarefas normais persistidas (excluir perÃ­odo 'Rotina' e tarefas que sÃ£o cÃ³pias de recorrentes)
+    Object.entries(dayTasks).forEach(([period, tasks]) => {
+      if (period === 'Rotina') return;
+      if (Array.isArray(tasks)) {
+        // Filtra tarefas que nÃ£o sÃ£o recorrentes
+        const validTasks = tasks.filter((t) => !ignoredTexts.has(t.text));
+        totalTasks += validTasks.length;
+        completedTasks += validTasks.filter((t) => t.completed).length;
+        validTasks.forEach((t) => {
+          if (t && t.completed && t.text) completedTaskNames.push(String(t.text));
+        });
       }
     });
 
-    const cell = document.createElement('div');
-    cell.className =
-      'aspect-square bg-[#1c1c1e] bg-opacity-40 rounded-lg p-2 border border-white/5 hover:border-blue-500/50 cursor-pointer transition-all';
-    cell.onclick = () => {
-      /* goToDate(dateStr) */
-    };
+    const completedRoutineNames = getRoutineTasksForDate(dateStr)
+      .filter((t) => t && t.completed && t.text)
+      .map((t) => String(t.text));
+    completedRoutineNames.forEach((name) => completedTaskNames.push(name));
 
-    const dayNum = document.createElement('div');
-    dayNum.className = 'text-sm font-medium mb-1';
-    dayNum.textContent = day;
+    const uniqueCompletedTaskNames = [...new Set(completedTaskNames)];
+    const previewMaxItems = 6;
+    const previewItems = uniqueCompletedTaskNames.slice(0, previewMaxItems);
+    const previewMore = uniqueCompletedTaskNames.length - previewItems.length;
+    const monthDayTooltip =
+      uniqueCompletedTaskNames.length > 0
+        ? `Concluidas: ${uniqueCompletedTaskNames.length}\n${previewItems.map((name) => `- ${name}`).join('\n')}${previewMore > 0 ? `\n+${previewMore} outras` : ''}`
+        : 'Nenhuma tarefa concluida neste dia';
+    const monthDayTooltipAttr = monthDayTooltip
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '&#10;');
 
-    if (dateStr === localDateStr()) {
-      // Hoje
-      dayNum.className += ' text-blue-400 font-bold';
-      cell.className += ' bg-blue-500/10 border-blue-500/30';
-    }
+    const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    cell.appendChild(dayNum);
+    html += `
+                
+                
+                
+                
+                
+                
+                
+                    <div class="min-h-[120px] bg-[#1c1c1e] bg-opacity-40 rounded-lg p-3 hover:bg-opacity-60 transition-all cursor-pointer border ${isToday ? 'border-blue-500' : 'border-white/5'}"
+                
+                
+                
+                
+                
+                
+                
+                         title="${monthDayTooltipAttr}"
+                         onclick="goToDate('${dateStr}')">
+                
+                
+                
+                
+                
+                
+                
+                        <div class="flex items-center justify-between mb-2">
+                
+                
+                
+                
+                
+                
+                
+                            <div class="text-sm font-semibold ${isToday ? 'text-blue-400' : 'text-white'}">${day}</div>
+                
+                
+                
+                
+                
+                
+                
+                            ${
+                              totalTasks > 0
+                                ? `
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <div class="text-xs text-gray-500">
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                    ${completedTasks}/${totalTasks}
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                </div>
+                
+                
+                
+                
+                
+                
+                
+                            `
+                                : ''
+                            }
+                
+                
+                
+                
+                
+                
+                
+                        </div>
 
-    // Task Indicators (Dots)
-    if (totalCount > 0) {
-      const progress = document.createElement('div');
-      progress.className = 'flex gap-1 mt-auto';
-      const percentage = (completedCount / totalCount) * 100;
-      const bar = document.createElement('div');
-      bar.className = 'h-1 rounded-full w-full bg-gray-700 overflow-hidden';
-      bar.innerHTML = `<div class="h-full bg-${percentage === 100 ? 'green' : 'blue'}-500" style="width: ${percentage}%"></div>`;
-      progress.appendChild(bar);
-      cell.appendChild(progress);
-    }
+                
+                
+                
+                
+                
+                
+                
+                        ${
+                          totalTasks > 0
+                            ? `
+                
+                
+                
+                
+                
+                
+                
+                            <div class="w-full h-1 bg-gray-700/30 rounded-full overflow-hidden mb-2">
+                
+                
+                
+                
+                
+                
+                
+                                
+                
+                
+                
+                
+                
+                
+                <div class="h-full bg-blue-500 rounded-full transition-all" style="width: ${completionPercent}%"></div>
+                
+                
+                
+                
+                
+                
+                
+                            </div>
+                
+                
+                
+                
+                
+                
+                
+                        `
+                            : ''
+                        }
 
-    grid.appendChild(cell);
+                
+                
+                
+                
+                
+                
+                
+                        <div class="text-xs text-gray-600 space-y-1">
+                
+                
+                
+                
+                
+                
+                
+                            ${totalTasks === 0 ? '<div class="text-center py-4 text-gray-700">Sem tarefas</div>' : ''}
+                
+                
+                
+                
+                
+                
+                
+                        </div>
+                
+                
+                
+                
+                
+                
+                
+                    </div>
+                
+                
+                
+                
+                
+                
+                
+                `;
   }
 
-  container.appendChild(grid);
+  html += `
+                
+                
+                
+                
+                
+                
+                
+                    </div>
+                
+                
+                
+                
+                
+                
+                
+                </div>
+            `;
+
+  view.innerHTML = html;
 }
+

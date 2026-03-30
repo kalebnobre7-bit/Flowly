@@ -12,3 +12,4 @@ Thumbs.db
 
 .format-last-run
 .lint-last-run
+.tmp/
