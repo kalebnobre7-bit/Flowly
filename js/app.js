@@ -1992,6 +1992,16 @@ function goToCurrentWeek() {
   renderView();
 }
 
+function changeMonth(direction) {
+  currentMonthOffset += direction;
+  renderView();
+}
+
+function goToCurrentMonth() {
+  currentMonthOffset = 0;
+  renderView();
+}
+
 // --- Core Functions ---
 
 async function checkAuth() {
@@ -2285,7 +2295,7 @@ function loadFromLocalStorage() {
   }
   const saved = localStorage.getItem('weekData');
   if (saved) {
-    const savedData = JSON.parse(saved);
+    const savedData = safeJSONParse(saved, {});
     Object.keys(weekData).forEach((day) => {
       if (savedData[day]) weekData[day] = savedData[day];
     });
@@ -4035,7 +4045,7 @@ function renderMonth() {
                 
                 
                 
-                        <button onclick="currentMonthOffset--; renderView();" class="utility-btn">
+                        <button onclick="changeMonth(-1)" class="utility-btn">
                 
                 
                 
@@ -4083,7 +4093,7 @@ function renderMonth() {
                 
                 
                 
-                        <button onclick="currentMonthOffset++; renderView();" class="utility-btn">
+                        <button onclick="changeMonth(1)" class="utility-btn">
                 
                 
                 
@@ -4107,7 +4117,7 @@ function renderMonth() {
                 
                 
                 
-                        <button onclick="currentMonthOffset = 0; renderView();" class="btn-secondary text-xs px-3 py-1 ml-4" style="width: auto; padding: 6px 12px;">
+                        <button onclick="goToCurrentMonth()" class="btn-secondary text-xs px-3 py-1 ml-4" style="width: auto; padding: 6px 12px;">
                 
                 
                 
@@ -4252,10 +4262,11 @@ function renderMonth() {
     let completedTasks = 0;
     const completedTaskNames = [];
 
-    // Conjunto de textos ignorados (recorrentes e rotinas)
+    // Conjunto de textos ignorados (recorrentes e rotinas) — usa allRecurringTasks (novo sistema unificado)
     const ignoredTexts = new Set([
-      ...weeklyRecurringTasks.map((t) => t.text),
-      ...dailyRoutine.map((t) => t.text)
+      ...(allRecurringTasks || []).map((t) => t.text),
+      ...(weeklyRecurringTasks || []).map((t) => t.text),
+      ...(dailyRoutine || []).map((t) => t.text)
     ]);
 
     // Contar apenas tarefas normais persistidas (excluir período 'Rotina' e tarefas que são cópias de recorrentes)
@@ -6193,480 +6204,6 @@ runSextaCommand = async function () {
   renderSextaView();
 };
 
-renderSextaView = function () {
-  const view = document.getElementById('sextaView');
-  if (!view) return;
-
-  const todayDate = localDateStr();
-  const todayData = allTasksData[todayDate] || {};
-  const allOpenToday = [];
-  Object.entries(todayData).forEach(([period, tasks]) => {
-    if (!Array.isArray(tasks)) return;
-    tasks.forEach((task, index) => {
-      if (task && !task.completed) allOpenToday.push({ task, period, index });
-    });
-  });
-  const openRoutineToday = getRoutineTasksForDate(todayDate).filter((task) => task && !task.completed);
-  const moneyOpen = allOpenToday.filter((entry) => String(entry.task.priority || '').toLowerCase() === 'money');
-  const urgentOpen = allOpenToday.filter((entry) => String(entry.task.priority || '').toLowerCase() === 'urgent');
-  const followUpOpen = allOpenToday.filter((entry) => /follow|cobrar|cliente|whats|proposta/i.test(String(entry.task.text || '')));
-  const bottleneckLabel = moneyOpen.length > 0
-    ? 'Caixa pendente na mesa.'
-    : urgentOpen.length > 0
-      ? 'Tem urgência aberta travando o ritmo.'
-      : openRoutineToday.length > 2
-        ? 'Rotina está comendo teu foco.'
-        : allOpenToday.length > 5
-          ? 'Excesso de frente aberta.'
-          : 'Fluxo sob controle.';
-  const primaryMoneyTask = moneyOpen[0]?.task?.text || 'Nenhuma tarefa marcada como dinheiro hoje.';
-  const primaryFollowupTask = followUpOpen[0]?.task?.text || 'Nenhum follow-up pendente visível.';
-  const { total, completed } = countDayTasks(todayDate);
-  const pending = Math.max(0, total - completed);
-  const weekDates = getWeekDates(0);
-  let weekTotal = 0;
-  let weekCompleted = 0;
-  weekDates.forEach(({ dateStr }) => {
-    const stats = countDayTasks(dateStr);
-    weekTotal += stats.total;
-    weekCompleted += stats.completed;
-  });
-  const weekRate = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
-  const suggestions = buildSextaSuggestions();
-  if (!Array.isArray(sextaState.suggestions) || sextaState.suggestions.length === 0) {
-    sextaState.suggestions = suggestions;
-    persistSextaState();
-  }
-  const lastAction = sextaState.lastAction || 'Ainda sem ação rodada aqui dentro. Usa os botões abaixo pra eu começar a operar no painel.';
-  const notes = Array.isArray(sextaState.notes) ? sextaState.notes.slice().reverse().slice(0, 3) : [];
-  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const focusLabel = pending <= 2 ? 'Fechamento' : pending <= 5 ? 'Execução' : 'Limpeza';
-  const momentumLabel = completionRate >= 70 ? 'Alto' : completionRate >= 35 ? 'Médio' : 'Baixo';
-
-  view.innerHTML = `
-    <div class="flowly-shell flowly-shell--narrow sexta-shell">
-      <div class="sexta-hero">
-        <div class="sexta-hero-main">
-          <div class="sexta-kicker">Sexta inside Flowly</div>
-          <h2>Sala de comando</h2>
-          <p>Camada de inteligência, contexto e ação para transformar o Flowly em sistema vivo.</p>
-          <div class="sexta-hero-pills">
-            <span class="sexta-pill">Modo ${focusLabel}</span>
-            <span class="sexta-pill sexta-pill--soft">Momentum ${momentumLabel}</span>
-          </div>
-        </div>
-        <div class="sexta-hero-side">
-          <div class="sexta-mini-stat">
-            <span class="sexta-mini-label">Hoje</span>
-            <strong>${completed}/${total}</strong>
-            <span>${pending} pendentes</span>
-          </div>
-          <div class="sexta-mini-stat">
-            <span class="sexta-mini-label">Semana</span>
-            <strong>${weekRate}%</strong>
-            <span>${weekCompleted}/${weekTotal} concluídas</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="sexta-overview-grid">
-        <div class="sexta-overview-card">
-          <span class="sexta-panel-label">Taxa de conclusão hoje</span>
-          <strong>${completionRate}%</strong>
-          <p>${completionRate >= 70 ? 'Dia sob controle.' : completionRate >= 35 ? 'Tem tração, mas ainda dá pra apertar.' : 'Baixa tração. Fecha uma tarefa curta e entra no fluxo.'}</p>
-        </div>
-        <div class="sexta-overview-card">
-          <span class="sexta-panel-label">Caixa em aberto</span>
-          <strong>${moneyOpen.length}</strong>
-          <p>${primaryMoneyTask}</p>
-        </div>
-        <div class="sexta-overview-card">
-          <span class="sexta-panel-label">Gargalo do dia</span>
-          <strong>${bottleneckLabel}</strong>
-          <p>${followUpOpen.length > 0 ? 'Follow-up pendente: ' + primaryFollowupTask : pending > 5 ? 'Tem tarefa demais aberta ao mesmo tempo.' : 'Nada crítico travando agora.'}</p>
-        </div>
-      </div>
-
-      <div class="sexta-grid">
-        <section class="sexta-card sexta-card--chat">
-          <div class="sexta-card-head">
-            <div>
-              <h3>Chat operacional</h3>
-              <p>Espaço para pedir estratégia, foco, revisão e próximos passos.</p>
-            </div>
-            <span class="sexta-badge">Ao vivo</span>
-          </div>
-          <div class="sexta-chat-placeholder">
-            <div class="sexta-chat-bubble ai">Posso virar teu copiloto dentro do Flowly: sugerir prioridade, limpar ruído e destravar execução.</div>
-            <div class="sexta-chat-bubble human">O que eu ataco agora?</div>
-            <div class="sexta-chat-bubble ai">Começa pela próxima tarefa de maior alavancagem e fecha o ciclo antes de abrir outra frente. Também já aceito comandos como criar tarefa, priorizar e concluir próxima.</div>
-          </div>
-          <div class="sexta-command-row">
-            <input id="sextaCommandInput" class="task-input sexta-command-input" type="text" placeholder="Ex.: criar tarefa revisar proposta, priorizar proposta, concluir próxima">
-            <button class="btn-primary" type="button" onclick="runSextaCommand()">Executar</button>
-          </div>
-          <div class="sexta-quick-actions">
-            <button class="btn-secondary" type="button" onclick="runSextaQuickAction('focus')">Sugerir foco</button>
-            <button class="btn-secondary" type="button" onclick="runSextaQuickAction('review')">Revisar hoje</button>
-            <button class="btn-secondary" type="button" onclick="runSextaQuickAction('tomorrow')">Planejar amanhã</button>
-            <button class="btn-secondary" type="button" onclick="runSextaQuickAction('plan')">Montar plano base</button>
-          </div>
-          <div class="sexta-command-examples">
-            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='priorizar lévessy'">priorizar lévessy</button>
-            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='criar tarefa cobrar cliente antigo'">criar tarefa cobrar cliente antigo</button>
-            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='concluir próxima'">concluir próxima</button>
-          </div>
-        </section>
-
-        <section class="sexta-card">
-          <div class="sexta-card-head">
-            <div>
-              <h3>Motor estratégico</h3>
-              <p>Sugestões reais calculadas a partir do estado atual do teu dia.</p>
-            </div>
-          </div>
-          <div class="sexta-panel-block">
-            <div class="sexta-panel-label">Última ação</div>
-            <div class="sexta-panel-highlight">${lastAction}</div>
-          </div>
-          <div class="sexta-ops-grid">
-            <div class="sexta-panel-block sexta-panel-block--soft">
-              <div class="sexta-panel-label">Próxima ação que puxa caixa</div>
-              <div class="sexta-panel-highlight sexta-panel-highlight--small">${primaryMoneyTask}</div>
-            </div>
-            <div class="sexta-panel-block sexta-panel-block--soft">
-              <div class="sexta-panel-label">Follow-up mais próximo</div>
-              <div class="sexta-panel-highlight sexta-panel-highlight--small">${primaryFollowupTask}</div>
-            </div>
-          </div>
-          <div class="sexta-list">
-            ${suggestions
-              .map(
-                (item) => `<div class="sexta-list-item"><span class="sexta-dot"></span><div><strong>${item.title}</strong><p>${item.body}</p></div></div>`
-              )
-              .join('')}
-          </div>
-          <div class="sexta-panel-block sexta-panel-block--soft">
-            <div class="sexta-panel-label">Log recente</div>
-            <div class="sexta-log-list">
-              ${notes.length > 0 ? notes
-                .map((note) => `<div class="sexta-log-item"><strong>${note.action}</strong><span>${note.text}</span></div>`)
-                .join('') : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma ação rápida rodada ainda.</span></div>'}
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-  `;
-};
-
-renderSextaView = function () {
-  const view = document.getElementById('sextaView');
-  if (!view) return;
-
-  const aiSettings = getFlowlyAISettings();
-  const snapshot = getSextaOperationalSnapshot();
-  const activeTab = String(sextaState.activeTab || 'chat').trim() || 'chat';
-  const { total, completed } = countDayTasks(snapshot.todayDate);
-  const pending = Math.max(0, total - completed);
-  const weekDates = getWeekDates(0);
-  let weekTotal = 0;
-  let weekCompleted = 0;
-  weekDates.forEach(({ dateStr }) => {
-    const stats = countDayTasks(dateStr);
-    weekTotal += stats.total;
-    weekCompleted += stats.completed;
-  });
-
-  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const weekRate = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
-  const focusLabel = pending <= 2 ? 'Fechamento' : pending <= 5 ? 'Execucao' : 'Limpeza';
-  const momentumLabel = completionRate >= 70 ? 'Alto' : completionRate >= 35 ? 'Medio' : 'Baixo';
-  const bottleneckLabel =
-    snapshot.moneyEntries.length > 0
-      ? 'Caixa pendente na mesa.'
-      : snapshot.followupEntries.length > 0
-        ? 'Follow-up aberto pedindo resposta.'
-        : snapshot.pendingEntries.length > 5
-          ? 'Frente demais aberta ao mesmo tempo.'
-          : 'Fluxo sob controle.';
-  const primaryMoneyTask =
-    snapshot.moneyEntries[0]?.task?.text || 'Nenhuma tarefa marcada como dinheiro hoje.';
-  const primaryFollowupTask =
-    snapshot.followupEntries[0]?.task?.text || 'Nenhum follow-up pendente visivel.';
-  const suggestions = buildSextaSuggestions();
-  const notes = Array.isArray(sextaState.notes) ? sextaState.notes.slice().reverse().slice(0, 4) : [];
-  const memories = getSextaMemories().slice().reverse();
-  const history =
-    Array.isArray(sextaState.chatHistory) && sextaState.chatHistory.length > 0
-      ? sextaState.chatHistory.slice(-8)
-      : [
-          {
-            id: 'seed_ai_1',
-            role: 'assistant',
-            text: 'Eu leio teu Flowly e te respondo com base em tarefas, projetos e foco operacional.',
-            meta: aiSettings.enabled && aiSettings.provider !== 'local' ? 'conector pronto' : 'modo local'
-          },
-          {
-            id: 'seed_user_1',
-            role: 'user',
-            text: 'O que eu ataco agora?',
-            meta: ''
-          },
-          {
-            id: 'seed_ai_2',
-            role: 'assistant',
-            text: buildSextaAssistantReply('o que eu ataco agora'),
-            meta: 'leitura do dia'
-          }
-        ];
-
-  const assistantModeLabel =
-    aiSettings.enabled && aiSettings.provider !== 'local'
-      ? `${aiSettings.provider} · ${aiSettings.model}`
-      : 'modo local Flowly';
-  const assistantHint =
-    aiSettings.enabled && aiSettings.provider !== 'local'
-      ? `Conector ${String(aiSettings.provider).toLowerCase()} ativo. A Sexta tenta responder por ele e volta para o modo local se a chamada falhar.`
-      : 'Respondendo com heuristica local baseada nos teus dados do Flowly.';
-  const tabButtons = [
-    { id: 'chat', label: 'Chat' },
-    { id: 'command', label: 'Centro de comando' },
-    { id: 'memory', label: 'Memoria' }
-  ]
-    .map(
-      (tab) =>
-        `<button type="button" class="sexta-tab-btn${activeTab === tab.id ? ' is-active' : ''}" data-sexta-tab="${tab.id}">${tab.label}</button>`
-    )
-    .join('');
-  const chatPanel = `
-        <section class="sexta-card sexta-card--chat sexta-card--chat-shell">
-          <div class="sexta-card-head">
-            <div>
-              <h3>Chat</h3>
-              <p>Pergunta sobre foco, projetos, dinheiro, backlog e proximos passos.</p>
-            </div>
-            <button class="sexta-link-btn" type="button" onclick="openFlowlySettingsTab('ia')">Conectar IA</button>
-          </div>
-
-          <div class="sexta-chat-status">
-            <span class="sexta-badge">${assistantModeLabel}</span>
-            <span>${assistantHint}</span>
-          </div>
-
-          <div class="sexta-chat-thread">
-            ${history
-              .map((item) => {
-                const roleClass = item.role === 'user' ? 'human' : 'ai';
-                const author = item.role === 'user' ? 'Voce' : 'Sexta';
-                return `
-                  <article class="sexta-chat-row ${roleClass}">
-                    <div class="sexta-chat-author">${author}</div>
-                    <div class="sexta-chat-bubble ${roleClass}">
-                      <div>${escapeProjectHtml(item.text)}</div>
-                      ${item.meta ? `<span class="sexta-chat-meta">${escapeProjectHtml(item.meta)}</span>` : ''}
-                    </div>
-                  </article>
-                `;
-              })
-              .join('')}
-          </div>
-
-          <div class="sexta-command-row sexta-command-row--composer">
-            <input id="sextaCommandInput" class="task-input sexta-command-input" type="text" placeholder="Ex.: o que eu ataco agora?, quais projetos estao em risco?, criar tarefa cobrar cliente" />
-            <button class="btn-primary" type="button" onclick="runSextaCommand()">Enviar</button>
-          </div>
-
-          <div class="sexta-command-examples">
-            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='o que eu ataco agora?'">o que eu ataco agora?</button>
-            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='quais projetos estao em risco?'">quais projetos estao em risco?</button>
-            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='quais tarefas estao sem projeto?'">quais tarefas estao sem projeto?</button>
-            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='lembra que eu priorizo tarefas de dinheiro pela manha'">lembra que...</button>
-            <button type="button" class="sexta-chip" onclick="document.getElementById('sextaCommandInput').value='criar tarefa cobrar cliente antigo'">criar tarefa cobrar cliente antigo</button>
-          </div>
-        </section>
-  `;
-  const commandPanel = `
-        <section class="sexta-card sexta-card--intel">
-          <div class="sexta-card-head">
-            <div>
-              <h3>Centro de comando</h3>
-              <p>O que a Sexta esta vendo agora dentro do teu Flowly.</p>
-            </div>
-          </div>
-
-          <div class="sexta-panel-block">
-            <div class="sexta-panel-label">Ultima acao</div>
-            <div class="sexta-panel-highlight">${escapeProjectHtml(sextaState.lastAction || 'Nenhuma acao rodada ainda.')}</div>
-          </div>
-
-          <div class="sexta-insight-grid">
-            <div class="sexta-panel-block sexta-panel-block--soft">
-              <div class="sexta-panel-label">Proximo foco de caixa</div>
-              <div class="sexta-panel-highlight sexta-panel-highlight--small">${escapeProjectHtml(primaryMoneyTask)}</div>
-            </div>
-            <div class="sexta-panel-block sexta-panel-block--soft">
-              <div class="sexta-panel-label">Follow-up mais proximo</div>
-              <div class="sexta-panel-highlight sexta-panel-highlight--small">${escapeProjectHtml(primaryFollowupTask)}</div>
-            </div>
-          </div>
-
-          <div class="sexta-list">
-            ${suggestions
-              .map(
-                (item) => `<div class="sexta-list-item"><span class="sexta-dot"></span><div><strong>${escapeProjectHtml(item.title)}</strong><p>${escapeProjectHtml(item.body)}</p></div></div>`
-              )
-              .join('')}
-          </div>
-
-          <div class="sexta-panel-block sexta-panel-block--soft">
-            <div class="sexta-panel-label">Estado rapido</div>
-            <div class="sexta-metrics-list">
-              <div><strong>${snapshot.pendingEntries.length}</strong><span>pendencias abertas hoje</span></div>
-              <div><strong>${snapshot.followupEntries.length}</strong><span>follow-ups esperando resposta</span></div>
-              <div><strong>${snapshot.unpaidProjects.length}</strong><span>projetos ainda nao pagos</span></div>
-            </div>
-          </div>
-
-          <div class="sexta-panel-block sexta-panel-block--soft">
-            <div class="sexta-panel-label">Log recente</div>
-            <div class="sexta-log-list">
-              ${notes.length > 0
-                ? notes
-                    .map(
-                      (note) => `<div class="sexta-log-item"><strong>${escapeProjectHtml(note.action)}</strong><span>${escapeProjectHtml(note.text)}</span></div>`
-                    )
-                    .join('')
-                : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma acao rapida rodada ainda.</span></div>'}
-            </div>
-          </div>
-        </section>
-  `;
-  const memoryPanel = `
-        <section class="sexta-card sexta-card--memory">
-          <div class="sexta-card-head">
-            <div>
-              <h3>Memoria do agente</h3>
-              <p>Comandos e preferencias que a Sexta deve carregar nas proximas conversas.</p>
-            </div>
-            <button class="sexta-link-btn" type="button" onclick="document.getElementById('sextaCommandInput').value='limpar memoria'; runSextaCommand();">Limpar memoria</button>
-          </div>
-
-          <div class="sexta-panel-block sexta-panel-block--soft">
-            <div class="sexta-panel-label">Como usar</div>
-            <div class="sexta-memory-guide">
-              <div><strong>Salvar</strong><span>lembra que eu prefiro atacar dinheiro pela manha</span></div>
-              <div><strong>Consultar</strong><span>o que voce lembra?</span></div>
-              <div><strong>Apagar</strong><span>esquecer prefiro atacar dinheiro pela manha</span></div>
-            </div>
-          </div>
-
-          <div class="sexta-memory-list">
-            ${
-              memories.length > 0
-                ? memories
-                    .map(
-                      (item) => `
-                        <article class="sexta-memory-item">
-                          <div class="sexta-memory-text">${escapeProjectHtml(item.text)}</div>
-                          <div class="sexta-memory-meta">${escapeProjectHtml(item.source || 'manual')} · ${new Date(item.createdAt).toLocaleDateString('pt-BR')}</div>
-                        </article>
-                      `
-                    )
-                    .join('')
-                : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma memoria salva ainda.</span></div>'
-            }
-          </div>
-        </section>
-  `;
-
-  view.innerHTML = `
-    <div class="flowly-shell flowly-shell--wide sexta-shell sexta-shell--rebuilt">
-      <div class="sexta-hero sexta-hero--rebuilt">
-        <div class="sexta-hero-main">
-          <div class="sexta-kicker">Sexta</div>
-          <h2>Assistente operacional do Flowly</h2>
-          <p>Chat para perguntar, revisar contexto e decidir a proxima acao sem sair do teu sistema.</p>
-          <div class="sexta-hero-pills">
-            <span class="sexta-pill">Modo ${focusLabel}</span>
-            <span class="sexta-pill sexta-pill--soft">Momentum ${momentumLabel}</span>
-            <span class="sexta-pill sexta-pill--soft">${assistantModeLabel}</span>
-          </div>
-        </div>
-        <div class="sexta-hero-side sexta-hero-side--stacked">
-          <div class="sexta-mini-stat">
-            <span class="sexta-mini-label">Hoje</span>
-            <strong>${completed}/${total}</strong>
-            <span>${pending} pendentes</span>
-          </div>
-          <div class="sexta-mini-stat">
-            <span class="sexta-mini-label">Semana</span>
-            <strong>${weekRate}%</strong>
-            <span>${weekCompleted}/${weekTotal} concluidas</span>
-          </div>
-          <div class="sexta-mini-stat">
-            <span class="sexta-mini-label">Projetos ativos</span>
-            <strong>${snapshot.activeProjects.length}</strong>
-            <span>${snapshot.lateProjects.length} em risco agora</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="sexta-overview-grid sexta-overview-grid--tight">
-        <div class="sexta-overview-card">
-          <span class="sexta-panel-label">Leitura do dia</span>
-          <strong>${bottleneckLabel}</strong>
-          <p>${assistantHint}</p>
-        </div>
-        <div class="sexta-overview-card">
-          <span class="sexta-panel-label">Caixa em aberto</span>
-          <strong>${snapshot.moneyEntries.length}</strong>
-          <p>${escapeProjectHtml(primaryMoneyTask)}</p>
-        </div>
-        <div class="sexta-overview-card">
-          <span class="sexta-panel-label">Tarefas sem projeto</span>
-          <strong>${snapshot.standaloneTasks.length}</strong>
-          <p>${snapshot.standaloneTasks[0] ? escapeProjectHtml(snapshot.standaloneTasks[0].task.text) : 'Nada gritando por organizacao agora.'}</p>
-        </div>
-      </div>
-
-      <div class="sexta-tabs">
-        ${tabButtons}
-      </div>
-
-      <div class="sexta-grid sexta-grid--rebuilt ${activeTab === 'chat' ? 'sexta-grid--chat' : ''}">
-        ${
-          activeTab === 'chat'
-            ? chatPanel + commandPanel
-            : activeTab === 'memory'
-              ? memoryPanel + chatPanel
-              : commandPanel + chatPanel
-        }
-      </div>
-    </div>
-  `;
-
-  setTimeout(() => {
-    view.querySelectorAll('[data-sexta-tab]').forEach((btn) => {
-      btn.onclick = () => {
-        sextaState.activeTab = btn.dataset.sextaTab || 'chat';
-        persistSextaState();
-        renderSextaView();
-      };
-    });
-    const input = document.getElementById('sextaCommandInput');
-    if (input) {
-      input.onkeydown = (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          runSextaCommand();
-        }
-      };
-    }
-    const thread = view.querySelector('.sexta-chat-thread');
-    if (thread) thread.scrollTop = thread.scrollHeight;
-  }, 0);
-};
 
 renderSextaView = function () {
   const view = document.getElementById('sextaView');
@@ -13062,12 +12599,16 @@ if (
 }
 
 
-// Enviar notificacao de progresso quando tarefa e marcada
-const originalSaveToLocalStorage = saveToLocalStorage;
-saveToLocalStorage = function () {
-  originalSaveToLocalStorage();
-  setTimeout(sendProgressNotification, 250);
-};
+// Enviar notificacao de progresso quando tarefa e marcada (hook seguro)
+(function () {
+  const _original = saveToLocalStorage;
+  saveToLocalStorage = function () {
+    _original();
+    if (flowlyPwa && typeof sendProgressNotification === 'function') {
+      setTimeout(sendProgressNotification, 250);
+    }
+  };
+})();
 
 // ========================================
 // Fim PWA

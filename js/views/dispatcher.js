@@ -9,10 +9,10 @@
     return {
       renderCurrent: function (currentView) {
         // Esconde TODOS os containers de view
-        hideIfExists('monthView');
+        const monthView = hideIfExists('monthView');
         const weekGrid = hideIfExists('weekGrid');
         if (weekGrid) weekGrid.classList.remove('today-container');
-        hideIfExists('todayView');
+        const todayViewEl = hideIfExists('todayView');
         hideIfExists('routineView');
         const analyticsView = hideIfExists('analyticsView');
         const financeView = hideIfExists('financeView');
@@ -68,8 +68,7 @@
         }
 
         // today (default)
-        const todayView = document.getElementById('todayView');
-        if (todayView) todayView.classList.remove('hidden');
+        if (todayViewEl) todayViewEl.classList.remove('hidden');
         handlers.renderToday();
       }
     };

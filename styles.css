@@ -765,15 +765,14 @@ body.no-week-hover .day-column:hover {
 
 #weekGrid.today-container.today-focus-mode {
     display: block !important;
-    max-width: 540px;
+    max-width: min(540px, 100%);
     padding: 18px 16px 28px;
     min-height: auto;
 }
 
 #weekGrid.today-container.today-focus-mode .today-main {
-    width: 450px;
-    min-width: 450px;
-    max-width: 450px;
+    width: 100%;
+    max-width: min(450px, 100%);
     margin: 0 auto;
 }
 
@@ -1311,42 +1310,6 @@ body.dragging-active .task-drop-zone {
     transform: scale(1);
 }
 
-.btn-primary {
-    width: 100%;
-    padding: 12px;
-    background: var(--accent-blue);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 15px;
-    cursor: pointer;
-    transition: transform 0.1s, opacity 0.1s;
-}
-
-.btn-primary:active {
-    transform: scale(0.98);
-    opacity: 0.9;
-}
-
-.btn-secondary {
-    width: 100%;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    margin-top: 8px;
-    transition: background 0.1s;
-}
-
-.btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.15);
-}
-
 /* Color classes */
 .color-default {
     color: #f5f5f7;
@@ -1844,22 +1807,27 @@ body.dragging-active .task-drop-zone {
     color: rgba(255, 255, 255, 0.2);
 }
 
-/* Btn Primary & Secondary for modals */
+/* Btn Primary & Secondary */
 .btn-primary {
     width: 100%;
     padding: 12px;
     border-radius: 10px;
     border: none;
-    background: #0A84FF;
+    background: var(--accent-blue);
     color: white;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.15s ease, transform 0.1s ease, opacity 0.1s ease;
 }
 
 .btn-primary:hover {
     background: #0070E0;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+    opacity: 0.9;
 }
 
 .btn-secondary {
@@ -1868,15 +1836,19 @@ body.dragging-active .task-drop-zone {
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: transparent;
-    color: #aaa;
+    color: var(--text-secondary);
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: white;
+    color: var(--text-primary);
+}
+
+.btn-secondary:active {
+    transform: scale(0.98);
 }
 
 /* --- FIXES 2026-02-17 --- */
