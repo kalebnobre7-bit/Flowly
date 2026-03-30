@@ -18,6 +18,7 @@
       msgEl.textContent = '';
     }, 5000);
   }
+  window.showAuthMessage = showAuthMessage;
 
   function addRoutineTask(text, daysOfWeek) {
     if (!text || !daysOfWeek || daysOfWeek.length === 0) return;

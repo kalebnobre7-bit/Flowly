@@ -80,7 +80,7 @@ function initializeFlowlyServices() {
       syncRecurringTasksToSupabase,
       syncTaskToSupabase,
       renderView,
-      renderRoutineView
+      renderRoutineView: window.renderRoutineView
     });
   }
 }
