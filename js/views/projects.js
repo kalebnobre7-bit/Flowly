@@ -92,6 +92,20 @@ function renderProjectsView() {
     return 'Operacao sob controle. Agora vale organizar melhor as proximas entregas.';
   })();
 
+  const laneThemes = {
+    attention: { accent: 'projects-lane--attention', rail: 'projects-item-rail--attention' },
+    execution: { accent: 'projects-lane--execution', rail: 'projects-item-rail--execution' },
+    closed: { accent: 'projects-lane--closed', rail: 'projects-item-rail--closed' },
+    library: { accent: 'projects-lane--library', rail: 'projects-item-rail--library' },
+    active: { accent: 'projects-lane--execution', rail: 'projects-item-rail--execution' },
+    late: { accent: 'projects-lane--attention', rail: 'projects-item-rail--attention' },
+    paid: { accent: 'projects-lane--closed', rail: 'projects-item-rail--closed' },
+    unpaid: { accent: 'projects-lane--attention', rail: 'projects-item-rail--attention' },
+    done: { accent: 'projects-lane--closed', rail: 'projects-item-rail--closed' },
+    draft: { accent: 'projects-lane--library', rail: 'projects-item-rail--library' },
+    archived: { accent: 'projects-lane--library', rail: 'projects-item-rail--library' }
+  };
+
   const renderProjectCard = (project, sectionKey, index) => {
     const linkedTasks = collectProjectTaskCandidates({
       includeLinked: true,
@@ -124,6 +138,234 @@ function renderProjectsView() {
     const safeName = escapeProjectHtml(project.name);
     const safeClient = escapeProjectHtml(project.clientName || '');
     const safeType = escapeProjectHtml(project.serviceType || '');
+    const laneCardSummaryMeta = [safeClient || null, safeType || null, deadlineText]
+      .filter(Boolean)
+      .join(' · ');
+    const laneAmountLabel =
+      project.closedValue > 0
+        ? formatBRL(project.closedValue || 0)
+        : formatBRL(project.expectedValue || 0);
+    const laneAmountCaption = project.closedValue > 0 ? 'Fechado' : 'Previsto';
+    const laneTheme = laneThemes[sectionKey] || laneThemes.execution;
+    const laneSummaryNote = escapeProjectHtml(actionHint.detail || 'Sem alerta ativo agora.');
+    const laneRailLabel = project.isDraft
+      ? 'template'
+      : progressPct === 100
+        ? 'ready to ship'
+        : project.isPaid
+          ? 'caixa confirmado'
+          : statusBadge.label.toLowerCase();
+    const laneAvatarTokens = [project.clientName, project.serviceType, project.name]
+      .filter(Boolean)
+      .slice(0, 3)
+      .map((label, avatarIndex) => {
+        const initials = String(label)
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((part) => part.charAt(0))
+          .join('')
+          .slice(0, 2)
+          .toUpperCase();
+        return `<span class="projects-mini-avatar projects-mini-avatar--${
+          (avatarIndex % 3) + 1
+        }">${escapeProjectHtml(initials || '?')}</span>`;
+      })
+      .join('');
+
+    return `
+      <details class="projects-item projects-item--board projects-item--lane-card ${project.isDraft ? 'projects-item--draft' : ''}" ${
+        shouldOpen ? 'open' : ''
+      }>
+        <summary class="projects-item-summary projects-item-summary--board">
+          <div class="projects-item-rail ${laneTheme.rail}">${laneRailLabel}</div>
+          <div class="projects-card-summary-shell">
+            <div class="projects-card-summary-top">
+              <div class="projects-item-main projects-item-main--board">
+                <div class="projects-row-badges">
+                  <span class="projects-badge ${statusBadge.cls}">${statusBadge.label}</span>
+                  ${project.serviceType ? `<span class="projects-badge">${safeType}</span>` : ''}
+                  <span class="projects-badge ${
+                    project.isPaid ? 'projects-badge--paid' : 'projects-badge--unpaid'
+                  }">${project.isPaid ? 'Pago' : 'Aberto'}</span>
+                </div>
+                <div class="projects-item-kicker">${laneCardSummaryMeta || 'Sem cliente ou prazo definido'}</div>
+                <div class="projects-item-title-row projects-item-title-row--card">
+                  <strong>${safeName}</strong>
+                  <div class="projects-card-ghost" aria-hidden="true">+</div>
+                </div>
+                <div class="projects-item-summary-note projects-item-summary-note--clamped">${laneSummaryNote}</div>
+              </div>
+              <div class="projects-item-side projects-item-side--card">
+                <span class="projects-item-side-label">${laneAmountCaption}</span>
+                <strong class="projects-card-amount">${laneAmountLabel}</strong>
+                <div class="projects-progress-track projects-progress-track--summary projects-progress-track--summary-card">
+                  <div class="projects-progress-fill" style="width:${progressTotal > 0 ? progressPct : 0}%;background:${progressColor}"></div>
+                </div>
+                <small class="projects-item-side-note">${
+                  progressTotal > 0
+                    ? `${progressDone}/${progressTotal} tarefas concluidas`
+                    : 'Nenhuma tarefa ligada ainda'
+                }</small>
+              </div>
+            </div>
+
+            <div class="projects-card-footer">
+              <div class="projects-card-avatars">
+                ${laneAvatarTokens || '<span class="projects-mini-avatar projects-mini-avatar--ghost">FL</span>'}
+              </div>
+              <div class="projects-card-stats">
+                <span class="projects-card-stat">${linkedTasks.length} tarefas</span>
+                <span class="projects-card-stat">${deadlineText}</span>
+                <span class="projects-card-stat" style="color:${progressColor}">${
+                  progressTotal > 0 ? `${progressPct}%` : '0%'
+                }</span>
+              </div>
+            </div>
+          </div>
+        </summary>
+
+        <div class="projects-item-body">
+          <div class="projects-progress-block projects-progress-block--compact">
+            <div class="projects-progress-meta">
+              <span>Progresso real</span>
+              <strong style="color:${progressColor}">${
+                progressTotal > 0
+                  ? `${progressPct}% (${progressDone}/${progressTotal})`
+                  : 'Sem tarefas ligadas'
+              }</strong>
+            </div>
+            <div class="projects-progress-track">
+              <div class="projects-progress-fill" style="width:${
+                progressTotal > 0 ? progressPct : 0
+              }%;background:${progressColor}"></div>
+            </div>
+          </div>
+
+          <div class="projects-health-grid projects-health-grid--compact">
+            <div class="projects-health-card">
+              <span>Tarefas ligadas</span>
+              <strong>${linkedTasks.length}</strong>
+            </div>
+            <div class="projects-health-card">
+              <span>Fluxo financeiro</span>
+              <strong>${formatBRL(project.income || 0)}</strong>
+            </div>
+            <div class="projects-health-card">
+              <span>Lucro atual</span>
+              <strong>${formatBRL(project.profit || 0)}</strong>
+            </div>
+          </div>
+
+          <details class="projects-inline-group" open>
+            <summary>Dados do projeto</summary>
+            <div class="projects-config-grid projects-config-grid--tight">
+            <label class="projects-config-field">
+              <span>Nome</span>
+              <input class="finance-input" type="text" value="${safeName}" data-project-field="name" data-project-id="${project.id}">
+            </label>
+            <label class="projects-config-field">
+              <span>Cliente</span>
+              <input class="finance-input" type="text" value="${safeClient}" placeholder="Nome do cliente" data-project-field="clientName" data-project-id="${project.id}">
+            </label>
+            <label class="projects-config-field">
+              <span>Tipo</span>
+              <input class="finance-input" type="text" value="${safeType}" placeholder="LP, Shopify, etc" data-project-field="serviceType" data-project-id="${project.id}">
+            </label>
+            <label class="projects-config-field">
+              <span>Valor previsto</span>
+              <input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.expectedValue || 0)}" data-project-field="expectedValue" data-project-id="${project.id}">
+            </label>
+            <label class="projects-config-field">
+              <span>Inicio</span>
+              <input class="finance-input" type="date" value="${project.startDate || ''}" data-project-field="startDate" data-project-id="${project.id}">
+            </label>
+            <label class="projects-config-field">
+              <span>Prazo</span>
+              <input class="finance-input" type="date" value="${project.deadline || ''}" data-project-field="deadline" data-project-id="${project.id}">
+            </label>
+            <label class="projects-config-field">
+              <span>Conclusao real</span>
+              <input class="finance-input" type="date" value="${project.completionDate || ''}" data-project-field="completionDate" data-project-id="${project.id}">
+            </label>
+            <label class="projects-toggle-pill projects-toggle-pill--field">
+              <input type="checkbox" ${
+                project.isPaid ? 'checked' : ''
+              } data-project-field="isPaid" data-project-id="${project.id}">
+              <span>Pago</span>
+            </label>
+            <label class="projects-toggle-pill projects-toggle-pill--field">
+              <input type="checkbox" ${
+                project.isDraft ? 'checked' : ''
+              } data-project-field="isDraft" data-project-id="${project.id}">
+              <span>Template</span>
+            </label>
+            <label class="projects-toggle-pill projects-toggle-pill--field">
+              <input type="checkbox" ${
+                project.collapseSubtasks !== false ? 'checked' : ''
+              } data-project-field="collapseSubtasks" data-project-id="${project.id}">
+              <span>Recolher subtarefas</span>
+            </label>
+            </div>
+          </details>
+
+          <details class="projects-inline-group">
+            <summary>Notas, tarefas e checklist</summary>
+            <label class="projects-config-field projects-config-field--full">
+            <span>Notas operacionais</span>
+            <textarea class="finance-input projects-note-textarea" data-project-field="notes" data-project-id="${project.id}" placeholder="Resumo rapido, proximo passo, observacoes de cliente...">${notesValue}</textarea>
+            </label>
+
+            <div class="projects-row-actions">
+            <button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="add-task" data-project-id="${project.id}">Adicionar tarefa</button>
+            ${
+              project.status !== 'archived'
+                ? `<button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="archive" data-project-id="${project.id}">Arquivar</button>`
+                : ''
+            }
+            <button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="delete" data-project-id="${project.id}">Remover</button>
+            </div>
+
+            <div class="projects-item-sections projects-item-sections--stacked">
+            <div class="projects-template-block">
+              <div class="projects-linked-header">Checklist padrao</div>
+              <textarea id="${templateTextareaId}" class="finance-input projects-template-textarea" placeholder="Uma tarefa por linha">${templateValue}</textarea>
+              <div class="projects-template-actions">
+                <button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="save-template" data-project-id="${project.id}" data-project-template-id="${templateTextareaId}">Salvar checklist</button>
+              </div>
+            </div>
+
+            <div class="projects-linked-block">
+              <div class="projects-linked-header">Tarefas vinculadas</div>
+              ${
+                linkedTasks.length > 0
+                  ? `
+                    <div class="projects-linked-list">
+                      ${linkedTasks
+                        .map(
+                          (item) => `
+                            <div class="projects-linked-item">
+                              <div>
+                                <strong>${escapeProjectHtml(item.task.text)}</strong>
+                                <p>${item.dateStr} · ${item.period}${
+                            item.task.completed ? ' · concluida' : ''
+                          }</p>
+                              </div>
+                              <button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="unlink-task" data-project-task-date="${item.dateStr}" data-project-task-period="${item.period}" data-project-task-index="${item.index}">Desvincular</button>
+                            </div>
+                          `
+                        )
+                        .join('')}
+                    </div>
+                  `
+                  : '<div class="finance-empty">Nenhuma tarefa ligada ainda.</div>'
+              }
+            </div>
+            </div>
+          </details>
+        </div>
+      </details>
+    `;
     const summaryMeta = [safeClient || null, safeType || null, deadlineText].filter(Boolean).join(' • ');
     const amountLabel = project.closedValue > 0 ? formatBRL(project.closedValue || 0) : formatBRL(project.expectedValue || 0);
     const amountCaption = project.closedValue > 0 ? 'Fechado' : 'Previsto';
@@ -412,12 +654,17 @@ function renderProjectsView() {
           : ''
       }
 
-      <section class="finance-card projects-toolbar-card">
-        <div class="projects-toolbar-head">
+      <section class="finance-card projects-toolbar-card projects-toolbar-card--pipeline">
+        <div class="projects-toolbar-head projects-toolbar-head--pipeline">
           <div>
-            <div class="projects-suggest-title">Visão da operação</div>
+            <div class="projects-suggest-title">Pipeline view</div>
             <h3>Troque o recorte sem perder contexto</h3>
-            <p>Filtre prazo, pagamento, status e template sem abrir outra tela.</p>
+            <p>Uma leitura mais proxima de board, com menos ruído e filtros sempre a mao.</p>
+          </div>
+          <div class="projects-toolbar-meta">
+            <span class="projects-card-stat">${filteredProjects.length} cards</span>
+            <span class="projects-card-stat">${lateCount} em alerta</span>
+            <span class="projects-card-stat">${paidCount} pagos</span>
           </div>
         </div>
         <div class="projects-filters-bar projects-filters-bar--rebuilt">
@@ -440,27 +687,45 @@ function renderProjectsView() {
         <div class="projects-main">
           ${
             boardSections.length > 0
-              ? boardSections
-                  .map(
-                    (section) => `
-                      <section class="finance-card projects-board-section">
-                        <div class="projects-board-header">
-                          <div>
-                            <div class="projects-suggest-title">${section.title}</div>
-                            <h3>${section.title}</h3>
-                            <p>${section.subtitle}</p>
-                          </div>
-                          <span class="projects-board-count">${section.items.length}</span>
-                        </div>
-                        <div class="projects-board-list">
-                          ${section.items
-                            .map((project, index) => renderProjectCard(project, section.key, index))
-                            .join('')}
-                        </div>
-                      </section>
-                    `
-                  )
-                  .join('')
+              ? `
+                <section class="finance-card projects-pipeline-shell">
+                  <div class="projects-board-header projects-board-header--pipeline">
+                    <div>
+                      <div class="projects-suggest-title">Flow de entrega</div>
+                      <h3>Board vivo da operacao</h3>
+                      <p>Colunas por momento do projeto, com cards compactos e expansao sob demanda.</p>
+                    </div>
+                    <span class="projects-board-count">${filteredProjects.length}</span>
+                  </div>
+                  <div class="projects-pipeline">
+                    ${boardSections
+                      .map((section) => {
+                        const laneTheme = laneThemes[section.key] || laneThemes.execution;
+                        return `
+                          <section class="projects-lane ${laneTheme.accent}">
+                            <div class="projects-lane-head">
+                              <div class="projects-lane-head-main">
+                                <span class="projects-lane-accent"></span>
+                                <div>
+                                  <div class="projects-lane-kicker">${section.title}</div>
+                                  <h4>${section.title}</h4>
+                                  <p>${section.subtitle}</p>
+                                </div>
+                              </div>
+                              <span class="projects-board-count">${section.items.length}</span>
+                            </div>
+                            <div class="projects-lane-list">
+                              ${section.items
+                                .map((project, index) => renderProjectCard(project, section.key, index))
+                                .join('')}
+                            </div>
+                          </section>
+                        `;
+                      })
+                      .join('')}
+                  </div>
+                </section>
+              `
               : projectsFilter === 'all'
                 ? `
                   <section class="finance-card projects-board-section projects-board-section--starter">
