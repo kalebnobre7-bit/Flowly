@@ -32,8 +32,19 @@ function renderSyncStatus() {
   const textEl = document.getElementById('syncStatusText');
   if (!bar || !textEl) return;
 
+  let suffix = '';
+  try {
+    const pendingDeletes = JSON.parse(localStorage.getItem('flowlyPendingTaskDeletes') || '[]');
+    const pendingCount = Array.isArray(pendingDeletes) ? pendingDeletes.length : 0;
+    if (pendingCount > 0 && syncStatus.state !== 'syncing') {
+      suffix = ` · ${pendingCount} exclus${pendingCount === 1 ? 'ao' : 'oes'} pendente${pendingCount === 1 ? '' : 's'}`;
+    }
+  } catch (error) {
+    suffix = '';
+  }
+
   bar.dataset.state = syncStatus.state;
-  textEl.textContent = syncStatus.text;
+  textEl.textContent = `${syncStatus.text}${suffix}`;
   bar.classList.toggle('hidden', false);
 }
 

@@ -538,32 +538,74 @@ function getRelativeDateStr(dayOffset = 0) {
   return localDateStr(date);
 }
 
+function removeTaskSubtreeFromDate(dateStr, period, rootTask, options = {}) {
+  const dayData = allTasksData[dateStr];
+  const list = dayData && dayData[period];
+  if (!Array.isArray(list) || !rootTask) return { deleted: false, deletedTasks: [] };
+
+  const subtreeTasks = collectTaskSubtree(list, rootTask);
+  if (subtreeTasks.length === 0) return { deleted: false, deletedTasks: [] };
+
+  if (options.queuePendingDeletes !== false && typeof window.queuePendingTaskDelete === 'function') {
+    subtreeTasks.forEach((task) => {
+      window.queuePendingTaskDelete(task, dateStr, period);
+    });
+  }
+
+  const subtreeSet = new Set(subtreeTasks);
+  const nextList = list.filter((task) => !subtreeSet.has(task));
+
+  if (nextList.length > 0) {
+    nextList.forEach((task, index) => {
+      task.position = index;
+    });
+    allTasksData[dateStr][period] = nextList;
+  } else {
+    delete allTasksData[dateStr][period];
+  }
+
+  if (Object.keys(allTasksData[dateStr] || {}).length === 0) {
+    delete allTasksData[dateStr];
+  }
+
+  if (typeof recordSyncEvent === 'function' && options.recordEvent !== false) {
+    recordSyncEvent('queue', 'Exclusao local preparada para sincronizacao', {
+      dateStr,
+      period,
+      count: subtreeTasks.length,
+      text: String((rootTask && rootTask.text) || '')
+    });
+  }
+
+  return {
+    deleted: true,
+    deletedTasks: subtreeTasks,
+    count: subtreeTasks.length
+  };
+}
+
+window.deleteTaskOptimistically = function (dateStr, period, task, options = {}) {
+  const removal = removeTaskSubtreeFromDate(dateStr, period, task, options);
+  if (!removal.deleted) return removal;
+
+  saveToLocalStorage();
+  if (options.render !== false) renderView();
+
+  if (options.sync !== false && typeof syncDateToSupabase === 'function') {
+    Promise.resolve(syncDateToSupabase(dateStr)).catch((err) => {
+      console.error('[DeleteOptimistic] Background sync error:', err);
+    });
+  }
+
+  return removal;
+};
+
 function deleteTaskViaSexta(query, preferredDateStr = localDateStr()) {
   const entry = findTaskEntryViaSexta(query, { preferredDateStr, includeCompleted: true });
   if (!entry) return null;
 
-  const list = allTasksData[entry.dateStr]?.[entry.period];
-  if (!Array.isArray(list)) return null;
-
-  const subtreeTasks = collectTaskSubtree(list, entry.task);
-  if (typeof window.queuePendingTaskDelete === 'function') {
-    subtreeTasks.forEach((task) => {
-      window.queuePendingTaskDelete(task, entry.dateStr, entry.period);
-    });
-  }
-  const subtreeSet = new Set(subtreeTasks);
-  allTasksData[entry.dateStr][entry.period] = list.filter((task) => !subtreeSet.has(task));
-  allTasksData[entry.dateStr][entry.period].forEach((task, index) => {
-    task.position = index;
-  });
-
-  if (allTasksData[entry.dateStr][entry.period].length === 0) delete allTasksData[entry.dateStr][entry.period];
-  if (Object.keys(allTasksData[entry.dateStr] || {}).length === 0) delete allTasksData[entry.dateStr];
-
-  saveToLocalStorage();
-  syncDateToSupabase(entry.dateStr);
-  renderView();
-  return entry;
+  const result = window.deleteTaskOptimistically(entry.dateStr, entry.period, entry.task);
+  return result && result.deleted ? entry : null;
 }
 
 function completeTaskViaSexta(query, preferredDateStr = localDateStr()) {

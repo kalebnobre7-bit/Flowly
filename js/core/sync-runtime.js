@@ -163,6 +163,7 @@ async function flushPendingTaskDeletesToSupabase() {
       if (!result || result.success !== true) {
         throw new Error((result && result.errorText) || 'Falha ao remover tarefa pendente');
       }
+      clearPendingTaskDelete(entry, entry && entry.day, entry && entry.period);
     }
   } catch (err) {
     console.error('[Delete] Erro ao sincronizar exclusoes pendentes:', err);
@@ -235,6 +236,7 @@ async function deleteTaskFromSupabase(task, day, period) {
     if (!result || result.success !== true) {
       throw new Error((result && result.errorText) || 'Falha ao remover tarefa');
     }
+    clearPendingTaskDelete(task, day, period);
     finishSyncActivity(true);
   } catch (err) {
     scheduleUnsyncedTasksSync(1200);

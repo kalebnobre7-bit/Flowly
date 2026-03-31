@@ -475,26 +475,12 @@ async function finishEditing() {
 
     if (allTasksData[dateStr] && allTasksData[dateStr][period]) {
       const taskToDelete = allTasksData[dateStr][period][index] || task;
-
-      // OPTIMISTIC DELETE: splice first, render, then fire Supabase in background
-      const localIdx = allTasksData[dateStr][period].findIndex(
-        (t) =>
-          (taskToDelete.supabaseId && t.supabaseId === taskToDelete.supabaseId) ||
-          t.text === taskToDelete.text
-      );
-      if (localIdx >= 0) allTasksData[dateStr][period].splice(localIdx, 1);
-
-      if (allTasksData[dateStr][period].length === 0) delete allTasksData[dateStr][period];
-      if (Object.keys(allTasksData[dateStr] || {}).length === 0) delete allTasksData[dateStr];
-
-      localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
       currentEditingTask = null;
-      renderView();
-
-      // Fire backend DELETE non-blocking
-      deleteTaskFromSupabase(taskToDelete, dateStr, period).catch((err) =>
-        console.error('[Delete/finishEditing] Background sync error:', err)
-      );
+      const removal =
+        typeof window.deleteTaskOptimistically === 'function'
+          ? window.deleteTaskOptimistically(dateStr, period, taskToDelete)
+          : { deleted: false };
+      if (!removal.deleted) renderView();
       return;
     }
 
@@ -681,6 +667,9 @@ async function syncDateToSupabase(dateStr) {
   }
   markLocalSupabaseMutation(2400);
   _isSyncingDate = true;
+  if (typeof startSyncActivity === 'function') {
+    startSyncActivity('Sincronizando tarefas...');
+  }
 
   try {
     const isCompletedAtSchemaError = (error) =>
@@ -845,11 +834,38 @@ async function syncDateToSupabase(dateStr) {
       await supabaseClient.from('tasks').delete().in('id', staleIds);
     }
 
+    if (typeof clearPendingTaskDelete === 'function' && Array.isArray(pendingTaskDeletes)) {
+      pendingTaskDeletes.slice().forEach((entry) => {
+        if (!entry || entry.day !== dateStr) return;
+
+        const stillExistsLocally = Object.entries(periods).some(([entryPeriod, tasks]) => {
+          if (!Array.isArray(tasks) || entryPeriod !== entry.period) return false;
+          return tasks.some((task) => {
+            if (!task) return false;
+            if (entry.supabaseId && task.supabaseId) {
+              return task.supabaseId === entry.supabaseId;
+            }
+            return String(task.text || '').trim() === String(entry.text || '').trim();
+          });
+        });
+
+        if (!stillExistsLocally) {
+          clearPendingTaskDelete(entry, entry.day, entry.period);
+        }
+      });
+    }
+
     localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
+    if (typeof finishSyncActivity === 'function') {
+      finishSyncActivity(true);
+    }
   } catch (e) {
     console.error('Error syncing date:', e);
     if (typeof scheduleUnsyncedTasksSync === 'function') {
       scheduleUnsyncedTasksSync(1500);
+    }
+    if (typeof finishSyncActivity === 'function') {
+      finishSyncActivity(false, 'Falha ao sincronizar tarefas');
     }
   } finally {
     _isSyncingDate = false;
@@ -904,25 +920,11 @@ function showEditToolbar(e, task, label) {
     // Buscar a tarefa
     if (!allTasksData[dateStr] || !allTasksData[dateStr][period]) return;
     const taskToDelete = allTasksData[dateStr][period][index] || task;
-
-    // OPTIMISTIC DELETE: remove from local state and render immediately,
-    // then fire Supabase DELETE in the background (non-blocking)
-    const localIdx = allTasksData[dateStr][period].findIndex(
-      (t) =>
-        (taskToDelete.supabaseId && t.supabaseId === taskToDelete.supabaseId) ||
-        t.text === taskToDelete.text
-    );
-    if (localIdx >= 0) allTasksData[dateStr][period].splice(localIdx, 1);
-
-    if (allTasksData[dateStr][period].length === 0) delete allTasksData[dateStr][period];
-    if (Object.keys(allTasksData[dateStr] || {}).length === 0) delete allTasksData[dateStr];
-
-    localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
-    renderView();
-
-    deleteTaskFromSupabase(taskToDelete, dateStr, period).catch((err) =>
-      console.error('[Delete/editToolbar] Background sync error:', err)
-    );
+    const removal =
+      typeof window.deleteTaskOptimistically === 'function'
+        ? window.deleteTaskOptimistically(dateStr, period, taskToDelete)
+        : { deleted: false };
+    if (!removal.deleted) renderView();
   };
 }
 

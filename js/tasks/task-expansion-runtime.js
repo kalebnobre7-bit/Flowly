@@ -632,21 +632,14 @@ window.deleteTaskInline = async function (task, dateStr, period, _indexStr, isRe
     }
 
     if (!isRecurring) {
-      // OPTIMISTIC DELETE: update local state and re-render IMMEDIATELY (synchronous),
-      // then fire the Supabase DELETE in the background.
-      // This avoids a race where a pending Realtime loadDataFromSupabase() runs during
-      // the network await and re-renders the task before the splice happens.
-      if (allTasksData[dateStr]?.[period]) {
-        const localIdx = allTasksData[dateStr][period].findIndex(
-          (t) => (task.supabaseId && t.supabaseId === task.supabaseId) || t.text === task.text
-        );
-        if (localIdx >= 0) {
-          allTasksData[dateStr][period].splice(localIdx, 1);
-          if (allTasksData[dateStr][period].length === 0) delete allTasksData[dateStr][period];
-          if (Object.keys(allTasksData[dateStr] || {}).length === 0) delete allTasksData[dateStr];
-        }
-      }
-      deleted = true;
+      const removal =
+        typeof window.deleteTaskOptimistically === 'function'
+          ? window.deleteTaskOptimistically(dateStr, period, task, {
+              sync: false,
+              render: false
+            })
+          : { deleted: false };
+      deleted = removal.deleted === true;
     }
 
     if (deleted) {
@@ -656,9 +649,7 @@ window.deleteTaskInline = async function (task, dateStr, period, _indexStr, isRe
 
     // Fire backend DELETE after UI is already updated (non-blocking)
     if (!isRecurring) {
-      deleteTaskFromSupabase(task, dateStr, period).catch((err) =>
-        console.error('[Delete] Background sync error:', err)
-      );
+      syncDateToSupabase(dateStr).catch((err) => console.error('[Delete] Background sync error:', err));
     }
   }
 };

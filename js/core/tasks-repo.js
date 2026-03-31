@@ -19,6 +19,7 @@
     const normalizeAllTasks = deps.normalizeAllTasks;
     const syncRecurringTasksToSupabase = deps.syncRecurringTasksToSupabase;
     const syncTaskToSupabase = deps.syncTaskToSupabase;
+    const flushPendingTaskDeletesToSupabase = deps.flushPendingTaskDeletesToSupabase;
     const renderView = deps.renderView;
     const renderRoutineView = deps.renderRoutineView;
 
@@ -193,6 +194,9 @@
       }
       rtReloadInFlight = true;
       try {
+        if (typeof flushPendingTaskDeletesToSupabase === 'function') {
+          await flushPendingTaskDeletesToSupabase();
+        }
         await loadDataFromSupabase();
         if (typeof renderView === 'function') renderView();
         if (typeof renderRoutineView === 'function') renderRoutineView();
@@ -320,6 +324,10 @@
     async function loadDataFromSupabase() {
       const currentUser = getCurrentUser();
       if (!currentUser) return;
+
+      if (typeof flushPendingTaskDeletesToSupabase === 'function') {
+        await flushPendingTaskDeletesToSupabase();
+      }
 
       try {
         const [typesRes, priosRes, settingsRes] = await Promise.all([

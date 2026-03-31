@@ -87,6 +87,7 @@ function initializeFlowlyServices() {
       normalizeAllTasks,
       syncRecurringTasksToSupabase,
       syncTaskToSupabase,
+      flushPendingTaskDeletesToSupabase,
       renderView,
       renderRoutineView: window.renderRoutineView
     });

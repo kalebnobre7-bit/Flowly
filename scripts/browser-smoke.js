@@ -301,6 +301,54 @@ async function main() {
         })()`
       );
 
+      const deleteProbe = await evaluate(
+        send,
+        `(() => {
+          const probeText = '[smoke] task persist';
+          const dateStr = typeof localDateStr === 'function' ? localDateStr() : new Date().toISOString().slice(0, 10);
+          const pendingBefore = JSON.parse(localStorage.getItem('flowlyPendingTaskDeletes') || '[]').length;
+          const deletedEntry =
+            typeof deleteTaskViaSexta === 'function'
+              ? deleteTaskViaSexta(probeText, dateStr)
+              : null;
+          const raw = localStorage.getItem('allTasksData');
+          const parsed = raw ? JSON.parse(raw) : {};
+          const currentTasks = ((parsed || {})[dateStr] || {}).Tarefas || [];
+          const pendingAfter = JSON.parse(localStorage.getItem('flowlyPendingTaskDeletes') || '[]').length;
+          return {
+            ok: !!deletedEntry,
+            dateStr,
+            pendingBefore,
+            pendingAfter,
+            stillInStorage: currentTasks.some((task) => task && task.text === probeText)
+          };
+        })()`
+      );
+
+      await delay(1200);
+      await send('Page.reload', { ignoreCache: true });
+      await delay(2500);
+
+      const afterDeleteReload = await evaluate(
+        send,
+        `(() => {
+          const probeText = '[smoke] task persist';
+          const dateStr = typeof localDateStr === 'function' ? localDateStr() : new Date().toISOString().slice(0, 10);
+          const raw = localStorage.getItem('allTasksData');
+          const parsed = raw ? JSON.parse(raw) : {};
+          const currentTasks = ((parsed || {})[dateStr] || {}).Tarefas || [];
+          const bodyText = (document.querySelector('#main-content, main, body')?.innerText || document.body?.innerText || '').slice(0, 260);
+          const pendingDeletes = JSON.parse(localStorage.getItem('flowlyPendingTaskDeletes') || '[]');
+          return {
+            dateStr,
+            stillInStorage: currentTasks.some((task) => task && task.text === probeText),
+            visibleInBody: bodyText.includes(probeText),
+            pendingDeleteCount: pendingDeletes.length,
+            pendingDeleteTexts: pendingDeletes.map((item) => item && item.text).filter(Boolean)
+          };
+        })()`
+      );
+
       const targets = ['week', 'month', 'analytics', 'finance', 'projects', 'sexta', 'settings'];
       const navResults = [];
       for (const view of targets) {
@@ -321,12 +369,19 @@ async function main() {
         persistenceProbe,
         postCreate,
         afterReloadPersistence,
+        deleteProbe,
+        afterDeleteReload,
         navResults,
         mismatchCount: mismatches.length,
         mismatches,
         errorCount: errors.length,
         errors
       };
+
+      if (!persistenceProbe.ok || !persistenceProbe.savedInStorage) payload.ok = false;
+      if (!afterReloadPersistence.savedInStorage) payload.ok = false;
+      if (!deleteProbe.ok || deleteProbe.stillInStorage) payload.ok = false;
+      if (afterDeleteReload.stillInStorage || afterDeleteReload.visibleInBody) payload.ok = false;
 
       console.log(JSON.stringify(payload, null, 2));
       if (!payload.ok) process.exitCode = 1;
