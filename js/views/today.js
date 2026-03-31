@@ -9,63 +9,36 @@ function getFlowlyDayTaskStats(dateStr) {
 
 function renderToday() {
   const grid = document.getElementById('todayView');
+  if (!grid) return;
+
+  const escapeTodayText = (value) =>
+    String(value == null ? '' : value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+
   const todayViewSettings = safeJSONParse(localStorage.getItem('flowly_today_view_settings'), {});
   const focusOnlyMode = todayViewSettings.focusOnlyMode === true;
+  const dateLabel = new Date().toLocaleDateString('pt-BR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  const today = dayNames[new Date().getDay()];
+  const dateStr = localDateStr();
 
-  grid.className = focusOnlyMode ? 'today-container today-focus-mode' : 'today-container';
+  grid.className = focusOnlyMode ? 'flowly-shell today-container today-focus-mode' : 'flowly-shell today-container';
   grid.style.cssText = '';
   grid.innerHTML = '';
 
-  const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-  const today = days[new Date().getDay()];
-  const dateStr = localDateStr();
-
-  // ===== LEFT: Main area =====
-  const main = document.createElement('div');
-  main.className = 'today-main';
-
-  // Focus toggle (daily view)
-  const focusToggleWrap = document.createElement('div');
-  focusToggleWrap.className = focusOnlyMode
-    ? 'today-focus-toggle-wrap focus-active'
-    : 'today-focus-toggle-wrap';
-
-  const focusToggleBtn = document.createElement('button');
-  focusToggleBtn.className = 'today-focus-toggle-btn';
-  focusToggleBtn.textContent = focusOnlyMode ? 'Mostrar dados' : 'Modo foco';
-  focusToggleBtn.onclick = (e) => {
-    e.stopPropagation();
-    const current = safeJSONParse(localStorage.getItem('flowly_today_view_settings'), {});
-    current.focusOnlyMode = !(current.focusOnlyMode === true);
-    localStorage.setItem('flowly_today_view_settings', JSON.stringify(current));
-    renderView();
-  };
-  focusToggleWrap.appendChild(focusToggleBtn);
-  main.appendChild(focusToggleWrap);
-
-  // Header
-  const header = document.createElement('div');
-  header.className = 'today-header';
-  header.innerHTML = `<h1> ${today}</h1> <p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`;
-
-  const totalTasksPreview = allTasksData[dateStr]
-    ? Object.values(allTasksData[dateStr]).reduce(
-        (sum, tasks) => sum + (Array.isArray(tasks) ? tasks.length : 0),
-        0
-      ) + getRoutineTasksForDate(dateStr).length
-    : getRoutineTasksForDate(dateStr).length;
-
-  // Task list container
-  const taskList = document.createElement('div');
-  taskList.className = 'today-task-list';
-
-  // Buscar tarefas de hoje
   const dayTasks = allTasksData[dateStr] || {};
   const todayPersistedTasks = [];
+  const routineTasks = getRoutineTasksForDate(dateStr);
   let allTasks = [];
 
-  // 1. Rotina diária + recorrentes semanais
-  const routineTasks = getRoutineTasksForDate(dateStr);
   routineTasks.forEach((task, routineIndex) => {
     allTasks.push({ task, day: today, dateStr, period: 'Rotina', originalIndex: routineIndex });
   });
@@ -74,159 +47,60 @@ function renderToday() {
     allTasks.push(entry);
   });
 
-  // 2. Tarefas normais persistidas
   Object.entries(dayTasks).forEach(([period, tasks]) => {
-    if (period === 'Rotina') return;
-    if (Array.isArray(tasks)) {
-      tasks.forEach((task, index) => {
-        if (task && typeof task === 'object') {
-          allTasks.push({ task, day: today, dateStr, period, originalIndex: index });
-          todayPersistedTasks.push(task);
-        }
-      });
-    }
+    if (period === 'Rotina' || !Array.isArray(tasks)) return;
+    tasks.forEach((task, index) => {
+      if (!task || typeof task !== 'object') return;
+      allTasks.push({ task, day: today, dateStr, period, originalIndex: index });
+      todayPersistedTasks.push(task);
+    });
   });
 
-  // Render all tasks (Unified Sort)
   allTasks = unifiedTaskSort(allTasks);
 
   const actionableEntries = allTasks.filter((entry) => entry.task && !entry.task.isProjectMirror);
+  const projectMirrorCount = allTasks.filter((entry) => entry.task && entry.task.isProjectMirror).length;
   const completedCount = actionableEntries.filter((entry) => entry.task && entry.task.completed).length;
   const pendingEntries = actionableEntries.filter((entry) => entry.task && !entry.task.completed);
   const routinePending = pendingEntries.filter((entry) => entry.period === 'Rotina').length;
-  const moneyEntries = pendingEntries.filter((entry) => String(entry.task.priority || '').toLowerCase() === 'money');
+  const moneyEntries = pendingEntries.filter(
+    (entry) => String(entry.task.priority || '').toLowerCase() === 'money'
+  );
   const nextTask = moneyEntries[0] || pendingEntries[0] || null;
-  const focusLabel = nextTask ? nextTask.task.text : 'Dia zerado por aqui';
-  const progressPct = actionableEntries.length > 0 ? Math.round((completedCount / actionableEntries.length) * 100) : 0;
-  const focusModeLabel = moneyEntries.length > 0 ? 'Caixa' : pendingEntries.length > 5 ? 'Ataque' : pendingEntries.length > 0 ? 'Fechamento' : 'Livre';
-
-  if (!focusOnlyMode) {
-    const todayHero = document.createElement('div');
-    todayHero.className = 'today-hero';
-    todayHero.innerHTML = `
-      <div class="today-hero-main">
-        <div class="today-hero-kicker">Painel de hoje</div>
-        <h1>${today}</h1>
-        <p>${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-        <div class="today-hero-pills">
-          <span class="today-hero-pill today-hero-pill--accent">Modo ${focusModeLabel}</span>
-          <span class="today-hero-pill">Meta 5 concluídas</span>
-        </div>
-      </div>
-      <div class="today-hero-metrics">
-        <div class="today-hero-card accent">
-          <span class="today-hero-card-label">Planejadas</span>
-          <strong class="today-hero-card-value">${totalTasksPreview}</strong>
-          <span class="today-hero-card-sub">tarefas mapeadas pro dia</span>
-        </div>
-        <div class="today-hero-card">
-          <span class="today-hero-card-label">Pendentes</span>
-          <strong class="today-hero-card-value">${pendingEntries.length}</strong>
-          <span class="today-hero-card-sub">${routinePending} de rotina ainda abertas</span>
-        </div>
-      </div>
-    `;
-    main.appendChild(todayHero);
-
-    const summaryStrip = document.createElement('div');
-    summaryStrip.className = 'today-summary-strip';
-    summaryStrip.innerHTML = `
-      <div class="today-summary-card primary">
-        <span class="today-summary-label">Próxima ação</span>
-        <strong class="today-summary-value">${focusLabel}</strong>
-        <span class="today-summary-sub">${nextTask ? 'fecha essa antes de abrir outra frente' : 'aproveita pra puxar algo novo com intenção'}</span>
-      </div>
-      <div class="today-summary-card compact">
-        <span class="today-summary-label">Progresso</span>
-          <strong class="today-summary-value">${completedCount}/${actionableEntries.length || 0}</strong>
-        <span class="today-summary-sub">${progressPct}% concluído</span>
-      </div>
-      <div class="today-summary-card compact">
-        <span class="today-summary-label">Prioridade</span>
-        <strong class="today-summary-value">${moneyEntries.length > 0 ? 'Dinheiro' : focusModeLabel}</strong>
-        <span class="today-summary-sub">${moneyEntries.length > 0 ? moneyEntries.length + ' tarefa(s) com impacto financeiro' : 'estado operacional do dia'}</span>
-      </div>
-    `;
-    main.appendChild(summaryStrip);
-  }
-
-  allTasks.forEach(({ task, day, dateStr, period, originalIndex }) => {
-    taskList.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
-  });
-
-  // ===== UNIFIED DROP ZONE (Igual a renderWeek) =====
-  // Usa createDropZone com index = allTasks.length para inserir no fim
-  const endDropZone = createDropZone(today, dateStr, 'Tarefas', allTasks.length);
-  endDropZone.classList.add('flex-grow', 'min-h-[40px]'); // Estilo para ocupar espaço
-  endDropZone.innerText = '';
-
-  // Atalho: clique na zona final abre input de nova tarefa
-  endDropZone.addEventListener('click', (e) => {
-    if (!document.body.classList.contains('dragging-active')) {
-      insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
+  const focusLabel = nextTask ? nextTask.task.text : 'Stack limpo';
+  const progressPct =
+    actionableEntries.length > 0 ? Math.round((completedCount / actionableEntries.length) * 100) : 0;
+  const focusModeLabel =
+    moneyEntries.length > 0
+      ? 'Caixa'
+      : pendingEntries.length > 5
+        ? 'Ataque'
+        : pendingEntries.length > 0
+          ? 'Fechamento'
+          : 'Livre';
+  const totalTasksPreview =
+    (allTasksData[dateStr]
+      ? Object.values(allTasksData[dateStr]).reduce(
+          (sum, tasks) => sum + (Array.isArray(tasks) ? tasks.length : 0),
+          0
+        )
+      : 0) + routineTasks.length;
+  const heroInsight = (() => {
+    if (moneyEntries.length > 0) {
+      return `${moneyEntries.length} tarefa(s) mexem com caixa hoje. Fecha esse bloco antes de abrir outra frente.`;
     }
-  });
-
-  taskList.appendChild(endDropZone);
-
-  main.appendChild(taskList);
-
-  // Empty state
-  if (allTasks.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'today-empty';
-    empty.innerHTML = `<p> Nenhuma tarefa para hoje</p> <p>Clique para adicionar uma tarefa</p>`;
-    // Inserir empty state DENTRO da taskList ou logo após, mas mantendo a dropzone funcional?
-    // Melhor: Se vazio, dropzone já serve. O texto ajuda.
-    // Vamos manter o empty state visual, mas o clique nele aciona o input.
-    empty.addEventListener('click', () => {
-      insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
-      empty.remove();
-    });
-    taskList.insertBefore(empty, endDropZone);
-  }
-
-  // Clickable area for quick add (Container principal)
-  main.style.cursor = 'text';
-  main.style.minHeight = '50vh';
-  main.addEventListener('click', (e) => {
-    // Só acionar se clicar no container vazio ("fundo"), não em elementos interativos
-    if (e.target === main || e.target === taskList || e.target.classList.contains('today-main')) {
-      insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
+    if (pendingEntries.length > 0) {
+      return `${pendingEntries.length} pendência(s) ativas. O objetivo é reduzir ruído e fechar o dia com clareza.`;
     }
-  });
-
-  grid.appendChild(main);
-
-  if (focusOnlyMode) {
-    return;
-  }
-
-
-  // ===== RIGHT: Sidebar stats =====
-  const sidebar = document.createElement('div');
-  sidebar.className = 'today-sidebar';
-
-  // Calcular stats
-  const totalTasks = actionableEntries.length;
-  const completedTasks = allTasks.filter((t) => t.task.completed).length;
-  const pendingTasks = totalTasks - completedTasks;
-  const todayRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  // Rotina stats
-  const routineTotal = routineTasks.length;
-  const routineCompleted = routineTasks.filter((t) => t.completed).length;
-  const routineRate = routineTotal > 0 ? Math.round((routineCompleted / routineTotal) * 100) : 0;
+    return 'Dia aberto. Dá para puxar algo novo com intenção ou usar a tela como painel de revisão.';
+  })();
 
   const latestCompletionTs = getLatestCompletionTimestamp();
-  const lastCompletedTask = latestCompletionTs
-    ? { completedAt: new Date(latestCompletionTs).toISOString() }
-    : null;
   const lastCompletedText = formatLastCompletionDisplay(latestCompletionTs);
 
   const durationSamplesMs = todayPersistedTasks
-    .filter((t) => t && t.completed && t.createdAt && t.completedAt)
-    .map((t) => new Date(t.completedAt).getTime() - new Date(t.createdAt).getTime())
+    .filter((task) => task && task.completed && task.createdAt && task.completedAt)
+    .map((task) => new Date(task.completedAt).getTime() - new Date(task.createdAt).getTime())
     .filter((ms) => Number.isFinite(ms) && ms >= 0);
 
   const avgTaskDurationText =
@@ -234,522 +108,321 @@ function renderToday() {
       ? formatElapsedShort(
           Math.round(durationSamplesMs.reduce((sum, ms) => sum + ms, 0) / durationSamplesMs.length)
         )
-      : 'Sem dados';
+      : 'Sem base';
 
-  // Streak
   let streak = 0;
-  const checkD = new Date();
-  for (let i = 0; i < 60; i++) {
-    const cds = localDateStr(checkD);
-    const { total: sTotal, completed: sCompleted } = getFlowlyDayTaskStats(cds);
-    if (sTotal > 0 && sCompleted === sTotal) {
-      streak++;
-    } else if (i > 0 || (i === 0 && sTotal > 0)) {
+  const checkDate = new Date();
+  for (let index = 0; index < 60; index += 1) {
+    const checkDateStr = localDateStr(checkDate);
+    const { total, completed } = getFlowlyDayTaskStats(checkDateStr);
+    if (total > 0 && completed === total) {
+      streak += 1;
+    } else if (index > 0 || (index === 0 && total > 0)) {
       break;
     }
-    checkD.setDate(checkD.getDate() - 1);
+    checkDate.setDate(checkDate.getDate() - 1);
   }
 
-  // Semana
   const weekDates = getWeekDates(0);
-  let weekTotal = 0,
-    weekCompleted = 0;
-  weekDates.forEach(({ dateStr: wds }) => {
-    const { total: wt, completed: wc } = getFlowlyDayTaskStats(wds);
-    weekTotal += wt;
-    weekCompleted += wc;
+  let weekTotal = 0;
+  let weekCompleted = 0;
+  weekDates.forEach(({ dateStr: weekDateStr }) => {
+    const { total, completed } = getFlowlyDayTaskStats(weekDateStr);
+    weekTotal += total;
+    weekCompleted += completed;
   });
   const weekRate = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
-
-  // Ring color
+  const routineTotal = routineTasks.length;
+  const routineCompleted = routineTasks.filter((task) => task.completed).length;
+  const routineRate = routineTotal > 0 ? Math.round((routineCompleted / routineTotal) * 100) : 0;
+  const totalTasks = actionableEntries.length;
+  const pendingTasks = pendingEntries.length;
   const ringColor =
-    todayRate >= 70
+    progressPct >= 70
       ? 'var(--accent-green)'
-      : todayRate >= 40
+      : progressPct >= 40
         ? 'var(--accent-orange)'
-        : todayRate > 0
+        : progressPct > 0
           ? 'var(--accent-red)'
-          : 'rgba(255,255,255,0.1)';
-  const ringPct = todayRate;
-  const circumference = 2 * Math.PI * 19;
-  const dashOffset = circumference - (circumference * ringPct) / 100;
+          : 'rgba(255,255,255,0.14)';
+  const circumference = 2 * Math.PI * 24;
+  const dashOffset = circumference - (circumference * progressPct) / 100;
 
-  // Build sidebar HTML
-  sidebar.innerHTML = `
-    <!--Progresso do dia-->
-                
-                
-                
-                
-                
-                
-                
-                <div class="stat-section">
-                
-                
-                
-                
-                
-                
-                
-                    <div class="stat-section-title">Progresso</div>
-                
-                
-                
-                
-                
-                
-                
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
-                
-                
-                
-                
-                
-                
-                
-                        <div class="stat-ring">
-                
-                
-                
-                
-                
-                
-                
-                            <svg width="48" height="48" viewBox="0 0 48 48">
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                <circle cx="24" cy="24" r="19" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                <circle cx="24" cy="24" r="19" fill="none" stroke="${ringColor}" stroke-width="3"
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                    stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                    stroke-linecap="round"/>
-                
-                
-                
-                
-                
-                
-                
-                            </svg>
-                
-                
-                
-                
-                
-                
-                
-                            <div class="stat-ring-text">${todayRate}%</div>
-                
-                
-                
-                
-                
-                
-                
-                        </div>
-                
-                
-                
-                
-                
-                
-                
-                        <div>
-                
-                
-                
-                
-                
-                
-                
-                            <div style="font-size: 13px; color: var(--text-secondary);">${completedTasks} de ${totalTasks}</div>
-                
-                
-                
-                
-                
-                
-                
-                            <div style="font-size: 11px; color: var(--text-tertiary);">tarefas concluídas</div>
-                
-                
-                
-                
-                
-                
-                
-                        </div>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
-                    <div class="progress-bar-mini">
-                
-                
-                
-                
-                
-                
-                
-                        <div class="progress-bar-mini-fill" style="width: ${todayRate}%; background: ${ringColor};"></div>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
-                </div>
+  const focusToggleWrap = document.createElement('div');
+  focusToggleWrap.className = focusOnlyMode
+    ? 'today-focus-toggle-wrap focus-active'
+    : 'today-focus-toggle-wrap';
+  const focusToggleBtn = document.createElement('button');
+  focusToggleBtn.className = 'today-focus-toggle-btn';
+  focusToggleBtn.textContent = focusOnlyMode ? 'Mostrar dados' : 'Modo foco';
+  focusToggleBtn.onclick = (event) => {
+    event.stopPropagation();
+    const currentSettings = safeJSONParse(localStorage.getItem('flowly_today_view_settings'), {});
+    currentSettings.focusOnlyMode = !(currentSettings.focusOnlyMode === true);
+    localStorage.setItem('flowly_today_view_settings', JSON.stringify(currentSettings));
+    renderView();
+  };
+  focusToggleWrap.appendChild(focusToggleBtn);
+  grid.appendChild(focusToggleWrap);
 
-                
-                
-                
-                
-                
-                
-                
-                <!--Resumo -->
-                
-                
-                
-                
-                
-                
-                
-                <div class="stat-section">
-                
-                
-                
-                
-                
-                
-                
-                    <div class="stat-section-title">Resumo</div>
-                
-                
-                
-                
-                
-                
-                
-                    <div class="stat-card">
-                
-                
-                
-                
-                
-                
-                
-                        <span class="stat-label">Pendentes</span>
-                
-                
-                
-                
-                
-                
-                
-                        <span class="stat-value ${pendingTasks > 0 ? 'orange' : 'green'}">${pendingTasks}</span>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
-                    <div class="stat-card">
-                
-                
-                
-                
-                
-                
-                
-                        <span class="stat-label">Rotina</span>
-                
-                
-                
-                
-                
-                
-                
-                        <span class="stat-value ${routineRate >= 80 ? 'green' : routineRate >= 50 ? 'blue' : ''}">${routineCompleted}/${routineTotal}</span>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
-                                        <div class="stat-card">
-                        <span class="stat-label">Ultima conclusao</span>
-                        <span class="stat-value ${lastCompletedTask ? 'blue' : ''}">${lastCompletedText}</span>
-                    </div>
-
-                    <div class="stat-card">
-                        <span class="stat-label">Media por tarefa</span>
-                        <span class="stat-value ${durationSamplesMs.length > 0 ? 'blue' : ''}">${avgTaskDurationText}</span>
-                    </div>
-<div class="stat-card">
-                
-                
-                
-                
-                
-                
-                
-                        <span class="stat-label">Streak</span>
-                
-                
-                
-                
-                
-                
-                
-                        <span class="stat-value ${streak >= 3 ? 'green' : ''}">${streak > 0 ? streak + ' dia' + (streak > 1 ? 's' : '') : '—'}</span>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
-                    <div class="stat-card">
-                
-                
-                
-                
-                
-                
-                
-                        <span class="stat-label">Semana</span>
-                
-                
-                
-                
-                
-                
-                
-                        <span class="stat-value ${weekRate >= 70 ? 'green' : weekRate >= 40 ? 'blue' : ''}">${weekRate}%</span>
-                
-                
-                
-                
-                
-                
-                
-                    </div>
-                
-                
-                
-                
-                
-                
-                
-                </div>
-
-                
-                
-                
-                
-                
-                
-                
-                <!--Mini semana-->
-    <div class="stat-section">
-        <div class="stat-section-title">Esta semana</div>
-        <div style="display: flex; gap: 6px; align-items: flex-end;">
-            ${weekDates
-              .map(({ name, dateStr: wds }) => {
-                const { total: wt, completed: wc } = getFlowlyDayTaskStats(wds);
-
-                const pct = wt > 0 ? Math.round((wc / wt) * 100) : 0;
-
-                const isToday = wds === dateStr;
-
-                const barColor =
-                  pct >= 80
-                    ? 'var(--accent-green)'
-                    : pct >= 50
-                      ? 'var(--accent-blue)'
-                      : pct > 0
-                        ? 'var(--accent-orange)'
-                        : 'rgba(255,255,255,0.06)';
-
-                const barH = wt > 0 ? Math.max(6, pct * 0.4) : 4;
-
-                return `<div style="flex: 1; text-align: center;">
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                <div style="height: 40px; display: flex; align-items: flex-end; justify-content: center;">
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                    <div style="width: 100%; max-width: 20px; height: ${barH}px; background: ${barColor}; border-radius: 2px; ${isToday ? 'box-shadow: 0 0 6px ' + barColor + ';' : ''}"></div>
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                </div>
-                
-                
-                
-                
-                
-                
-                
-                                
-                
-                
-                
-                
-                
-                
-                <div style="font-size: 10px; color: ${isToday ? 'var(--accent-blue)' : 'var(--text-tertiary)'}; margin-top: 4px; font-weight: ${isToday ? '600' : '400'};">${String(name || '').slice(0, 3)}</div>
-                
-                
-                
-                
-                
-                
-                
-                            </div>`;
-              })
-              .join('')}
-        </div>
+  const masthead = document.createElement('section');
+  masthead.className = focusOnlyMode
+    ? 'flowly-page-masthead today-masthead today-masthead--focus'
+    : 'flowly-page-masthead today-masthead';
+  masthead.innerHTML = `
+    <div class="flowly-page-header today-masthead-copy">
+      <div class="flowly-page-kicker">Painel de hoje</div>
+      <h2 class="flowly-page-title">${escapeTodayText(today)}</h2>
+      <p class="flowly-page-subtitle">${escapeTodayText(heroInsight)}</p>
+      <div class="flowly-inline-pills today-inline-pills">
+        <span class="flowly-soft-pill flowly-soft-pill--accent">Modo ${escapeTodayText(
+          focusModeLabel
+        )}</span>
+        <span class="flowly-soft-pill">${pendingTasks} pendentes</span>
+        <span class="flowly-soft-pill">${moneyEntries.length} de caixa</span>
+        <span class="flowly-soft-pill">${projectMirrorCount} projeto(s) espelhado(s)</span>
+      </div>
     </div>
-`;
 
-  grid.appendChild(sidebar);
+    <aside class="today-focus-card flowly-panel">
+      <div class="today-focus-card-head">
+        <div>
+          <div class="today-card-kicker">Próxima ação</div>
+          <strong>${escapeTodayText(focusLabel)}</strong>
+        </div>
+        <span class="flowly-soft-pill ${moneyEntries.length > 0 ? 'flowly-soft-pill--accent' : ''}">${
+          moneyEntries.length > 0 ? 'Caixa primeiro' : 'Stack do dia'
+        }</span>
+      </div>
+      <p>${escapeTodayText(
+        nextTask
+          ? 'Fecha essa antes de abrir outra frente. O resto da tela serve para limpar o backlog sem perder prioridade.'
+          : 'Sem trava urgente agora. Você pode puxar uma nova frente ou usar o dia para reorganizar o fluxo.'
+      )}</p>
+      <div class="today-focus-card-grid">
+        <div class="today-focus-mini">
+          <span>${escapeTodayText(dateLabel)}</span>
+          <strong>${totalTasksPreview}</strong>
+          <small>tarefas mapeadas hoje</small>
+        </div>
+        <div class="today-focus-mini">
+          <span>Progresso</span>
+          <strong>${progressPct}%</strong>
+          <small>${completedCount}/${actionableEntries.length || 0} concluídas</small>
+        </div>
+      </div>
+    </aside>
+  `;
+  grid.appendChild(masthead);
+
+  if (!focusOnlyMode) {
+    const statsGrid = document.createElement('section');
+    statsGrid.className = 'flowly-stat-grid today-stat-grid';
+    statsGrid.innerHTML = `
+      <article class="flowly-stat-card">
+        <span>Planejadas</span>
+        <strong>${totalTasksPreview}</strong>
+        <small>${routineTasks.length} de rotina e ${projectMirrorCount} ligadas a projetos</small>
+      </article>
+      <article class="flowly-stat-card">
+        <span>Pendentes</span>
+        <strong>${pendingTasks}</strong>
+        <small>${routinePending} ainda dependem da rotina do dia</small>
+      </article>
+      <article class="flowly-stat-card">
+        <span>Progressão</span>
+        <strong>${completedCount}/${actionableEntries.length || 0}</strong>
+        <small>${progressPct}% do stack operacional já foi fechado</small>
+      </article>
+      <article class="flowly-stat-card">
+        <span>Leitura do dia</span>
+        <strong>${moneyEntries.length > 0 ? 'Dinheiro' : focusModeLabel}</strong>
+        <small>${
+          moneyEntries.length > 0
+            ? `${moneyEntries.length} tarefa(s) com impacto financeiro`
+            : `${streak > 0 ? streak + ' dia(s)' : 'sem streak'} de consistência`
+        }</small>
+      </article>
+    `;
+    grid.appendChild(statsGrid);
+  }
+
+  const workspace = document.createElement('section');
+  workspace.className = focusOnlyMode ? 'today-workspace today-workspace--focus' : 'today-workspace';
+
+  const main = document.createElement('div');
+  main.className = 'today-main today-main--rebuilt';
+
+  const taskStage = document.createElement('section');
+  taskStage.className = focusOnlyMode ? 'today-stage flowly-panel today-stage--focus' : 'today-stage flowly-panel';
+  taskStage.innerHTML = `
+    <div class="today-stage-head">
+      <div>
+        <div class="today-card-kicker">Stack operacional</div>
+        <h3>${focusOnlyMode ? 'Modo foco' : 'Hoje sem ruído'}</h3>
+        <p>${
+          focusOnlyMode
+            ? 'Lista limpa para executar. O restante da leitura volta quando você sair do modo foco.'
+            : 'Tudo que entra aqui precisa ajudar a fechar o dia. Arraste, conclua ou reorganize sem perder contexto.'
+        }</p>
+      </div>
+      <div class="today-stage-pills">
+        <span class="today-stage-pill ${pendingTasks > 0 ? 'today-stage-pill--accent' : ''}">${pendingTasks} abertas</span>
+        <span class="today-stage-pill">${completedCount} feitas</span>
+        <span class="today-stage-pill">${routineCompleted}/${routineTotal} rotina</span>
+      </div>
+    </div>
+  `;
+
+  const taskStageBody = document.createElement('div');
+  taskStageBody.className = 'today-stage-body';
+
+  const taskList = document.createElement('div');
+  taskList.className = 'today-task-list today-task-list--rebuilt';
+
+  allTasks.forEach(({ task, day, dateStr: entryDate, period, originalIndex }) => {
+    taskList.appendChild(createTaskElement(day, entryDate, period, task, originalIndex));
+  });
+
+  const endDropZone = createDropZone(today, dateStr, 'Tarefas', allTasks.length);
+  endDropZone.classList.add('flex-grow', 'min-h-[40px]', 'today-end-dropzone');
+  endDropZone.innerText = '';
+  endDropZone.addEventListener('click', () => {
+    if (!document.body.classList.contains('dragging-active')) {
+      insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
+    }
+  });
+  taskList.appendChild(endDropZone);
+
+  if (allTasks.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'today-empty';
+    empty.innerHTML = `
+      <p>Nenhuma tarefa para hoje.</p>
+      <p>Clique aqui para adicionar uma tarefa ou arraste algo da semana para começar.</p>
+    `;
+    empty.addEventListener('click', () => {
+      insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
+      empty.remove();
+    });
+    taskList.insertBefore(empty, endDropZone);
+  }
+
+  taskStageBody.addEventListener('click', (event) => {
+    if (
+      event.target === taskStageBody ||
+      event.target === taskList ||
+      event.target.classList.contains('today-stage-body')
+    ) {
+      insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
+    }
+  });
+
+  taskStageBody.appendChild(taskList);
+  taskStage.appendChild(taskStageBody);
+  main.appendChild(taskStage);
+  workspace.appendChild(main);
+
+  if (!focusOnlyMode) {
+    const weekBarsMarkup = weekDates
+      .map(({ name, dateStr: weekDateStr }) => {
+        const { total, completed } = getFlowlyDayTaskStats(weekDateStr);
+        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        const isToday = weekDateStr === dateStr;
+        const barColor =
+          pct >= 80
+            ? 'var(--accent-green)'
+            : pct >= 50
+              ? 'var(--accent-blue)'
+              : pct > 0
+                ? 'var(--accent-orange)'
+                : 'rgba(255,255,255,0.08)';
+        const height = total > 0 ? Math.max(10, Math.round(pct * 0.46)) : 8;
+        return `
+          <div class="today-week-bar-col ${isToday ? 'is-today' : ''}">
+            <div class="today-week-bar-shell">
+              <div class="today-week-bar-fill" style="height:${height}px;background:${barColor};"></div>
+            </div>
+            <span>${escapeTodayText(String(name || '').slice(0, 3))}</span>
+          </div>
+        `;
+      })
+      .join('');
+
+    const sidebar = document.createElement('aside');
+    sidebar.className = 'today-sidebar';
+    sidebar.innerHTML = `
+      <section class="today-side-card flowly-panel today-side-card--progress">
+        <div class="today-card-kicker">Progresso</div>
+        <div class="today-progress-shell">
+          <div class="today-ring">
+            <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+              <circle cx="32" cy="32" r="24" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"></circle>
+              <circle
+                cx="32"
+                cy="32"
+                r="24"
+                fill="none"
+                stroke="${ringColor}"
+                stroke-width="4"
+                stroke-dasharray="${circumference}"
+                stroke-dashoffset="${dashOffset}"
+                stroke-linecap="round"
+                transform="rotate(-90 32 32)"
+              ></circle>
+            </svg>
+            <div class="today-ring-text">${progressPct}%</div>
+          </div>
+          <div class="today-progress-copy">
+            <strong>${completedCount} de ${totalTasks}</strong>
+            <p>tarefas concluídas no stack do dia</p>
+          </div>
+        </div>
+        <div class="today-progress-bar">
+          <div class="today-progress-bar-fill" style="width:${progressPct}%;background:${ringColor};"></div>
+        </div>
+      </section>
+
+      <section class="today-side-card flowly-panel">
+        <div class="today-card-kicker">Resumo rápido</div>
+        <div class="today-side-list">
+          <div class="today-side-row">
+            <span>Pendentes</span>
+            <strong class="${pendingTasks > 0 ? 'is-warm' : 'is-good'}">${pendingTasks}</strong>
+          </div>
+          <div class="today-side-row">
+            <span>Rotina</span>
+            <strong class="${routineRate >= 80 ? 'is-good' : routineRate >= 50 ? 'is-cool' : ''}">${routineCompleted}/${routineTotal}</strong>
+          </div>
+          <div class="today-side-row">
+            <span>Última conclusão</span>
+            <strong class="${latestCompletionTs ? 'is-cool' : ''}">${escapeTodayText(lastCompletedText)}</strong>
+          </div>
+          <div class="today-side-row">
+            <span>Média por tarefa</span>
+            <strong class="${durationSamplesMs.length > 0 ? 'is-cool' : ''}">${escapeTodayText(avgTaskDurationText)}</strong>
+          </div>
+          <div class="today-side-row">
+            <span>Streak</span>
+            <strong class="${streak >= 3 ? 'is-good' : ''}">${
+              streak > 0 ? `${streak} dia${streak > 1 ? 's' : ''}` : '—'
+            }</strong>
+          </div>
+          <div class="today-side-row">
+            <span>Semana</span>
+            <strong class="${weekRate >= 70 ? 'is-good' : weekRate >= 40 ? 'is-cool' : ''}">${weekRate}%</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="today-side-card flowly-panel">
+        <div class="today-card-kicker">Esta semana</div>
+        <div class="today-week-chart">${weekBarsMarkup}</div>
+        <p class="today-side-footnote">${weekCompleted}/${weekTotal} tarefas fechadas na semana corrente.</p>
+      </section>
+    `;
+    workspace.appendChild(sidebar);
+  }
+
+  grid.appendChild(workspace);
 }
-
-// Função unificada para inserção de input de tarefa
