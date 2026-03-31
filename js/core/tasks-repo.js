@@ -62,6 +62,14 @@
         remoteTask.projectName = localTask.projectName;
         changed = true;
       }
+      if ((remoteTask.priority == null || remoteTask.priority === '') && localTask.priority) {
+        remoteTask.priority = localTask.priority;
+        changed = true;
+      }
+      if ((!remoteTask.type || remoteTask.type === 'OPERATIONAL') && localTask.type && localTask.type !== 'OPERATIONAL') {
+        remoteTask.type = localTask.type;
+        changed = true;
+      }
       if ((!remoteTask.color || remoteTask.color === 'default') && localTask.color && localTask.color !== 'default') {
         remoteTask.color = localTask.color;
         changed = true;
