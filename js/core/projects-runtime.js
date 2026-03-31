@@ -871,58 +871,88 @@ function getProjectMirrorEntriesForDate(dateStr, dayLabel = '') {
   );
 
   return projects.flatMap((project, order) => {
-    const sourceEntry = getProjectAnchorSourceTask(project.id);
-    const sourceTask = sourceEntry?.task || null;
-    const hasRealTaskOnDate = collectProjectTaskCandidates({
+    const linkedEntries = collectProjectTaskCandidates({
       includeLinked: true,
       max: 200,
       projectId: project.id
-    }).some((entry) => entry.dateStr === dateStr);
-
-    if (!sourceEntry || !sourceTask || hasRealTaskOnDate) return [];
-
-    const sourceList = allTasksData?.[sourceEntry.dateStr]?.[sourceEntry.period] || [];
-    const subtree = collectTaskSubtree(sourceList, sourceTask);
-    if (subtree.length === 0) return [];
-
-    const childCountMap = new Map();
-    subtree.forEach((entryTask) => {
-      childCountMap.set(getTaskTreeId(entryTask), 0);
     });
-    subtree.forEach((entryTask) => {
-      if (!entryTask?.parent_id || !childCountMap.has(entryTask.parent_id)) return;
+    const sourceEntry = getProjectAnchorSourceTask(project.id);
+    if (!sourceEntry || linkedEntries.length === 0) return [];
+
+    const entryByTaskId = new Map();
+    linkedEntries.forEach((entry) => {
+      const taskId = getTaskTreeId(entry.task);
+      if (!taskId) return;
+      entryByTaskId.set(taskId, entry);
+    });
+
+    const childrenMap = new Map();
+    const childCountMap = new Map();
+    linkedEntries.forEach((entry) => {
+      childCountMap.set(getTaskTreeId(entry.task), 0);
+    });
+    linkedEntries.forEach((entry) => {
+      const entryTask = entry.task;
+      if (!entryTask?.parent_id || !entryByTaskId.has(entryTask.parent_id)) return;
+      if (!childrenMap.has(entryTask.parent_id)) childrenMap.set(entryTask.parent_id, []);
+      childrenMap.get(entryTask.parent_id).push(entry);
       childCountMap.set(entryTask.parent_id, (childCountMap.get(entryTask.parent_id) || 0) + 1);
     });
 
+    const sortEntries = (a, b) => {
+      if (a.task === sourceEntry.task) return -1;
+      if (b.task === sourceEntry.task) return 1;
+      if (Boolean(a.task?.completed) !== Boolean(b.task?.completed)) return a.task?.completed ? 1 : -1;
+      const dateCmp = String(a.dateStr || '').localeCompare(String(b.dateStr || ''));
+      if (dateCmp !== 0) return dateCmp;
+      const positionCmp = Number(a.task?.position || 0) - Number(b.task?.position || 0);
+      if (positionCmp !== 0) return positionCmp;
+      return String(a.task?.text || '').localeCompare(String(b.task?.text || ''));
+    };
+
+    childrenMap.forEach((items) => items.sort(sortEntries));
+    const roots = linkedEntries
+      .filter((entry) => !entry.task?.parent_id || !entryByTaskId.has(entry.task.parent_id))
+      .sort(sortEntries);
+
+    const flattened = [];
+    const visited = new Set();
+    const visit = (entry) => {
+      const taskId = getTaskTreeId(entry?.task);
+      if (!entry || !taskId || visited.has(taskId)) return;
+      visited.add(taskId);
+      flattened.push(entry);
+      const children = childrenMap.get(taskId) || [];
+      children.forEach((childEntry) => visit(childEntry));
+    };
+    roots.forEach((entry) => visit(entry));
+
     const renderIndexBase = 100000 + order * 10000;
-
-    return subtree
-      .map((entryTask) => {
-        const sourceIndex = sourceList.indexOf(entryTask);
-        if (sourceIndex < 0) return null;
-
-        return {
-          task: {
-            ...entryTask,
-            isProjectMirror: true,
-            projectId: project.id,
-            projectName: entryTask.projectName || project.name,
-            mirrorSourceDateStr: sourceEntry.dateStr,
-            mirrorSourcePeriod: sourceEntry.period,
-            mirrorSourceIndex: sourceIndex,
-            projectScheduleText:
-              entryTask === sourceTask ? getProjectAnchorScheduleText(project, dateStr) : '',
-            projectStatusLabel:
-              entryTask === sourceTask ? getProjectStatus(project, dateStr).label : '',
-            renderChildrenCount: childCountMap.get(getTaskTreeId(entryTask)) || 0
-          },
-          day: dayLabel,
-          dateStr,
-          period: 'Projetos',
-          originalIndex: renderIndexBase + sourceIndex
-        };
-      })
-      .filter(Boolean);
+    return flattened.map((entry, index) => {
+      const entryTask = entry.task;
+      const taskId = getTaskTreeId(entryTask);
+      return {
+        task: {
+          ...entryTask,
+          isProjectMirror: true,
+          projectId: project.id,
+          projectName: entryTask.projectName || project.name,
+          mirrorSourceDateStr: entry.dateStr,
+          mirrorSourcePeriod: entry.period,
+          mirrorSourceIndex: entry.index,
+          mirrorSourceTaskId: taskId,
+          projectScheduleText:
+            entryTask === sourceEntry.task ? getProjectAnchorScheduleText(project, dateStr) : '',
+          projectStatusLabel:
+            entryTask === sourceEntry.task ? getProjectStatus(project, dateStr).label : '',
+          renderChildrenCount: childCountMap.get(taskId) || 0
+        },
+        day: dayLabel,
+        dateStr,
+        period: 'Projetos',
+        originalIndex: renderIndexBase + index
+      };
+    });
   });
 }
 

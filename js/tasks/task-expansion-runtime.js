@@ -575,6 +575,35 @@ window.toggleTaskExpansion = function (task, el) {
   }
   footer.appendChild(summary);
 
+  if (!isRecurring) {
+    const addSubtaskBtn = document.createElement('button');
+    addSubtaskBtn.type = 'button';
+    addSubtaskBtn.className = 'btn-secondary task-expansion-inline-button';
+    addSubtaskBtn.textContent = 'Subtarefa';
+    addSubtaskBtn.onclick = async (e) => {
+      e.stopPropagation();
+      const text = await window.FlowlyDialogs.prompt('Digite a subtarefa:', {
+        title: 'Nova subtarefa',
+        confirmLabel: 'Criar',
+        inputPlaceholder: 'Ex.: Melhorar 2 seções'
+      });
+      const cleanText = String(text || '').trim();
+      if (!cleanText || typeof window.createSubtaskForTask !== 'function') return;
+
+      const targetDateStr = renderDateStr || dateStr;
+      const targetPeriod = renderPeriod === 'Projetos' ? 'Tarefas' : renderPeriod || period || 'Tarefas';
+      const created = window.createSubtaskForTask(task, {
+        text: cleanText,
+        targetDateStr,
+        targetPeriod
+      });
+      if (created && window.FlowlyDialogs && typeof window.FlowlyDialogs.notify === 'function') {
+        window.FlowlyDialogs.notify('Subtarefa criada dentro do projeto.', 'success');
+      }
+    };
+    footer.appendChild(addSubtaskBtn);
+  }
+
   const delBtn = document.createElement('button');
   delBtn.type = 'button';
   delBtn.className = 'task-expansion-delete';

@@ -184,12 +184,23 @@ function isProjectSubtasksCollapsed(task) {
 function unifiedTaskSort(taskList) {
   if (!taskList || taskList.length === 0) return [];
 
+  const realTaskIds = new Set();
+  taskList.forEach((item) => {
+    if (!item || !item.task || item.task.isProjectMirror) return;
+    const taskId = getTaskTreeId(item.task);
+    if (taskId) realTaskIds.add(taskId);
+  });
+
   const uniqueTaskList = [];
   const seenRenderKeys = new Set();
 
   taskList.forEach((item) => {
     if (!item || !item.task) return;
     const task = item.task;
+    if (task.isProjectMirror) {
+      const mirrorSourceId = String(task.mirrorSourceTaskId || getTaskTreeId(task) || '').trim();
+      if (mirrorSourceId && realTaskIds.has(mirrorSourceId)) return;
+    }
     const renderKey = task.isProjectMirror
       ? `mirror:${task.mirrorSourceDateStr || item.dateStr}:${task.mirrorSourcePeriod || item.period}:${task.mirrorSourceIndex ?? item.originalIndex}`
       : `task:${task.supabaseId || ''}:${item.dateStr || ''}:${item.period || ''}:${String(task.text || '').trim().toLowerCase()}:${task.parent_id || ''}`;
@@ -665,4 +676,48 @@ function moveTaskToDate(dateStr, period, index, targetDateStr, targetPeriod = 'T
 }
 
 window.moveTaskToDate = moveTaskToDate;
+
+window.createSubtaskForTask = function (parentTask, options = {}) {
+  const targetDateStr = String(options.targetDateStr || localDateStr()).trim();
+  const targetPeriod = String(options.targetPeriod || 'Tarefas').trim() || 'Tarefas';
+  const text = String(options.text || '').trim();
+  if (!parentTask || !text) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDateStr)) return null;
+
+  if (!allTasksData[targetDateStr]) allTasksData[targetDateStr] = {};
+  if (!allTasksData[targetDateStr][targetPeriod]) allTasksData[targetDateStr][targetPeriod] = [];
+
+  const targetList = allTasksData[targetDateStr][targetPeriod];
+  const newTask = {
+    text,
+    completed: false,
+    color: parentTask.color || 'default',
+    type: parentTask.type || 'OPERATIONAL',
+    priority: parentTask.priority || null,
+    parent_id: getTaskTreeId(parentTask) || null,
+    position: targetList.length,
+    isHabit: false,
+    supabaseId: null,
+    _syncPending: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    completedAt: null,
+    timerTotalMs: 0,
+    timerStartedAt: null,
+    timerLastStoppedAt: null,
+    timerSessionsCount: 0,
+    projectId: parentTask.projectId || null,
+    projectName: parentTask.projectName || ''
+  };
+
+  targetList.push(newTask);
+  saveToLocalStorage();
+  renderView();
+  if (typeof syncTaskToSupabase === 'function') {
+    Promise.resolve(syncTaskToSupabase(targetDateStr, targetPeriod, newTask)).catch((err) => {
+      console.error('[SubtaskCreate] Background sync error:', err);
+    });
+  }
+  return newTask;
+};
 

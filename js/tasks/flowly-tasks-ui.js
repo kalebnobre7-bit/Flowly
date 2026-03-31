@@ -77,12 +77,19 @@ function createTaskElement(day, dateStr, period, task, index) {
   const normalizedIndex = Number.isInteger(index) ? index : -1;
   const actionDateStr = isProjectMirror ? task.mirrorSourceDateStr || dateStr : dateStr;
   const actionPeriod = isProjectMirror ? task.mirrorSourcePeriod || period : period;
-  const actionIndex = isProjectMirror
+  let actionIndex = isProjectMirror
     ? Number.isInteger(task.mirrorSourceIndex)
       ? task.mirrorSourceIndex
       : -1
     : normalizedIndex;
-  const actionTask = allTasksData?.[actionDateStr]?.[actionPeriod]?.[actionIndex] || task;
+  const sourceList = allTasksData?.[actionDateStr]?.[actionPeriod] || [];
+  if (isProjectMirror && task.mirrorSourceTaskId) {
+    const resolvedIndex = sourceList.findIndex(
+      (entryTask) => getTaskTreeId(entryTask) === String(task.mirrorSourceTaskId)
+    );
+    if (resolvedIndex >= 0) actionIndex = resolvedIndex;
+  }
+  const actionTask = sourceList[actionIndex] || task;
 
   // Top Drop Zone
   if (normalizedIndex >= 0 && !isProjectMirror) {
@@ -91,7 +98,7 @@ function createTaskElement(day, dateStr, period, task, index) {
 
   const el = document.createElement('div');
   el.className = `task-item ${task.isHabit ? 'is-habit' : ''} `;
-  el.draggable = normalizedIndex >= 0 && !isProjectMirror;
+  el.draggable = actionIndex >= 0 && !(isRoutineTask && !task.mirrorSourceDateStr);
   el.dataset.day = day;
   el.dataset.date = dateStr;
   el.dataset.period = period;
@@ -122,12 +129,11 @@ function createTaskElement(day, dateStr, period, task, index) {
   }
 
   el.onkeydown = (e) => {
-    if (isProjectMirror) return;
     if (e.key === 'Tab') {
       e.preventDefault();
       e.stopPropagation();
       if (typeof window.handleTaskIndent === 'function') {
-        window.handleTaskIndent(dateStr, period, index, e.shiftKey);
+        window.handleTaskIndent(actionDateStr, actionPeriod, actionIndex, e.shiftKey);
       }
     }
   };
@@ -259,19 +265,16 @@ function createTaskElement(day, dateStr, period, task, index) {
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
   checkbox.className = 'checkbox-custom';
-  checkbox.checked = task.completed;
-  if (isProjectMirror) {
-    checkbox.disabled = true;
-    checkbox.tabIndex = -1;
-  }
+  checkbox.checked = actionTask.completed;
   checkbox.onchange = (e) => {
-    if (isProjectMirror) return;
-    if (e.target.checked && task.timerStartedAt) {
-      stopTaskTimer(task);
+    const targetTask = actionTask;
+    if (!targetTask) return;
+    if (e.target.checked && targetTask.timerStartedAt) {
+      stopTaskTimer(targetTask);
     }
-    task.completed = e.target.checked;
-    if (!task.createdAt) task.createdAt = new Date().toISOString();
-    if (task.completed && navigator.vibrate) {
+    targetTask.completed = e.target.checked;
+    if (!targetTask.createdAt) targetTask.createdAt = new Date().toISOString();
+    if (targetTask.completed && navigator.vibrate) {
       const vs = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
       if (vs.haptics !== false) navigator.vibrate(15);
     }
@@ -279,26 +282,26 @@ function createTaskElement(day, dateStr, period, task, index) {
     // Atualiza visualmente o span de texto interno
     const innerText = label.querySelector('.task-content-span');
     if (innerText) {
-      innerText.classList.toggle('task-completed', task.completed);
+      innerText.classList.toggle('task-completed', targetTask.completed);
     }
 
     // Se for rotina ou habito, usar a função centralizada que sincroniza com Supabase
-    if (task.isRoutine || task.isRecurring || task.isHabit || period === 'Rotina') {
-      if (task.completed) {
-        task.completedAt = new Date().toISOString();
+    if (targetTask.isRoutine || targetTask.isRecurring || targetTask.isHabit || actionPeriod === 'Rotina') {
+      if (targetTask.completed) {
+        targetTask.completedAt = new Date().toISOString();
       } else {
-        task.completedAt = null;
+        targetTask.completedAt = null;
       }
 
       // Usa a função global que já lida com habitsHistory + localStorage + Supabase
       // IMPORTANTE: Passar dateStr para marcar no dia CORRETO, não apenas hoje
       if (typeof markHabitCompleted === 'function') {
-        markHabitCompleted(task.text, task.completed, dateStr);
+        markHabitCompleted(targetTask.text, targetTask.completed, actionDateStr);
       }
     } else {
       // Apenas salvar se for tarefa comum
       // USAR NOVO TOGGLE HANDLER para reordenar array
-      window.toggleTaskStatus(dateStr, period, index, task.completed, el);
+      window.toggleTaskStatus(actionDateStr, actionPeriod, actionIndex, targetTask.completed, el);
       // Nota: toggleTaskStatus já chama saveToLocalStorage e renderView
     }
   };
@@ -535,9 +538,9 @@ function showTaskInput(btn, day, period) {
 // --- Drag & Drop Handlers ---
 
 function handleDragStart(e) {
-  const period = this.dataset.period;
-  const dateStr = this.dataset.date;
-  const index = parseInt(this.dataset.index);
+  const period = this.dataset.sourcePeriod || this.dataset.period;
+  const dateStr = this.dataset.sourceDate || this.dataset.date;
+  const index = parseInt(this.dataset.sourceIndex || this.dataset.index);
   const routineKey = this.dataset.routineKey || null;
 
   if (period === 'Rotina' || routineKey) {
@@ -1105,6 +1108,10 @@ window.handleTaskIndent = function (dateStr, period, index, shiftKey) {
     const possibleParentId = prevTask.supabaseId || prevTask.text;
     if (prevTask.parent_id === possibleParentId) return;
     currentTask.parent_id = possibleParentId;
+    if (prevTask.projectId) {
+      currentTask.projectId = prevTask.projectId;
+      currentTask.projectName = prevTask.projectName || '';
+    }
   }
 
   saveToLocalStorage();
