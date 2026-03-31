@@ -494,6 +494,13 @@
                   : null;
               const localTaskHasValidRemoteId = localTaskId && remoteTaskIds.has(localTaskId);
 
+              // If a local snapshot task still points to a remote id that no longer exists
+              // in the freshly loaded server payload, treat it as stale deleted data and
+              // never resurrect it back into local state.
+              if (localTaskId && !localTaskHasValidRemoteId) {
+                return;
+              }
+
               // If the task was already loaded from remote by id, merge local-only metadata
               // (ex.: vínculo de projeto) when the remote payload still doesn't carry it.
               if (localTaskHasValidRemoteId) {
