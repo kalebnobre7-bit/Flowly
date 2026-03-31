@@ -1,4 +1,4 @@
-﻿// View extra?da de app.js
+?// View extra?da de app.js
 function renderMonth() {
   const view = document.getElementById('monthView');
   const { firstDay, lastDay, month, year } = getMonthDates(currentMonthOffset);
@@ -6,7 +6,7 @@ function renderMonth() {
   const monthNames = [
     'Janeiro',
     'Fevereiro',
-    'MarÃ§o',
+    'Março',
     'Abril',
     'Maio',
     'Junho',
@@ -122,7 +122,7 @@ function renderMonth() {
                 
                 
                 
-                            MÃªs Atual
+                            Mês Atual
                 
                 
                 
@@ -147,7 +147,7 @@ function renderMonth() {
                 
                 
                 
-                    <!-- CabeÃ§alho dos dias da semana -->
+                    <!-- Cabeçalho dos dias da semana -->
                 
                 
                 
@@ -203,7 +203,7 @@ function renderMonth() {
                 
                 
                 
-                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">SÃ¡b</div>
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">Sáb</div>
                 
                 
                 
@@ -228,7 +228,7 @@ function renderMonth() {
                 
                 
                 
-                    <!-- Grid do calendÃ¡rio -->
+                    <!-- Grid do calendário -->
                 
                 
                 
@@ -247,7 +247,7 @@ function renderMonth() {
     html += `<div class="min-h-[120px] bg-[#1c1c1e] bg-opacity-30 rounded-lg"></div>`;
   }
 
-  // Preencher os dias do mÃªs
+  // Preencher os dias do mês
   const today = localDateStr();
   for (let day = 1; day <= lastDay.getDate(); day++) {
     const date = new Date(year, month, day);
@@ -265,11 +265,11 @@ function renderMonth() {
       ...dailyRoutine.map((t) => t.text)
     ]);
 
-    // Contar apenas tarefas normais persistidas (excluir perÃ­odo 'Rotina' e tarefas que sÃ£o cÃ³pias de recorrentes)
+    // Contar apenas tarefas normais persistidas (excluir período 'Rotina' e tarefas que são cópias de recorrentes)
     Object.entries(dayTasks).forEach(([period, tasks]) => {
       if (period === 'Rotina') return;
       if (Array.isArray(tasks)) {
-        // Filtra tarefas que nÃ£o sÃ£o recorrentes
+        // Filtra tarefas que não são recorrentes
         const validTasks = tasks.filter((t) => !ignoredTexts.has(t.text));
         totalTasks += validTasks.length;
         completedTasks += validTasks.filter((t) => t.completed).length;
@@ -310,7 +310,7 @@ function renderMonth() {
                 
                 
                 
-                    <div class="min-h-[120px] bg-[#1c1c1e] bg-opacity-40 rounded-lg p-3 hover:bg-opacity-60 transition-all cursor-pointer border ${isToday ? 'border-blue-500' : 'border-white/5'}"
+                    <div class="min-h-[120px] ${isToday ? 'bg-blue-500/10' : 'bg-[#1c1c1e] bg-opacity-40'} rounded-lg p-3 hover:bg-opacity-60 transition-all cursor-pointer border ${isToday ? 'border-blue-500 ring-1 ring-blue-500/40' : 'border-white/5'}"
                 
                 
                 
@@ -335,7 +335,7 @@ function renderMonth() {
                 
                 
                 
-                            <div class="text-sm font-semibold ${isToday ? 'text-blue-400' : 'text-white'}">${day}</div>
+                            <div class="text-sm font-semibold ${isToday ? 'text-blue-400' : 'text-white'}">${day}${isToday ? ' <span style="font-size:9px;background:rgba(10,132,255,0.25);color:#60a5fa;padding:1px 5px;border-radius:8px;font-weight:700;letter-spacing:0.05em">HOJE</span>' : ''}</div>
                 
                 
                 

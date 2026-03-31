@@ -1,4 +1,4 @@
-﻿// Analytics and habits view extracted from js/app.js
+?// Analytics and habits view extracted from js/app.js
 
 function getAllHabits() {
   if (routineService) return routineService.getAllHabits();
@@ -21,8 +21,8 @@ function markHabitCompleted(habitText, completed, targetDate = null) {
 window.toggleHabitToday = function (habitText, completed) {
   // Normalizar texto para evitar problemas com aspas
   const cleanText = habitText;
-  // O toggleHabitToday da interface de rotina assume "hoje", mas podemos melhorar isso se necessÃ¡rio.
-  // Por enquanto, mantÃ©m o comportamento atual de usar "hoje" SE nÃ£o passar data.
+  // O toggleHabitToday da interface de rotina assume "hoje", mas podemos melhorar isso se necessário.
+  // Por enquanto, mantém o comportamento atual de usar "hoje" SE não passar data.
   markHabitCompleted(cleanText, completed);
 
   // Re-renderizar para atualizar UI imediatamente (optimistic update)
@@ -34,7 +34,7 @@ window.toggleHabitToday = function (habitText, completed) {
 function removeHabit(habitText) {
   if (
     !confirm(
-      `Tem certeza que deseja remover "${habitText}" dos hÃ¡bitos?\n\nIsso irÃ¡ desmarcar esta tarefa como hÃ¡bito em todas as ocorrÃªncias.`
+      `Tem certeza que deseja remover "${habitText}" dos hábitos?\n\nIsso irá desmarcar esta tarefa como hábito em todas as ocorrências.`
     )
   )
     return;
@@ -47,7 +47,7 @@ function removeHabit(habitText) {
     syncRecurringTasksToSupabase();
   }
 
-  // Desmarcar como hÃ¡bito em todas as tarefas existentes
+  // Desmarcar como hábito em todas as tarefas existentes
   Object.entries(allTasksData).forEach(([dateStr, periods]) => {
     Object.entries(periods).forEach(([period, tasks]) => {
       tasks.forEach((task) => {
@@ -58,7 +58,7 @@ function removeHabit(habitText) {
     });
   });
 
-  // Limpar histÃ³rico do hÃ¡bito
+  // Limpar histórico do hábito
   if (habitsHistory[habitText]) {
     delete habitsHistory[habitText];
     localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
@@ -74,13 +74,13 @@ function renderHabitsView() {
     habits = getAllHabits();
   if (habits.length === 0) {
     view.innerHTML =
-      '<div class="text-center py-20"><p class="text-gray-400 text-lg">Nenhum hÃ¡bito rastreado ainda.</p><p class="text-gray-600 text-sm mt-2">Marque tasks como hÃ¡bitos no menu de contexto (botÃ£o direito).</p></div>';
+      '<div class="text-center py-20"><p class="text-gray-400 text-lg">Nenhum hábito rastreado ainda.</p><p class="text-gray-600 text-sm mt-2">Marque tasks como hábitos no menu de contexto (botão direito).</p></div>';
     return;
   }
 
-  let html = `<div class="flowly-shell flowly-shell--narrow"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Meus HÃ¡bitos</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Total de HÃ¡bitos</div><div class="text-3xl font-bold text-white">${habits.length}</div></div>
-            <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">ConcluÃ­dos Hoje</div><div class="text-3xl font-bold text-[#30d158]">${habits.filter((h) => h.completedToday).length}</div></div>
+  let html = `<div class="flowly-shell flowly-shell--narrow"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Meus Hábitos</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Total de Hábitos</div><div class="text-3xl font-bold text-white">${habits.length}</div></div>
+            <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Concluídos Hoje</div><div class="text-3xl font-bold text-[#30d158]">${habits.filter((h) => h.completedToday).length}</div></div>
             <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Taxa Hoje</div><div class="text-3xl font-bold text-[#0A84FF]">${habits.length > 0 ? Math.round((habits.filter((h) => h.completedToday).length / habits.length) * 100) : 0}%</div></div></div><div class="space-y-3">`;
 
   habits.forEach((habit, index) => {
@@ -190,7 +190,7 @@ function renderHabitsView() {
                 
                 
                 
-                    <button onclick="removeHabit('${habit.text.replace(/'/g, "\\'")}');" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg" title="Remover hÃ¡bito">
+                    <button onclick="removeHabit('${habit.text.replace(/'/g, "\\'")}');" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg" title="Remover hábito">
                 
                 
                 
@@ -309,7 +309,7 @@ function renderAnalyticsView() {
   const MONTH_NAMES_PT = [
     'Janeiro',
     'Fevereiro',
-    'MarÃ§o',
+    'Março',
     'Abril',
     'Maio',
     'Junho',
@@ -320,7 +320,7 @@ function renderAnalyticsView() {
     'Novembro',
     'Dezembro'
   ].map((item) => (typeof fixMojibakeText === 'function' ? fixMojibakeText(item) : item));
-  const DAY_ABBR_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'].map((item) =>
+  const DAY_ABBR_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((item) =>
     typeof fixMojibakeText === 'function' ? fixMojibakeText(item) : item
   );
 
@@ -467,7 +467,7 @@ function renderAnalyticsView() {
   }
 
   // -- Last-week comparison (fair: compare only up to same day of week) --
-  const todayDayOfWeek = new Date().getDay(); // 0=Dom, 6=SÃ¡b
+  const todayDayOfWeek = new Date().getDay(); // 0=Dom, 6=Sáb
   const lastWeekDates = getWeekDates(-1);
   let lastWeekTotal = 0,
     lastWeekCompleted = 0;
@@ -534,9 +534,9 @@ function renderAnalyticsView() {
           : rate > 0
             ? '#FF9F0A'
             : 'rgba(255,255,255,0.08)';
-    return { name, rate, total: s.total, completed: s.completed, isToday, color, idx };
+    return { name, rate, total: s.total, completed: s.completed, isToday, isFuture: dateStr > today, color, idx };
   });
-  const dayRates = dayPerfData.filter((d) => d.total > 0);
+  const dayRates = dayPerfData.filter((d) => d.total > 0 && !d.isFuture);
   const bestDay = dayRates.length > 0 ? dayRates.reduce((b, d) => (d.rate > b.rate ? d : b)) : null;
   const worstDay =
     dayRates.length > 1 ? dayRates.reduce((w, d) => (d.rate < w.rate ? d : w)) : null;
@@ -546,8 +546,8 @@ function renderAnalyticsView() {
     todayPerformanceScore >= 110 ? '#30D158' : todayPerformanceScore >= 85 ? '#0A84FF' : '#FF9F0A';
   const trendClass = weeklyDeltaTasks > 0 ? 'up' : weeklyDeltaTasks < 0 ? 'down' : 'neutral';
   const trendLabel =
-    weeklyDeltaTasks > 0 ? `â†‘ +${weeklyDeltaTasks}` : weeklyDeltaTasks < 0 ? `â†“ ${weeklyDeltaTasks}` : 'â‰ˆ estÃ¡vel';
-  const trendTooltip = 'comparado Ã  mÃ©dia dos 7 dias anteriores';
+    weeklyDeltaTasks > 0 ? `↑ +${weeklyDeltaTasks}` : weeklyDeltaTasks < 0 ? `↓ ${weeklyDeltaTasks}` : '≈ estável';
+  const trendTooltip = 'comparado à média dos 7 dias anteriores';
 
   // -- Habit ranking -----------------------------------------------------
   const habitRanking = allHabitsArr
@@ -560,12 +560,12 @@ function renderAnalyticsView() {
 
   const habitRankingHTML =
     habitRanking.length === 0
-      ? `<div style="padding:20px 0;text-align:center;color:var(--text-tertiary);font-size:13px;line-height:1.6">Nenhum hÃ¡bito rastreado ainda.<br>Adicione hÃ¡bitos na visÃ£o Semana.</div>`
+      ? `<div style="padding:20px 0;text-align:center;color:var(--text-tertiary);font-size:13px;line-height:1.6">Nenhum hábito rastreado ainda.<br>Adicione hábitos na visão Semana.</div>`
       : habitRanking
           .slice(0, 8)
           .map((h, i) => {
             const medals = ['??', '??', '??'];
-            const rank = i < 3 ? medals[i] : `${i + 1}Âº`;
+            const rank = i < 3 ? medals[i] : `${i + 1}º`;
             const rc = h.rate >= 80 ? '#30D158' : h.rate >= 50 ? '#0A84FF' : 'var(--text-tertiary)';
             const bc = h.rate >= 80 ? '#30D158' : h.rate >= 50 ? '#0A84FF' : '#FF9F0A';
             return `<div class="analytics-rank-row">
@@ -720,9 +720,9 @@ function renderAnalyticsView() {
       const barH = d.rate > 0 ? Math.max(6, Math.round(d.rate * 0.9)) : 0;
       return `<div class="analytics-day-perf-col ${d.isToday ? 'today-col' : ''}">
             <div class="analytics-day-label">${d.name.substring(0, 3)}</div>
-            <div class="analytics-day-rate-v2" style="color:${d.color}">${d.rate > 0 ? d.rate + '%' : 'â€”'}</div>
+            <div class="analytics-day-rate-v2" style="color:${d.color}">${d.rate > 0 ? d.rate + '%' : '—'}</div>
             <div class="analytics-day-bar-wrap"><div class="analytics-day-bar-fill" style="height:${barH}%;background:${d.color};opacity:${d.total > 0 ? 1 : 0}"></div></div>
-            <div class="analytics-day-total">${d.total > 0 ? `${d.completed}/${d.total}` : 'â€“'}</div>
+            <div class="analytics-day-total">${d.total > 0 ? `${d.completed}/${d.total}` : '–'}</div>
         </div>`;
     })
     .join('');
@@ -734,21 +734,21 @@ function renderAnalyticsView() {
       color: 'green',
       icon: '?',
       title: 'Dia Perfeito!',
-      text: 'Todas as tarefas de hoje concluÃ­das. Excelente!'
+      text: 'Todas as tarefas de hoje concluídas. Excelente!'
     });
   if (currentStreak >= 3)
     insights.push({
       color: 'orange',
       icon: '??',
       title: `${currentStreak} Dias de Streak`,
-      text: 'Dias consecutivos com 100% das tarefas concluÃ­das!'
+      text: 'Dias consecutivos com 100% das tarefas concluídas!'
     });
   if (habitRate === 100 && totalHabits > 0)
     insights.push({
       color: 'purple',
       icon: '?',
-      title: 'HÃ¡bitos Perfeitos',
-      text: 'Todos os hÃ¡bitos marcados hoje. ConsistÃªncia mÃ¡xima!'
+      title: 'Hábitos Perfeitos',
+      text: 'Todos os hábitos marcados hoje. Consistência máxima!'
     });
   if (weekDiff >= 10)
     insights.push({
@@ -762,42 +762,42 @@ function renderAnalyticsView() {
       color: 'red',
       icon: '??',
       title: 'Queda de Desempenho',
-      text: `${weekDiff}% vs semana anterior. Identifique o que estÃ¡ bloqueando.`
+      text: `${weekDiff}% vs semana anterior. Identifique o que está bloqueando.`
     });
   if (bestDay && bestDay.rate >= 80)
     insights.push({
       color: 'blue',
       icon: '?',
       title: `Destaque: ${bestDay.name}`,
-      text: `${bestDay.rate}% de conclusÃ£o â€” seu melhor dia da semana!`
+      text: `${bestDay.rate}% de conclusão — seu melhor dia da semana!`
     });
   if (todayPerformanceScore >= 120)
     insights.push({
       color: 'green',
-      icon: 'â†—',
-      title: 'Acima da tua mÃ©dia',
-      text: `Hoje vocÃª entregou ${todayPerformanceScore}% da tua mÃ©dia recente.`
+      icon: '↗',
+      title: 'Acima da tua média',
+      text: `Hoje você entregou ${todayPerformanceScore}% da tua média recente.`
     });
   if (todayPerformanceScore > 0 && todayPerformanceScore < 80)
     insights.push({
       color: 'orange',
-      icon: 'â€¢',
-      title: 'Abaixo da mÃ©dia',
-      text: `Hoje ficou em ${todayPerformanceScore}% da tua mÃ©dia recente.`
+      icon: '•',
+      title: 'Abaixo da média',
+      text: `Hoje ficou em ${todayPerformanceScore}% da tua média recente.`
     });
   if (insights.length === 0 && weekRate > 0)
     insights.push({
       color: 'blue',
       icon: '??',
       title: 'Continue Evoluindo',
-      text: `${Math.round(recent7Avg || 0)} tarefas/dia na Ãºltima semana. Cada dia conta!`
+      text: `${Math.round(recent7Avg || 0)} tarefas/dia na última semana. Cada dia conta!`
     });
   if (insights.length === 0)
     insights.push({
       color: 'blue',
       icon: '??',
       title: 'Comece Hoje',
-      text: 'Adicione tarefas e hÃ¡bitos para ver seus insights aqui.'
+      text: 'Adicione tarefas e hábitos para ver seus insights aqui.'
     });
 
   const insightsHTML = insights
@@ -869,7 +869,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <p class="analytics-subtitle-v2">${MONTH_NAMES_PT[nowMonth]} ${nowYear} Â· Semana atual</p>
+                <p class="analytics-subtitle-v2">${MONTH_NAMES_PT[nowMonth]} ${nowYear} · Semana atual</p>
             </div>
         </div>
 
@@ -907,7 +907,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${todayCompletedVolume} concluÃ­das â€¢ mÃ©dia ${analyticsSafe(avgCompletedBaseline)}</div>
+                <div class="analytics-kpi-v2-sub">${todayCompletedVolume} concluídas • média ${analyticsSafe(avgCompletedBaseline)}</div>
                 
                 
                 
@@ -915,7 +915,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                ${todayCompletedVolume > 0 ? `<span class="analytics-kpi-v2-badge ${todayPerformanceScore >= 100 ? 'up' : 'neutral'}">${volumeDelta >= 0 ? 'â†‘' : 'â†“'} ${Math.abs(volumeDelta)} vs mÃ©dia</span>` : ''}
+                ${todayCompletedVolume > 0 ? `<span class="analytics-kpi-v2-badge ${todayPerformanceScore >= 100 ? 'up' : 'neutral'}">${volumeDelta >= 0 ? '↑' : '↓'} ${Math.abs(volumeDelta)} vs média</span>` : ''}
             </div>
             <div class="analytics-kpi-v2">
                 
@@ -949,7 +949,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${recent7Completed} concluÃ­das nos Ãºltimos 7 dias</div>
+                <div class="analytics-kpi-v2-sub">${recent7Completed} concluídas nos últimos 7 dias</div>
                 
                 
                 
@@ -975,7 +975,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-label"><i data-lucide="gauge" style="width:12px;height:12px"></i> ConsistÃªncia</div>
+                <div class="analytics-kpi-v2-label"><i data-lucide="gauge" style="width:12px;height:12px"></i> Consistência</div>
                 
                 
                 
@@ -991,7 +991,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${consistencyDays} dias na/acima da mÃ©dia em 30 dias</div>
+                <div class="analytics-kpi-v2-sub">${consistencyDays} dias na/acima da média em 30 dias</div>
             </div>
             <div class="analytics-kpi-v2">
                 
@@ -1025,7 +1025,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${bestVolumeDay ? `melhor dia: ${bestVolumeDay.dateStr}` : 'sem histÃ³rico suficiente'}</div>
+                <div class="analytics-kpi-v2-sub">${bestVolumeDay ? `melhor dia: ${bestVolumeDay.dateStr}` : 'sem histórico suficiente'}</div>
             </div>
         </div>
 
@@ -1120,7 +1120,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                    <div class="analytics-chart-v2-title"><i data-lucide="pie-chart" style="width:14px;height:14px"></i> HÃ¡bitos Hoje</div>
+                    <div class="analytics-chart-v2-title"><i data-lucide="pie-chart" style="width:14px;height:14px"></i> Hábitos Hoje</div>
                 
                 
                 
@@ -1176,7 +1176,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                            <div style="font-size:10px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">hÃ¡bitos</div>
+                            <div style="font-size:10px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">hábitos</div>
                 
                 
                 
@@ -1246,7 +1246,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-chart-v2-title"><i data-lucide="line-chart" style="width:14px;height:14px"></i> Volume diÃ¡rio â€” ${MONTH_NAMES_PT[nowMonth]}</div>
+                <div class="analytics-chart-v2-title"><i data-lucide="line-chart" style="width:14px;height:14px"></i> Volume diário — ${MONTH_NAMES_PT[nowMonth]}</div>
                 
                 
                 
@@ -1254,7 +1254,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <span class="analytics-chart-v2-badge">MÃ©dia ${monthAvgRate} tarefas/dia</span>
+                <span class="analytics-chart-v2-badge">Média ${monthAvgRate} tarefas/dia</span>
             </div>
             <div style="position:relative;height:180px">
                 
@@ -1286,7 +1286,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                    <div class="analytics-chart-v2-title"><i data-lucide="award" style="width:14px;height:14px"></i> Ranking de HÃ¡bitos</div>
+                    <div class="analytics-chart-v2-title"><i data-lucide="award" style="width:14px;height:14px"></i> Ranking de Hábitos</div>
                 
                 
                 
@@ -1424,7 +1424,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);margin-bottom:8px;display:flex;align-items:center;gap:5px"><i data-lucide="alert-circle" style="width:11px;height:11px;color:#FF9F0A"></i> AtenÃ§Ã£o</div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);margin-bottom:8px;display:flex;align-items:center;gap:5px"><i data-lucide="alert-circle" style="width:11px;height:11px;color:#FF9F0A"></i> Atenção</div>
                 
                 
                 
@@ -1497,7 +1497,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#FF9F0A"></div><span style="font-size:10px;color:var(--text-tertiary)">40â€“60%</span></div>
+                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#FF9F0A"></div><span style="font-size:10px;color:var(--text-tertiary)">40–60%</span></div>
                 
                 
                 
@@ -1505,7 +1505,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#0A84FF"></div><span style="font-size:10px;color:var(--text-tertiary)">60â€“80%</span></div>
+                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#0A84FF"></div><span style="font-size:10px;color:var(--text-tertiary)">60–80%</span></div>
                 
                 
                 
@@ -1519,7 +1519,7 @@ function renderAnalyticsView() {
 
         <!-- Smart Insights -->
         <div>
-            <div class="analytics-section-label" style="margin-bottom:10px">AnÃ¡lise EstratÃ©gica</div>
+            <div class="analytics-section-label" style="margin-bottom:10px">Análise Estratégica</div>
             <div class="analytics-insights-v2">${insightsHTML}</div>
         </div>
 
@@ -1554,7 +1554,7 @@ function renderAnalyticsView() {
           labels: weekDates.map(({ name }) => name.substring(0, 3)),
           datasets: [
             {
-              label: 'ConclusÃ£o (%)',
+              label: 'Conclusão (%)',
               data: weekChartData,
               backgroundColor: weekChartColors.map((c) => (c.startsWith('#') ? c + 'B3' : c)),
               borderColor: weekChartColors,
@@ -1609,7 +1609,7 @@ function renderAnalyticsView() {
       new Chart(hCtx, {
         type: 'doughnut',
         data: {
-          labels: ['ConcluÃ­dos', 'Pendentes'],
+          labels: ['Concluídos', 'Pendentes'],
           datasets: [
             {
               data: doughnutData,
@@ -1637,7 +1637,7 @@ function renderAnalyticsView() {
           labels: monthlyVolumeLabels,
           datasets: [
             {
-              label: 'Tarefas concluÃ­das',
+              label: 'Tarefas concluídas',
               data: monthlyVolumeSeries,
               borderColor: '#0A84FF',
               backgroundColor: 'rgba(10,132,255,0.08)',
@@ -1666,7 +1666,7 @@ function renderAnalyticsView() {
               callbacks: {
                 title: (items) => `Dia ${items[0].label}`,
                 label: (item) =>
-                  item.raw !== null ? ` ${item.raw} tarefa(s) concluÃ­da(s)` : ' Sem tarefas'
+                  item.raw !== null ? ` ${item.raw} tarefa(s) concluída(s)` : ' Sem tarefas'
               }
             }
           },

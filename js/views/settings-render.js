@@ -43,11 +43,11 @@ function createSettingsToggle(id, checked) {
 function buildSettingsTabNav(settingsTab) {
   const settingsTabs = [
     { id: 'conta', label: 'Conta', icon: 'user-round' },
-    { id: 'notificacoes', label: 'Notificacoes', icon: 'bell-ring' },
+    { id: 'notificacoes', label: 'Notificações', icon: 'bell-ring' },
     { id: 'app', label: 'App', icon: 'sliders-horizontal' },
-    { id: 'personalizacao', label: 'Personalizacao', icon: 'palette' },
+    { id: 'personalizacao', label: 'Personalização', icon: 'palette' },
     { id: 'ia', label: 'IA', icon: 'bot' },
-    { id: 'operacao', label: 'Operacao', icon: 'signal' },
+    { id: 'operacao', label: 'Operação', icon: 'signal' },
     { id: 'dados', label: 'Dados', icon: 'database' }
   ];
 
@@ -155,8 +155,8 @@ function buildSettingsMarkup(ctx) {
   );
 
   const notificationsSection = createSettingsSectionCard(
-    'Notificacoes',
-    'Alertas, horarios e mensagens',
+    'Notificações',
+    'Alertas, horários e mensagens',
     'bell-ring',
     `
       <div class="space-y-3">
@@ -217,7 +217,7 @@ function buildSettingsMarkup(ctx) {
     `
       <div class="space-y-3">
         <div class="mb-2 flex items-center justify-between gap-2 text-xs text-gray-300">
-          <span>Status da permissao</span>
+          <span>Status da permissão</span>
           ${permBadge}
         </div>
         <p class="text-xs text-gray-400">${notifStatusText}</p>
@@ -252,7 +252,7 @@ function buildSettingsMarkup(ctx) {
   );
 
   const personalizationSection = createSettingsSectionCard(
-    'Personalizacao',
+    'Personalização',
     'Cores, fontes e bordas',
     'palette',
     `
@@ -305,7 +305,7 @@ function buildSettingsMarkup(ctx) {
     'bot',
     `
       <div class="space-y-3">
-        ${createSettingsRow('bot', 'Ativar conector externo', 'Mantem a configuracao de IA pronta para backend seguro', createSettingsToggle('toggleAiEnabled', aiSettings.enabled === true))}
+        ${createSettingsRow('bot', 'Ativar conector externo', 'Mantém a configuração de IA pronta para backend seguro', createSettingsToggle('toggleAiEnabled', aiSettings.enabled === true))}
         <div class="settings-ai-grid">
           <label class="settings-theme-field">
             <span>Provedor</span>
@@ -340,14 +340,14 @@ function buildSettingsMarkup(ctx) {
 
   const aiStatusCard = createSettingsSectionCard(
     'Status da Sexta',
-    'Leitura do que ja esta ativo',
+    'Leitura do que já está ativo',
     'sparkles',
     `
       <div class="space-y-3">
         <div class="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
           <div class="text-xs uppercase tracking-wide text-gray-400">Modo atual</div>
           <div class="mt-1 text-sm font-semibold text-white">${aiSettings.enabled && aiSettings.provider !== 'local' ? escapeProjectHtml(`${aiSettings.provider} · ${aiSettings.model}`) : 'Local Flowly'}</div>
-          <p class="mt-2 text-xs text-gray-400">${aiSettings.enabled && aiSettings.provider !== 'local' ? 'Conector salvo. O passo seguinte e ligar esse endpoint a uma Edge Function segura.' : 'Aba Sexta operando no modo local com leitura de tarefas, projetos e contexto.'}</p>
+          <p class="mt-2 text-xs text-gray-400">${aiSettings.enabled && aiSettings.provider !== 'local' ? 'Conector salvo. O passo seguinte é ligar esse endpoint a uma Edge Function segura.' : 'Aba Sexta operando no modo local com leitura de tarefas, projetos e contexto.'}</p>
         </div>
         <div class="settings-guide-list">
           <div><strong>1. Salvar provedor</strong><span>MiniMax, OpenAI ou endpoint custom</span></div>
@@ -410,11 +410,11 @@ function buildSettingsMarkup(ctx) {
     `
       <div class="settings-guide-list">
         <div><strong>Conta</strong><span>nome, login e identidade</span></div>
-        <div><strong>Notificacoes</strong><span>horarios, templates e permissao</span></div>
+        <div><strong>Notificações</strong><span>horários, templates e permissão</span></div>
         <div><strong>App</strong><span>semana, hover e feedback</span></div>
-        <div><strong>Personalizacao</strong><span>cores, fontes e arredondamento</span></div>
+        <div><strong>Personalização</strong><span>cores, fontes e arredondamento</span></div>
         <div><strong>IA</strong><span>provedor, modelo e endpoint da Sexta</span></div>
-        <div><strong>Operacao</strong><span>prioridades e sinais</span></div>
+        <div><strong>Operação</strong><span>prioridades e sinais</span></div>
         <div><strong>Dados</strong><span>backup, reparo e limpeza</span></div>
       </div>
     `
@@ -440,9 +440,9 @@ function buildSettingsMarkup(ctx) {
             <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-900/25">
               <i data-lucide="settings-2" style="width:20px;height:20px;"></i>
             </span>
-            Configuracoes
+            Configurações
           </h2>
-          <p class="mt-1 text-sm text-gray-400">Agora separado por abas para voce ajustar uma area por vez.</p>
+          <p class="mt-1 text-sm text-gray-400">Agora separado por abas para você ajustar uma área por vez.</p>
         </div>
         <div class="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-300">
           <div class="font-semibold text-gray-200">FLOWLY v1.2</div>

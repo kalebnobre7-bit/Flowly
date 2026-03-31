@@ -40,11 +40,11 @@ var allTasksData = safeJSONParse(localStorage.getItem('allTasksData'), {});
 var collapsedTaskGroups = safeJSONParse(localStorage.getItem('flowlyCollapsedTaskGroups'), {});
 var weekData = {
   'Segunda': {},
-  'TerÃ§a': {},
+  'Terça': {},
   'Quarta': {},
   'Quinta': {},
   'Sexta': {},
-  'SÃ¡bado': {},
+  'Sábado': {},
   'Domingo': {}
 };
 var habitsHistory = safeJSONParse(localStorage.getItem('habitsHistory'), {});

@@ -570,12 +570,12 @@ function renderToday() {
                 
                 
                                         <div class="stat-card">
-                        <span class="stat-label">Ultima conclusao</span>
+                        <span class="stat-label">Última conclusão</span>
                         <span class="stat-value ${lastCompletedTask ? 'blue' : ''}">${lastCompletedText}</span>
                     </div>
 
                     <div class="stat-card">
-                        <span class="stat-label">Media por tarefa</span>
+                        <span class="stat-label">Média por tarefa</span>
                         <span class="stat-value ${durationSamplesMs.length > 0 ? 'blue' : ''}">${avgTaskDurationText}</span>
                     </div>
 <div class="stat-card">

@@ -1,4 +1,4 @@
-﻿// Finance runtime extracted from js/app.js
+?// Finance runtime extracted from js/app.js
 
 let financeState = normalizeFinanceState(safeJSONParse(localStorage.getItem('flowlyFinanceState'), null));
 let financeSyncTimer = null;
@@ -248,7 +248,7 @@ function buildFinanceAnalytics() {
         const amount = extractCurrencyValueFromText(task.text);
         const type = String(task.type || '').toUpperCase();
         const priority = String(task.priority || '').toLowerCase();
-        const looksFinancial = type === 'MONEY' || priority === 'money' || /dinheiro|cobrar|proposta|orcamento|orÃ§amento|cliente|venda|pagamento|receber|pix|fee|briefing|cobran/i.test(task.text) || amount > 0;
+        const looksFinancial = type === 'MONEY' || priority === 'money' || /dinheiro|cobrar|proposta|orcamento|orçamento|cliente|venda|pagamento|receber|pix|fee|briefing|cobran/i.test(task.text) || amount > 0;
         if (!looksFinancial) return;
         const row = {
           taskId: task.supabaseId || `${dateStr}::${period}::${index}`,
@@ -306,7 +306,7 @@ function buildFinanceAnalytics() {
   });
   const expenseBreakdown = {};
   expenses.forEach((item) => {
-    const key = item.category || item.description || 'SaÃ­da';
+    const key = item.category || item.description || 'Saída';
     expenseBreakdown[key] = (expenseBreakdown[key] || 0) + Number(item.amount || 0);
   });
   const topIncomeSources = Object.entries(incomeSources)
@@ -320,8 +320,8 @@ function buildFinanceAnalytics() {
   const avgTicketIn = incomes.length ? incomeTotal / incomes.length : 0;
   const avgTicketOut = expenses.length ? expenseTotal / expenses.length : 0;
   const analysisTone = balance >= 0
-    ? 'Entradas segurando o mÃªs. Agora Ã© identificar os motores que mais repetem.'
-    : 'As saÃ­das estÃ£o acima das entradas. O foco Ã© reduzir vazamentos e mapear o que realmente traz caixa.';
+    ? 'Entradas segurando o mês. Agora é identificar os motores que mais repetem.'
+    : 'As saídas estão acima das entradas. O foco é reduzir vazamentos e mapear o que realmente traz caixa.';
 
   return {
     formatBRL,
@@ -382,7 +382,7 @@ function renderFinanceCharts(analytics) {
             pointHoverRadius: 5
           },
           {
-            label: 'SaÃ­das',
+            label: 'Saídas',
             data: analytics.chartExpense,
             borderColor: '#f97316',
             backgroundColor: 'rgba(249, 115, 22, 0.14)',
@@ -463,7 +463,7 @@ window.saveFinanceTransactionFromForm = async function () {
   const selectedProject = getProjectOptions().find((item) => item.id === projectRef) || null;
 
   if (!description || !Number.isFinite(amount) || amount <= 0) {
-    alert('Preenche descriÃ§Ã£o e valor certinho.');
+    alert('Preenche descrição e valor certinho.');
     return;
   }
 

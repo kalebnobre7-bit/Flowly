@@ -49,21 +49,21 @@ function renderProjectsView() {
     { label: 'Ativos', value: activeCount },
     { label: 'Sem projeto', value: taskBacklogCount },
     { label: 'Receita prevista', value: formatBRL(totalRevenue) },
-    { label: 'Nao pagos', value: unpaidCount }
+    { label: 'Não pagos', value: unpaidCount }
   ];
 
   const heroInsight = (() => {
-    if (lateCount > 0) return `${lateCount} projeto(s) estao em atraso e pedem resposta hoje.`;
+    if (lateCount > 0) return `${lateCount} projeto(s) estão em atraso e pedem resposta hoje.`;
     if (deliveredUnpaidCount > 0) {
       return `${deliveredUnpaidCount} entrega(s) concluida(s) ainda nao viraram caixa.`;
     }
     if (urgentProjects.length > 0) {
-      return `${urgentProjects.length} projeto(s) vencem nos proximos 5 dias.`;
+      return `${urgentProjects.length} projeto(s) vencem nos próximos 5 dias.`;
     }
     if (taskBacklogCount > 0) {
-      return `${taskBacklogCount} tarefa(s) ainda estao soltas e podem virar projeto.`;
+      return `${taskBacklogCount} tarefa(s) ainda estão soltas e podem virar projeto.`;
     }
-    return 'Operacao sob controle. Agora vale organizar melhor as proximas entregas.';
+    return 'Operação sob controle. Agora vale organizar melhor as próximas entregas.';
   })();
 
   const renderProjectCard = (project, sectionKey, index) => {
@@ -229,7 +229,7 @@ function renderProjectsView() {
             <summary>Notas, tarefas e checklist</summary>
             <label class="projects-config-field projects-config-field--full">
             <span>Notas operacionais</span>
-            <textarea class="finance-input projects-note-textarea" onchange="updateProjectField('${project.id}','notes',this.value)" placeholder="Resumo rapido, proximo passo, observacoes de cliente...">${notesValue}</textarea>
+            <textarea class="finance-input projects-note-textarea" onchange="updateProjectField('${project.id}','notes',this.value)" placeholder="Resumo rápido, próximo passo, observacoes de cliente...">${notesValue}</textarea>
             </label>
 
             <div class="projects-row-actions">
@@ -289,13 +289,13 @@ function renderProjectsView() {
       <section class="projects-hero">
         <div class="projects-hero-main">
           <div class="finance-kicker">Projects OS</div>
-          <h2>Projetos organizados pela operacao</h2>
+          <h2>Projetos organizados pela operação</h2>
           <p>${heroInsight}</p>
           <div class="projects-hero-actions">
             <button onclick="openQuickProjectModal()" class="btn-primary projects-hero-cta projects-btn-inline">
               Novo projeto
             </button>
-            <span class="projects-hero-pill">${filteredProjects.length} na visao</span>
+            <span class="projects-hero-pill">${filteredProjects.length} na visão</span>
             <span class="projects-hero-pill">${suggestionCount} sinais</span>
             <span class="projects-hero-pill">${taskBacklogCount} tarefa(s) sem projeto</span>
           </div>
@@ -340,8 +340,8 @@ function renderProjectsView() {
               : `
                 <div class="projects-hero-focus">
                   <div class="projects-suggest-title">Sem projetos ainda</div>
-                  <strong>Comece com uma operacao limpa</strong>
-                  <p>Crie um projeto, puxe tarefas para dentro e use esse painel como base de execucao.</p>
+                  <strong>Comece com uma operação limpa</strong>
+                  <p>Crie um projeto, puxe tarefas para dentro e use esse painel como base de execução.</p>
                 </div>
               `
           }
@@ -386,10 +386,10 @@ function renderProjectsView() {
         }" onclick="setProjectsFilter('paid')">Pagos (${paidCount})</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'unpaid' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('unpaid')">Nao pagos (${unpaidCount})</button>
+        }" onclick="setProjectsFilter('unpaid')">Não pagos (${unpaidCount})</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'done' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('done')">Concluidos (${doneCount})</button>
+        }" onclick="setProjectsFilter('done')">Concluídos (${doneCount})</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'draft' ? 'is-active' : ''
         }" onclick="setProjectsFilter('draft')">Templates (${draftCount})</button>
@@ -429,7 +429,7 @@ function renderProjectsView() {
                     <div class="projects-board-header">
                       <div>
                         <div class="projects-suggest-title">Comeco guiado</div>
-                        <h3>Transforme esse vazio em operacao</h3>
+                        <h3>Transforme esse vazio em operação</h3>
                         <p>O lado esquerdo agora te ajuda a criar contexto, nao fica parado esperando projeto aparecer.</p>
                       </div>
                     </div>
@@ -442,12 +442,12 @@ function renderProjectsView() {
                       <article class="projects-starter-card">
                         <span class="projects-starter-step">02</span>
                         <strong>Puxe as tarefas que ja existem</strong>
-                        <p>${taskBacklogCount} tarefa(s) estao sem projeto e podem virar contexto operacional agora.</p>
+                        <p>${taskBacklogCount} tarefa(s) estão sem projeto e podem virar contexto operacional agora.</p>
                       </article>
                       <article class="projects-starter-card">
                         <span class="projects-starter-step">03</span>
                         <strong>Feche o ciclo com receita</strong>
-                        <p>${suggestionCount} sugestao(oes) podem ligar entrega, recebimento e cliente na mesma visao.</p>
+                        <p>${suggestionCount} sugestão(ões) podem ligar entrega, recebimento e cliente na mesma visão.</p>
                       </article>
                     </div>
                   </section>
@@ -457,7 +457,7 @@ function renderProjectsView() {
                       <div>
                         <div class="projects-suggest-title">Tarefas mais prontas</div>
                         <h3>O que ja da para transformar em projeto</h3>
-                        <p>Essas tarefas estao mais proximas de virarem um card real na operacao.</p>
+                        <p>Essas tarefas estão mais próximas de virarem um card real na operação.</p>
                       </div>
                       <span class="projects-board-count">${taskBacklogCount}</span>
                     </div>
@@ -617,7 +617,7 @@ function renderProjectsView() {
             <div class="finance-card-head finance-card-head--dense">
               <div>
                 <h3>Centro de comando</h3>
-                <p>O que esta pedindo acao na operacao.</p>
+                <p>O que esta pedindo acao na operação.</p>
               </div>
             </div>
             <div class="projects-sidebar-list">
@@ -649,7 +649,7 @@ function renderProjectsView() {
                   <p>${
                     taskBacklogCount > 0
                       ? 'Vale transformar essas tarefas em contexto de cliente.'
-                      : 'Tudo ja esta contextualizado.'
+                      : 'Tudo já está contextualizado.'
                   }</p>
                 </div>
                 <span class="projects-board-count">${taskBacklogCount}</span>
