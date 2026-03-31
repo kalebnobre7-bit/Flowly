@@ -349,6 +349,183 @@ async function main() {
         })()`
       );
 
+      const projectHierarchyProbe = await evaluate(
+        send,
+        `(() => {
+          const projectId = 'smoke-project-1';
+          const projectName = '[smoke] projeto';
+          const rootText = '[smoke] root';
+          const childText = '[smoke] child';
+          const today = typeof localDateStr === 'function' ? localDateStr() : new Date().toISOString().slice(0, 10);
+          const yesterday = typeof localDateStr === 'function'
+            ? localDateStr(new Date(Date.now() - 86400000))
+            : new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+          const tomorrow = typeof localDateStr === 'function'
+            ? localDateStr(new Date(Date.now() + 86400000))
+            : new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
+          if (typeof normalizeProjectsState !== 'function' || typeof persistProjectsStateLocal !== 'function') {
+            return { ok: false, reason: 'runtime de projeto indisponivel' };
+          }
+
+          projectsState = normalizeProjectsState(projectsState);
+          projectsState.projects = (projectsState.projects || []).filter((project) => project.id !== projectId && project.name !== projectName);
+          projectsState.projects.unshift({
+            id: projectId,
+            name: projectName,
+            clientName: 'smoke',
+            status: 'active',
+            serviceType: '',
+            expectedValue: 0,
+            closedValue: 0,
+            notes: '',
+            startDate: yesterday,
+            deadline: '',
+            completionDate: '',
+            isPaid: false,
+            isDraft: false,
+            templateTasks: [],
+            collapseSubtasks: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+          persistProjectsStateLocal();
+
+          const sanitizeList = (dateStr) => {
+            if (!allTasksData[dateStr] || !Array.isArray(allTasksData[dateStr].Tarefas)) return;
+            allTasksData[dateStr].Tarefas = allTasksData[dateStr].Tarefas.filter((task) => task && task.text !== rootText && task.text !== childText);
+            allTasksData[dateStr].Tarefas.forEach((task, index) => { task.position = index; });
+            if (allTasksData[dateStr].Tarefas.length === 0) delete allTasksData[dateStr].Tarefas;
+            if (Object.keys(allTasksData[dateStr] || {}).length === 0) delete allTasksData[dateStr];
+          };
+
+          sanitizeList(yesterday);
+          sanitizeList(today);
+          sanitizeList(tomorrow);
+
+          if (!allTasksData[yesterday]) allTasksData[yesterday] = {};
+          if (!allTasksData[yesterday].Tarefas) allTasksData[yesterday].Tarefas = [];
+          if (!allTasksData[today]) allTasksData[today] = {};
+          if (!allTasksData[today].Tarefas) allTasksData[today].Tarefas = [];
+
+          const rootTask = {
+            text: rootText,
+            completed: false,
+            color: 'default',
+            type: 'OPERATIONAL',
+            priority: 'money',
+            parent_id: null,
+            position: allTasksData[yesterday].Tarefas.length,
+            isHabit: false,
+            supabaseId: 'smoke-root-id',
+            projectId,
+            projectName,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            completedAt: null,
+            timerTotalMs: 0,
+            timerStartedAt: null,
+            timerLastStoppedAt: null,
+            timerSessionsCount: 0
+          };
+
+          const looseTask = {
+            text: childText,
+            completed: false,
+            color: 'default',
+            type: 'OPERATIONAL',
+            priority: null,
+            parent_id: null,
+            position: allTasksData[today].Tarefas.length,
+            isHabit: false,
+            supabaseId: 'smoke-child-id',
+            projectId: null,
+            projectName: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            completedAt: null,
+            timerTotalMs: 0,
+            timerStartedAt: null,
+            timerLastStoppedAt: null,
+            timerSessionsCount: 0
+          };
+
+          allTasksData[yesterday].Tarefas.push(rootTask);
+          allTasksData[today].Tarefas.push(looseTask);
+          saveToLocalStorage();
+          if (typeof renderView === 'function') renderView();
+
+          const sourceIndex = (allTasksData[today].Tarefas || []).findIndex((task) => task && task.text === childText);
+          const parentIndex = (allTasksData[yesterday].Tarefas || []).findIndex((task) => task && task.text === rootText);
+          const moveResult = typeof moveTaskUnderParent === 'function'
+            ? moveTaskUnderParent({
+                sourceDateStr: today,
+                sourcePeriod: 'Tarefas',
+                sourceIndex,
+                parentDateStr: yesterday,
+                parentPeriod: 'Tarefas',
+                parentIndex
+              })
+            : null;
+
+          const movedTask = ((allTasksData[yesterday] || {}).Tarefas || []).find((task) => task && task.text === childText) || null;
+          const todayMirrorTexts = typeof getProjectMirrorEntriesForDate === 'function'
+            ? getProjectMirrorEntriesForDate(today, 'Hoje').map((entry) => entry.task.text)
+            : [];
+          const tomorrowMirrorTexts = typeof getProjectMirrorEntriesForDate === 'function'
+            ? getProjectMirrorEntriesForDate(tomorrow, 'Amanhã').map((entry) => entry.task.text)
+            : [];
+
+          return {
+            ok: !!(moveResult && moveResult.moved),
+            today,
+            tomorrow,
+            movedTask,
+            todayMirrorTexts,
+            tomorrowMirrorTexts
+          };
+        })()`
+      );
+
+      await send('Page.reload', { ignoreCache: true });
+      await delay(2500);
+
+      const afterProjectReload = await evaluate(
+        send,
+        `(() => {
+          const childText = '[smoke] child';
+          const rootText = '[smoke] root';
+          const tomorrow = typeof localDateStr === 'function'
+            ? localDateStr(new Date(Date.now() + 86400000))
+            : new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+          const allRows = [];
+          Object.entries(allTasksData || {}).forEach(([dateStr, periods]) => {
+            Object.entries(periods || {}).forEach(([period, tasks]) => {
+              (tasks || []).forEach((task) => {
+                if (task && task.text === childText) {
+                  allRows.push({
+                    dateStr,
+                    period,
+                    parent_id: task.parent_id || null,
+                    projectId: task.projectId || null,
+                    projectName: task.projectName || ''
+                  });
+                }
+              });
+            });
+          });
+          const tomorrowMirrorTexts = typeof getProjectMirrorEntriesForDate === 'function'
+            ? getProjectMirrorEntriesForDate(tomorrow, 'Amanhã').map((entry) => entry.task.text)
+            : [];
+          return {
+            rows: allRows,
+            tomorrowMirrorTexts,
+            hasProjectMirror: tomorrowMirrorTexts.includes(rootText),
+            hasChildMirror: tomorrowMirrorTexts.includes(childText)
+          };
+        })()`
+      );
+
       const targets = ['week', 'month', 'analytics', 'finance', 'projects', 'sexta', 'settings'];
       const navResults = [];
       for (const view of targets) {
@@ -371,6 +548,8 @@ async function main() {
         afterReloadPersistence,
         deleteProbe,
         afterDeleteReload,
+        projectHierarchyProbe,
+        afterProjectReload,
         navResults,
         mismatchCount: mismatches.length,
         mismatches,
@@ -382,6 +561,8 @@ async function main() {
       if (!afterReloadPersistence.savedInStorage) payload.ok = false;
       if (!deleteProbe.ok || deleteProbe.stillInStorage) payload.ok = false;
       if (afterDeleteReload.stillInStorage || afterDeleteReload.visibleInBody) payload.ok = false;
+      if (!projectHierarchyProbe.ok) payload.ok = false;
+      if (!afterProjectReload.hasProjectMirror || !afterProjectReload.hasChildMirror) payload.ok = false;
 
       console.log(JSON.stringify(payload, null, 2));
       if (!payload.ok) process.exitCode = 1;

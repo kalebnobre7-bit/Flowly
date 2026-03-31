@@ -726,6 +726,24 @@ window.moveTaskUnderParent = function ({
 
   const parentBoundaryIndex = getTaskSubtreeBoundaryIndex(parentList, parentTask);
   if (parentBoundaryIndex < 0) return null;
+  const movingWithinSameList = sourceDateStr === parentDateStr && sourcePeriod === parentPeriod;
+
+  if (movingWithinSameList && numericSourceIndex === parentBoundaryIndex + 1) {
+    sourceTask.parent_id = getTaskTreeId(parentTask) || null;
+    sourceSubtree.forEach((task) => {
+      task.projectId = parentTask.projectId || null;
+      task.projectName = parentTask.projectName || '';
+    });
+    sourceList.forEach((task, index) => {
+      task.position = index;
+    });
+    saveToLocalStorage();
+    Promise.resolve(syncDateToSupabase(sourceDateStr)).catch((err) => {
+      console.error('[MoveUnderParent] Background sync error:', err);
+    });
+    renderView();
+    return { moved: true, datesToSync: [sourceDateStr], noReorder: true };
+  }
 
   const moveResult = moveTaskSubtree({
     sourceDateStr,
