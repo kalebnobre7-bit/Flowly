@@ -724,8 +724,20 @@ async function syncDateToSupabase(dateStr) {
   }
 
   try {
+    const tasksCompletedAtSupported = (() => {
+      try {
+        return localStorage.getItem('flowly_tasks_completed_at_supported') !== 'false';
+      } catch (err) {
+        return true;
+      }
+    })();
     const isCompletedAtSchemaError = (error) =>
-      /completed_at/i.test(String((error && error.message) || ''));
+      /completed_at/i.test(String((error && (error.message || error.details || error.hint)) || ''));
+    const markCompletedAtUnsupported = () => {
+      try {
+        localStorage.setItem('flowly_tasks_completed_at_supported', 'false');
+      } catch (err) {}
+    };
     const stripCompletedAt = (payload) => {
       const { completed_at, ...rest } = payload;
       return rest;
@@ -772,13 +784,15 @@ async function syncDateToSupabase(dateStr) {
           position: typeof task.position === 'number' ? task.position : index,
           is_habit: task.isHabit || false,
           created_at: task.createdAt,
-          completed_at: task.completed ? task.completedAt || undefined : null,
           timer_total_ms: Math.max(0, Number(task.timerTotalMs || 0) || 0),
           timer_started_at: task.timerStartedAt || null,
           timer_last_stopped_at: task.timerLastStoppedAt || null,
           timer_sessions_count: Math.max(0, Math.floor(Number(task.timerSessionsCount || 0) || 0)),
           updated_at: task.updatedAt || new Date().toISOString()
         };
+        if (tasksCompletedAtSupported) {
+          payload.completed_at = task.completed ? task.completedAt || undefined : null;
+        }
 
         if (task.supabaseId && task.supabaseId.indexOf('-') > -1) {
           payload.id = task.supabaseId;
@@ -796,6 +810,7 @@ async function syncDateToSupabase(dateStr) {
         .select('id, updated_at');
 
       if (error && isCompletedAtSchemaError(error)) {
+        markCompletedAtUnsupported();
         ({ data, error } = await supabaseClient
           .from('tasks')
           .upsert(

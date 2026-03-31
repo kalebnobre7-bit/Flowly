@@ -1,9 +1,63 @@
 ﻿(function () {
   function createTasksSync(deps) {
+    const TASKS_COMPLETED_AT_SUPPORT_KEY = 'flowly_tasks_completed_at_supported';
     const supabaseClient = deps.supabaseClient;
     const getCurrentUser = deps.getCurrentUser;
     const getAllRecurringTasks = deps.getAllRecurringTasks;
     const setAllRecurringTasks = deps.setAllRecurringTasks;
+
+    function readTasksCompletedAtSupport() {
+      try {
+        const raw = localStorage.getItem(TASKS_COMPLETED_AT_SUPPORT_KEY);
+        if (raw === 'false') return false;
+        if (raw === 'true') return true;
+      } catch (err) {}
+      return null;
+    }
+
+    function markTasksCompletedAtUnsupported() {
+      try {
+        localStorage.setItem(TASKS_COMPLETED_AT_SUPPORT_KEY, 'false');
+      } catch (err) {}
+    }
+
+    function markTasksCompletedAtSupported() {
+      try {
+        localStorage.setItem(TASKS_COMPLETED_AT_SUPPORT_KEY, 'true');
+      } catch (err) {}
+    }
+
+    function isCompletedAtSchemaError(error) {
+      const message = String((error && (error.message || error.details || error.hint)) || '');
+      return /completed_at/i.test(message);
+    }
+
+    function buildTaskPayloadBase(task, includeCompletedAt) {
+      const payload = {
+        text: task.text,
+        completed: task.completed === true,
+        color: task.color || 'default',
+        type: task.type || 'OPERATIONAL',
+        priority: task.priority || null,
+        parent_id: task.parent_id || null,
+        project_id: task.projectId || null,
+        project_name: task.projectName || null,
+        position: typeof task.position === 'number' ? task.position : null,
+        is_habit: task.isHabit || false,
+        created_at: task.createdAt,
+        timer_total_ms: Math.max(0, Number(task.timerTotalMs || 0) || 0),
+        timer_started_at: task.timerStartedAt || null,
+        timer_last_stopped_at: task.timerLastStoppedAt || null,
+        timer_sessions_count: Math.max(0, Math.floor(Number(task.timerSessionsCount || 0) || 0)),
+        updated_at: task.updatedAt || new Date().toISOString()
+      };
+
+      if (includeCompletedAt) {
+        payload.completed_at = task.completed === true ? task.completedAt || new Date().toISOString() : null;
+      }
+
+      return payload;
+    }
 
     function ensureTaskSyncTimestamps(task) {
       const nowIso = new Date().toISOString();
@@ -78,28 +132,11 @@
 
       try {
         ensureTaskSyncTimestamps(task);
+        const includeCompletedAt = readTasksCompletedAtSupport() !== false;
+        let usedCompletedAtFallback = false;
         let data;
         let error;
-
-        const payloadBase = {
-          text: task.text,
-          completed: task.completed === true,
-          color: task.color || 'default',
-          type: task.type || 'OPERATIONAL',
-          priority: task.priority || null,
-          parent_id: task.parent_id || null,
-          project_id: task.projectId || null,
-          project_name: task.projectName || null,
-          position: typeof task.position === 'number' ? task.position : null,
-          is_habit: task.isHabit || false,
-          created_at: task.createdAt,
-          timer_total_ms: Math.max(0, Number(task.timerTotalMs || 0) || 0),
-          timer_started_at: task.timerStartedAt || null,
-          timer_last_stopped_at: task.timerLastStoppedAt || null,
-          timer_sessions_count: Math.max(0, Math.floor(Number(task.timerSessionsCount || 0) || 0)),
-          updated_at: task.updatedAt || new Date().toISOString(),
-          completed_at: task.completed === true ? task.completedAt || new Date().toISOString() : null
-        };
+        const payloadBase = buildTaskPayloadBase(task, includeCompletedAt);
 
         if (task.supabaseId && task.supabaseId.includes('-')) {
           const updatePayload = {
@@ -124,25 +161,10 @@
           ({ data, error } = await supabaseClient.from('tasks').insert([insertPayload]).select());
         }
 
-        if (error && /completed_at/i.test(String(error.message || ''))) {
-          const fallbackPayloadBase = {
-            text: task.text,
-            completed: task.completed === true,
-            color: task.color || 'default',
-            type: task.type || 'OPERATIONAL',
-            priority: task.priority || null,
-            parent_id: task.parent_id || null,
-            project_id: task.projectId || null,
-            project_name: task.projectName || null,
-            position: typeof task.position === 'number' ? task.position : null,
-            is_habit: task.isHabit || false,
-            created_at: task.createdAt,
-            timer_total_ms: Math.max(0, Number(task.timerTotalMs || 0) || 0),
-            timer_started_at: task.timerStartedAt || null,
-            timer_last_stopped_at: task.timerLastStoppedAt || null,
-            timer_sessions_count: Math.max(0, Math.floor(Number(task.timerSessionsCount || 0) || 0)),
-            updated_at: task.updatedAt || new Date().toISOString()
-          };
+        if (error && includeCompletedAt && isCompletedAtSchemaError(error)) {
+          markTasksCompletedAtUnsupported();
+          usedCompletedAtFallback = true;
+          const fallbackPayloadBase = buildTaskPayloadBase(task, false);
 
           if (task.supabaseId && task.supabaseId.includes('-')) {
             ({ data, error } = await supabaseClient
@@ -161,6 +183,10 @@
         if (error) {
           console.error('[Sync] Erro:', error.message);
           return { success: false, errorText: error.message };
+        }
+
+        if (includeCompletedAt && !usedCompletedAtFallback) {
+          markTasksCompletedAtSupported();
         }
 
         const arr = Array.isArray(data) ? data : [data];

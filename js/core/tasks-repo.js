@@ -15,6 +15,7 @@
     const setCustomTaskTypes = deps.setCustomTaskTypes;
     const setCustomTaskPriorities = deps.setCustomTaskPriorities;
     const setDbUserSettings = deps.setDbUserSettings;
+    const TASKS_COMPLETED_AT_SUPPORT_KEY = 'flowly_tasks_completed_at_supported';
 
     const normalizeAllTasks = deps.normalizeAllTasks;
     const syncRecurringTasksToSupabase = deps.syncRecurringTasksToSupabase;
@@ -221,8 +222,20 @@
     async function migrateLocalDataToSupabase() {
       const currentUser = getCurrentUser();
       if (!currentUser) return;
+      const shouldIncludeCompletedAt = function () {
+        try {
+          return localStorage.getItem(TASKS_COMPLETED_AT_SUPPORT_KEY) !== 'false';
+        } catch (err) {
+          return true;
+        }
+      };
+      const markCompletedAtUnsupported = function () {
+        try {
+          localStorage.setItem(TASKS_COMPLETED_AT_SUPPORT_KEY, 'false');
+        } catch (err) {}
+      };
       const isCompletedAtSchemaError = function (error) {
-        return /completed_at/i.test(String((error && error.message) || ''));
+        return /completed_at/i.test(String((error && (error.message || error.details || error.hint)) || ''));
       };
       const stripCompletedAt = function (payload) {
         const { completed_at, ...rest } = payload;
@@ -270,12 +283,14 @@
               position: typeof task.position === 'number' ? task.position : index,
               is_habit: task.isHabit || false,
               created_at: task.createdAt,
-              completed_at: task.completed ? task.completedAt || undefined : null,
               timer_total_ms: Math.max(0, Number(task.timerTotalMs || 0) || 0),
               timer_started_at: task.timerStartedAt || null,
               timer_last_stopped_at: task.timerLastStoppedAt || null,
               timer_sessions_count: Math.max(0, Math.floor(Number(task.timerSessionsCount || 0) || 0))
             });
+            if (shouldIncludeCompletedAt()) {
+              inserts[inserts.length - 1].completed_at = task.completed ? task.completedAt || undefined : null;
+            }
           });
         });
       });
@@ -287,6 +302,7 @@
           .select();
 
         if (insertError && isCompletedAtSchemaError(insertError)) {
+          markCompletedAtUnsupported();
           ({ data: inserted, error: insertError } = await supabaseClient
             .from('tasks')
             .insert(inserts.map(function (payload) {

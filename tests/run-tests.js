@@ -131,6 +131,77 @@ function testLocalStoreParser() {
   assert.equal(JSON.stringify(fallback), JSON.stringify({ a: 2 }));
 }
 
+async function testTasksSyncSkipsCompletedAtAfterSchemaDetection() {
+  const calls = [];
+  const ctx = createBrowserLikeContext();
+  loadBrowserScript('js/core/tasks-sync.js', ctx);
+
+  const fakeSupabase = {
+    from() {
+      return {
+        insert(payload) {
+          calls.push({ kind: 'insert', payload });
+          if (Object.prototype.hasOwnProperty.call(payload[0], 'completed_at')) {
+            return {
+              select() {
+                return Promise.resolve({
+                  data: null,
+                  error: { message: 'Could not find the completed_at column' }
+                });
+              }
+            };
+          }
+          return {
+            select() {
+              return Promise.resolve({
+                data: [{ id: 'task-1', updated_at: '2026-03-31T12:00:00.000Z' }],
+                error: null
+              });
+            }
+          };
+        },
+        update(payload) {
+          calls.push({ kind: 'update', payload });
+          return {
+            eq() {
+              return {
+                select() {
+                  return Promise.resolve({
+                    data: [{ id: 'task-1', updated_at: '2026-03-31T12:00:00.000Z' }],
+                    error: null
+                  });
+                }
+              };
+            }
+          };
+        }
+      };
+    }
+  };
+
+  const service = ctx.window.FlowlyTasksSync.create({
+    supabaseClient: fakeSupabase,
+    getCurrentUser: () => ({ id: 'user-1' }),
+    getAllRecurringTasks: () => [],
+    setAllRecurringTasks() {}
+  });
+
+  const firstTask = { text: 'Primeira', completed: true };
+  const firstResult = await service.syncTaskToSupabase('2026-03-31', 'Tarefas', firstTask);
+  assert.equal(firstResult.success, true);
+  assert.equal(ctx.localStorage.getItem('flowly_tasks_completed_at_supported'), 'false');
+  assert.equal(calls.length, 2);
+  assert.ok(Object.prototype.hasOwnProperty.call(calls[0].payload[0], 'completed_at'));
+  assert.ok(!Object.prototype.hasOwnProperty.call(calls[1].payload[0], 'completed_at'));
+
+  calls.length = 0;
+  const secondTask = { text: 'Segunda', completed: true };
+  const secondResult = await service.syncTaskToSupabase('2026-03-31', 'Tarefas', secondTask);
+  assert.equal(secondResult.success, true);
+  assert.equal(calls.length, 1);
+  assert.ok(!Object.prototype.hasOwnProperty.call(calls[0].payload[0], 'completed_at'));
+}
+
 async function testCreateSubtaskForTask() {
   const ctx = createBrowserLikeContext({
     allTasksData: {
@@ -276,6 +347,7 @@ async function main() {
   testEventBus();
   testAnalyticsService();
   testLocalStoreParser();
+  await testTasksSyncSkipsCompletedAtAfterSchemaDetection();
   await testCreateSubtaskForTask();
   await testMoveTaskUnderParent();
   testProjectMirrorsIncludeCrossDateSubtasks();
