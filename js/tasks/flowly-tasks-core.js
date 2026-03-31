@@ -592,3 +592,30 @@ function moveTaskViaSexta(query, targetDateStr, targetPeriod = 'Tarefas', prefer
   return entry;
 }
 
+function moveTaskToDate(dateStr, period, index, targetDateStr, targetPeriod = 'Tarefas') {
+  const numericIndex = Number(index);
+  if (!targetDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(String(targetDateStr))) return null;
+  if (!allTasksData?.[dateStr]?.[period] || !allTasksData[dateStr][period][numericIndex]) return null;
+
+  const targetList = allTasksData[targetDateStr]?.[targetPeriod] || [];
+  const moveResult = moveTaskSubtree({
+    sourceDateStr: dateStr,
+    sourcePeriod: period,
+    sourceIndex: numericIndex,
+    targetDateStr,
+    targetPeriod,
+    insertAt: targetList.length
+  });
+
+  if (!moveResult.moved) return null;
+
+  saveToLocalStorage();
+  (async () => {
+    for (const syncDate of moveResult.datesToSync || []) await syncDateToSupabase(syncDate);
+  })();
+  renderView();
+  return moveResult;
+}
+
+window.moveTaskToDate = moveTaskToDate;
+

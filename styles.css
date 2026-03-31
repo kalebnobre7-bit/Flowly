@@ -2450,6 +2450,10 @@ body.dragging-active .task-drop-zone {
     display: none;
 }
 
+.task-expansion-caption--show {
+    display: block;
+}
+
 .task-expansion-actions {
     display: flex;
     flex-wrap: wrap;
@@ -2461,6 +2465,20 @@ body.dragging-active .task-drop-zone {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+}
+
+.task-expansion-move-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 160px);
+    gap: 8px;
+    max-width: 460px;
+}
+
+@media (max-width: 640px) {
+    .task-expansion-move-controls {
+        grid-template-columns: 1fr;
+        max-width: none;
+    }
 }
 
 .task-choice-chip,

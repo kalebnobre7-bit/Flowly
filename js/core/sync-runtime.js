@@ -10,6 +10,9 @@ let _isSyncingDate = false;
 
 function scheduleUnsyncedTasksSync(delay) {
   if (_unsyncedSyncTimer) clearTimeout(_unsyncedSyncTimer);
+  if (typeof recordSyncEvent === 'function') {
+    recordSyncEvent('queue', 'Sincronizacao pendente agendada', { delay: delay == null ? 600 : delay });
+  }
   _unsyncedSyncTimer = setTimeout(() => {
     _unsyncedSyncTimer = null;
     syncUnsyncedTasksToSupabase();
@@ -78,6 +81,11 @@ async function syncUnsyncedTasksToSupabase() {
     if (hasChanges) saveToLocalStorage();
   } catch (err) {
     console.error('[Sync] Erro ao sincronizar tarefas pendentes:', err);
+    if (typeof recordSyncEvent === 'function') {
+      recordSyncEvent('error', 'Erro ao sincronizar tarefas pendentes', {
+        error: err && err.message ? err.message : String(err || '')
+      });
+    }
   } finally {
     _unsyncedSyncInFlight = false;
   }

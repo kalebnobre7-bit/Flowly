@@ -473,6 +473,82 @@ window.toggleTaskExpansion = function (task, el) {
   repeatCard.appendChild(repeatHint);
   grid.appendChild(repeatCard);
 
+  if (!isRecurring) {
+    const moveCard = createCard('Agenda', 'Mover tarefa', 'task-expansion-card--wide');
+    const moveControls = document.createElement('div');
+    moveControls.className = 'task-expansion-move-controls';
+
+    const moveDateInput = document.createElement('input');
+    moveDateInput.type = 'date';
+    moveDateInput.value = dateStr;
+    moveDateInput.className = 'finance-input finance-input--full task-expansion-select';
+    moveControls.appendChild(moveDateInput);
+
+    const movePeriodSelect = document.createElement('select');
+    movePeriodSelect.className = 'finance-input finance-input--full task-expansion-select';
+    movePeriodSelect.innerHTML = `
+      <option value="Tarefas" ${period === 'Tarefas' ? 'selected' : ''}>Tarefas</option>
+      <option value="Later" ${period === 'Later' ? 'selected' : ''}>Later</option>
+      <option value="Follow-up" ${period === 'Follow-up' ? 'selected' : ''}>Follow-up</option>
+    `;
+    moveControls.appendChild(movePeriodSelect);
+    moveCard.appendChild(moveControls);
+
+    const quickMoveRow = document.createElement('div');
+    quickMoveRow.className = 'task-expansion-chip-row';
+    const todayDate = localDateStr();
+    const tomorrowDate = localDateStr(new Date(Date.now() + 86400000));
+    const nextWeekDate = localDateStr(new Date(Date.now() + 7 * 86400000));
+
+    const applyMove = (targetDate, targetPeriod) => {
+      const result = window.moveTaskToDate(dateStr, period, numericIndex, targetDate, targetPeriod);
+      if (!result) return;
+      if (typeof recordSyncEvent === 'function') {
+        recordSyncEvent('move', 'Tarefa movida', {
+          from: `${dateStr}/${period}`,
+          to: `${targetDate}/${targetPeriod}`,
+          text: task.text || ''
+        });
+      }
+    };
+
+    quickMoveRow.appendChild(
+      createChoiceChip('Hoje', dateStr === todayDate, null, () => {
+        moveDateInput.value = todayDate;
+      })
+    );
+    quickMoveRow.appendChild(
+      createChoiceChip('Amanhã', dateStr === tomorrowDate, null, () => {
+        moveDateInput.value = tomorrowDate;
+      })
+    );
+    quickMoveRow.appendChild(
+      createChoiceChip('Próx. semana', false, null, () => {
+        moveDateInput.value = nextWeekDate;
+      })
+    );
+    moveCard.appendChild(quickMoveRow);
+
+    const moveActionRow = document.createElement('div');
+    moveActionRow.className = 'task-expansion-actions';
+    const moveBtn = document.createElement('button');
+    moveBtn.type = 'button';
+    moveBtn.className = 'btn-secondary task-expansion-inline-button';
+    moveBtn.textContent = 'Mover agora';
+    moveBtn.onclick = () => {
+      applyMove(moveDateInput.value, movePeriodSelect.value || 'Tarefas');
+    };
+    moveActionRow.appendChild(moveBtn);
+    moveCard.appendChild(moveActionRow);
+
+    const moveHint = document.createElement('p');
+    moveHint.className = 'task-expansion-caption task-expansion-caption--show';
+    moveHint.textContent = 'Move a tarefa e a árvore inteira de subtarefas para outra data.';
+    moveCard.appendChild(moveHint);
+
+    grid.appendChild(moveCard);
+  }
+
   exp.appendChild(grid);
 
   const footer = document.createElement('div');

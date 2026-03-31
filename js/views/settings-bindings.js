@@ -404,6 +404,16 @@ function bindSettingsInteractions() {
       location.reload();
     };
   }
+
+  const clearSyncLogBtn = document.getElementById('btnClearSyncLog');
+  if (clearSyncLogBtn) {
+    clearSyncLogBtn.onclick = () => {
+      if (typeof clearRecentSyncEvents === 'function') {
+        clearRecentSyncEvents();
+      }
+      renderSettingsView();
+    };
+  }
 }
 
 async function renderSettingsInlineEditors() {

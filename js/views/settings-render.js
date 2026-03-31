@@ -358,6 +358,46 @@ function buildSettingsMarkup(ctx) {
     `
   );
 
+  const syncLogItems =
+    typeof getRecentSyncEvents === 'function' ? getRecentSyncEvents().slice(0, 8) : [];
+  const syncLogSection = createSettingsSectionCard(
+    'Historico de sync',
+    'Ultimos eventos de sincronizacao entre dispositivo e nuvem',
+    'activity',
+    `
+      <div class="space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs uppercase tracking-wide text-gray-400">Eventos recentes</span>
+          <button id="btnClearSyncLog" class="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:bg-white/10">Limpar log</button>
+        </div>
+        <div class="space-y-2">
+          ${
+            syncLogItems.length > 0
+              ? syncLogItems
+                  .map(
+                    (item) => `
+                <div class="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <strong class="text-xs uppercase tracking-wide text-gray-200">${item.type || 'sync'}</strong>
+                    <span class="text-[11px] text-gray-500">${new Date(item.at).toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div class="mt-1 text-sm text-gray-200">${item.message || ''}</div>
+                  ${
+                    item.meta && (item.meta.error || item.meta.to || item.meta.delay != null)
+                      ? `<div class="mt-1 text-[11px] text-gray-500">${item.meta.error || item.meta.to || `delay ${item.meta.delay}ms`}</div>`
+                      : ''
+                  }
+                </div>
+              `
+                  )
+                  .join('')
+              : '<div class="rounded-xl border border-white/8 bg-black/20 px-3 py-4 text-sm text-gray-400">Ainda sem eventos de sync registrados.</div>'
+          }
+        </div>
+      </div>
+    `
+  );
+
   const prioritiesSection = createSettingsSectionCard(
     'Prioridades',
     'Edite as prioridades personalizadas da sua operacao',
@@ -427,7 +467,7 @@ function buildSettingsMarkup(ctx) {
     personalizacao: { main: [personalizationSection], side: [quickGuideCard] },
     ia: { main: [aiSection], side: [aiStatusCard] },
     operacao: { main: [prioritiesSection], side: [quickGuideCard] },
-    dados: { main: [dataSection], side: [quickGuideCard] }
+    dados: { main: [dataSection], side: [syncLogSection, quickGuideCard] }
   };
 
   const currentTabPanels = tabPanels[settingsTab] || tabPanels.conta;
