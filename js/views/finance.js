@@ -19,10 +19,10 @@ function renderFinanceView() {
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--wide finance-shell finance-shell--rebuilt finance-shell--premium">
       <section class="finance-dashboard-hero">
-        <div class="finance-hero-copy">
-          <div class="finance-kicker">Finance intelligence</div>
-          <h2>Visão financeira clara, rápida e útil</h2>
-          <p>${analytics.analysisTone}</p>
+        <div class="finance-hero-copy flowly-page-header">
+          <div class="finance-kicker flowly-page-kicker">Finance intelligence</div>
+          <h2 class="flowly-page-title">Visão financeira clara, rápida e útil</h2>
+          <p class="flowly-page-subtitle">${analytics.analysisTone}</p>
           <div class="finance-inline-pills">
             <span class="sexta-pill">${analytics.monthTransactionCount} movimentações</span>
             <span class="sexta-pill sexta-pill--soft">${sourceHint}</span>

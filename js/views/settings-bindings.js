@@ -44,6 +44,14 @@ function bindSettingsInteractions() {
     ...current,
     radiusScale: value
   }));
+  bindThemeField('selectThemePageWidth', (current, value) => ({
+    ...current,
+    pageWidth: value
+  }));
+  bindThemeField('selectThemePanelStyle', (current, value) => ({
+    ...current,
+    panelStyle: value
+  }));
 
   const resetThemeBtn = document.getElementById('btnResetThemeSettings');
   if (resetThemeBtn) {

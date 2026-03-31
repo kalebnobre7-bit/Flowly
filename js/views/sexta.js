@@ -217,11 +217,11 @@ renderSextaView = function () {
 
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--wide sexta-shell sexta-shell--chatfirst">
-      <section class="sexta-topbar">
+      <section class="sexta-topbar flowly-page-header">
         <div class="sexta-topbar-copy">
-          <div class="sexta-kicker">Sexta</div>
-          <h2>Assistente operacional do Flowly</h2>
-          <p>Chat para conversar, criar tarefa, concluir, mover, apagar e revisar o que esta acontecendo agora.</p>
+          <div class="sexta-kicker flowly-page-kicker">Sexta</div>
+          <h2 class="flowly-page-title">Assistente operacional do Flowly</h2>
+          <p class="flowly-page-subtitle">Chat para conversar, criar tarefa, concluir, mover, apagar e revisar o que esta acontecendo agora.</p>
         </div>
         <div class="sexta-topbar-actions">
           <span class="sexta-badge">${escapeProjectHtml(assistantModeLabel)}</span>

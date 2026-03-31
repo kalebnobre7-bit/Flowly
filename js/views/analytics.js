@@ -878,7 +878,7 @@ function renderAnalyticsView() {
         ${outerTabsHTML}
 
         <!-- Header -->
-        <div class="analytics-header-v2">
+        <div class="analytics-header-v2 flowly-page-header">
             <div>
                 
                 
@@ -887,7 +887,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <h2 class="analytics-title-v2">Analytics</h2>
+                <h2 class="analytics-title-v2 flowly-page-title">Analytics</h2>
                 
                 
                 
@@ -895,7 +895,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <p class="analytics-subtitle-v2">${MONTH_NAMES_PT[nowMonth]} ${nowYear} Â· Semana atual</p>
+                <p class="analytics-subtitle-v2 flowly-page-subtitle">${MONTH_NAMES_PT[nowMonth]} ${nowYear} Â· Semana atual</p>
             </div>
         </div>
 

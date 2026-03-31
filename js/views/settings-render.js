@@ -1,8 +1,8 @@
 function createSettingsSectionCard(title, subtitle, icon, content) {
   return `
-    <section class="rounded-2xl border border-white/10 bg-[#141417] shadow-[0_12px_30px_rgba(0,0,0,0.28)] overflow-hidden">
-      <header class="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-gradient-to-r from-white/[0.03] to-white/[0.01]">
-        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/25 text-gray-300">
+    <section class="settings-card-shell overflow-hidden">
+      <header class="settings-card-head flex items-center gap-3 px-4 py-3 border-b border-white/10">
+        <span class="settings-card-icon inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-300">
           <i data-lucide="${icon}" style="width:16px;height:16px;"></i>
         </span>
         <div class="min-w-0">
@@ -10,16 +10,16 @@ function createSettingsSectionCard(title, subtitle, icon, content) {
           <p class="text-xs text-gray-400">${subtitle}</p>
         </div>
       </header>
-      <div class="p-4">${content}</div>
+      <div class="settings-card-body p-4">${content}</div>
     </section>
   `;
 }
 
 function createSettingsRow(icon, title, desc, control) {
   return `
-    <div class="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-3">
-      <div class="flex min-w-0 items-center gap-3">
-        <span class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/5 text-gray-400">
+    <div class="settings-row">
+      <div class="settings-row-copy">
+        <span class="settings-row-icon">
           <i data-lucide="${icon}" style="width:14px;height:14px;"></i>
         </span>
         <div class="min-w-0">
@@ -34,8 +34,8 @@ function createSettingsRow(icon, title, desc, control) {
 
 function createSettingsToggle(id, checked) {
   return `
-    <button id="${id}" role="switch" aria-checked="${checked}" class="relative h-6 w-11 rounded-full border border-white/20 transition-colors ${checked ? 'bg-blue-600' : 'bg-gray-700'}">
-      <span class="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}"></span>
+    <button id="${id}" role="switch" aria-checked="${checked}" class="settings-switch${checked ? ' is-on' : ''}">
+      <span class="settings-switch-thumb${checked ? ' is-on' : ''}"></span>
     </button>
   `;
 }
@@ -126,6 +126,18 @@ function buildSettingsMarkup(ctx) {
     .map(
       ([key, preset]) =>
         `<option value="${key}" ${themeSettings.radiusScale === key ? 'selected' : ''}>${preset.label}</option>`
+    )
+    .join('');
+  const widthOptions = Object.entries(FLOWLY_PAGE_WIDTH_PRESETS)
+    .map(
+      ([key, preset]) =>
+        `<option value="${key}" ${themeSettings.pageWidth === key ? 'selected' : ''}>${preset.label}</option>`
+    )
+    .join('');
+  const panelOptions = Object.entries(FLOWLY_PANEL_PRESETS)
+    .map(
+      ([key, preset]) =>
+        `<option value="${key}" ${themeSettings.panelStyle === key ? 'selected' : ''}>${preset.label}</option>`
     )
     .join('');
 
@@ -253,7 +265,7 @@ function buildSettingsMarkup(ctx) {
 
   const personalizationSection = createSettingsSectionCard(
     'Personalizacao',
-    'Cores, fontes e bordas',
+    'Cores, fontes, largura e painéis',
     'palette',
     `
       <div class="settings-theme-grid">
@@ -283,12 +295,20 @@ function buildSettingsMarkup(ctx) {
           <span>Arredondamento</span>
           <select id="selectThemeRadiusScale" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${radiusOptions}</select>
         </label>
+        <label class="settings-theme-field">
+          <span>Largura da app</span>
+          <select id="selectThemePageWidth" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${widthOptions}</select>
+        </label>
+        <label class="settings-theme-field">
+          <span>Estilo dos painéis</span>
+          <select id="selectThemePanelStyle" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${panelOptions}</select>
+        </label>
       </div>
       <div class="settings-theme-preview">
         <div class="settings-theme-preview-card">
           <div class="settings-theme-preview-kicker">Preview</div>
           <strong>Flowly do seu jeito</strong>
-          <p>Teste o visual antes de voltar para o resto da app.</p>
+          <p>Esse preview agora herda largura, contraste e hierarquia da interface real.</p>
           <div class="settings-theme-preview-actions">
             <span class="settings-theme-preview-primary">Primaria</span>
             <span class="settings-theme-preview-secondary">Secundaria</span>
@@ -452,7 +472,7 @@ function buildSettingsMarkup(ctx) {
         <div><strong>Conta</strong><span>nome, login e identidade</span></div>
         <div><strong>Notificacoes</strong><span>horarios, templates e permissao</span></div>
         <div><strong>App</strong><span>semana, hover e feedback</span></div>
-        <div><strong>Personalizacao</strong><span>cores, fontes e arredondamento</span></div>
+        <div><strong>Personalizacao</strong><span>cores, fontes, largura e painéis</span></div>
         <div><strong>IA</strong><span>provedor, modelo e endpoint da Sexta</span></div>
         <div><strong>Operacao</strong><span>prioridades e sinais</span></div>
         <div><strong>Dados</strong><span>backup, reparo e limpeza</span></div>
@@ -474,15 +494,15 @@ function buildSettingsMarkup(ctx) {
 
   return `
     <div class="flowly-shell flowly-shell--narrow settings-shell">
-      <div class="settings-topbar">
+      <div class="settings-topbar flowly-page-header">
         <div>
-          <h2 class="flex items-center gap-3 text-2xl font-bold text-white">
+          <h2 class="flowly-page-title flex items-center gap-3 text-2xl font-bold text-white">
             <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-900/25">
               <i data-lucide="settings-2" style="width:20px;height:20px;"></i>
             </span>
             Configuracoes
           </h2>
-          <p class="mt-1 text-sm text-gray-400">Agora separado por abas para voce ajustar uma area por vez.</p>
+          <p class="flowly-page-subtitle mt-1 text-sm text-gray-400">Agora separado por abas para voce ajustar uma area por vez.</p>
         </div>
         <div class="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-300">
           <div class="font-semibold text-gray-200">FLOWLY v1.2</div>
