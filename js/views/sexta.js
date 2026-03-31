@@ -48,6 +48,8 @@ renderSextaView = function () {
   const notes = Array.isArray(sextaState.notes) ? sextaState.notes.slice().reverse().slice(0, 4) : [];
   const latestIaNote = notes.find((note) => note.action === 'ia');
   const memories = getSextaMemories().slice().reverse();
+  const profile = getSextaProfile();
+  const profileSummary = getSextaProfileSummary(profile);
   const history =
     Array.isArray(sextaState.chatHistory) && sextaState.chatHistory.length > 0
       ? sextaState.chatHistory.slice(-10)
@@ -69,6 +71,8 @@ renderSextaView = function () {
     : aiSettings.enabled && aiSettings.provider !== 'local'
       ? 'Chat conectado. Quando a IA externa falhar, a Sexta responde com os dados locais.'
       : 'Chat local, lendo tarefas, projetos e foco direto do Flowly.';
+  const memoryStatus = memories.length > 0 ? `${memories.length} memoria(s) salvas` : 'memoria livre';
+  const profileStatus = profileSummary ? 'briefing operacional ativo' : 'sem briefing fixo';
   const statPills = [
     { label: 'Hoje', value: `${pending} abertas`, detail: `${completed}/${total} concluidas` },
     { label: 'Caixa', value: String(snapshot.moneyEntries.length), detail: 'tarefas puxando receita' },
@@ -183,11 +187,46 @@ renderSextaView = function () {
       <section class="sexta-card sexta-secondary-panel">
         <div class="sexta-card-head sexta-card-head--compact">
           <div>
-            <h3>Memoria</h3>
-            <p>Preferencias operacionais e comandos que o agente deve lembrar.</p>
+            <h3>Memoria operacional</h3>
+            <p>Configure o comportamento da Sexta e deixe o chat alinhado com a sua forma de operar.</p>
           </div>
           <button class="sexta-link-btn" type="button" data-sexta-command-action="clear-memory">Limpar memoria</button>
         </div>
+
+        <section class="sexta-memory-config">
+          <div class="sexta-memory-config-head">
+            <div>
+              <span class="sexta-panel-label">Perfil fixo</span>
+              <strong>Briefing e comandos da assistente</strong>
+            </div>
+            <button class="btn-primary sexta-config-save" type="button" data-sexta-profile-action="save">Salvar briefing</button>
+          </div>
+          <div class="sexta-config-grid">
+            <label class="sexta-config-field">
+              <span>Memorias fixas</span>
+              <textarea id="sextaMemoryProfileInput" rows="3" placeholder="Ex.: priorizar tarefas que puxam caixa pela manha.">${escapeProjectHtml(
+                profile.memoryNotes
+              )}</textarea>
+            </label>
+            <label class="sexta-config-field">
+              <span>Regras da Sexta</span>
+              <textarea id="sextaOperatorRulesInput" rows="3" placeholder="Ex.: responder curto, apontar risco e propor 1 proximo passo.">${escapeProjectHtml(
+                profile.operatorRules
+              )}</textarea>
+            </label>
+            <label class="sexta-config-field sexta-config-field--wide">
+              <span>Comandos e formato</span>
+              <textarea id="sextaCommandStyleInput" rows="3" placeholder="Ex.: quando eu disser foco, responder com prioridade, gargalo e acao.">${escapeProjectHtml(
+                profile.commandStyle
+              )}</textarea>
+            </label>
+          </div>
+          <div class="sexta-panel-caption">${
+            profileSummary
+              ? escapeProjectHtml(profileSummary)
+              : 'Sem briefing salvo ainda. Use esse bloco para deixar tom, regras e comandos da IA mais previsiveis.'
+          }</div>
+        </section>
 
         <div class="sexta-memory-guide sexta-memory-guide--inline">
           <div><strong>Salvar</strong><span>lembra que eu prefiro atacar dinheiro pela manha</span></div>
@@ -242,6 +281,16 @@ renderSextaView = function () {
           <div>
             <h3>Chat</h3>
             <p>${escapeProjectHtml(assistantHint)}</p>
+          </div>
+          <div class="sexta-chat-stage-status">
+            <div class="sexta-chat-stage-stat">
+              <span>Memoria</span>
+              <strong>${escapeProjectHtml(memoryStatus)}</strong>
+            </div>
+            <div class="sexta-chat-stage-stat">
+              <span>Briefing</span>
+              <strong>${escapeProjectHtml(profileStatus)}</strong>
+            </div>
           </div>
         </div>
 
@@ -303,6 +352,21 @@ renderSextaView = function () {
       btn.onclick = () => {
         const tabId = btn.dataset.sextaOpenSettings || 'ia';
         openFlowlySettingsTab(tabId);
+      };
+    });
+    view.querySelectorAll('[data-sexta-profile-action]').forEach((btn) => {
+      btn.onclick = () => {
+        if ((btn.dataset.sextaProfileAction || '') !== 'save') return;
+        const memoryNotes = document.getElementById('sextaMemoryProfileInput');
+        const operatorRules = document.getElementById('sextaOperatorRulesInput');
+        const commandStyle = document.getElementById('sextaCommandStyleInput');
+        saveSextaProfile({
+          memoryNotes: memoryNotes ? memoryNotes.value : '',
+          operatorRules: operatorRules ? operatorRules.value : '',
+          commandStyle: commandStyle ? commandStyle.value : ''
+        });
+        pushSextaNote('perfil', 'Briefing da Sexta atualizado.');
+        renderSextaView();
       };
     });
     view.querySelectorAll('[data-sexta-command-action]').forEach((btn) => {

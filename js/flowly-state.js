@@ -19,7 +19,12 @@ var sextaState = safeJSONParse(localStorage.getItem('flowly_sexta_state'), {
   suggestions: [],
   chatHistory: [],
   memories: [],
-  activeTab: 'chat'
+  activeTab: 'chat',
+  profile: {
+    memoryNotes: '',
+    operatorRules: '',
+    commandStyle: ''
+  }
 });
 var syncStatus = {
   state: navigator.onLine ? 'saved' : 'offline',

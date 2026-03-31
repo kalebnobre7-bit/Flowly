@@ -315,15 +315,15 @@ function renderProjectsView() {
       <section class="flowly-page-masthead projects-masthead">
         <div class="flowly-page-header projects-masthead-copy">
           <div class="flowly-page-kicker">Projects OS</div>
-          <h2 class="flowly-page-title">Projetos organizados com a mesma leitura do resto do Flowly</h2>
+          <h2 class="flowly-page-title">Projetos com foco, prazo e caixa no mesmo painel</h2>
           <p class="flowly-page-subtitle">${heroInsight}</p>
           <div class="flowly-inline-pills">
             <button type="button" data-projects-action="open-quick-modal" class="btn-primary projects-btn-inline projects-toolbar-cta">
               Novo projeto
             </button>
-            <span class="flowly-soft-pill">${filteredProjects.length} na visao</span>
+            <span class="flowly-soft-pill">${filteredProjects.length} na visão</span>
             <span class="flowly-soft-pill">${suggestionCount} sinais ativos</span>
-            <span class="flowly-soft-pill flowly-soft-pill--accent">${taskBacklogCount} tarefa(s) sem projeto</span>
+            <span class="flowly-soft-pill flowly-soft-pill--accent">${taskBacklogCount} sem projeto</span>
           </div>
         </div>
 
@@ -415,9 +415,9 @@ function renderProjectsView() {
       <section class="finance-card projects-toolbar-card">
         <div class="projects-toolbar-head">
           <div>
-            <div class="projects-suggest-title">Filtro da operacao</div>
-            <h3>Troque de visao sem trocar de linguagem</h3>
-            <p>Os mesmos blocos de leitura, so mudando o recorte de status, prazo e cobranca.</p>
+            <div class="projects-suggest-title">Visão da operação</div>
+            <h3>Troque o recorte sem perder contexto</h3>
+            <p>Filtre prazo, pagamento, status e template sem abrir outra tela.</p>
           </div>
         </div>
         <div class="projects-filters-bar projects-filters-bar--rebuilt">
@@ -566,11 +566,39 @@ function renderProjectsView() {
         </div>
 
         <aside class="projects-sidebar">
+          <section class="finance-card projects-command-card projects-command-card--summary">
+            <div class="finance-card-head finance-card-head--dense">
+              <div>
+                <h3>Leitura rápida</h3>
+                <p>Os números que mais mexem na operação agora.</p>
+              </div>
+            </div>
+            <div class="projects-health-grid projects-health-grid--compact">
+              <div class="projects-health-card">
+                <span>Ativos</span>
+                <strong>${activeCount}</strong>
+              </div>
+              <div class="projects-health-card">
+                <span>Atrasados</span>
+                <strong>${lateCount}</strong>
+              </div>
+              <div class="projects-health-card">
+                <span>Não pagos</span>
+                <strong>${unpaidCount}</strong>
+              </div>
+            </div>
+            <div class="projects-sidebar-actions">
+              <button type="button" class="projects-filter-chip ${projectsFilter === 'active' ? 'is-active' : ''}" data-projects-filter="active">Ativos <small>${activeCount}</small></button>
+              <button type="button" class="projects-filter-chip ${projectsFilter === 'late' ? 'is-active' : ''}" data-projects-filter="late">Atrasados <small>${lateCount}</small></button>
+              <button type="button" class="projects-filter-chip ${projectsFilter === 'unpaid' ? 'is-active' : ''}" data-projects-filter="unpaid">Não pagos <small>${unpaidCount}</small></button>
+            </div>
+          </section>
+
           <section class="finance-card projects-create-card">
             <div class="finance-card-head finance-card-head--dense">
               <div>
                 <h3>Novo projeto</h3>
-                <p>Comece limpo e abra o resto so quando precisar.</p>
+                <p>Cadastre o essencial agora e expanda detalhes só quando precisar.</p>
               </div>
             </div>
             <div class="projects-create-form projects-create-form--nested">
@@ -655,7 +683,7 @@ function renderProjectsView() {
             <div class="finance-card-head finance-card-head--dense">
               <div>
                 <h3>Centro de comando</h3>
-                <p>O que esta pedindo acao na operacao.</p>
+                <p>O que está pedindo ação imediata.</p>
               </div>
             </div>
             <div class="projects-sidebar-list">
@@ -709,8 +737,8 @@ function renderProjectsView() {
           <section class="finance-card projects-suggestions-card">
             <div class="finance-card-head finance-card-head--dense">
               <div>
-                <h3>Sugestoes inteligentes</h3>
-                <p>Vinculos que o Flowly acha que fazem sentido.</p>
+                <h3>Sugestões inteligentes</h3>
+                <p>Vínculos que o Flowly acha que fazem sentido.</p>
               </div>
             </div>
             <div class="projects-suggestions">

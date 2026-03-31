@@ -42,6 +42,48 @@ function getSextaMemories() {
   return Array.isArray(sextaState.memories) ? sextaState.memories : [];
 }
 
+function getSextaProfile() {
+  const profile = sextaState && typeof sextaState.profile === 'object' ? sextaState.profile : {};
+  return {
+    memoryNotes: String(profile.memoryNotes || '').trim(),
+    operatorRules: String(profile.operatorRules || '').trim(),
+    commandStyle: String(profile.commandStyle || '').trim()
+  };
+}
+
+function saveSextaProfile(nextProfile = {}) {
+  const current = getSextaProfile();
+  sextaState.profile = {
+    memoryNotes: String(
+      Object.prototype.hasOwnProperty.call(nextProfile, 'memoryNotes')
+        ? nextProfile.memoryNotes
+        : current.memoryNotes
+    ).trim(),
+    operatorRules: String(
+      Object.prototype.hasOwnProperty.call(nextProfile, 'operatorRules')
+        ? nextProfile.operatorRules
+        : current.operatorRules
+    ).trim(),
+    commandStyle: String(
+      Object.prototype.hasOwnProperty.call(nextProfile, 'commandStyle')
+        ? nextProfile.commandStyle
+        : current.commandStyle
+    ).trim()
+  };
+  persistSextaState();
+  return getSextaProfile();
+}
+
+function getSextaProfileSummary(profile = getSextaProfile()) {
+  return [
+    profile.memoryNotes ? `Memórias fixas: ${profile.memoryNotes}` : '',
+    profile.operatorRules ? `Regras: ${profile.operatorRules}` : '',
+    profile.commandStyle ? `Formato: ${profile.commandStyle}` : ''
+  ]
+    .filter(Boolean)
+    .join(' | ');
+}
+
 function saveSextaMemory(text, source) {
   const normalized = String(text || '').trim();
   if (!normalized) return null;
@@ -144,6 +186,7 @@ function buildSextaContextSummary(snapshot) {
   const memories = getSextaMemories()
     .slice(-8)
     .map((item) => item.text);
+  const profile = getSextaProfile();
 
   return {
     date: safeSnapshot.todayDate,
@@ -154,7 +197,8 @@ function buildSextaContextSummary(snapshot) {
     unpaidProjects: safeSnapshot.unpaidProjects.length,
     topPending,
     activeProjects,
-    memories
+    memories,
+    profile
   };
 }
 
@@ -173,7 +217,10 @@ async function requestSextaExternalReply(userPrompt) {
       content: String(item.text || '')
     }));
 
-  const systemContent = `${aiSettings.systemPrompt}\n\nContexto atual do Flowly:\n${JSON.stringify(contextSummary)}`;
+  const profileSummary = getSextaProfileSummary();
+  const systemContent = `${aiSettings.systemPrompt}${
+    profileSummary ? `\n\nPreferências operacionais da Sexta:\n${profileSummary}` : ''
+  }\n\nContexto atual do Flowly:\n${JSON.stringify(contextSummary)}`;
   const messages = [{ role: 'system', content: systemContent }, ...baseHistory];
 
   const model =
@@ -222,6 +269,7 @@ function buildSextaAssistantReply(prompt) {
   const aiSettings = getFlowlyAISettings();
   const snapshot = getSextaOperationalSnapshot();
   const memories = getSextaMemories();
+  const profileSummary = getSextaProfileSummary();
   const memoryHint =
     memories.length > 0
       ? `Memoria ativa: ${memories
@@ -229,6 +277,8 @@ function buildSextaAssistantReply(prompt) {
           .map((item) => item.text)
           .join(' | ')}.`
       : '';
+  const profileHint = profileSummary ? `Base fixa: ${profileSummary}.` : '';
+  const combinedHint = [memoryHint, profileHint].filter(Boolean).join(' ');
 
   if (!question) {
     return 'Me manda uma pergunta direta. Ex.: o que eu ataco agora, quais projetos estao em risco, o que esta sem projeto.';
@@ -242,32 +292,32 @@ function buildSextaAssistantReply(prompt) {
       ? snapshot.pendingEntries[0].task.text
       : '';
     if (topMoney) {
-      return `Ataca primeiro "${topMoney}". E uma tarefa com impacto direto em caixa, entao vale fechar esse ciclo antes de abrir outra frente. ${memoryHint}`.trim();
+      return `Ataca primeiro "${topMoney}". E uma tarefa com impacto direto em caixa, então vale fechar esse ciclo antes de abrir outra frente. ${combinedHint}`.trim();
     }
     if (topPending) {
-      return `Eu iria em "${topPending}" agora. Fecha essa peca inteira e depois revisa o resto da fila. ${memoryHint}`.trim();
+      return `Eu iria em "${topPending}" agora. Fecha essa peca inteira e depois revisa o resto da fila. ${combinedHint}`.trim();
     }
-    return `Hoje esta limpo. Puxa uma tarefa curta que gere tracao ou organiza amanha com 3 prioridades reais. ${memoryHint}`.trim();
+    return `Hoje esta limpo. Puxa uma tarefa curta que gere tracao ou organiza amanha com 3 prioridades reais. ${combinedHint}`.trim();
   }
 
   if (/(projeto|projetos|risco|atras)/i.test(lower)) {
     if (snapshot.lateProjects.length > 0) {
       const names = snapshot.lateProjects.slice(0, 3).map((project) => project.name).join(', ');
-      return `Projetos em risco agora: ${names}. Eu revisaria prazo, proximo passo e pendencia de cliente ainda hoje. ${memoryHint}`.trim();
+      return `Projetos em risco agora: ${names}. Eu revisaria prazo, proximo passo e pendencia de cliente ainda hoje. ${combinedHint}`.trim();
     }
     if (snapshot.activeProjects.length > 0) {
       const nextProject = snapshot.activeProjects[0];
-      return `Voce tem ${snapshot.activeProjects.length} projeto(s) ativo(s). O mais sensivel agora parece ser "${nextProject.name}". Vale puxar um proximo passo claro dentro dele. ${memoryHint}`.trim();
+      return `Voce tem ${snapshot.activeProjects.length} projeto(s) ativo(s). O mais sensivel agora parece ser "${nextProject.name}". Vale puxar um proximo passo claro dentro dele. ${combinedHint}`.trim();
     }
     return 'Nao encontrei projeto ativo agora. Talvez seja um bom momento para transformar tarefas soltas em projetos.';
   }
 
   if (/(dinheiro|caixa|receita|pago|pagamento)/i.test(lower)) {
     if (snapshot.moneyEntries.length > 0) {
-      return `Existem ${snapshot.moneyEntries.length} tarefa(s) com prioridade dinheiro. A primeira da fila e "${snapshot.moneyEntries[0].task.text}". ${memoryHint}`.trim();
+      return `Existem ${snapshot.moneyEntries.length} tarefa(s) com prioridade dinheiro. A primeira da fila e "${snapshot.moneyEntries[0].task.text}". ${combinedHint}`.trim();
     }
     if (snapshot.unpaidProjects.length > 0) {
-      return `Nao vi tarefa de dinheiro no topo, mas ha ${snapshot.unpaidProjects.length} projeto(s) ainda nao pagos. Vale revisar cobranca e follow-up. ${memoryHint}`.trim();
+      return `Nao vi tarefa de dinheiro no topo, mas ha ${snapshot.unpaidProjects.length} projeto(s) ainda nao pagos. Vale revisar cobranca e follow-up. ${combinedHint}`.trim();
     }
     return 'Nao apareceu nenhum sinal forte de caixa no momento. Se quiser, eu posso te puxar um plano de follow-up para destravar receita.';
   }
@@ -280,32 +330,32 @@ function buildSextaAssistantReply(prompt) {
       .slice(0, 3)
       .map((entry) => entry.task.text)
       .join(', ');
-    return `Voce tem ${snapshot.standaloneTasks.length} tarefa(s) pendente(s) sem projeto. As que eu olharia primeiro: ${sample}. ${memoryHint}`.trim();
+    return `Voce tem ${snapshot.standaloneTasks.length} tarefa(s) pendente(s) sem projeto. As que eu olharia primeiro: ${sample}. ${combinedHint}`.trim();
   }
 
   if (/(amanh|planej|semana|resumo)/i.test(lower)) {
-    return `Para o proximo bloco, eu montaria assim: 3 prioridades reais, 1 follow-up que puxa cliente e 1 tarefa que mexa em caixa. Hoje voce fechou ${snapshot.completedEntries.length} e ainda tem ${snapshot.pendingEntries.length} abertas. ${memoryHint}`.trim();
+    return `Para o proximo bloco, eu montaria assim: 3 prioridades reais, 1 follow-up que puxa cliente e 1 tarefa que mexa em caixa. Hoje voce fechou ${snapshot.completedEntries.length} e ainda tem ${snapshot.pendingEntries.length} abertas. ${combinedHint}`.trim();
   }
 
   if (/(memoria|lembra|lembrancas|o que voce lembra)/i.test(lower)) {
     if (memories.length === 0) {
       return 'Minha memoria esta vazia agora. Se quiser, me diga algo como: lembra que eu quero priorizar tarefas de dinheiro pela manha.';
     }
-    return `O que eu tenho salvo na memoria: ${memories.map((item) => item.text).join(' | ')}.`;
+    return `O que eu tenho salvo na memoria: ${memories.map((item) => item.text).join(' | ')}.${profileHint ? ` ${profileHint}` : ''}`.trim();
   }
 
   if (/(ia|modelo|chatgpt|minimax|openai)/i.test(lower)) {
     if (aiSettings.enabled && aiSettings.provider !== 'local') {
-      return `O conector de IA esta configurado para ${aiSettings.provider} com modelo ${aiSettings.model}. A interface ja esta pronta; o proximo passo e plugar isso num backend seguro. ${memoryHint}`.trim();
+      return `O conector de IA esta configurado para ${aiSettings.provider} com modelo ${aiSettings.model}. A interface ja esta pronta; o proximo passo e plugar isso num backend seguro. ${combinedHint}`.trim();
     }
     return 'No momento a Sexta esta respondendo no modo local, usando os dados do Flowly. Se quiser IA externa, configura em Ajustes > IA e depois a gente liga isso num backend.';
   }
 
   if (snapshot.followupEntries.length > 0) {
-    return `Minha leitura: fecha primeiro "${snapshot.followupEntries[0].task.text}" ou a tarefa de maior impacto financeiro. O risco agora e deixar frente aberta demais. ${memoryHint}`.trim();
+    return `Minha leitura: fecha primeiro "${snapshot.followupEntries[0].task.text}" ou a tarefa de maior impacto financeiro. O risco agora e deixar frente aberta demais. ${combinedHint}`.trim();
   }
 
-  return `Minha leitura operacional e simples: corta ruido, escolhe uma frente de alavancagem e fecha antes de trocar. Se quiser, me pergunta sobre foco, projetos, dinheiro ou tarefas sem projeto. ${memoryHint}`.trim();
+  return `Minha leitura operacional e simples: corta ruido, escolhe uma frente de alavancagem e fecha antes de trocar. Se quiser, me pergunta sobre foco, projetos, dinheiro ou tarefas sem projeto. ${combinedHint}`.trim();
 }
 
 function openFlowlySettingsTab(tabId) {
@@ -557,6 +607,9 @@ window.FlowlySexta = {
   pushSextaNote,
   pushSextaChatMessage,
   getSextaMemories,
+  getSextaProfile,
+  saveSextaProfile,
+  getSextaProfileSummary,
   saveSextaMemory,
   removeSextaMemory,
   clearSextaMemories,

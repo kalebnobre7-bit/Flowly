@@ -21,7 +21,7 @@ function renderFinanceView() {
       <section class="finance-dashboard-hero">
         <div class="finance-hero-copy flowly-page-header">
           <div class="finance-kicker flowly-page-kicker">Finance intelligence</div>
-          <h2 class="flowly-page-title">Visão financeira clara, rápida e útil</h2>
+          <h2 class="flowly-page-title">Financeiro claro, acionável e sem ruído</h2>
           <p class="flowly-page-subtitle">${analytics.analysisTone}</p>
           <div class="finance-inline-pills">
             <span class="sexta-pill">${analytics.monthTransactionCount} movimentações</span>
@@ -51,7 +51,7 @@ function renderFinanceView() {
         <section class="finance-card finance-card--chart finance-card--hero-chart">
           <div class="finance-card-head finance-card-head--dense">
             <div>
-              <h3>Leitura mensal</h3>
+              <h3>Fluxo do mês</h3>
               <p>Entradas vs saídas, sem ruído.</p>
             </div>
           </div>

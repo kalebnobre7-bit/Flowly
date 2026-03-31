@@ -43,11 +43,11 @@ function createSettingsToggle(id, checked) {
 function buildSettingsTabNav(settingsTab) {
   const settingsTabs = [
     { id: 'conta', label: 'Conta', icon: 'user-round' },
-    { id: 'notificacoes', label: 'Notificacoes', icon: 'bell-ring' },
+    { id: 'notificacoes', label: 'Notificações', icon: 'bell-ring' },
     { id: 'app', label: 'App', icon: 'sliders-horizontal' },
-    { id: 'personalizacao', label: 'Personalizacao', icon: 'palette' },
+    { id: 'personalizacao', label: 'Personalização', icon: 'palette' },
     { id: 'ia', label: 'IA', icon: 'bot' },
-    { id: 'operacao', label: 'Operacao', icon: 'signal' },
+    { id: 'operacao', label: 'Operação', icon: 'signal' },
     { id: 'dados', label: 'Dados', icon: 'database' }
   ];
 
@@ -97,16 +97,16 @@ function buildSettingsMarkup(ctx) {
 
   const notifStatusText =
     notifPerm === 'granted'
-      ? 'Permissao concedida.'
+      ? 'Permissão concedida.'
       : notifPerm === 'denied'
-        ? 'Permissao bloqueada no navegador.'
+        ? 'Permissão bloqueada no navegador.'
         : notifPerm === 'default'
-          ? 'Permissao ainda nao solicitada.'
-          : 'Navegador sem suporte a notificacoes.';
+          ? 'Permissão ainda não solicitada.'
+          : 'Navegador sem suporte a notificações.';
 
   const secureContextText = notifSecureContext
     ? 'Ambiente seguro detectado (HTTPS/localhost).'
-    : 'Para ativar notificacoes, abra por HTTPS ou localhost.';
+    : 'Para ativar notificações, abra por HTTPS ou localhost.';
 
   const fontMainOptions = Object.entries(FLOWLY_FONT_PRESETS)
     .map(
@@ -143,7 +143,7 @@ function buildSettingsMarkup(ctx) {
 
   const profileSection = createSettingsSectionCard(
     'Perfil',
-    'Dados basicos e conta conectada',
+    'Dados básicos e conta conectada',
     'user-round',
     `
       <div class="flex items-center gap-3 rounded-xl border border-white/10 bg-black/25 p-3">
@@ -151,7 +151,7 @@ function buildSettingsMarkup(ctx) {
           ${displayName.charAt(0).toUpperCase()}
         </div>
         <div class="min-w-0 flex-1">
-          <label class="mb-1 block text-xs uppercase tracking-wide text-gray-400" for="inputDisplayName">Nome de exibicao</label>
+          <label class="mb-1 block text-xs uppercase tracking-wide text-gray-400" for="inputDisplayName">Nome de exibição</label>
           <input id="inputDisplayName" type="text" value="${displayName}" placeholder="Seu nome" class="w-full rounded-lg border border-white/15 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-500/70" />
         </div>
       </div>
@@ -160,30 +160,30 @@ function buildSettingsMarkup(ctx) {
         ${
           currentUser
             ? '<span class="text-emerald-300">Conta ativa</span>'
-            : '<button type="button" data-auth-modal="open" class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white hover:bg-blue-500">Entrar / Criar Conta</button>'
+            : '<button type="button" data-auth-modal="open" class="flowly-accent-btn">Entrar / Criar conta</button>'
         }
       </div>
     `
   );
 
   const notificationsSection = createSettingsSectionCard(
-    'Notificacoes',
-    'Alertas, horarios e mensagens',
+    'Notificações',
+    'Alertas, horários e mensagens',
     'bell-ring',
     `
       <div class="space-y-3">
-        ${createSettingsRow('bell', 'Ativar notificacoes', 'Liga ou desliga alertas do app', createSettingsToggle('toggleNotif', notifEnabled))}
+        ${createSettingsRow('bell', 'Ativar notificações', 'Liga ou desliga alertas do app', createSettingsToggle('toggleNotif', notifEnabled))}
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Horario Manha</span>
+            <span class="mb-1 block uppercase tracking-wide text-gray-400">Horário manhã</span>
             <input id="inputMorningTime" type="time" value="${morningTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
           </label>
           <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Horario Meio-dia</span>
+            <span class="mb-1 block uppercase tracking-wide text-gray-400">Horário meio-dia</span>
             <input id="inputMiddayTime" type="time" value="${middayTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
           </label>
           <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Horario Noite</span>
+            <span class="mb-1 block uppercase tracking-wide text-gray-400">Horário noite</span>
             <input id="inputEveningTime" type="time" value="${eveningTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
           </label>
         </div>
@@ -193,11 +193,11 @@ function buildSettingsMarkup(ctx) {
             <span class="mb-1 block uppercase tracking-wide text-gray-400">Limite inatividade (min)</span>
             <input id="inputInactivityMinutes" type="number" min="30" max="480" step="10" value="${inactivityThresholdMinutes}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
           </label>
-          ${createSettingsRow('gauge', 'Notificacao de progresso', 'Notifica a cada tarefa concluida', createSettingsToggle('toggleProgressNotif', progressEnabled))}
+          ${createSettingsRow('gauge', 'Notificação de progresso', 'Notifica a cada tarefa concluída', createSettingsToggle('toggleProgressNotif', progressEnabled))}
         </div>
         <div class="grid grid-cols-1 gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
           <label class="text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Template manha</span>
+            <span class="mb-1 block uppercase tracking-wide text-gray-400">Template manhã</span>
             <input id="inputMorningTemplate" type="text" value="${morningTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
           </label>
           <label class="text-xs text-gray-300">
@@ -216,7 +216,7 @@ function buildSettingsMarkup(ctx) {
             <span class="mb-1 block uppercase tracking-wide text-gray-400">Template progresso</span>
             <input id="inputProgressTemplate" type="text" value="${progressTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
           </label>
-          <p class="text-[11px] text-gray-500">Use variaveis: {completed}, {total}, {pending}, {percentage}, {avgDuration}, {totalDuration}, {bestPeriod}.</p>
+          <p class="text-[11px] text-gray-500">Use variáveis: {completed}, {total}, {pending}, {percentage}, {avgDuration}, {totalDuration}, {bestPeriod}.</p>
         </div>
       </div>
     `
@@ -224,19 +224,19 @@ function buildSettingsMarkup(ctx) {
 
   const notificationStatusCard = createSettingsSectionCard(
     'Status',
-    'Permissao e teste rapido',
+    'Permissão e teste rápido',
     'shield-check',
     `
       <div class="space-y-3">
         <div class="mb-2 flex items-center justify-between gap-2 text-xs text-gray-300">
-          <span>Status da permissao</span>
+          <span>Status da permissão</span>
           ${permBadge}
         </div>
         <p class="text-xs text-gray-400">${notifStatusText}</p>
         <p class="text-xs ${notifSecureContext ? 'text-emerald-300' : 'text-amber-300'}">${secureContextText}</p>
-        <button id="btnTestNotification" class="mt-2 inline-flex items-center gap-2 rounded-lg border border-cyan-500/45 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/25">
+        <button id="btnTestNotification" class="flowly-accent-btn flowly-accent-btn--secondary mt-2">
           <i data-lucide="send" style="width:14px;height:14px;"></i>
-          Enviar notificacao de teste
+          Enviar notificação de teste
         </button>
         <div id="notifTestFeedback" class="min-h-[16px] text-xs text-gray-400"></div>
       </div>
@@ -244,8 +244,8 @@ function buildSettingsMarkup(ctx) {
   );
 
   const appSection = createSettingsSectionCard(
-    'Visual e interacao',
-    'Preferencias de exibicao e feedback',
+    'Visual e interação',
+    'Preferências de exibição e feedback',
     'sliders-horizontal',
     `
       <div class="space-y-3">
@@ -256,28 +256,28 @@ function buildSettingsMarkup(ctx) {
             <option value="mon" ${weekStart === 'mon' ? 'selected' : ''}>Segunda</option>
           </select>
         </label>
-        ${createSettingsRow('calendar-range', 'Mostrar fins de semana', 'Exibe Sabado e Domingo na semana', createSettingsToggle('toggleWeekends', showWeekends))}
-        ${createSettingsRow('vibrate', 'Feedback haptico', 'Vibracao em interacoes suportadas', createSettingsToggle('toggleHaptics', hapticsEnabled))}
-        ${createSettingsRow('sparkles', 'Animacao no hover semanal', 'Destaque visual ao passar mouse na semana', createSettingsToggle('toggleWeekHover', enableWeekHoverAnimation))}
+        ${createSettingsRow('calendar-range', 'Mostrar fins de semana', 'Exibe sábado e domingo na semana', createSettingsToggle('toggleWeekends', showWeekends))}
+        ${createSettingsRow('vibrate', 'Feedback háptico', 'Vibração em interações suportadas', createSettingsToggle('toggleHaptics', hapticsEnabled))}
+        ${createSettingsRow('sparkles', 'Animação no hover semanal', 'Destaque visual ao passar o mouse na semana', createSettingsToggle('toggleWeekHover', enableWeekHoverAnimation))}
       </div>
     `
   );
 
   const personalizationSection = createSettingsSectionCard(
-    'Personalizacao',
+    'Personalização',
     'Cores, fontes, largura e painéis',
     'palette',
     `
       <div class="settings-theme-grid">
         <label class="settings-theme-field">
-          <span>Cor primaria</span>
+          <span>Cor primária</span>
           <div class="settings-theme-input-wrap">
             <input id="inputThemePrimaryColor" type="color" value="${themeSettings.primaryColor}" />
             <code>${themeSettings.primaryColor}</code>
           </div>
         </label>
         <label class="settings-theme-field">
-          <span>Cor secundaria</span>
+          <span>Cor secundária</span>
           <div class="settings-theme-input-wrap">
             <input id="inputThemeSecondaryColor" type="color" value="${themeSettings.secondaryColor}" />
             <code>${themeSettings.secondaryColor}</code>
@@ -288,7 +288,7 @@ function buildSettingsMarkup(ctx) {
           <select id="selectThemeFontMain" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${fontMainOptions}</select>
         </label>
         <label class="settings-theme-field">
-          <span>Fonte destaque</span>
+          <span>Fonte de destaque</span>
           <select id="selectThemeFontDisplay" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${fontDisplayOptions}</select>
         </label>
         <label class="settings-theme-field settings-theme-field--wide">
@@ -306,26 +306,26 @@ function buildSettingsMarkup(ctx) {
       </div>
       <div class="settings-theme-preview">
         <div class="settings-theme-preview-card">
-          <div class="settings-theme-preview-kicker">Preview</div>
+          <div class="settings-theme-preview-kicker">Preview ativo</div>
           <strong>Flowly do seu jeito</strong>
-          <p>Esse preview agora herda largura, contraste e hierarquia da interface real.</p>
+          <p>Esse preview agora herda largura, contraste, destaque e hierarquia da interface real.</p>
           <div class="settings-theme-preview-actions">
-            <span class="settings-theme-preview-primary">Primaria</span>
-            <span class="settings-theme-preview-secondary">Secundaria</span>
+            <span class="settings-theme-preview-primary">Primária</span>
+            <span class="settings-theme-preview-secondary">Secundária</span>
           </div>
         </div>
-        <button id="btnResetThemeSettings" class="settings-theme-reset">Restaurar visual padrao</button>
+        <button id="btnResetThemeSettings" class="settings-theme-reset">Restaurar visual padrão</button>
       </div>
     `
   );
 
   const aiSection = createSettingsSectionCard(
-    'Conexao de IA',
+    'Conexão de IA',
     'Deixa a Sexta pronta para conversar com provedores externos',
     'bot',
     `
       <div class="space-y-3">
-        ${createSettingsRow('bot', 'Ativar conector externo', 'Mantem a configuracao de IA pronta para backend seguro', createSettingsToggle('toggleAiEnabled', aiSettings.enabled === true))}
+        ${createSettingsRow('bot', 'Ativar conector externo', 'Mantém a configuração de IA pronta para backend seguro', createSettingsToggle('toggleAiEnabled', aiSettings.enabled === true))}
         <div class="settings-ai-grid">
           <label class="settings-theme-field">
             <span>Provedor</span>
@@ -353,26 +353,26 @@ function buildSettingsMarkup(ctx) {
           <span>Prompt base da Sexta</span>
           <textarea id="inputAiSystemPrompt" rows="4" class="w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none">${escapeProjectHtml(aiSettings.systemPrompt)}</textarea>
         </label>
-        <p class="text-[11px] text-gray-500">Hoje a Sexta ja responde localmente com base nos dados do Flowly. Essa aba deixa o conector pronto para voce plugar MiniMax, OpenAI ou outro backend depois.</p>
+        <p class="text-[11px] text-gray-500">Hoje a Sexta já responde localmente com base nos dados do Flowly. Essa aba deixa o conector pronto para você plugar MiniMax, OpenAI ou outro backend depois.</p>
       </div>
     `
   );
 
   const aiStatusCard = createSettingsSectionCard(
     'Status da Sexta',
-    'Leitura do que ja esta ativo',
+    'Leitura do que já está ativo',
     'sparkles',
     `
       <div class="space-y-3">
         <div class="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
           <div class="text-xs uppercase tracking-wide text-gray-400">Modo atual</div>
           <div class="mt-1 text-sm font-semibold text-white">${aiSettings.enabled && aiSettings.provider !== 'local' ? escapeProjectHtml(`${aiSettings.provider} · ${aiSettings.model}`) : 'Local Flowly'}</div>
-          <p class="mt-2 text-xs text-gray-400">${aiSettings.enabled && aiSettings.provider !== 'local' ? 'Conector salvo. O passo seguinte e ligar esse endpoint a uma Edge Function segura.' : 'Aba Sexta operando no modo local com leitura de tarefas, projetos e contexto.'}</p>
+          <p class="mt-2 text-xs text-gray-400">${aiSettings.enabled && aiSettings.provider !== 'local' ? 'Conector salvo. O passo seguinte é ligar esse endpoint a uma Edge Function segura.' : 'Aba Sexta operando no modo local com leitura de tarefas, projetos e contexto.'}</p>
         </div>
         <div class="settings-guide-list">
           <div><strong>1. Salvar provedor</strong><span>MiniMax, OpenAI ou endpoint custom</span></div>
           <div><strong>2. Ligar backend</strong><span>Ideal via Supabase Edge Function</span></div>
-          <div><strong>3. Conversar na Sexta</strong><span>usar o chat ja dentro do Flowly</span></div>
+          <div><strong>3. Conversar na Sexta</strong><span>usar o chat já dentro do Flowly</span></div>
         </div>
       </div>
     `
@@ -381,8 +381,8 @@ function buildSettingsMarkup(ctx) {
   const syncLogItems =
     typeof getRecentSyncEvents === 'function' ? getRecentSyncEvents().slice(0, 8) : [];
   const syncLogSection = createSettingsSectionCard(
-    'Historico de sync',
-    'Ultimos eventos de sincronizacao entre dispositivo e nuvem',
+    'Histórico de sync',
+    'Últimos eventos de sincronização entre dispositivo e nuvem',
     'activity',
     `
       <div class="space-y-3">
@@ -420,7 +420,7 @@ function buildSettingsMarkup(ctx) {
 
   const prioritiesSection = createSettingsSectionCard(
     'Prioridades',
-    'Edite as prioridades personalizadas da sua operacao',
+    'Edite as prioridades personalizadas da sua operação',
     'signal',
     `
       <div class="space-y-3">
@@ -436,7 +436,7 @@ function buildSettingsMarkup(ctx) {
   );
 
   const dataSection = createSettingsSectionCard(
-    'Dados e manutencao',
+    'Dados e manutenção',
     'Backup, reparo e limpeza',
     'database',
     `
@@ -464,17 +464,17 @@ function buildSettingsMarkup(ctx) {
   );
 
   const quickGuideCard = createSettingsSectionCard(
-    'Leitura rapida',
-    'Tudo agora esta separado por contexto',
+    'Leitura rápida',
+    'Tudo agora está separado por contexto',
     'folders',
     `
       <div class="settings-guide-list">
         <div><strong>Conta</strong><span>nome, login e identidade</span></div>
-        <div><strong>Notificacoes</strong><span>horarios, templates e permissao</span></div>
+        <div><strong>Notificações</strong><span>horários, templates e permissão</span></div>
         <div><strong>App</strong><span>semana, hover e feedback</span></div>
-        <div><strong>Personalizacao</strong><span>cores, fontes, largura e painéis</span></div>
+        <div><strong>Personalização</strong><span>cores, fontes, largura e painéis</span></div>
         <div><strong>IA</strong><span>provedor, modelo e endpoint da Sexta</span></div>
-        <div><strong>Operacao</strong><span>prioridades e sinais</span></div>
+        <div><strong>Operação</strong><span>prioridades e sinais</span></div>
         <div><strong>Dados</strong><span>backup, reparo e limpeza</span></div>
       </div>
     `
@@ -497,12 +497,12 @@ function buildSettingsMarkup(ctx) {
       <div class="settings-topbar flowly-page-header">
         <div>
           <h2 class="flowly-page-title flex items-center gap-3 text-2xl font-bold text-white">
-            <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-900/25">
+            <span class="settings-topbar-mark">
               <i data-lucide="settings-2" style="width:20px;height:20px;"></i>
             </span>
-            Configuracoes
+            Configurações
           </h2>
-          <p class="flowly-page-subtitle mt-1 text-sm text-gray-400">Agora separado por abas para voce ajustar uma area por vez.</p>
+          <p class="flowly-page-subtitle mt-1 text-sm text-gray-400">Agora separado por abas para você ajustar uma área por vez.</p>
         </div>
         <div class="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-300">
           <div class="font-semibold text-gray-200">FLOWLY v1.2</div>

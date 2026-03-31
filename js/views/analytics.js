@@ -895,7 +895,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <p class="analytics-subtitle-v2 flowly-page-subtitle">${MONTH_NAMES_PT[nowMonth]} ${nowYear} Â· Semana atual</p>
+                <p class="analytics-subtitle-v2 flowly-page-subtitle">${MONTH_NAMES_PT[nowMonth]} ${nowYear} · Semana atual</p>
             </div>
         </div>
 
@@ -917,7 +917,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-label"><i data-lucide="activity" style="width:12px;height:12px"></i> Performance Hoje</div>
+                <div class="analytics-kpi-v2-label"><i data-lucide="activity" style="width:12px;height:12px"></i> Performance hoje</div>
                 
                 
                 
@@ -933,7 +933,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${todayCompletedVolume} concluÃ­das â€¢ mÃ©dia ${analyticsSafe(avgCompletedBaseline)}</div>
+                <div class="analytics-kpi-v2-sub">${todayCompletedVolume} concluídas • média ${analyticsSafe(avgCompletedBaseline)}</div>
                 
                 
                 
@@ -941,7 +941,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                ${todayCompletedVolume > 0 ? `<span class="analytics-kpi-v2-badge ${todayPerformanceScore >= 100 ? 'up' : 'neutral'}">${volumeDelta >= 0 ? 'â†‘' : 'â†“'} ${Math.abs(volumeDelta)} vs mÃ©dia</span>` : ''}
+                ${todayCompletedVolume > 0 ? `<span class="analytics-kpi-v2-badge ${todayPerformanceScore >= 100 ? 'up' : 'neutral'}">${volumeDelta >= 0 ? '↑' : '↓'} ${Math.abs(volumeDelta)} vs média</span>` : ''}
             </div>
             <div class="analytics-kpi-v2">
                 
@@ -975,7 +975,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${recent7Completed} concluÃ­das nos Ãºltimos 7 dias</div>
+                <div class="analytics-kpi-v2-sub">${recent7Completed} concluídas nos últimos 7 dias</div>
                 
                 
                 
@@ -1001,7 +1001,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-label"><i data-lucide="gauge" style="width:12px;height:12px"></i> ConsistÃªncia</div>
+                <div class="analytics-kpi-v2-label"><i data-lucide="gauge" style="width:12px;height:12px"></i> Consistência</div>
                 
                 
                 
@@ -1017,7 +1017,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${consistencyDays} dias na/acima da mÃ©dia em 30 dias</div>
+                <div class="analytics-kpi-v2-sub">${consistencyDays} dias na/acima da média em 30 dias</div>
             </div>
             <div class="analytics-kpi-v2">
                 
@@ -1051,7 +1051,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-kpi-v2-sub">${bestVolumeDay ? `melhor dia: ${bestVolumeDay.dateStr}` : 'sem histÃ³rico suficiente'}</div>
+                <div class="analytics-kpi-v2-sub">${bestVolumeDay ? `melhor dia: ${bestVolumeDay.dateStr}` : 'sem histórico suficiente'}</div>
             </div>
         </div>
 
