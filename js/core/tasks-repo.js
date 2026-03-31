@@ -44,6 +44,84 @@
       });
     }
 
+    function mergeLocalTaskIntoRemote(remoteTask, localTask) {
+      if (!remoteTask || !localTask) {
+        return { shouldSyncBack: false };
+      }
+
+      const remoteUpdatedTs = remoteTask.updatedAt ? new Date(remoteTask.updatedAt).getTime() : 0;
+      const localUpdatedTs = localTask.updatedAt ? new Date(localTask.updatedAt).getTime() : 0;
+      const preferLocal = localTask._syncPending === true || localUpdatedTs > remoteUpdatedTs;
+      let changed = false;
+
+      if (!remoteTask.projectId && localTask.projectId) {
+        remoteTask.projectId = localTask.projectId;
+        changed = true;
+      }
+      if (!remoteTask.projectName && localTask.projectName) {
+        remoteTask.projectName = localTask.projectName;
+        changed = true;
+      }
+      if ((!remoteTask.color || remoteTask.color === 'default') && localTask.color && localTask.color !== 'default') {
+        remoteTask.color = localTask.color;
+        changed = true;
+      }
+
+      if (preferLocal && typeof localTask.completed === 'boolean' && remoteTask.completed !== (localTask.completed === true)) {
+        remoteTask.completed = localTask.completed === true;
+        remoteTask.completedAt = localTask.completed === true ? localTask.completedAt || remoteTask.completedAt : null;
+        changed = true;
+      }
+      if (preferLocal && localTask.color && remoteTask.color !== localTask.color) {
+        remoteTask.color = localTask.color;
+        changed = true;
+      }
+      if (preferLocal && typeof localTask.position === 'number' && remoteTask.position !== localTask.position) {
+        remoteTask.position = localTask.position;
+        changed = true;
+      }
+      if (preferLocal && (remoteTask.priority || null) !== (localTask.priority || null)) {
+        remoteTask.priority = localTask.priority || null;
+        changed = true;
+      }
+      if (preferLocal && localTask.type && remoteTask.type !== localTask.type) {
+        remoteTask.type = localTask.type;
+        changed = true;
+      }
+      if (preferLocal && localTask.updatedAt && remoteTask.updatedAt !== localTask.updatedAt) {
+        remoteTask.updatedAt = localTask.updatedAt;
+        changed = true;
+      }
+      if (localTask._syncPending === true && remoteTask._syncPending !== true) {
+        remoteTask._syncPending = true;
+        changed = true;
+      }
+      if (!remoteTask.timerStartedAt && localTask.timerStartedAt) {
+        remoteTask.timerStartedAt = localTask.timerStartedAt;
+        changed = true;
+      }
+      if (!remoteTask.timerLastStoppedAt && localTask.timerLastStoppedAt) {
+        remoteTask.timerLastStoppedAt = localTask.timerLastStoppedAt;
+        changed = true;
+      }
+      if ((Number(remoteTask.timerTotalMs || 0) || 0) < (Number(localTask.timerTotalMs || 0) || 0)) {
+        remoteTask.timerTotalMs = Math.max(0, Number(localTask.timerTotalMs || 0) || 0);
+        changed = true;
+      }
+      if ((Number(remoteTask.timerSessionsCount || 0) || 0) < (Number(localTask.timerSessionsCount || 0) || 0)) {
+        remoteTask.timerSessionsCount = Math.max(
+          0,
+          Math.floor(Number(localTask.timerSessionsCount || 0) || 0)
+        );
+        changed = true;
+      }
+
+      return {
+        shouldSyncBack:
+          changed && (localTask._syncPending === true || localUpdatedTs > remoteUpdatedTs)
+      };
+    }
+
     async function runRealtimeReload() {
       if (rtReloadInFlight) {
         rtReloadQueued = true;
@@ -321,29 +399,9 @@
                   return serverTask && serverTask.supabaseId === localTaskId;
                 });
                 if (remoteMatch) {
-                  const remoteUpdatedTs = remoteMatch.updatedAt ? new Date(remoteMatch.updatedAt).getTime() : 0;
-                  const localUpdatedTs = localTask.updatedAt ? new Date(localTask.updatedAt).getTime() : 0;
-                  const preferLocal = localTask._syncPending === true || localUpdatedTs > remoteUpdatedTs;
-                  if (!remoteMatch.projectId && localTask.projectId) remoteMatch.projectId = localTask.projectId;
-                  if (!remoteMatch.projectName && localTask.projectName) remoteMatch.projectName = localTask.projectName;
-                  if ((!remoteMatch.color || remoteMatch.color === 'default') && localTask.color) remoteMatch.color = localTask.color;
-                  if (preferLocal && typeof localTask.completed === 'boolean') {
-                    remoteMatch.completed = localTask.completed === true;
-                    remoteMatch.completedAt = localTask.completed === true ? localTask.completedAt || remoteMatch.completedAt : null;
-                  }
-                  if (preferLocal && localTask.color) remoteMatch.color = localTask.color;
-                  if (preferLocal && typeof localTask.position === 'number') remoteMatch.position = localTask.position;
-                  if (preferLocal && localTask.priority !== undefined) remoteMatch.priority = localTask.priority || null;
-                  if (preferLocal && localTask.type) remoteMatch.type = localTask.type;
-                  if (preferLocal) remoteMatch.updatedAt = localTask.updatedAt;
-                  if (localTask._syncPending === true) remoteMatch._syncPending = true;
-                  if (!remoteMatch.timerStartedAt && localTask.timerStartedAt) remoteMatch.timerStartedAt = localTask.timerStartedAt;
-                  if (!remoteMatch.timerLastStoppedAt && localTask.timerLastStoppedAt) remoteMatch.timerLastStoppedAt = localTask.timerLastStoppedAt;
-                  if ((Number(remoteMatch.timerTotalMs || 0) || 0) < (Number(localTask.timerTotalMs || 0) || 0)) {
-                    remoteMatch.timerTotalMs = Math.max(0, Number(localTask.timerTotalMs || 0) || 0);
-                  }
-                  if ((Number(remoteMatch.timerSessionsCount || 0) || 0) < (Number(localTask.timerSessionsCount || 0) || 0)) {
-                    remoteMatch.timerSessionsCount = Math.max(0, Math.floor(Number(localTask.timerSessionsCount || 0) || 0));
+                  const mergeResult = mergeLocalTaskIntoRemote(remoteMatch, localTask);
+                  if (mergeResult.shouldSyncBack) {
+                    pendingLocalSync.push({ dateStr: dateStr, period: period, task: remoteMatch });
                   }
                 }
                 return;
@@ -373,7 +431,7 @@
                 timerSessionsCount: Math.max(0, Math.floor(Number(localTask.timerSessionsCount || 0) || 0))
               };
 
-              const existsInServer = serverTasks.some(function (serverTask) {
+              const remoteMatch = serverTasks.find(function (serverTask) {
                 return (
                   serverTask &&
                   String(serverTask.text || '').trim().toLowerCase() ===
@@ -385,7 +443,13 @@
                 );
               });
 
-              if (existsInServer) return;
+              if (remoteMatch) {
+                const mergeResult = mergeLocalTaskIntoRemote(remoteMatch, localTask);
+                if (mergeResult.shouldSyncBack) {
+                  pendingLocalSync.push({ dateStr: dateStr, period: period, task: remoteMatch });
+                }
+                return;
+              }
 
               serverTasks.push(taskToKeep);
               pendingLocalSync.push({ dateStr: dateStr, period: period, task: taskToKeep });
