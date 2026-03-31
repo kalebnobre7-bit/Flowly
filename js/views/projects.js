@@ -45,11 +45,37 @@ function renderProjectsView() {
   const focusHint = focusProject
     ? getProjectActionHint(focusProject, focusProgress, today)
     : null;
-  const heroStats = [
-    { label: 'Ativos', value: activeCount },
-    { label: 'Sem projeto', value: taskBacklogCount },
-    { label: 'Receita prevista', value: formatBRL(totalRevenue) },
-    { label: 'Nao pagos', value: unpaidCount }
+  const projectsMetrics = [
+    {
+      label: 'Ativos',
+      value: activeCount,
+      hint: activeCount > 0 ? 'projeto(s) em execucao agora' : 'nenhuma operacao ativa'
+    },
+    {
+      label: 'Sem projeto',
+      value: taskBacklogCount,
+      hint: taskBacklogCount > 0 ? 'tarefas pedindo contexto' : 'tudo ja contextualizado'
+    },
+    {
+      label: 'Receita prevista',
+      value: formatBRL(totalRevenue),
+      hint: paidCount > 0 ? `${paidCount} pago(s) no radar` : 'base financeira em construcao'
+    },
+    {
+      label: 'Nao pagos',
+      value: unpaidCount,
+      hint: unpaidCount > 0 ? 'entregas abertas para cobrar' : 'nenhum pendente de cobranca'
+    }
+  ];
+  const filterTabs = [
+    { id: 'all', label: 'Todos', count: filteredProjects.length },
+    { id: 'active', label: 'Ativos', count: activeCount },
+    { id: 'late', label: 'Atrasados', count: lateCount },
+    { id: 'paid', label: 'Pagos', count: paidCount },
+    { id: 'unpaid', label: 'Nao pagos', count: unpaidCount },
+    { id: 'done', label: 'Concluidos', count: doneCount },
+    { id: 'draft', label: 'Templates', count: draftCount },
+    { id: 'archived', label: 'Arquivados', count: archivedCount }
   ];
 
   const heroInsight = (() => {
@@ -286,66 +312,81 @@ function renderProjectsView() {
 
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--wide projects-shell projects-shell--rebuilt">
-      <section class="projects-hero">
-        <div class="projects-hero-main">
-          <div class="finance-kicker">Projects OS</div>
-          <h2>Projetos organizados pela operacao</h2>
-          <p>${heroInsight}</p>
-          <div class="projects-hero-actions">
-            <button type="button" data-projects-action="open-quick-modal" class="btn-primary projects-hero-cta projects-btn-inline">
+      <section class="flowly-page-masthead projects-masthead">
+        <div class="flowly-page-header projects-masthead-copy">
+          <div class="flowly-page-kicker">Projects OS</div>
+          <h2 class="flowly-page-title">Projetos organizados com a mesma leitura do resto do Flowly</h2>
+          <p class="flowly-page-subtitle">${heroInsight}</p>
+          <div class="flowly-inline-pills">
+            <button type="button" data-projects-action="open-quick-modal" class="btn-primary projects-btn-inline projects-toolbar-cta">
               Novo projeto
             </button>
-            <span class="projects-hero-pill">${filteredProjects.length} na visao</span>
-            <span class="projects-hero-pill">${suggestionCount} sinais</span>
-            <span class="projects-hero-pill">${taskBacklogCount} tarefa(s) sem projeto</span>
+            <span class="flowly-soft-pill">${filteredProjects.length} na visao</span>
+            <span class="flowly-soft-pill">${suggestionCount} sinais ativos</span>
+            <span class="flowly-soft-pill flowly-soft-pill--accent">${taskBacklogCount} tarefa(s) sem projeto</span>
           </div>
         </div>
-        <div class="projects-hero-panel projects-hero-panel--compact">
-          <div class="projects-hero-stats">
-            ${heroStats
-              .map(
-                (item) => `
-                  <div class="projects-hero-stat">
-                    <span>${item.label}</span>
-                    <strong>${item.value}</strong>
-                  </div>
-                `
-              )
-              .join('')}
-          </div>
+
+        <aside class="projects-focus-card flowly-panel">
           ${
             focusProject
               ? `
-                <div class="projects-hero-focus">
-                  <div class="projects-suggest-title">Projeto mais sensivel agora</div>
-                  <strong>${escapeProjectHtml(focusProject.name)}</strong>
-                  <p>${focusHint ? focusHint.detail : 'Sem alerta ativo.'}</p>
-                  <div class="projects-row-badges">
-                    <span class="projects-badge ${
-                      focusHint ? focusHint.cls : 'projects-badge--active'
-                    }">${focusHint ? focusHint.label : 'Operando'}</span>
-                    ${
-                      focusProject.deadline
-                        ? `<span class="projects-badge">${formatProjectDateShort(
-                            focusProject.deadline
-                          )}</span>`
-                        : '<span class="projects-badge">Sem prazo</span>'
-                    }
-                    <span class="projects-badge ${
-                      focusProject.isPaid ? 'projects-badge--paid' : 'projects-badge--unpaid'
-                    }">${focusProject.isPaid ? 'Pago' : 'Aberto'}</span>
+                <div class="projects-focus-head">
+                  <div>
+                    <div class="projects-suggest-title">Projeto em foco</div>
+                    <strong>${escapeProjectHtml(focusProject.name)}</strong>
                   </div>
+                  <span class="projects-badge ${
+                    focusHint ? focusHint.cls : 'projects-badge--active'
+                  }">${focusHint ? focusHint.label : 'Operando'}</span>
+                </div>
+                <p>${focusHint ? focusHint.detail : 'Sem alerta ativo.'}</p>
+                <div class="projects-row-badges">
+                  ${
+                    focusProject.deadline
+                      ? `<span class="projects-badge">${formatProjectDateShort(
+                          focusProject.deadline
+                        )}</span>`
+                      : '<span class="projects-badge">Sem prazo</span>'
+                  }
+                  <span class="projects-badge ${
+                    focusProject.isPaid ? 'projects-badge--paid' : 'projects-badge--unpaid'
+                  }">${focusProject.isPaid ? 'Pago' : 'Aberto'}</span>
+                  <span class="projects-badge projects-badge--focus">${
+                    focusProgress ? `${focusProgress.done}/${focusProgress.total} tarefas` : 'Sem tarefas ligadas'
+                  }</span>
                 </div>
               `
               : `
-                <div class="projects-hero-focus">
-                  <div class="projects-suggest-title">Sem projetos ainda</div>
-                  <strong>Comece com uma operacao limpa</strong>
-                  <p>Crie um projeto, puxe tarefas para dentro e use esse painel como base de execucao.</p>
+                <div class="projects-focus-head">
+                  <div>
+                    <div class="projects-suggest-title">Projeto em foco</div>
+                    <strong>Comece por um container limpo</strong>
+                  </div>
+                  <span class="projects-badge projects-badge--focus">Pronto para montar</span>
+                </div>
+                <p>Crie um projeto, puxe tarefas para dentro e use esse painel como base unica de execucao.</p>
+                <div class="projects-row-badges">
+                  <span class="projects-badge">Sem prazo</span>
+                  <span class="projects-badge">Sem cliente</span>
                 </div>
               `
           }
-        </div>
+        </aside>
+      </section>
+
+      <section class="flowly-stat-grid projects-stat-grid">
+        ${projectsMetrics
+          .map(
+            (item) => `
+              <article class="flowly-stat-card">
+                <span>${item.label}</span>
+                <strong>${item.value}</strong>
+                <small>${item.hint}</small>
+              </article>
+            `
+          )
+          .join('')}
       </section>
 
       ${
@@ -371,34 +412,31 @@ function renderProjectsView() {
           : ''
       }
 
-      <section class="projects-filters-bar projects-filters-bar--rebuilt">
-        <button class="projects-filter-chip ${
-          projectsFilter === 'all' ? 'is-active' : ''
-        }" data-projects-filter="all">Todos</button>
-        <button class="projects-filter-chip ${
-          projectsFilter === 'active' ? 'is-active' : ''
-        }" data-projects-filter="active">Ativos (${activeCount})</button>
-        <button class="projects-filter-chip ${
-          projectsFilter === 'late' ? 'is-active' : ''
-        }" data-projects-filter="late">Atrasados (${lateCount})</button>
-        <button class="projects-filter-chip ${
-          projectsFilter === 'paid' ? 'is-active' : ''
-        }" data-projects-filter="paid">Pagos (${paidCount})</button>
-        <button class="projects-filter-chip ${
-          projectsFilter === 'unpaid' ? 'is-active' : ''
-        }" data-projects-filter="unpaid">Nao pagos (${unpaidCount})</button>
-        <button class="projects-filter-chip ${
-          projectsFilter === 'done' ? 'is-active' : ''
-        }" data-projects-filter="done">Concluidos (${doneCount})</button>
-        <button class="projects-filter-chip ${
-          projectsFilter === 'draft' ? 'is-active' : ''
-        }" data-projects-filter="draft">Templates (${draftCount})</button>
-        <button class="projects-filter-chip ${
-          projectsFilter === 'archived' ? 'is-active' : ''
-        }" data-projects-filter="archived">Arquivados (${archivedCount})</button>
+      <section class="finance-card projects-toolbar-card">
+        <div class="projects-toolbar-head">
+          <div>
+            <div class="projects-suggest-title">Filtro da operacao</div>
+            <h3>Troque de visao sem trocar de linguagem</h3>
+            <p>Os mesmos blocos de leitura, so mudando o recorte de status, prazo e cobranca.</p>
+          </div>
+        </div>
+        <div class="projects-filters-bar projects-filters-bar--rebuilt">
+          ${filterTabs
+            .map(
+              (item) => `
+                <button class="settings-tab-btn projects-filter-chip ${
+                  projectsFilter === item.id ? 'is-active' : ''
+                }" data-projects-filter="${item.id}">
+                  <span>${item.label}</span>
+                  <small>${item.count}</small>
+                </button>
+              `
+            )
+            .join('')}
+        </div>
       </section>
 
-      <section class="projects-layout">
+      <section class="projects-layout projects-layout--standard">
         <div class="projects-main">
           ${
             boardSections.length > 0
