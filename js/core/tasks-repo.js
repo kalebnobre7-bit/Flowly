@@ -493,11 +493,19 @@
                   ? localTask.supabaseId
                   : null;
               const localTaskHasValidRemoteId = localTaskId && remoteTaskIds.has(localTaskId);
+              const localTaskExplicitlyPendingSync = localTask._syncPending === true;
 
               // If a local snapshot task still points to a remote id that no longer exists
               // in the freshly loaded server payload, treat it as stale deleted data and
               // never resurrect it back into local state.
               if (localTaskId && !localTaskHasValidRemoteId) {
+                return;
+              }
+
+              // Only allow local-only tasks to sync back when they were explicitly marked
+              // as pending sync. This prevents stale snapshots from another device from
+              // recreating tasks that were already deleted remotely.
+              if (!localTaskId && !localTaskExplicitlyPendingSync) {
                 return;
               }
 

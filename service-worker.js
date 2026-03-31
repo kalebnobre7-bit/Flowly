@@ -1,5 +1,7 @@
 ﻿const STATIC_CACHE = 'flowly-static-v10';
 
+const ACTIVE_STATIC_CACHE = 'flowly-static-v11';
+
 const APP_SCOPE_URL = new URL(self.registration.scope);
 const APP_SCOPE_PATH = APP_SCOPE_URL.pathname.endsWith('/')
   ? APP_SCOPE_URL.pathname
@@ -48,7 +50,7 @@ function isApiRequest(url) {
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS)));
+  event.waitUntil(caches.open(ACTIVE_STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS)));
   self.skipWaiting();
 });
 
@@ -57,7 +59,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) =>
       Promise.all(
         cacheNames
-          .filter((cacheName) => cacheName !== STATIC_CACHE)
+          .filter((cacheName) => cacheName !== ACTIVE_STATIC_CACHE)
           .map((cacheName) => caches.delete(cacheName))
       )
     )
@@ -78,7 +80,7 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           const responseClone = response.clone();
-          caches.open(STATIC_CACHE).then((cache) => cache.put(INDEX_URL, responseClone));
+          caches.open(ACTIVE_STATIC_CACHE).then((cache) => cache.put(INDEX_URL, responseClone));
           return response;
         })
         .catch(async () => {
@@ -97,7 +99,7 @@ self.addEventListener('fetch', (event) => {
         .then((networkResponse) => {
           if (networkResponse && networkResponse.ok) {
             const clone = networkResponse.clone();
-            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+            caches.open(ACTIVE_STATIC_CACHE).then((cache) => cache.put(request, clone));
           }
           return networkResponse;
         })
@@ -112,7 +114,7 @@ self.addEventListener('fetch', (event) => {
         .then((networkResponse) => {
           if (networkResponse && networkResponse.ok) {
             const clone = networkResponse.clone();
-            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+            caches.open(ACTIVE_STATIC_CACHE).then((cache) => cache.put(request, clone));
           }
           return networkResponse;
         })

@@ -132,10 +132,11 @@
       }
 
       navigator.serviceWorker
-        .register('./service-worker.js')
+        .register('./service-worker.js?v=11', { updateViaCache: 'none' })
         .then((registration) => {
           debugLog('Service Worker registrado:', registration);
           serviceWorkerRegistration = registration;
+          registration.update().catch(() => {});
         })
         .catch((error) => {
           console.error('Erro ao registrar Service Worker:', error);
