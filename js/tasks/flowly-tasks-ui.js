@@ -355,6 +355,15 @@ function createTaskElement(day, dateStr, period, task, index) {
   // Drag Events
   el.ondragstart = handleDragStart;
   el.ondragend = handleDragEnd;
+  el.ondragover = (e) => handleTaskItemDragOver(e, el, actionTask);
+  el.ondragleave = () => handleTaskItemDragLeave(el);
+  el.ondrop = (e) =>
+    handleTaskItemDrop(e, el, {
+      dateStr: actionDateStr,
+      period: actionPeriod,
+      index: actionIndex,
+      task: actionTask
+    });
 
   container.appendChild(el);
   return container;
@@ -584,10 +593,50 @@ function handleDragEnd(e) {
   document.body.classList.remove('dragging-active');
   this.classList.remove('opacity-50');
   document.querySelectorAll('.day-column').forEach((c) => c.classList.remove('drag-over'));
+  document.querySelectorAll('.task-item.is-drop-target').forEach((node) =>
+    node.classList.remove('is-drop-target')
+  );
 }
 
 function handleDragOver(e) {
   e.preventDefault();
+}
+
+function handleTaskItemDragOver(e, el, targetTask) {
+  if (!draggedTask || draggedTask.isRoutineDrag || !targetTask) return;
+  const samePointer =
+    draggedTask.dateStr === (el.dataset.sourceDate || el.dataset.date) &&
+    draggedTask.period === (el.dataset.sourcePeriod || el.dataset.period) &&
+    draggedTask.index === Number(el.dataset.sourceIndex || el.dataset.index);
+  if (samePointer) return;
+  e.preventDefault();
+  el.classList.add('is-drop-target');
+}
+
+function handleTaskItemDragLeave(el) {
+  el.classList.remove('is-drop-target');
+}
+
+function handleTaskItemDrop(e, el, target) {
+  e.preventDefault();
+  e.stopPropagation();
+  el.classList.remove('is-drop-target');
+  if (!draggedTask || draggedTask.isRoutineDrag || !target || !target.task) return;
+
+  const result =
+    typeof window.moveTaskUnderParent === 'function'
+      ? window.moveTaskUnderParent({
+          sourceDateStr: draggedTask.dateStr,
+          sourcePeriod: draggedTask.period,
+          sourceIndex: draggedTask.index,
+          parentDateStr: target.dateStr,
+          parentPeriod: target.period,
+          parentIndex: target.index
+        })
+      : null;
+
+  draggedTask = null;
+  if (!result) renderView();
 }
 
 function handleDropZoneDrop(e, dz) {

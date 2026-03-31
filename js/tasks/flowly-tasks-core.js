@@ -53,6 +53,19 @@ function collectTaskSubtree(list, rootTask) {
   return subtree;
 }
 
+function getTaskSubtreeBoundaryIndex(list, rootTask) {
+  if (!Array.isArray(list) || !rootTask) return -1;
+  const subtreeTasks = collectTaskSubtree(list, rootTask);
+  if (subtreeTasks.length === 0) return -1;
+
+  const subtreeSet = new Set(subtreeTasks);
+  let lastIndex = -1;
+  list.forEach((task, index) => {
+    if (subtreeSet.has(task)) lastIndex = index;
+  });
+  return lastIndex;
+}
+
 function moveTaskSubtree({
   sourceDateStr,
   sourcePeriod,
@@ -61,7 +74,8 @@ function moveTaskSubtree({
   targetPeriod,
   insertAt,
   indentIntent = false,
-  outdentIntent = false
+  outdentIntent = false,
+  forcedParentTask = null
 }) {
   if (!allTasksData[sourceDateStr]) allTasksData[sourceDateStr] = {};
   if (!allTasksData[targetDateStr]) allTasksData[targetDateStr] = {};
@@ -110,10 +124,22 @@ function moveTaskSubtree({
   destinationList.splice(normalizedInsertAt, 0, ...subtreeTasks);
 
   const movedRootTask = subtreeTasks[0];
-  if (indentIntent && normalizedInsertAt > 0) {
+  if (forcedParentTask) {
+    movedRootTask.parent_id = getTaskTreeId(forcedParentTask) || null;
+    subtreeTasks.forEach((task) => {
+      task.projectId = forcedParentTask.projectId || null;
+      task.projectName = forcedParentTask.projectName || '';
+    });
+  } else if (indentIntent && normalizedInsertAt > 0) {
     const prevTask = destinationList[normalizedInsertAt - 1];
     if (prevTask && !subtreeSet.has(prevTask) && (prevTask.depth || 0) < 2) {
       movedRootTask.parent_id = getTaskTreeId(prevTask);
+      if (prevTask.projectId) {
+        subtreeTasks.forEach((task) => {
+          task.projectId = prevTask.projectId || null;
+          task.projectName = prevTask.projectName || '';
+        });
+      }
     }
   } else if (outdentIntent) {
     movedRootTask.parent_id = null;
@@ -676,6 +702,50 @@ function moveTaskToDate(dateStr, period, index, targetDateStr, targetPeriod = 'T
 }
 
 window.moveTaskToDate = moveTaskToDate;
+
+window.moveTaskUnderParent = function ({
+  sourceDateStr,
+  sourcePeriod,
+  sourceIndex,
+  parentDateStr,
+  parentPeriod,
+  parentIndex
+}) {
+  const numericSourceIndex = Number(sourceIndex);
+  const numericParentIndex = Number(parentIndex);
+  const sourceList = allTasksData?.[sourceDateStr]?.[sourcePeriod];
+  const parentList = allTasksData?.[parentDateStr]?.[parentPeriod];
+  if (!Array.isArray(sourceList) || !Array.isArray(parentList)) return null;
+
+  const sourceTask = sourceList[numericSourceIndex];
+  const parentTask = parentList[numericParentIndex];
+  if (!sourceTask || !parentTask) return null;
+
+  const sourceSubtree = collectTaskSubtree(sourceList, sourceTask);
+  if (sourceSubtree.includes(parentTask)) return null;
+
+  const parentBoundaryIndex = getTaskSubtreeBoundaryIndex(parentList, parentTask);
+  if (parentBoundaryIndex < 0) return null;
+
+  const moveResult = moveTaskSubtree({
+    sourceDateStr,
+    sourcePeriod,
+    sourceIndex: numericSourceIndex,
+    targetDateStr: parentDateStr,
+    targetPeriod: parentPeriod,
+    insertAt: parentBoundaryIndex + 1,
+    forcedParentTask: parentTask
+  });
+
+  if (!moveResult.moved) return null;
+
+  saveToLocalStorage();
+  (async () => {
+    for (const syncDate of moveResult.datesToSync || []) await syncDateToSupabase(syncDate);
+  })();
+  renderView();
+  return moveResult;
+};
 
 window.createSubtaskForTask = function (parentTask, options = {}) {
   const targetDateStr = String(options.targetDateStr || localDateStr()).trim();
