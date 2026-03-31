@@ -53,11 +53,17 @@ async function syncUnsyncedTasksToSupabase() {
         for (const task of tasks) {
           if (!task || !task.text || task.text.trim() === '') continue;
           if (task.isWeeklyRecurring || task.isRoutine || task.isRecurring) continue;
-          if (typeof task.supabaseId === 'string' && task.supabaseId.indexOf('-') > -1) continue;
+          const hasRemoteId =
+            typeof task.supabaseId === 'string' && task.supabaseId.indexOf('-') > -1;
+          const needsSync = task._syncPending === true || !hasRemoteId;
+          if (!needsSync) continue;
 
           markLocalSupabaseMutation();
           const result = await tasksSyncService.syncTaskToSupabase(dateStr, period, task);
-          if (result && result.success) hasChanges = true;
+          if (result && result.success) {
+            task._syncPending = false;
+            hasChanges = true;
+          }
         }
       }
     }

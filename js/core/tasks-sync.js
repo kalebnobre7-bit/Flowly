@@ -153,6 +153,7 @@
         if (arr && arr[0] && arr[0].id) {
           task.supabaseId = arr[0].id;
           task.updatedAt = arr[0].updated_at || payloadBase.updated_at;
+          task._syncPending = false;
           return { success: true, data: arr[0] };
         }
 

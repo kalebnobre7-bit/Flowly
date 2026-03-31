@@ -754,6 +754,7 @@ async function syncDateToSupabase(dateStr) {
             if (!task || !task.supabaseId) return;
             if (updatedById.has(task.supabaseId)) {
               task.updatedAt = updatedById.get(task.supabaseId) || task.updatedAt;
+              task._syncPending = false;
             }
           });
         });
@@ -790,6 +791,7 @@ async function syncDateToSupabase(dateStr) {
           if (localIdx >= 0) {
             inserts[localIdx].taskRef.supabaseId = row.id;
             inserts[localIdx].taskRef.updatedAt = row.updated_at || inserts[localIdx].taskRef.updatedAt;
+            inserts[localIdx].taskRef._syncPending = false;
             usedLocalIdx.add(localIdx);
           }
         });
@@ -817,6 +819,9 @@ async function syncDateToSupabase(dateStr) {
     localStorage.setItem('allTasksData', JSON.stringify(allTasksData));
   } catch (e) {
     console.error('Error syncing date:', e);
+    if (typeof scheduleUnsyncedTasksSync === 'function') {
+      scheduleUnsyncedTasksSync(1500);
+    }
   } finally {
     _isSyncingDate = false;
   }
@@ -908,6 +913,7 @@ function showColorMenu(e, task, label) {
       const color = s.dataset.color;
       task.color = color;
       task.updatedAt = new Date().toISOString();
+      task._syncPending = true;
       saveToLocalStorage();
       renderView();
       const taskElement = label.closest('.task-item');

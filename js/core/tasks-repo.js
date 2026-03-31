@@ -261,6 +261,7 @@
             position: Number(task.position) || 0,
             isHabit: task.is_habit,
             supabaseId: task.id,
+            _syncPending: false,
             createdAt: task.created_at || null,
             updatedAt: task.updated_at || task.created_at || null,
             completedAt: task.completed ? task.completed_at || task.updated_at || new Date().toISOString() : null,
@@ -322,7 +323,7 @@
                 if (remoteMatch) {
                   const remoteUpdatedTs = remoteMatch.updatedAt ? new Date(remoteMatch.updatedAt).getTime() : 0;
                   const localUpdatedTs = localTask.updatedAt ? new Date(localTask.updatedAt).getTime() : 0;
-                  const preferLocal = localUpdatedTs > remoteUpdatedTs;
+                  const preferLocal = localTask._syncPending === true || localUpdatedTs > remoteUpdatedTs;
                   if (!remoteMatch.projectId && localTask.projectId) remoteMatch.projectId = localTask.projectId;
                   if (!remoteMatch.projectName && localTask.projectName) remoteMatch.projectName = localTask.projectName;
                   if ((!remoteMatch.color || remoteMatch.color === 'default') && localTask.color) remoteMatch.color = localTask.color;
@@ -335,6 +336,7 @@
                   if (preferLocal && localTask.priority !== undefined) remoteMatch.priority = localTask.priority || null;
                   if (preferLocal && localTask.type) remoteMatch.type = localTask.type;
                   if (preferLocal) remoteMatch.updatedAt = localTask.updatedAt;
+                  if (localTask._syncPending === true) remoteMatch._syncPending = true;
                   if (!remoteMatch.timerStartedAt && localTask.timerStartedAt) remoteMatch.timerStartedAt = localTask.timerStartedAt;
                   if (!remoteMatch.timerLastStoppedAt && localTask.timerLastStoppedAt) remoteMatch.timerLastStoppedAt = localTask.timerLastStoppedAt;
                   if ((Number(remoteMatch.timerTotalMs || 0) || 0) < (Number(localTask.timerTotalMs || 0) || 0)) {
@@ -362,6 +364,7 @@
                     : serverTasks.length + localIndex,
                 isHabit: localTask.isHabit === true,
                 supabaseId: null,
+                _syncPending: localTask._syncPending === true,
                 updatedAt: localTask.updatedAt || null,
                 completedAt: localTask.completedAt || null,
                 timerTotalMs: Math.max(0, Number(localTask.timerTotalMs || 0) || 0),
