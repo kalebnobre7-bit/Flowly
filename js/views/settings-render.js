@@ -148,7 +148,7 @@ function buildSettingsMarkup(ctx) {
         ${
           currentUser
             ? '<span class="text-emerald-300">Conta ativa</span>'
-            : '<button onclick="document.getElementById(\'authModal\').classList.add(\'show\')" class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white hover:bg-blue-500">Entrar / Criar Conta</button>'
+            : '<button type="button" data-auth-modal="open" class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white hover:bg-blue-500">Entrar / Criar Conta</button>'
         }
       </div>
     `

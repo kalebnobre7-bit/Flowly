@@ -143,10 +143,10 @@ renderSextaView = function () {
         </div>
 
         <div class="sexta-inline-actions">
-          <button class="sexta-link-btn" type="button" onclick="runSextaQuickAction('focus')">Puxar foco</button>
-          <button class="sexta-link-btn" type="button" onclick="runSextaQuickAction('review')">Revisar hoje</button>
-          <button class="sexta-link-btn" type="button" onclick="runSextaQuickAction('tomorrow')">Planejar amanha</button>
-          <button class="sexta-link-btn" type="button" onclick="runSextaQuickAction('plan')">Criar base</button>
+          <button class="sexta-link-btn" type="button" data-sexta-quick-action="focus">Puxar foco</button>
+          <button class="sexta-link-btn" type="button" data-sexta-quick-action="review">Revisar hoje</button>
+          <button class="sexta-link-btn" type="button" data-sexta-quick-action="tomorrow">Planejar amanha</button>
+          <button class="sexta-link-btn" type="button" data-sexta-quick-action="plan">Criar base</button>
         </div>
 
         <div class="sexta-list sexta-list--compact">
@@ -186,7 +186,7 @@ renderSextaView = function () {
             <h3>Memoria</h3>
             <p>Preferencias operacionais e comandos que o agente deve lembrar.</p>
           </div>
-          <button class="sexta-link-btn" type="button" onclick="document.getElementById('sextaCommandInput').value='limpar memoria'; runSextaCommand();">Limpar memoria</button>
+          <button class="sexta-link-btn" type="button" data-sexta-command-action="clear-memory">Limpar memoria</button>
         </div>
 
         <div class="sexta-memory-guide sexta-memory-guide--inline">
@@ -225,7 +225,7 @@ renderSextaView = function () {
         </div>
         <div class="sexta-topbar-actions">
           <span class="sexta-badge">${escapeProjectHtml(assistantModeLabel)}</span>
-          <button class="sexta-link-btn" type="button" onclick="openFlowlySettingsTab('ia')">Conectar IA</button>
+          <button class="sexta-link-btn" type="button" data-sexta-open-settings="ia">Conectar IA</button>
         </div>
       </section>
 
@@ -269,7 +269,7 @@ renderSextaView = function () {
 
         <div class="sexta-command-row sexta-command-row--composer">
           <input id="sextaCommandInput" class="task-input sexta-command-input" type="text" placeholder="Ex.: cria tarefa cobrar cliente, conclui follow-up, move site para amanha, o que eu ataco agora?" />
-          <button class="btn-primary" type="button" onclick="runSextaCommand()">Enviar</button>
+          <button class="btn-primary" type="button" data-sexta-command-action="send">Enviar</button>
         </div>
       </section>
 
@@ -291,6 +291,30 @@ renderSextaView = function () {
         if (!input) return;
         input.value = btn.dataset.sextaPrompt || '';
         input.focus();
+      };
+    });
+    view.querySelectorAll('[data-sexta-quick-action]').forEach((btn) => {
+      btn.onclick = () => {
+        const action = btn.dataset.sextaQuickAction;
+        if (action) runSextaQuickAction(action);
+      };
+    });
+    view.querySelectorAll('[data-sexta-open-settings]').forEach((btn) => {
+      btn.onclick = () => {
+        const tabId = btn.dataset.sextaOpenSettings || 'ia';
+        openFlowlySettingsTab(tabId);
+      };
+    });
+    view.querySelectorAll('[data-sexta-command-action]').forEach((btn) => {
+      btn.onclick = () => {
+        const action = btn.dataset.sextaCommandAction;
+        const input = document.getElementById('sextaCommandInput');
+        if (action === 'clear-memory') {
+          if (input) input.value = 'limpar memoria';
+          runSextaCommand();
+          return;
+        }
+        if (action === 'send') runSextaCommand();
       };
     });
     const input = document.getElementById('sextaCommandInput');

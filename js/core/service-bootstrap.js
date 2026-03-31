@@ -12,6 +12,7 @@ function initializeFlowlyServices() {
   const flowlyErrorsFactory = window.FlowlyErrors;
   if (flowlyErrorsFactory) {
     errorHandler = flowlyErrorsFactory.create({ debugLog });
+    window.flowlyErrors = errorHandler;
   }
 
   const flowlyRoutineFactory = window.FlowlyRoutineService;

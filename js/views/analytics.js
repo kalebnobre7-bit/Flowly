@@ -31,13 +31,16 @@ window.toggleHabitToday = function (habitText, completed) {
   }, 50);
 };
 
-function removeHabit(habitText) {
-  if (
-    !confirm(
-      `Tem certeza que deseja remover "${habitText}" dos hÃ¡bitos?\n\nIsso irÃ¡ desmarcar esta tarefa como hÃ¡bito em todas as ocorrÃªncias.`
-    )
-  )
-    return;
+async function removeHabit(habitText) {
+  const confirmed = await window.FlowlyDialogs.confirm(
+    `Tem certeza que deseja remover "${habitText}" dos hÃ¡bitos?\n\nIsso irÃ¡ desmarcar esta tarefa como hÃ¡bito em todas as ocorrÃªncias.`,
+    {
+      title: 'Remover hábito',
+      confirmLabel: 'Remover',
+      tone: 'danger'
+    }
+  );
+  if (!confirmed) return;
 
   // Remover de allRecurringTasks
   const recurringIdx = allRecurringTasks.findIndex((t) => t.text === habitText);
@@ -67,6 +70,7 @@ function removeHabit(habitText) {
   saveToLocalStorage();
   renderView();
   setTimeout(() => lucide.createIcons(), 0);
+  window.FlowlyDialogs.notify(`"${habitText}" removido dos hábitos.`, 'success');
 }
 
 function renderHabitsView() {
@@ -102,7 +106,7 @@ function renderHabitsView() {
                 
                 
                 
-                    <input type="checkbox" class="checkbox-custom mt-1" ${habit.completedToday ? 'checked' : ''} onchange="toggleHabitToday('${habit.text.replace(/'/g, "\\'")}', this.checked)">
+                    <input type="checkbox" class="checkbox-custom mt-1" ${habit.completedToday ? 'checked' : ''} data-habit-toggle="${encodeURIComponent(habit.text)}">
                 
                 
                 
@@ -190,7 +194,7 @@ function renderHabitsView() {
                 
                 
                 
-                    <button onclick="removeHabit('${habit.text.replace(/'/g, "\\'")}');" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg" title="Remover hÃ¡bito">
+                    <button type="button" data-habit-remove="${encodeURIComponent(habit.text)}" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg" title="Remover hÃ¡bito">
                 
                 
                 
@@ -226,6 +230,20 @@ function renderHabitsView() {
   });
   html += `</div></div>`;
   view.innerHTML = html;
+
+  view.querySelectorAll('[data-habit-toggle]').forEach((input) => {
+    input.onchange = () => {
+      const habitText = decodeURIComponent(input.dataset.habitToggle || '');
+      toggleHabitToday(habitText, input.checked);
+    };
+  });
+
+  view.querySelectorAll('[data-habit-remove]').forEach((btn) => {
+    btn.onclick = () => {
+      const habitText = decodeURIComponent(btn.dataset.habitRemove || '');
+      removeHabit(habitText);
+    };
+  });
 }
 
 function renderAnalyticsView() {
@@ -236,7 +254,7 @@ function renderAnalyticsView() {
   const mainTab = view.dataset.mainTab || 'analytics';
   const outerTabsHTML = `
     <div style="display:flex;gap:6px;padding:0 0 20px">
-        <button onclick="document.getElementById('analyticsView').dataset.mainTab='routine';document.getElementById('analyticsView').dataset.routineTab=document.getElementById('analyticsView').dataset.routineTab||'today';renderAnalyticsView()"
+        <button type="button" data-analytics-main-tab="routine"
             style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid;cursor:pointer;transition:all 0.15s;
                 
                 
@@ -264,7 +282,7 @@ function renderAnalyticsView() {
                    border-color:${mainTab === 'routine' ? 'rgba(10,132,255,0.35)' : 'var(--border-subtle)'}">
             Rotina
         </button>
-        <button onclick="document.getElementById('analyticsView').dataset.mainTab='analytics';renderAnalyticsView()"
+        <button type="button" data-analytics-main-tab="analytics"
             style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid;cursor:pointer;transition:all 0.15s;
                 
                 
@@ -299,6 +317,14 @@ function renderAnalyticsView() {
     const routineTab = view.dataset.routineTab || 'today';
     const routineHtml = `<div class="flowly-shell"><div class="analytics-container-v2">${outerTabsHTML}<div id="routineEmbedded"></div></div></div>`;
     view.innerHTML = typeof fixMojibakeText === 'function' ? fixMojibakeText(routineHtml) : routineHtml;
+    view.querySelectorAll('[data-analytics-main-tab]').forEach((btn) => {
+      btn.onclick = () => {
+        const nextTab = btn.dataset.analyticsMainTab || 'analytics';
+        view.dataset.mainTab = nextTab;
+        if (nextTab === 'routine' && !view.dataset.routineTab) view.dataset.routineTab = 'today';
+        renderAnalyticsView();
+      };
+    });
     const embedded = document.getElementById('routineEmbedded');
     embedded.dataset.routineTab = routineTab;
     renderRoutineView(embedded);
@@ -1527,6 +1553,15 @@ function renderAnalyticsView() {
   if (typeof fixMojibakeText === 'function') {
     view.innerHTML = fixMojibakeText(view.innerHTML);
   }
+
+  view.querySelectorAll('[data-analytics-main-tab]').forEach((btn) => {
+    btn.onclick = () => {
+      const nextTab = btn.dataset.analyticsMainTab || 'analytics';
+      view.dataset.mainTab = nextTab;
+      if (nextTab === 'routine' && !view.dataset.routineTab) view.dataset.routineTab = 'today';
+      renderAnalyticsView();
+    };
+  });
 
   // -- Charts -------------------------------------------------------------
   setTimeout(() => {

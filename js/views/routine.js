@@ -7,10 +7,6 @@ function renderRoutineView(embeddedEl) {
   const activeTab = view.dataset.routineTab || 'today';
 
   // Onclick strings for tab buttons â€” update correct element and re-render
-  const tabClick = (tab) =>
-    isEmbedded
-      ? `document.getElementById('analyticsView').dataset.routineTab='${tab}';renderAnalyticsView()`
-      : `document.getElementById('routineView').dataset.routineTab='${tab}';renderRoutineView()`;
 
   // -- Constants -----------------------------------------------------------
   const today = new Date();
@@ -217,9 +213,8 @@ function renderRoutineView(embeddedEl) {
                 return `<span class="routine-habit-day-dot" style="background:${active ? (isNow ? '#0A84FF' : 'rgba(255,255,255,0.3)') : 'rgba(255,255,255,0.06)'}"></span>`;
               })
               .join('');
-            const safeText = task.text.replace(/'/g, "\\'");
             return `
-            <div class="routine-habit-row-v2" onclick="window.toggleHabitToday('${safeText}', ${!isTodayDone})">
+            <div class="routine-habit-row-v2" data-routine-habit-toggle="${encodeURIComponent(task.text)}" data-routine-habit-next="${!isTodayDone}">
                 <div class="routine-habit-check-v2 ${checkClass}">
                     <i data-lucide="check" style="width:14px;height:14px;stroke-width:3"></i>
                 </div>
@@ -331,10 +326,8 @@ function renderRoutineView(embeddedEl) {
                 <span class="routine-badge">${completedToday}/${totalToday}</span>
             </div>
             <div class="routine-habits-list">${habitsHTML}</div>
-            <button onclick="setView('week')"
-                style="width:100%;margin-top:14px;padding:11px;font-size:13px;font-weight:600;color:var(--text-secondary);background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background 0.15s,color 0.15s"
-                onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='var(--text-primary)'"
-                onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='var(--text-secondary)'">
+            <button type="button" data-routine-manage-habits="week" class="routine-manage-habits-btn"
+                >
                 Gerenciar HÃ¡bitos <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
             </button>
         </div>
@@ -409,9 +402,9 @@ function renderRoutineView(embeddedEl) {
                 <p class="routine-subtitle">${DAY_NAMES[today.getDay()]}, ${today.getDate()} de ${MONTH_NAMES[today.getMonth()]}</p>
             </div>
             <div class="routine-view-tabs">
-                <button class="routine-tab-btn ${activeTab === 'today' ? 'active' : ''}" onclick="${tabClick('today')}">Hoje</button>
-                <button class="routine-tab-btn ${activeTab === 'week' ? 'active' : ''}"  onclick="${tabClick('week')}">Semana</button>
-                <button class="routine-tab-btn ${activeTab === 'month' ? 'active' : ''}" onclick="${tabClick('month')}">Mensal</button>
+                <button type="button" class="routine-tab-btn ${activeTab === 'today' ? 'active' : ''}" data-routine-tab="today">Hoje</button>
+                <button type="button" class="routine-tab-btn ${activeTab === 'week' ? 'active' : ''}" data-routine-tab="week">Semana</button>
+                <button type="button" class="routine-tab-btn ${activeTab === 'month' ? 'active' : ''}" data-routine-tab="month">Mensal</button>
             </div>
         </div>
 
@@ -466,21 +459,56 @@ function renderRoutineView(embeddedEl) {
         ${tabContent}
     </div>`;
 
+  view.querySelectorAll('[data-routine-tab]').forEach((btn) => {
+    btn.onclick = () => {
+      const tab = btn.dataset.routineTab || 'today';
+      view.dataset.routineTab = tab;
+      if (isEmbedded) {
+        const analyticsView = document.getElementById('analyticsView');
+        if (analyticsView) analyticsView.dataset.routineTab = tab;
+        renderAnalyticsView();
+      } else {
+        renderRoutineView();
+      }
+    };
+  });
+
+  view.querySelectorAll('[data-routine-habit-toggle]').forEach((item) => {
+    item.onclick = () => {
+      const habitText = decodeURIComponent(item.dataset.routineHabitToggle || '');
+      const nextValue = item.dataset.routineHabitNext === 'true';
+      window.toggleHabitToday(habitText, nextValue);
+    };
+  });
+
+  view.querySelectorAll('[data-routine-manage-habits]').forEach((btn) => {
+    btn.onclick = () => {
+      const targetView = btn.dataset.routineManageHabits || 'week';
+      setView(targetView);
+    };
+  });
+
   if (window.lucide) lucide.createIcons();
 }
 
-function deleteWeeklyRecurringTask(index) {
-  if (!confirm('Remover esta tarefa semanal recorrente?')) return;
+async function deleteWeeklyRecurringTask(index) {
+  const confirmed = await window.FlowlyDialogs.confirm('Remover esta tarefa semanal recorrente?', {
+    title: 'Remover tarefa recorrente',
+    confirmLabel: 'Remover',
+    tone: 'danger'
+  });
+  if (!confirmed) return;
   weeklyRecurringTasks.splice(index, 1);
   localStorage.setItem('weeklyRecurringTasks', JSON.stringify(weeklyRecurringTasks));
   renderSettingsView();
+  window.FlowlyDialogs.notify('Tarefa recorrente removida.', 'success');
 }
 
 async function deleteEmptyTasks() {
   if (
-    !confirm(
+    !(await window.FlowlyDialogs.confirm(
       'Tem certeza que deseja excluir todas as tarefas vazias (sem texto)?\n\nEsta aÃ§Ã£o nÃ£o pode ser desfeita!'
-    )
+    ))
   )
     return;
 
@@ -523,7 +551,7 @@ async function deleteEmptyTasks() {
   saveToLocalStorage();
   renderView();
 
-  alert(`${deletedCount} tarefa(s) vazia(s) foram excluÃ­das!`);
+  window.FlowlyDialogs.notify(`${deletedCount} tarefa(s) vazia(s) foram excluidas.`, 'success');
 }
 
 function bindWeeklyDayButtons() {
@@ -585,6 +613,48 @@ function getWeeklyRecurringForDay(dateStr, dayOfWeek) {
       isRecurring: true
     }));
 }
+
+deleteEmptyTasks = async function () {
+  const confirmed = await window.FlowlyDialogs.confirm(
+    'Tem certeza que deseja excluir todas as tarefas vazias (sem texto)?\n\nEsta acao nao pode ser desfeita!',
+    {
+      title: 'Excluir tarefas vazias',
+      confirmLabel: 'Excluir',
+      tone: 'danger'
+    }
+  );
+  if (!confirmed) return;
+
+  let deletedCount = 0;
+
+  Object.entries(allTasksData).forEach(([dateStr, periods]) => {
+    Object.entries(periods).forEach(([period, tasks]) => {
+      if (!Array.isArray(tasks)) return;
+      const beforeLength = tasks.length;
+      const filteredTasks = tasks.filter((task) => task.text && task.text.trim() !== '');
+      const afterLength = filteredTasks.length;
+
+      deletedCount += beforeLength - afterLength;
+      allTasksData[dateStr][period] = filteredTasks;
+
+      if (filteredTasks.length === 0) delete allTasksData[dateStr][period];
+    });
+
+    if (Object.keys(allTasksData[dateStr]).length === 0) delete allTasksData[dateStr];
+  });
+
+  if (currentUser) {
+    try {
+      await supabaseClient.from('tasks').delete().eq('user_id', currentUser.id).or('text.is.null,text.eq.');
+    } catch (error) {
+      console.error('Erro ao deletar tarefas vazias do Supabase:', error);
+    }
+  }
+
+  saveToLocalStorage();
+  renderView();
+  window.FlowlyDialogs.notify(`${deletedCount} tarefa(s) vazia(s) foram excluidas.`, 'success');
+};
 
 window.renderRoutineView = renderRoutineView;
 window.deleteWeeklyRecurringTask = deleteWeeklyRecurringTask;

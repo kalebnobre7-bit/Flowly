@@ -122,7 +122,7 @@ window.toggleTaskExpansion = function (task, el) {
       isRecurring &&
       allRecurringTasks.some((t) => t !== recDefinition && String(t.text || '') === newText)
     ) {
-      alert('Ja existe uma rotina com esse nome.');
+      window.FlowlyDialogs.notify('Ja existe uma rotina com esse nome.', 'warn');
       nameInput.value = oldText;
       return;
     }
@@ -427,7 +427,7 @@ window.toggleTaskExpansion = function (task, el) {
     dayBtn.type = 'button';
     dayBtn.className = `task-day-chip${isActive ? ' is-active' : ''}`;
     dayBtn.textContent = d;
-    dayBtn.onclick = (e) => {
+    dayBtn.onclick = async (e) => {
       e.stopPropagation();
       if (!recDefinition && !isRecurring) {
         const newRecTask = {
@@ -450,7 +450,15 @@ window.toggleTaskExpansion = function (task, el) {
         if (dayIndex >= 0) {
           recDefinition.daysOfWeek.splice(dayIndex, 1);
           if (recDefinition.daysOfWeek.length === 0) {
-            if (confirm('Deixar sem nenhum dia excluirá a rotina. Confirmar?')) {
+            const confirmed = await window.FlowlyDialogs.confirm(
+              'Deixar sem nenhum dia vai excluir a rotina. Confirmar?',
+              {
+                title: 'Excluir rotina',
+                confirmLabel: 'Excluir',
+                tone: 'danger'
+              }
+            );
+            if (confirmed) {
               allRecurringTasks = allRecurringTasks.filter((t) => t.text !== task.text);
             } else {
               recDefinition.daysOfWeek.push(i);
@@ -590,7 +598,12 @@ window.toggleTaskExpansion = function (task, el) {
 };
 
 window.deleteTaskInline = async function (task, dateStr, period, _indexStr, isRecurring) {
-  if (confirm('Excluir esta tarefa definitivamente?')) {
+  const confirmed = await window.FlowlyDialogs.confirm('Excluir esta tarefa definitivamente?', {
+    title: 'Excluir tarefa',
+    confirmLabel: 'Excluir',
+    tone: 'danger'
+  });
+  if (confirmed) {
     // Cancel any pending Realtime-driven re-render so it doesn't race with the optimistic update
     if (window._rtTimeout) {
       clearTimeout(window._rtTimeout);

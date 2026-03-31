@@ -279,10 +279,13 @@
 
       if (error) {
         console.error('Error fetching tasks from Supabase:', error);
-        alert(
-          'Erro critico ao carregar tarefas do servidor:\n' +
-            (error.message || JSON.stringify(error))
-        );
+        if (window.FlowlyDialogs && typeof window.FlowlyDialogs.notify === 'function') {
+          window.FlowlyDialogs.notify(
+            'Erro critico ao carregar tarefas do servidor: ' +
+              (error.message || JSON.stringify(error)),
+            'error'
+          );
+        }
         return;
       }
 

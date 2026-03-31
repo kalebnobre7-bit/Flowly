@@ -17,6 +17,10 @@ function renderMonth() {
     'Novembro',
     'Dezembro'
   ].map((item) => (typeof fixMojibakeText === 'function' ? fixMojibakeText(item) : item));
+  const currentMonthLabel =
+    typeof fixMojibakeText === 'function' ? fixMojibakeText('MÃªs Atual') : 'Mês Atual';
+  const saturdayLabel =
+    typeof fixMojibakeText === 'function' ? fixMojibakeText('SÃ¡b') : 'Sáb';
 
   let html = `
                 
@@ -42,7 +46,7 @@ function renderMonth() {
                 
                 
                 
-                        <button onclick="currentMonthOffset--; renderView();" class="utility-btn">
+                        <button type="button" data-month-nav="-1" class="utility-btn">
                 
                 
                 
@@ -90,7 +94,7 @@ function renderMonth() {
                 
                 
                 
-                        <button onclick="currentMonthOffset++; renderView();" class="utility-btn">
+                        <button type="button" data-month-nav="1" class="utility-btn">
                 
                 
                 
@@ -114,7 +118,7 @@ function renderMonth() {
                 
                 
                 
-                        <button onclick="currentMonthOffset = 0; renderView();" class="btn-secondary text-xs px-3 py-1 ml-4" style="width: auto; padding: 6px 12px;">
+                        <button type="button" data-month-nav="current" class="btn-secondary text-xs px-3 py-1 ml-4" style="width: auto; padding: 6px 12px;">
                 
                 
                 
@@ -122,7 +126,7 @@ function renderMonth() {
                 
                 
                 
-                            MÃªs Atual
+                            ${currentMonthLabel}
                 
                 
                 
@@ -203,7 +207,7 @@ function renderMonth() {
                 
                 
                 
-                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">SÃ¡b</div>
+                        <div class="text-center text-xs font-semibold text-gray-500 uppercase">${saturdayLabel}</div>
                 
                 
                 
@@ -319,7 +323,7 @@ function renderMonth() {
                 
                 
                          title="${monthDayTooltipAttr}"
-                         onclick="goToDate('${dateStr}')">
+                         data-go-to-date="${dateStr}">
                 
                 
                 
@@ -524,5 +528,21 @@ function renderMonth() {
             `;
 
   view.innerHTML = typeof fixMojibakeText === 'function' ? fixMojibakeText(html) : html;
+
+  view.querySelectorAll('[data-month-nav]').forEach((btn) => {
+    btn.onclick = () => {
+      const action = btn.dataset.monthNav;
+      if (action === 'current') currentMonthOffset = 0;
+      else currentMonthOffset += Number(action || 0);
+      renderView();
+    };
+  });
+
+  view.querySelectorAll('[data-go-to-date]').forEach((dayCard) => {
+    dayCard.onclick = () => {
+      const dateStr = dayCard.dataset.goToDate;
+      if (dateStr) goToDate(dateStr);
+    };
+  });
 }
 

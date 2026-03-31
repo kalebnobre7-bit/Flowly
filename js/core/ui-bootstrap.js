@@ -40,15 +40,20 @@
 
   function deleteRoutineTask(text) {
     if (!text) return;
-    if (!confirm(`Remover "${text}" da rotina?`)) return;
+    window.FlowlyDialogs.confirm(`Remover "${text}" da rotina?`, {
+      title: 'Remover da rotina',
+      confirmLabel: 'Remover',
+      tone: 'danger'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      const idx = allRecurringTasks.findIndex((task) => task.text === text);
+      if (idx < 0) return;
 
-    const idx = allRecurringTasks.findIndex((task) => task.text === text);
-    if (idx < 0) return;
-
-    allRecurringTasks.splice(idx, 1);
-    saveToLocalStorage();
-    syncRecurringTasksToSupabase();
-    renderView();
+      allRecurringTasks.splice(idx, 1);
+      saveToLocalStorage();
+      syncRecurringTasksToSupabase();
+      renderView();
+    });
   }
 
   function toggleRoutineToday(text, completed) {
@@ -70,6 +75,12 @@
     if (typeof showWeeklyRecurrenceDialog === 'function') {
       showWeeklyRecurrenceDialog();
     }
+  }
+
+  function setAuthModalVisibility(shouldShow) {
+    const authModal = document.getElementById('authModal');
+    if (!authModal) return;
+    authModal.classList.toggle('show', shouldShow);
   }
 
   function bindAuthUi() {
@@ -142,7 +153,12 @@
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) {
       btnLogout.onclick = async function () {
-        if (confirm('Deseja realmente sair?')) {
+        const confirmed = await window.FlowlyDialogs.confirm('Deseja realmente sair?', {
+          title: 'Encerrar sessão',
+          confirmLabel: 'Sair',
+          tone: 'danger'
+        });
+        if (confirmed) {
           await signOut();
         }
       };
@@ -287,6 +303,28 @@
         document.getElementById('taskEditModal').classList.remove('show');
       };
     }
+
+    document.addEventListener('click', function (event) {
+      const viewBtn = event.target.closest('[data-flowly-view]');
+      if (viewBtn) {
+        const targetView = viewBtn.dataset.flowlyView;
+        if (targetView) setView(targetView);
+        return;
+      }
+
+      const weekNavBtn = event.target.closest('[data-week-nav]');
+      if (weekNavBtn) {
+        const action = weekNavBtn.dataset.weekNav;
+        if (action === 'current') goToCurrentWeek();
+        else changeWeek(Number(action || 0));
+        return;
+      }
+
+      const authModalBtn = event.target.closest('[data-auth-modal]');
+      if (authModalBtn) {
+        setAuthModalVisibility(authModalBtn.dataset.authModal === 'open');
+      }
+    });
   }
 
   window.setView = setView;
@@ -303,6 +341,7 @@
   window.changeWeek = changeWeek;
   window.goToCurrentWeek = goToCurrentWeek;
   window.signOut = signOut;
+  window.setAuthModalVisibility = setAuthModalVisibility;
 
   document.addEventListener('DOMContentLoaded', function () {
     bindAuthUi();

@@ -6017,6 +6017,17 @@ body.dragging-active .task-drop-zone {
         align-items: flex-start;
     }
 
+    .settings-tabs {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
+    }
+
+    .settings-tab-btn {
+        flex: 0 0 auto;
+    }
+
     .settings-panels {
         grid-template-columns: 1fr;
     }
@@ -6050,6 +6061,28 @@ body.dragging-active .task-drop-zone {
     .task-expansion-footer {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .routine-score-card,
+    .routine-metrics-strip {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .settings-shell,
+    .routine-container {
+        width: 100%;
+    }
+
+    .settings-tab-btn {
+        padding: 10px 12px;
+    }
+
+    .routine-section-card,
+    .routine-score-card {
+        padding-left: 14px;
+        padding-right: 14px;
     }
 }
 
@@ -6293,4 +6326,149 @@ body.dragging-active .task-drop-zone {
   .projects-starter-card {
     min-height:0;
   }
+}
+
+@media (max-width: 1100px) {
+  .flowly-shell {
+    padding: 24px 18px 112px;
+  }
+
+  #weekGrid.today-container {
+    grid-template-columns: 1fr !important;
+    max-width: min(100%, 940px);
+    gap: 18px;
+    padding: 24px 18px 112px;
+    min-height: auto;
+  }
+
+  .today-main {
+    max-width: none;
+  }
+
+  .today-sidebar {
+    width: 100%;
+    position: static;
+    top: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .today-hero,
+  .today-summary-strip,
+  .sexta-stats-strip,
+  .sexta-secondary-grid,
+  .sexta-memory-guide--inline {
+    grid-template-columns: 1fr;
+  }
+
+  .sexta-topbar {
+    flex-direction: column;
+  }
+
+  .sexta-topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .flowly-shell {
+    padding: 20px 14px 108px;
+  }
+
+  #weekGrid.today-container {
+    padding: 18px 0 108px;
+    gap: 16px;
+    max-width: 100%;
+  }
+
+  .today-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .today-hero-main,
+  .today-hero-card,
+  .today-summary-card,
+  .sexta-chat-stage,
+  .sexta-secondary-panel {
+    padding: 16px;
+  }
+
+  .today-header {
+    margin-bottom: 22px;
+  }
+
+  .today-header h1,
+  .projects-hero-main h2 {
+    font-size: 30px;
+  }
+
+  .sexta-shell--chatfirst .sexta-chat-thread {
+    min-height: 300px;
+    max-height: none;
+  }
+
+  .sexta-chat-stage-head,
+  .projects-board-header {
+    flex-direction: column;
+  }
+
+  .projects-shell--rebuilt,
+  .projects-layout,
+  .projects-hero {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .flowly-shell {
+    padding: 18px 12px 104px;
+  }
+
+  .today-hero-main,
+  .today-hero-card,
+  .today-summary-card,
+  .projects-hero,
+  .projects-board-section,
+  .projects-create-card,
+  .projects-command-card,
+  .projects-suggestions-card,
+  .sexta-chat-stage,
+  .sexta-secondary-panel {
+    padding: 14px;
+  }
+
+  .projects-item-title-row strong,
+  .sexta-secondary-card strong {
+    font-size: 20px;
+  }
+
+  .sexta-inline-actions,
+  .sexta-quick-actions--minimal {
+    gap: 8px;
+  }
+}
+
+.routine-manage-habits-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: background 0.15s,color 0.15s;
+}
+
+.routine-manage-habits-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
 }

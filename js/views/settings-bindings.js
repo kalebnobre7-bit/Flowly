@@ -1,4 +1,6 @@
 function bindSettingsInteractions() {
+  const notify = (message, level = 'warn') => window.FlowlyDialogs.notify(message, level);
+
   document.querySelectorAll('[data-settings-tab]').forEach((btn) => {
     btn.addEventListener('click', () => {
       localStorage.setItem(FLOWLY_SETTINGS_TAB_KEY, btn.dataset.settingsTab || 'conta');
@@ -93,12 +95,12 @@ function bindSettingsInteractions() {
   if (toggleNotif) {
     toggleNotif.onclick = async function () {
       if (!('Notification' in window)) {
-        alert('Este navegador nao suporta notificacoes.');
+        notify('Este navegador nao suporta notificacoes.', 'warn');
         return;
       }
 
       if (!window.isSecureContext) {
-        alert('Notificacoes exigem HTTPS ou localhost. Se abriu por arquivo, rode via servidor local.');
+        notify('Notificacoes exigem HTTPS ou localhost. Se abriu por arquivo, rode via servidor local.', 'warn');
         return;
       }
 
@@ -108,7 +110,7 @@ function bindSettingsInteractions() {
 
       if (nextEnabled) {
         if (Notification.permission === 'denied') {
-          alert('Permissao de notificacao bloqueada no navegador. Libere nas configuracoes do site.');
+          notify('Permissao de notificacao bloqueada no navegador. Libere nas configuracoes do site.', 'warn');
           renderSettingsView();
           return;
         }
@@ -326,9 +328,9 @@ function bindSettingsInteractions() {
             localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
           }
           renderView();
-          alert('Backup importado com sucesso!');
+          notify('Backup importado com sucesso!', 'success');
         } catch (error) {
-          alert('Erro ao importar backup: ' + error.message);
+          notify('Erro ao importar backup: ' + error.message, 'error');
         }
       };
       reader.readAsText(file);
@@ -339,10 +341,17 @@ function bindSettingsInteractions() {
   if (fixBtn) {
     fixBtn.onclick = async () => {
       if (!currentUser) {
-        alert('Faca login primeiro!');
+        notify('Faca login primeiro!', 'warn');
         return;
       }
-      if (!confirm('Remove duplicatas e tarefas corrompidas do banco. Continuar?')) return;
+      const confirmed = await window.FlowlyDialogs.confirm(
+        'Remove duplicatas e tarefas corrompidas do banco. Continuar?',
+        {
+          title: 'Corrigir banco',
+          confirmLabel: 'Corrigir'
+        }
+      );
+      if (!confirmed) return;
       const btn = document.getElementById('btnFixDuplicates');
       const originalText =
         '<i data-lucide="wrench" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i><span class="text-xs font-semibold">Corrigir Banco</span>';
@@ -351,7 +360,7 @@ function bindSettingsInteractions() {
       try {
         const { data: allT } = await supabaseClient.from('tasks').select('*').eq('user_id', currentUser.id);
         if (!allT) {
-          alert('Erro ao buscar dados.');
+          notify('Erro ao buscar dados.', 'error');
           return;
         }
         const recurringTexts = new Set(allRecurringTasks.map((rt) => rt.text));
@@ -373,9 +382,9 @@ function bindSettingsInteractions() {
         localStorage.removeItem('allTasksData');
         await loadDataFromSupabase();
         renderView();
-        alert(`${del.length} registros removidos.`);
+        notify(`${del.length} registros removidos.`, 'success');
       } catch (e) {
-        alert('Erro: ' + e.message);
+        notify('Erro: ' + e.message, 'error');
       } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -387,7 +396,15 @@ function bindSettingsInteractions() {
   const clearBtn = document.getElementById('btnClearAllSettings');
   if (clearBtn) {
     clearBtn.onclick = async () => {
-      if (!confirm('Apagar TODOS os dados? Isso nao pode ser desfeito!')) return;
+      const confirmed = await window.FlowlyDialogs.confirm(
+        'Apagar TODOS os dados? Isso nao pode ser desfeito!',
+        {
+          title: 'Limpar todos os dados',
+          confirmLabel: 'Apagar tudo',
+          tone: 'danger'
+        }
+      );
+      if (!confirmed) return;
       const authKeys = Object.keys(localStorage).filter((k) => k.startsWith('sb-') || k === 'flowly_persist_session');
       const authData = {};
       authKeys.forEach((k) => (authData[k] = localStorage.getItem(k)));
@@ -469,7 +486,12 @@ async function renderSettingsInlineEditors() {
     btnDelete.className =
       'text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1';
     btnDelete.onclick = async () => {
-      if (!confirm('Excluir este item?')) return;
+      const confirmed = await window.FlowlyDialogs.confirm('Excluir este item?', {
+        title: 'Excluir item',
+        confirmLabel: 'Excluir',
+        tone: 'danger'
+      });
+      if (!confirmed) return;
       const idx = arr.indexOf(item);
       if (idx > -1) arr.splice(idx, 1);
       row.remove();

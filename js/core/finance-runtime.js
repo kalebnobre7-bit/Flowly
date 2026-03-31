@@ -463,7 +463,7 @@ window.saveFinanceTransactionFromForm = async function () {
   const selectedProject = getProjectOptions().find((item) => item.id === projectRef) || null;
 
   if (!description || !Number.isFinite(amount) || amount <= 0) {
-    alert('Preenche descriÃ§Ã£o e valor certinho.');
+    window.FlowlyDialogs.notify('Preenche descricao e valor certinho.', 'warn');
     return;
   }
 

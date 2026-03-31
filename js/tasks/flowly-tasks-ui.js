@@ -859,11 +859,11 @@ function showEditToolbar(e, task, label) {
           createdAt: new Date().toISOString()
         });
       }
-      alert(`"${task.text}" marcado como hábito e adicionado à Rotina!`);
+      window.FlowlyDialogs.notify(`"${task.text}" marcado como habito e adicionado a Rotina!`, 'success');
     } else {
       const recurringIdx2 = allRecurringTasks.findIndex((t) => t.text === task.text);
       if (recurringIdx2 !== -1) allRecurringTasks.splice(recurringIdx2, 1);
-      alert(`"${task.text}" removido dos hábitos e da Rotina.`);
+      window.FlowlyDialogs.notify(`"${task.text}" removido dos habitos e da Rotina.`, 'success');
     }
 
     saveToLocalStorage();
@@ -967,7 +967,11 @@ document.querySelectorAll('.quick-add-option').forEach((option) => {
     document.getElementById('quickAddMenu').style.display = 'none';
 
     if (type === 'routine') {
-      const text = prompt('Digite a tarefa de rotina diária:');
+      const text = await window.FlowlyDialogs.prompt('Digite a tarefa de rotina diaria:', {
+        title: 'Nova rotina',
+        confirmLabel: 'Criar',
+        inputPlaceholder: 'Ex: Oracao e Salmo'
+      });
       if (text && text.trim()) {
         allRecurringTasks.push({
           text: text.trim(),
@@ -986,7 +990,11 @@ document.querySelectorAll('.quick-add-option').forEach((option) => {
       showWeeklyRecurrenceDialog();
     } else if (type === 'custom') {
       // Abre um prompt para tarefa customizada (ex: adicionar em data específica)
-      const text = prompt('Digite a tarefa:');
+      const text = await window.FlowlyDialogs.prompt('Digite a tarefa:', {
+        title: 'Nova tarefa',
+        confirmLabel: 'Criar',
+        inputPlaceholder: 'Ex: Cobrar cliente antigo'
+      });
       if (text && text.trim()) {
         const dateStr = localDateStr();
         const period = 'Tarefas';

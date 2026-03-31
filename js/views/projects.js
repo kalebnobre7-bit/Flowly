@@ -178,48 +178,48 @@ function renderProjectsView() {
             <div class="projects-config-grid projects-config-grid--tight">
             <label class="projects-config-field">
               <span>Nome</span>
-              <input class="finance-input" type="text" value="${safeName}" onchange="updateProjectField('${project.id}','name',this.value)">
+              <input class="finance-input" type="text" value="${safeName}" data-project-field="name" data-project-id="${project.id}">
             </label>
             <label class="projects-config-field">
               <span>Cliente</span>
-              <input class="finance-input" type="text" value="${safeClient}" placeholder="Nome do cliente" onchange="updateProjectField('${project.id}','clientName',this.value)">
+              <input class="finance-input" type="text" value="${safeClient}" placeholder="Nome do cliente" data-project-field="clientName" data-project-id="${project.id}">
             </label>
             <label class="projects-config-field">
               <span>Tipo</span>
-              <input class="finance-input" type="text" value="${safeType}" placeholder="LP, Shopify, etc" onchange="updateProjectField('${project.id}','serviceType',this.value)">
+              <input class="finance-input" type="text" value="${safeType}" placeholder="LP, Shopify, etc" data-project-field="serviceType" data-project-id="${project.id}">
             </label>
             <label class="projects-config-field">
               <span>Valor previsto</span>
-              <input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.expectedValue || 0)}" onchange="updateProjectField('${project.id}','expectedValue',this.value)">
+              <input class="finance-input" type="number" min="0" step="0.01" value="${Number(project.expectedValue || 0)}" data-project-field="expectedValue" data-project-id="${project.id}">
             </label>
             <label class="projects-config-field">
               <span>Inicio</span>
-              <input class="finance-input" type="date" value="${project.startDate || ''}" onchange="updateProjectField('${project.id}','startDate',this.value)">
+              <input class="finance-input" type="date" value="${project.startDate || ''}" data-project-field="startDate" data-project-id="${project.id}">
             </label>
             <label class="projects-config-field">
               <span>Prazo</span>
-              <input class="finance-input" type="date" value="${project.deadline || ''}" onchange="updateProjectField('${project.id}','deadline',this.value)">
+              <input class="finance-input" type="date" value="${project.deadline || ''}" data-project-field="deadline" data-project-id="${project.id}">
             </label>
             <label class="projects-config-field">
               <span>Conclusao real</span>
-              <input class="finance-input" type="date" value="${project.completionDate || ''}" onchange="updateProjectField('${project.id}','completionDate',this.value)">
+              <input class="finance-input" type="date" value="${project.completionDate || ''}" data-project-field="completionDate" data-project-id="${project.id}">
             </label>
             <label class="projects-toggle-pill projects-toggle-pill--field">
               <input type="checkbox" ${
                 project.isPaid ? 'checked' : ''
-              } onchange="updateProjectField('${project.id}','isPaid',this.checked)">
+              } data-project-field="isPaid" data-project-id="${project.id}">
               <span>Pago</span>
             </label>
             <label class="projects-toggle-pill projects-toggle-pill--field">
               <input type="checkbox" ${
                 project.isDraft ? 'checked' : ''
-              } onchange="updateProjectField('${project.id}','isDraft',this.checked)">
+              } data-project-field="isDraft" data-project-id="${project.id}">
               <span>Template</span>
             </label>
             <label class="projects-toggle-pill projects-toggle-pill--field">
               <input type="checkbox" ${
                 project.collapseSubtasks !== false ? 'checked' : ''
-              } onchange="updateProjectField('${project.id}','collapseSubtasks',this.checked)">
+              } data-project-field="collapseSubtasks" data-project-id="${project.id}">
               <span>Recolher subtarefas</span>
             </label>
             </div>
@@ -229,17 +229,17 @@ function renderProjectsView() {
             <summary>Notas, tarefas e checklist</summary>
             <label class="projects-config-field projects-config-field--full">
             <span>Notas operacionais</span>
-            <textarea class="finance-input projects-note-textarea" onchange="updateProjectField('${project.id}','notes',this.value)" placeholder="Resumo rapido, proximo passo, observacoes de cliente...">${notesValue}</textarea>
+            <textarea class="finance-input projects-note-textarea" data-project-field="notes" data-project-id="${project.id}" placeholder="Resumo rapido, proximo passo, observacoes de cliente...">${notesValue}</textarea>
             </label>
 
             <div class="projects-row-actions">
-            <button class="btn-secondary projects-btn-inline" onclick="addTaskInsideProject('${project.id}')">Adicionar tarefa</button>
+            <button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="add-task" data-project-id="${project.id}">Adicionar tarefa</button>
             ${
               project.status !== 'archived'
-                ? `<button class="btn-secondary projects-btn-inline" onclick="archiveProject('${project.id}')">Arquivar</button>`
+                ? `<button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="archive" data-project-id="${project.id}">Arquivar</button>`
                 : ''
             }
-            <button class="btn-secondary projects-btn-inline" onclick="deleteProject('${project.id}')">Remover</button>
+            <button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="delete" data-project-id="${project.id}">Remover</button>
             </div>
 
             <div class="projects-item-sections projects-item-sections--stacked">
@@ -247,7 +247,7 @@ function renderProjectsView() {
               <div class="projects-linked-header">Checklist padrao</div>
               <textarea id="${templateTextareaId}" class="finance-input projects-template-textarea" placeholder="Uma tarefa por linha">${templateValue}</textarea>
               <div class="projects-template-actions">
-                <button class="btn-secondary projects-btn-inline" onclick="saveProjectTemplateTasks('${project.id}','${templateTextareaId}')">Salvar checklist</button>
+                <button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="save-template" data-project-id="${project.id}" data-project-template-id="${templateTextareaId}">Salvar checklist</button>
               </div>
             </div>
 
@@ -267,7 +267,7 @@ function renderProjectsView() {
                             item.task.completed ? ' • concluida' : ''
                           }</p>
                               </div>
-                              <button class="btn-secondary projects-btn-inline" onclick="unlinkTaskFromProject('${item.dateStr}','${item.period}',${item.index})">Desvincular</button>
+                              <button type="button" class="btn-secondary projects-btn-inline" data-project-card-action="unlink-task" data-project-task-date="${item.dateStr}" data-project-task-period="${item.period}" data-project-task-index="${item.index}">Desvincular</button>
                             </div>
                           `
                         )
@@ -292,7 +292,7 @@ function renderProjectsView() {
           <h2>Projetos organizados pela operacao</h2>
           <p>${heroInsight}</p>
           <div class="projects-hero-actions">
-            <button onclick="openQuickProjectModal()" class="btn-primary projects-hero-cta projects-btn-inline">
+            <button type="button" data-projects-action="open-quick-modal" class="btn-primary projects-hero-cta projects-btn-inline">
               Novo projeto
             </button>
             <span class="projects-hero-pill">${filteredProjects.length} na visao</span>
@@ -374,28 +374,28 @@ function renderProjectsView() {
       <section class="projects-filters-bar projects-filters-bar--rebuilt">
         <button class="projects-filter-chip ${
           projectsFilter === 'all' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('all')">Todos</button>
+        }" data-projects-filter="all">Todos</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'active' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('active')">Ativos (${activeCount})</button>
+        }" data-projects-filter="active">Ativos (${activeCount})</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'late' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('late')">Atrasados (${lateCount})</button>
+        }" data-projects-filter="late">Atrasados (${lateCount})</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'paid' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('paid')">Pagos (${paidCount})</button>
+        }" data-projects-filter="paid">Pagos (${paidCount})</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'unpaid' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('unpaid')">Nao pagos (${unpaidCount})</button>
+        }" data-projects-filter="unpaid">Nao pagos (${unpaidCount})</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'done' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('done')">Concluidos (${doneCount})</button>
+        }" data-projects-filter="done">Concluidos (${doneCount})</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'draft' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('draft')">Templates (${draftCount})</button>
+        }" data-projects-filter="draft">Templates (${draftCount})</button>
         <button class="projects-filter-chip ${
           projectsFilter === 'archived' ? 'is-active' : ''
-        }" onclick="setProjectsFilter('archived')">Arquivados (${archivedCount})</button>
+        }" data-projects-filter="archived">Arquivados (${archivedCount})</button>
       </section>
 
       <section class="projects-layout">
@@ -505,7 +505,7 @@ function renderProjectsView() {
                                       <strong>${escapeProjectHtml(item.transaction.description)}</strong>
                                       <p>${formatBRL(item.transaction.amount)} • sugestao: ${escapeProjectHtml(item.suggestion.name)}</p>
                                     </div>
-                                    <button class="btn-secondary projects-btn-inline" onclick="applySuggestedTransactionProject('${item.transaction.id}','${item.suggestion.id}')">Aplicar</button>
+                                    <button type="button" class="btn-secondary projects-btn-inline" data-projects-apply-transaction="${item.transaction.id}" data-projects-suggestion="${item.suggestion.id}">Aplicar</button>
                                   </div>
                                 `
                               )
@@ -607,8 +607,8 @@ function renderProjectsView() {
               </details>
 
               <div class="projects-create-actions">
-                <button class="btn-secondary projects-btn-inline" onclick="createProjectQuick()">Criar rapido</button>
-                <button class="btn-primary projects-btn-inline" onclick="createProjectWithLinks()">Criar projeto</button>
+                <button type="button" class="btn-secondary projects-btn-inline" data-projects-action="create-quick">Criar rapido</button>
+                <button type="button" class="btn-primary projects-btn-inline" data-projects-action="create-linked">Criar projeto</button>
               </div>
             </div>
           </section>
@@ -689,7 +689,7 @@ function renderProjectsView() {
                                 <strong>${escapeProjectHtml(item.text)}</strong>
                                 <p>${escapeProjectHtml(item.suggestion.name)}</p>
                               </div>
-                              <button class="btn-secondary projects-btn-inline" onclick="applySuggestedTaskProject('${item.dateStr}','${item.period}',${item.index},'${item.suggestion.id}')">Aplicar</button>
+                              <button type="button" class="btn-secondary projects-btn-inline" data-projects-apply-task-date="${item.dateStr}" data-projects-apply-task-period="${item.period}" data-projects-apply-task-index="${item.index}" data-projects-suggestion="${item.suggestion.id}">Aplicar</button>
                             </div>
                           `
                         )
@@ -712,7 +712,7 @@ function renderProjectsView() {
                             item.suggestion.name
                           )}</p>
                               </div>
-                              <button class="btn-secondary projects-btn-inline" onclick="applySuggestedTransactionProject('${item.transaction.id}','${item.suggestion.id}')">Aplicar</button>
+                              <button type="button" class="btn-secondary projects-btn-inline" data-projects-apply-transaction="${item.transaction.id}" data-projects-suggestion="${item.suggestion.id}">Aplicar</button>
                             </div>
                           `
                         )
@@ -725,5 +725,92 @@ function renderProjectsView() {
         </aside>
       </section>
     </div>`;
+
+  view.querySelectorAll('[data-projects-filter]').forEach((btn) => {
+    btn.onclick = () => {
+      const nextFilter = btn.dataset.projectsFilter || 'all';
+      setProjectsFilter(nextFilter);
+    };
+  });
+
+  view.querySelectorAll('[data-projects-action]').forEach((btn) => {
+    btn.onclick = () => {
+      const action = btn.dataset.projectsAction;
+      if (action === 'open-quick-modal') openQuickProjectModal();
+      if (action === 'create-quick') createProjectQuick();
+      if (action === 'create-linked') createProjectWithLinks();
+    };
+  });
+
+  view.querySelectorAll('[data-projects-apply-transaction]').forEach((btn) => {
+    btn.onclick = () => {
+      const transactionId = btn.dataset.projectsApplyTransaction;
+      const suggestionId = btn.dataset.projectsSuggestion;
+      if (transactionId && suggestionId) {
+        applySuggestedTransactionProject(transactionId, suggestionId);
+      }
+    };
+  });
+
+  view.querySelectorAll('[data-projects-apply-task-date]').forEach((btn) => {
+    btn.onclick = () => {
+      const dateStr = btn.dataset.projectsApplyTaskDate;
+      const period = btn.dataset.projectsApplyTaskPeriod;
+      const index = Number(btn.dataset.projectsApplyTaskIndex);
+      const suggestionId = btn.dataset.projectsSuggestion;
+      if (dateStr && period && Number.isFinite(index) && suggestionId) {
+        applySuggestedTaskProject(dateStr, period, index, suggestionId);
+      }
+    };
+  });
+
+  view.querySelectorAll('[data-project-field]').forEach((field) => {
+    field.onchange = () => {
+      const projectId = field.dataset.projectId;
+      const projectField = field.dataset.projectField;
+      if (!projectId || !projectField) return;
+      const value = field.type === 'checkbox' ? field.checked : field.value;
+      updateProjectField(projectId, projectField, value);
+    };
+  });
+
+  view.querySelectorAll('[data-project-card-action]').forEach((btn) => {
+    btn.onclick = () => {
+      const action = btn.dataset.projectCardAction;
+      if (action === 'add-task') {
+        const projectId = btn.dataset.projectId;
+        if (projectId) addTaskInsideProject(projectId);
+        return;
+      }
+
+      if (action === 'archive') {
+        const projectId = btn.dataset.projectId;
+        if (projectId) archiveProject(projectId);
+        return;
+      }
+
+      if (action === 'delete') {
+        const projectId = btn.dataset.projectId;
+        if (projectId) deleteProject(projectId);
+        return;
+      }
+
+      if (action === 'save-template') {
+        const projectId = btn.dataset.projectId;
+        const textareaId = btn.dataset.projectTemplateId;
+        if (projectId && textareaId) saveProjectTemplateTasks(projectId, textareaId);
+        return;
+      }
+
+      if (action === 'unlink-task') {
+        const dateStr = btn.dataset.projectTaskDate;
+        const period = btn.dataset.projectTaskPeriod;
+        const index = Number(btn.dataset.projectTaskIndex);
+        if (dateStr && period && Number.isFinite(index)) {
+          unlinkTaskFromProject(dateStr, period, index);
+        }
+      }
+    };
+  });
 }
 

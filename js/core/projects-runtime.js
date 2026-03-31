@@ -158,7 +158,7 @@ window.createProjectQuick = async function () {
   const name = (document.getElementById('projectQuickName')?.value || '').trim();
   const clientName = (document.getElementById('projectQuickClient')?.value || '').trim();
   if (!name) {
-    alert('DÃ¡ um nome pro projeto primeiro.');
+    notifyProjectMessage('Da um nome pro projeto primeiro.', 'warn');
     return;
   }
   projectsState.projects.unshift({
@@ -241,7 +241,7 @@ window.createProjectWithLinks = function () {
   const template = templateId ? findProjectById(templateId) : null;
 
   if (!name) {
-    alert('DÃ¡ um nome pro projeto primeiro.');
+    notifyProjectMessage('Da um nome pro projeto primeiro.', 'warn');
     return;
   }
 
@@ -444,6 +444,111 @@ window.applySuggestedTransactionProject = function (transactionId, projectId) {
   if (currentView === 'finance') renderFinanceView();
 };
 
+function getProjectsNotifier() {
+  return window.flowlyErrors || window.FlowlyErrorHandler || null;
+}
+
+function notifyProjectMessage(message, level = 'warn') {
+  const notifier = getProjectsNotifier();
+  if (notifier && typeof notifier.notify === 'function') {
+    notifier.notify(message, level);
+    return;
+  }
+  console[level === 'error' ? 'error' : 'warn'](message);
+}
+
+function closeProjectsPromptModal() {
+  const modal = document.getElementById('projectsPromptModal');
+  if (modal) modal.remove();
+}
+
+function openProjectsPromptModal(options) {
+  closeProjectsPromptModal();
+
+  const {
+    title = 'Confirmar',
+    description = '',
+    confirmLabel = 'Confirmar',
+    cancelLabel = 'Cancelar',
+    inputPlaceholder = '',
+    inputValue = '',
+    requireValue = false,
+    onConfirm
+  } = options || {};
+
+  const overlay = document.createElement('div');
+  overlay.id = 'projectsPromptModal';
+  overlay.className = 'modal-overlay show';
+  overlay.style.zIndex = '100000';
+
+  overlay.innerHTML = `
+    <div class="modal-content" style="max-width:420px;display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+        <div>
+          <h3 style="margin:0;font-size:20px;font-weight:800;color:#fff;">${escapeProjectHtml(title)}</h3>
+          ${description ? `<p style="margin:8px 0 0;color:rgba(255,255,255,0.6);font-size:13px;line-height:1.5;">${escapeProjectHtml(description)}</p>` : ''}
+        </div>
+        <button type="button" data-projects-prompt-close class="btn-secondary projects-btn-inline" style="padding:8px 12px;">Fechar</button>
+      </div>
+      ${
+        requireValue
+          ? `<input id="projectsPromptInput" class="finance-input" type="text" placeholder="${escapeProjectHtml(inputPlaceholder)}" value="${escapeProjectHtml(inputValue)}">`
+          : ''
+      }
+      <div style="display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;">
+        <button type="button" data-projects-prompt-close class="btn-secondary projects-btn-inline">${escapeProjectHtml(cancelLabel)}</button>
+        <button type="button" id="projectsPromptConfirm" class="btn-primary projects-btn-inline">${escapeProjectHtml(confirmLabel)}</button>
+      </div>
+    </div>
+  `;
+
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) closeProjectsPromptModal();
+  });
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelectorAll('[data-projects-prompt-close]').forEach((btn) => {
+    btn.onclick = () => closeProjectsPromptModal();
+  });
+
+  const input = document.getElementById('projectsPromptInput');
+  if (input) {
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 30);
+    input.onkeydown = (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        document.getElementById('projectsPromptConfirm')?.click();
+      }
+    };
+  }
+
+  const confirmBtn = document.getElementById('projectsPromptConfirm');
+  if (confirmBtn) {
+    confirmBtn.onclick = () => {
+      const rawValue = input ? input.value.trim() : '';
+      if (requireValue && !rawValue) {
+        notifyProjectMessage('Preencha o valor antes de continuar.', 'warn');
+        input?.focus();
+        return;
+      }
+
+      const maybePromise = typeof onConfirm === 'function' ? onConfirm(rawValue) : null;
+      Promise.resolve(maybePromise)
+        .then(() => {
+          closeProjectsPromptModal();
+        })
+        .catch((error) => {
+          const message = error && error.message ? error.message : 'Nao foi possivel concluir a acao.';
+          notifyProjectMessage(message, 'error');
+        });
+    };
+  }
+}
+
 
 // === Quick Project Modal (1-click create) ===
 window.openQuickProjectModal = function () {
@@ -461,7 +566,7 @@ window.openQuickProjectModal = function () {
           <h2 style="margin:0;font-size:20px;font-weight:800;color:#fff">Novo projeto</h2>
           <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.4)">Cria em 3 segundos.</p>
         </div>
-        <button onclick="document.getElementById('projectsQuickModal').remove()" style="background:rgba(255,255,255,0.06);border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;color:rgba(255,255,255,0.6);font-size:18px;display:flex;align-items:center;justify-content:center">x</button>
+        <button type="button" data-projects-quick-close style="background:rgba(255,255,255,0.06);border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;color:rgba(255,255,255,0.6);font-size:18px;display:flex;align-items:center;justify-content:center">x</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div>
@@ -490,13 +595,27 @@ window.openQuickProjectModal = function () {
         </div>
       </div>
       <div style="display:flex;gap:12px;justify-content:flex-end">
-        <button onclick="document.getElementById('projectsQuickModal').remove()" class="btn-secondary" style="width:auto;padding:13px 20px;border-radius:16px">Cancelar</button>
-        <button onclick="quickCreateProject()" class="btn-primary" style="width:auto;padding:13px 20px;border-radius:16px;background:#4D6BFE">Criar projeto</button>
+        <button type="button" data-projects-quick-close class="btn-secondary" style="width:auto;padding:13px 20px;border-radius:16px">Cancelar</button>
+        <button type="button" id="btnProjectsQuickCreate" class="btn-primary" style="width:auto;padding:13px 20px;border-radius:16px;background:#4D6BFE">Criar projeto</button>
       </div>
     </div>`;
 
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+  overlay.querySelectorAll('[data-projects-quick-close]').forEach((btn) => {
+    btn.onclick = () => overlay.remove();
+  });
+  const quickCreateBtn = document.getElementById('btnProjectsQuickCreate');
+  if (quickCreateBtn) quickCreateBtn.onclick = () => quickCreateProject();
+  const quickInput = document.getElementById('qpmName');
+  if (quickInput) {
+    quickInput.onkeydown = (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        quickCreateProject();
+      }
+    };
+  }
   setTimeout(() => document.getElementById('qpmName') && document.getElementById('qpmName').focus(), 50);
 };
 
@@ -560,54 +679,76 @@ window.setProjectsFilter = function (filter) {
 };
 
 window.addTaskInsideProject = function (projectId) {
-  const text = prompt('Nome da tarefa:');
-  if (!text || !text.trim()) return;
-  const dateStr = localDateStr();
-  const period = 'Tarefas';
   const project = findProjectById(projectId);
   if (!project) return;
-  const currentList = allTasksData[dateStr]?.[period] || [];
-  const newTask = {
-    text: text.trim(),
-    completed: false,
-    color: 'default',
-    type: 'OPERATIONAL',
-    priority: null,
-    parent_id: null,
-    position: currentList.length,
-    isHabit: false,
-    supabaseId: null,
-    createdAt: new Date().toISOString(),
-    completedAt: null,
-    timerTotalMs: 0,
-    timerStartedAt: null,
-    timerLastStoppedAt: null,
-    timerSessionsCount: 0,
-    projectId: project.id,
-    projectName: project.name
-  };
-  if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
-  if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
-  allTasksData[dateStr][period].push(newTask);
-  saveToLocalStorage();
-  syncTaskToSupabase(dateStr, period, newTask);
-  if (currentView === 'projects') renderProjectsView();
-  renderView();
+  openProjectsPromptModal({
+    title: 'Nova tarefa do projeto',
+    description: `A tarefa entra em Hoje e ja fica ligada a ${project.name}.`,
+    confirmLabel: 'Criar tarefa',
+    requireValue: true,
+    inputPlaceholder: 'Nome da tarefa',
+    onConfirm: (text) => {
+      const dateStr = localDateStr();
+      const period = 'Tarefas';
+      const currentList = allTasksData[dateStr]?.[period] || [];
+      const newTask = {
+        text,
+        completed: false,
+        color: 'default',
+        type: 'OPERATIONAL',
+        priority: null,
+        parent_id: null,
+        position: currentList.length,
+        isHabit: false,
+        supabaseId: null,
+        createdAt: new Date().toISOString(),
+        completedAt: null,
+        timerTotalMs: 0,
+        timerStartedAt: null,
+        timerLastStoppedAt: null,
+        timerSessionsCount: 0,
+        projectId: project.id,
+        projectName: project.name
+      };
+      if (!allTasksData[dateStr]) allTasksData[dateStr] = {};
+      if (!allTasksData[dateStr][period]) allTasksData[dateStr][period] = [];
+      allTasksData[dateStr][period].push(newTask);
+      saveToLocalStorage();
+      syncTaskToSupabase(dateStr, period, newTask);
+      if (currentView === 'projects') renderProjectsView();
+      renderView();
+      notifyProjectMessage('Tarefa criada dentro do projeto.', 'success');
+    }
+  });
 };
 
 window.archiveProject = function (projectId) {
-  if (!confirm('Tem certeza que quer arquivar esse projeto?')) return;
-  updateProjectRecord(projectId, (project) => ({ ...project, status: 'archived' }));
-  if (currentView === 'projects') renderProjectsView();
+  openProjectsPromptModal({
+    title: 'Arquivar projeto',
+    description: 'O projeto sai da operacao ativa, mas continua salvo no historico.',
+    confirmLabel: 'Arquivar',
+    onConfirm: () => {
+      updateProjectRecord(projectId, (project) => ({ ...project, status: 'archived' }));
+      if (currentView === 'projects') renderProjectsView();
+      notifyProjectMessage('Projeto arquivado.', 'success');
+    }
+  });
 };
 
 window.deleteProject = function (projectId) {
-  if (!confirm('Remover esse projeto permanentemente?')) return;
-  projectsState = normalizeProjectsState(projectsState);
-  projectsState.projects = projectsState.projects.filter((p) => p.id !== projectId);
-  persistProjectsStateLocal();
-  scheduleProjectsSync();
-  if (currentView === 'projects') renderProjectsView();
+  openProjectsPromptModal({
+    title: 'Remover projeto',
+    description: 'Essa acao apaga o projeto permanentemente da base local e do sync.',
+    confirmLabel: 'Remover',
+    onConfirm: () => {
+      projectsState = normalizeProjectsState(projectsState);
+      projectsState.projects = projectsState.projects.filter((p) => p.id !== projectId);
+      persistProjectsStateLocal();
+      scheduleProjectsSync();
+      if (currentView === 'projects') renderProjectsView();
+      notifyProjectMessage('Projeto removido.', 'success');
+    }
+  });
 };
 
 function getProjectStatus(project, today) {
