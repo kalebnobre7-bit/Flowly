@@ -184,10 +184,24 @@ function isProjectSubtasksCollapsed(task) {
 function unifiedTaskSort(taskList) {
   if (!taskList || taskList.length === 0) return [];
 
+  const uniqueTaskList = [];
+  const seenRenderKeys = new Set();
+
+  taskList.forEach((item) => {
+    if (!item || !item.task) return;
+    const task = item.task;
+    const renderKey = task.isProjectMirror
+      ? `mirror:${task.mirrorSourceDateStr || item.dateStr}:${task.mirrorSourcePeriod || item.period}:${task.mirrorSourceIndex ?? item.originalIndex}`
+      : `task:${task.supabaseId || ''}:${item.dateStr || ''}:${item.period || ''}:${String(task.text || '').trim().toLowerCase()}:${task.parent_id || ''}`;
+    if (seenRenderKeys.has(renderKey)) return;
+    seenRenderKeys.add(renderKey);
+    uniqueTaskList.push(item);
+  });
+
   const itemMap = new Map();
   const childrenMap = new Map();
 
-  taskList.forEach((item) => {
+  uniqueTaskList.forEach((item) => {
     if (!item.task) return;
     if (typeof item.task.position !== 'number') item.task.position = item.originalIndex || 0;
     const id = item.task.supabaseId || item.task.text;
@@ -196,7 +210,7 @@ function unifiedTaskSort(taskList) {
 
   const roots = [];
 
-  taskList.forEach((item) => {
+  uniqueTaskList.forEach((item) => {
     if (!item.task) return;
     const pId = item.task.parent_id;
     if (pId && itemMap.has(pId)) {

@@ -53,14 +53,69 @@
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 
+  function fixMojibakeText(value) {
+    if (typeof value !== 'string' || value.length === 0) return value;
+
+    const replacements = [
+      ['MarÃ§o', 'Março'],
+      ['MÃªs', 'Mês'],
+      ['SÃ¡b', 'Sáb'],
+      ['SÃ¡bado', 'Sábado'],
+      ['TerÃ§a', 'Terça'],
+      ['concluÃ­das', 'concluídas'],
+      ['ConcluÃ­dos', 'Concluídos'],
+      ['hÃ¡bito', 'hábito'],
+      ['hÃ¡bitos', 'hábitos'],
+      ['HÃ¡bitos', 'Hábitos'],
+      ['HistÃ³rico', 'Histórico'],
+      ['mÃ©dia', 'média'],
+      ['Ãºltima', 'última'],
+      ['Ãºltimos', 'últimos'],
+      ['Ãºltimo', 'último'],
+      ['consistÃªncia', 'consistência'],
+      ['ConsistÃªncia', 'Consistência'],
+      ['ConclusÃ£o', 'Conclusão'],
+      ['conclusÃ£o', 'conclusão'],
+      ['VocÃª', 'Você'],
+      ['estÃ¡vel', 'estável'],
+      ['AnÃ¡lise', 'Análise'],
+      ['EstratÃ©gica', 'Estratégica'],
+      ['diÃ¡rio', 'diário'],
+      ['Ã ', 'à'],
+      ['Ã©', 'é'],
+      ['Ã¡', 'á'],
+      ['Ãª', 'ê'],
+      ['Ã£', 'ã'],
+      ['Ã³', 'ó'],
+      ['Ãº', 'ú'],
+      ['Ã§', 'ç'],
+      ['â€¢', '•'],
+      ['Â·', '·'],
+      ['â†‘', '↑'],
+      ['â†“', '↓'],
+      ['â†—', '↗'],
+      ['â‰ˆ', '≈'],
+      ['â€”', '—'],
+      ['â€“', '–']
+    ];
+
+    let next = value;
+    replacements.forEach(function ([from, to]) {
+      next = next.split(from).join(to);
+    });
+    return next;
+  }
+
   window.FlowlyUtils = {
     safeJSONParse,
     localDateStr,
     formatElapsedShort,
-    formatDurationClock
+    formatDurationClock,
+    fixMojibakeText
   };
   window.safeJSONParse = safeJSONParse;
   window.localDateStr = localDateStr;
   window.formatElapsedShort = formatElapsedShort;
   window.formatDurationClock = formatDurationClock;
+  window.fixMojibakeText = fixMojibakeText;
 })();

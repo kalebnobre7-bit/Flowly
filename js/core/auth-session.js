@@ -3,6 +3,7 @@
     const authModal = document.getElementById('authModal');
     if (!authModal) return;
     authModal.classList.toggle('show', visible);
+    authModal.setAttribute('aria-hidden', visible ? 'false' : 'true');
   }
 
   function setUserEmail(user) {

@@ -185,6 +185,9 @@
 
           tasks.forEach(function (task, index) {
             if (!task.text) return;
+            if (!task.createdAt || Number.isNaN(new Date(task.createdAt).getTime())) {
+              task.createdAt = new Date().toISOString();
+            }
             inserts.push({
               user_id: currentUser.id,
               day: dateStr,
@@ -199,7 +202,7 @@
               project_name: task.projectName || null,
               position: typeof task.position === 'number' ? task.position : index,
               is_habit: task.isHabit || false,
-              created_at: task.createdAt || undefined,
+              created_at: task.createdAt,
               completed_at: task.completed ? task.completedAt || undefined : null,
               timer_total_ms: Math.max(0, Number(task.timerTotalMs || 0) || 0),
               timer_started_at: task.timerStartedAt || null,
@@ -348,7 +351,7 @@
             isHabit: task.is_habit,
             supabaseId: task.id,
             _syncPending: false,
-            createdAt: task.created_at || null,
+            createdAt: task.created_at || task.updated_at || new Date().toISOString(),
             updatedAt: task.updated_at || task.created_at || null,
             completedAt: task.completed ? task.completed_at || task.updated_at || new Date().toISOString() : null,
             timerTotalMs: Math.max(0, Number(task.timer_total_ms || 0) || 0),

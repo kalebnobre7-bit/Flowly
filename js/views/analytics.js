@@ -297,7 +297,8 @@ function renderAnalyticsView() {
   // -- Routine tab: embed renderRoutineView inside analytics -------------
   if (mainTab === 'routine') {
     const routineTab = view.dataset.routineTab || 'today';
-    view.innerHTML = `<div class="flowly-shell"><div class="analytics-container-v2">${outerTabsHTML}<div id="routineEmbedded"></div></div></div>`;
+    const routineHtml = `<div class="flowly-shell"><div class="analytics-container-v2">${outerTabsHTML}<div id="routineEmbedded"></div></div></div>`;
+    view.innerHTML = typeof fixMojibakeText === 'function' ? fixMojibakeText(routineHtml) : routineHtml;
     const embedded = document.getElementById('routineEmbedded');
     embedded.dataset.routineTab = routineTab;
     renderRoutineView(embedded);
@@ -318,8 +319,10 @@ function renderAnalyticsView() {
     'Outubro',
     'Novembro',
     'Dezembro'
-  ];
-  const DAY_ABBR_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'];
+  ].map((item) => (typeof fixMojibakeText === 'function' ? fixMojibakeText(item) : item));
+  const DAY_ABBR_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'].map((item) =>
+    typeof fixMojibakeText === 'function' ? fixMojibakeText(item) : item
+  );
 
   // -- Today --------------------------------------------------------------
   const today = localDateStr();
@@ -1521,6 +1524,9 @@ function renderAnalyticsView() {
         </div>
 
     </div></div>`;
+  if (typeof fixMojibakeText === 'function') {
+    view.innerHTML = fixMojibakeText(view.innerHTML);
+  }
 
   // -- Charts -------------------------------------------------------------
   setTimeout(() => {

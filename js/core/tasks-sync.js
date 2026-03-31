@@ -5,6 +5,19 @@
     const getAllRecurringTasks = deps.getAllRecurringTasks;
     const setAllRecurringTasks = deps.setAllRecurringTasks;
 
+    function ensureTaskSyncTimestamps(task) {
+      const nowIso = new Date().toISOString();
+      if (!task.createdAt || Number.isNaN(new Date(task.createdAt).getTime())) {
+        task.createdAt = nowIso;
+      }
+      if (!task.updatedAt || Number.isNaN(new Date(task.updatedAt).getTime())) {
+        task.updatedAt = nowIso;
+      }
+      if (task.completed === true && (!task.completedAt || Number.isNaN(new Date(task.completedAt).getTime()))) {
+        task.completedAt = task.updatedAt || nowIso;
+      }
+    }
+
     async function syncRecurringTasksToSupabase() {
       const currentUser = getCurrentUser();
       if (!currentUser) return;
@@ -64,6 +77,7 @@
       if (!currentUser) return { success: false, errorText: 'Usuario nao autenticado.' };
 
       try {
+        ensureTaskSyncTimestamps(task);
         let data;
         let error;
 
@@ -78,7 +92,7 @@
           project_name: task.projectName || null,
           position: typeof task.position === 'number' ? task.position : null,
           is_habit: task.isHabit || false,
-          created_at: task.createdAt || undefined,
+          created_at: task.createdAt,
           timer_total_ms: Math.max(0, Number(task.timerTotalMs || 0) || 0),
           timer_started_at: task.timerStartedAt || null,
           timer_last_stopped_at: task.timerLastStoppedAt || null,
@@ -122,7 +136,7 @@
             project_name: task.projectName || null,
             position: typeof task.position === 'number' ? task.position : null,
             is_habit: task.isHabit || false,
-            created_at: task.createdAt || undefined,
+            created_at: task.createdAt,
             timer_total_ms: Math.max(0, Number(task.timerTotalMs || 0) || 0),
             timer_started_at: task.timerStartedAt || null,
             timer_last_stopped_at: task.timerLastStoppedAt || null,

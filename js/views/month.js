@@ -16,7 +16,7 @@ function renderMonth() {
     'Outubro',
     'Novembro',
     'Dezembro'
-  ];
+  ].map((item) => (typeof fixMojibakeText === 'function' ? fixMojibakeText(item) : item));
 
   let html = `
                 
@@ -523,6 +523,6 @@ function renderMonth() {
                 </div>
             `;
 
-  view.innerHTML = html;
+  view.innerHTML = typeof fixMojibakeText === 'function' ? fixMojibakeText(html) : html;
 }
 

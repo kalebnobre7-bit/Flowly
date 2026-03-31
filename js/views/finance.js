@@ -277,6 +277,9 @@ function renderFinanceView() {
       </section>
     </div>
   `;
+  if (typeof fixMojibakeText === 'function') {
+    view.innerHTML = fixMojibakeText(view.innerHTML);
+  }
 
   renderFinanceCharts(analytics);
 }

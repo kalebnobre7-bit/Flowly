@@ -703,6 +703,12 @@ async function syncDateToSupabase(dateStr) {
       tasks.forEach((task, index) => {
         if (!task.text || task.text.trim() === '') return;
         if (task.isWeeklyRecurring || task.isRoutine || task.isRecurring) return;
+        if (!task.createdAt || Number.isNaN(new Date(task.createdAt).getTime())) {
+          task.createdAt = new Date().toISOString();
+        }
+        if (!task.updatedAt || Number.isNaN(new Date(task.updatedAt).getTime())) {
+          task.updatedAt = new Date().toISOString();
+        }
 
         const payload = {
           user_id: syncUser.id,
@@ -718,7 +724,7 @@ async function syncDateToSupabase(dateStr) {
           project_name: task.projectName || null,
           position: typeof task.position === 'number' ? task.position : index,
           is_habit: task.isHabit || false,
-          created_at: task.createdAt || undefined,
+          created_at: task.createdAt,
           completed_at: task.completed ? task.completedAt || undefined : null,
           timer_total_ms: Math.max(0, Number(task.timerTotalMs || 0) || 0),
           timer_started_at: task.timerStartedAt || null,
