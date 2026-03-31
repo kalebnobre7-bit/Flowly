@@ -59,6 +59,7 @@ function initializeFlowlyServices() {
       setAllTasksData: (next) => {
         allTasksData = next;
       },
+      getPendingTaskDeletes: () => pendingTaskDeletes,
       getAllRecurringTasks: () => allRecurringTasks,
       setAllRecurringTasks: (next) => {
         allRecurringTasks = next;
@@ -71,7 +72,10 @@ function initializeFlowlyServices() {
         customTaskTypes = next;
       },
       setCustomTaskPriorities: (next) => {
-        customTaskPriorities = next;
+        customTaskPriorities = Array.isArray(next) ? next : [];
+        if (typeof ensureMoneyPriorityOption === 'function') {
+          ensureMoneyPriorityOption();
+        }
       },
       getDbUserSettings: () => dbUserSettings,
       setDbUserSettings: (next) => {

@@ -683,6 +683,12 @@ async function syncDateToSupabase(dateStr) {
   _isSyncingDate = true;
 
   try {
+    const isCompletedAtSchemaError = (error) =>
+      /completed_at/i.test(String((error && error.message) || ''));
+    const stripCompletedAt = (payload) => {
+      const { completed_at, ...rest } = payload;
+      return rest;
+    };
     const periods = allTasksData[dateStr] || {};
     const updates = [];
     const inserts = [];
@@ -743,10 +749,20 @@ async function syncDateToSupabase(dateStr) {
     });
 
     if (updates.length > 0) {
-      const { data, error } = await supabaseClient
+      let { data, error } = await supabaseClient
         .from('tasks')
         .upsert(updates, { onConflict: 'id' })
         .select('id, updated_at');
+
+      if (error && isCompletedAtSchemaError(error)) {
+        ({ data, error } = await supabaseClient
+          .from('tasks')
+          .upsert(
+            updates.map((payload) => stripCompletedAt(payload)),
+            { onConflict: 'id' }
+          )
+          .select('id, updated_at'));
+      }
 
       if (error) {
         throw error;
@@ -769,7 +785,14 @@ async function syncDateToSupabase(dateStr) {
 
     if (inserts.length > 0) {
       const payloadsToInsert = inserts.map((i) => i.payload);
-      const { data, error } = await supabaseClient.from('tasks').insert(payloadsToInsert).select();
+      let { data, error } = await supabaseClient.from('tasks').insert(payloadsToInsert).select();
+
+      if (error && isCompletedAtSchemaError(error)) {
+        ({ data, error } = await supabaseClient
+          .from('tasks')
+          .insert(payloadsToInsert.map((payload) => stripCompletedAt(payload)))
+          .select());
+      }
 
       if (error) {
         throw error;

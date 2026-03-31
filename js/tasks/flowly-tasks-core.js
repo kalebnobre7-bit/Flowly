@@ -546,6 +546,11 @@ function deleteTaskViaSexta(query, preferredDateStr = localDateStr()) {
   if (!Array.isArray(list)) return null;
 
   const subtreeTasks = collectTaskSubtree(list, entry.task);
+  if (typeof window.queuePendingTaskDelete === 'function') {
+    subtreeTasks.forEach((task) => {
+      window.queuePendingTaskDelete(task, entry.dateStr, entry.period);
+    });
+  }
   const subtreeSet = new Set(subtreeTasks);
   allTasksData[entry.dateStr][entry.period] = list.filter((task) => !subtreeSet.has(task));
   allTasksData[entry.dateStr][entry.period].forEach((task, index) => {

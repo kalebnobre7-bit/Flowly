@@ -6,6 +6,7 @@
     const getCurrentUser = deps.getCurrentUser;
     const getAllTasksData = deps.getAllTasksData;
     const setAllTasksData = deps.setAllTasksData;
+    const getPendingTaskDeletes = deps.getPendingTaskDeletes || function () { return []; };
     const getAllRecurringTasks = deps.getAllRecurringTasks;
     const setAllRecurringTasks = deps.setAllRecurringTasks;
     const getHabitsHistory = deps.getHabitsHistory;
@@ -42,6 +43,31 @@
           });
         });
       });
+    }
+
+    function normalizeDeleteKey(taskLike, dateStr, period) {
+      return JSON.stringify({
+        supabaseId:
+          taskLike && typeof taskLike.supabaseId === 'string' && taskLike.supabaseId.indexOf('-') > -1
+            ? taskLike.supabaseId
+            : taskLike && typeof taskLike.id === 'string' && taskLike.id.indexOf('-') > -1
+              ? taskLike.id
+              : null,
+        text: String((taskLike && taskLike.text) || '')
+          .trim()
+          .toLowerCase(),
+        day: dateStr || null,
+        period: period || null
+      });
+    }
+
+    function buildPendingDeleteLookup() {
+      const items = Array.isArray(getPendingTaskDeletes()) ? getPendingTaskDeletes() : [];
+      return new Set(
+        items.map(function (entry) {
+          return normalizeDeleteKey(entry, entry && entry.day, entry && entry.period);
+        })
+      );
     }
 
     function mergeLocalTaskIntoRemote(remoteTask, localTask) {
@@ -161,6 +187,13 @@
     async function migrateLocalDataToSupabase() {
       const currentUser = getCurrentUser();
       if (!currentUser) return;
+      const isCompletedAtSchemaError = function (error) {
+        return /completed_at/i.test(String((error && error.message) || ''));
+      };
+      const stripCompletedAt = function (payload) {
+        const { completed_at, ...rest } = payload;
+        return rest;
+      };
 
       const { data: existingTasks } = await supabaseClient
         .from('tasks')
@@ -214,7 +247,23 @@
       });
 
       if (inserts.length > 0) {
-        const { data: inserted } = await supabaseClient.from('tasks').insert(inserts).select();
+        let { data: inserted, error: insertError } = await supabaseClient
+          .from('tasks')
+          .insert(inserts)
+          .select();
+
+        if (insertError && isCompletedAtSchemaError(insertError)) {
+          ({ data: inserted, error: insertError } = await supabaseClient
+            .from('tasks')
+            .insert(inserts.map(function (payload) {
+              return stripCompletedAt(payload);
+            }))
+            .select());
+        }
+
+        if (insertError) {
+          throw insertError;
+        }
 
         if (inserted) {
           const allTasksData = getAllTasksData();
@@ -301,6 +350,7 @@
       const remoteTaskIds = new Set();
       const nextAllTasksData = {};
       const remoteRecurringTasks = [];
+      const pendingDeleteLookup = buildPendingDeleteLookup();
 
       if (tasks && tasks.length > 0) {
         tasks.forEach(function (task) {
@@ -329,6 +379,11 @@
 
           const dateStr = task.day;
           if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !task.period) {
+            if (task.id) idsToDelete.push(task.id);
+            return;
+          }
+
+          if (pendingDeleteLookup.has(normalizeDeleteKey(task, dateStr, task.period))) {
             if (task.id) idsToDelete.push(task.id);
             return;
           }
@@ -386,6 +441,7 @@
 
             tasksInPeriod.forEach(function (localTask, localIndex) {
               if (!localTask || !localTask.text || localTask.text.trim() === '') return;
+              if (pendingDeleteLookup.has(normalizeDeleteKey(localTask, dateStr, period))) return;
 
               const normalizedText = localTask.text.trim().replace(/\s+/g, ' ');
               const dedupeKey = JSON.stringify({

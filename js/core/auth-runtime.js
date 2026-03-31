@@ -72,6 +72,9 @@ function initAuthRuntime() {
     },
     getCurrentUser: () => currentUser,
     onSessionDataRequired: async () => {
+      if (typeof flushPendingTaskDeletesToSupabase === 'function') {
+        await flushPendingTaskDeletesToSupabase();
+      }
       await loadDataFromSupabase();
       await syncUnsyncedTasksToSupabase();
       renderView();

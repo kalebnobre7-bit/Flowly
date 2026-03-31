@@ -5,6 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "check": "node scripts/check-syntax.js",
+    "preview": "node scripts/preview-server.js",
     "smoke": "node scripts/browser-smoke.js",
     "test": "node tests/run-tests.js",
     "lint": "eslint \"js/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\"",

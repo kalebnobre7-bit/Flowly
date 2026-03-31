@@ -4,9 +4,59 @@ function markLocalSupabaseMutation(ms) {
   window._flowlySuppressRealtimeUntil = Math.max(prev, until);
 }
 
+function normalizePendingDeleteKey(task, day, period) {
+  return JSON.stringify({
+    supabaseId:
+      task && typeof task.supabaseId === 'string' && task.supabaseId.indexOf('-') > -1
+        ? task.supabaseId
+        : null,
+    text: String((task && task.text) || '')
+      .trim()
+      .toLowerCase(),
+    day: day || null,
+    period: period || null
+  });
+}
+
+function persistPendingTaskDeletes() {
+  localStorage.setItem('flowlyPendingTaskDeletes', JSON.stringify(pendingTaskDeletes || []));
+}
+
+function queuePendingTaskDelete(task, day, period) {
+  if (!task) return;
+  if (!Array.isArray(pendingTaskDeletes)) pendingTaskDeletes = [];
+
+  const entry = {
+    supabaseId:
+      typeof task.supabaseId === 'string' && task.supabaseId.indexOf('-') > -1 ? task.supabaseId : null,
+    text: String(task.text || ''),
+    day: day || null,
+    period: period || null,
+    queuedAt: new Date().toISOString()
+  };
+  const key = normalizePendingDeleteKey(entry, entry.day, entry.period);
+  pendingTaskDeletes = pendingTaskDeletes.filter(function (item) {
+    return normalizePendingDeleteKey(item, item && item.day, item && item.period) !== key;
+  });
+  pendingTaskDeletes.push(entry);
+  persistPendingTaskDeletes();
+}
+
+function clearPendingTaskDelete(task, day, period) {
+  if (!Array.isArray(pendingTaskDeletes) || pendingTaskDeletes.length === 0) return;
+  const key = normalizePendingDeleteKey(task, day, period);
+  const nextQueue = pendingTaskDeletes.filter(function (item) {
+    return normalizePendingDeleteKey(item, item && item.day, item && item.period) !== key;
+  });
+  if (nextQueue.length === pendingTaskDeletes.length) return;
+  pendingTaskDeletes = nextQueue;
+  persistPendingTaskDeletes();
+}
+
 let _unsyncedSyncInFlight = false;
 let _unsyncedSyncTimer = null;
 let _isSyncingDate = false;
+let _pendingDeleteSyncInFlight = false;
 
 function scheduleUnsyncedTasksSync(delay) {
   if (_unsyncedSyncTimer) clearTimeout(_unsyncedSyncTimer);
@@ -45,6 +95,7 @@ async function syncUnsyncedTasksToSupabase() {
 
   _unsyncedSyncInFlight = true;
   try {
+    await flushPendingTaskDeletesToSupabase();
     let hasChanges = false;
 
     for (const [dateStr, periods] of Object.entries(allTasksData || {})) {
@@ -88,6 +139,41 @@ async function syncUnsyncedTasksToSupabase() {
     }
   } finally {
     _unsyncedSyncInFlight = false;
+  }
+}
+
+async function flushPendingTaskDeletesToSupabase() {
+  if (_pendingDeleteSyncInFlight) return;
+  if (!tasksSyncService) return;
+  if (!Array.isArray(pendingTaskDeletes) || pendingTaskDeletes.length === 0) return;
+
+  const user = await ensureCurrentUserForSync();
+  if (!user) return;
+
+  _pendingDeleteSyncInFlight = true;
+  try {
+    const queue = pendingTaskDeletes.slice();
+    for (const entry of queue) {
+      if (!entry || (!entry.supabaseId && !entry.text)) {
+        clearPendingTaskDelete(entry, entry && entry.day, entry && entry.period);
+        continue;
+      }
+
+      const result = await tasksSyncService.deleteTaskFromSupabase(entry, entry.day, entry.period);
+      if (!result || result.success !== true) {
+        throw new Error((result && result.errorText) || 'Falha ao remover tarefa pendente');
+      }
+      clearPendingTaskDelete(entry, entry.day, entry.period);
+    }
+  } catch (err) {
+    console.error('[Delete] Erro ao sincronizar exclusoes pendentes:', err);
+    if (typeof recordSyncEvent === 'function') {
+      recordSyncEvent('error', 'Erro ao sincronizar exclusoes pendentes', {
+        error: err && err.message ? err.message : String(err || '')
+      });
+    }
+  } finally {
+    _pendingDeleteSyncInFlight = false;
   }
 }
 
@@ -141,12 +227,19 @@ async function syncTaskToSupabase(dateStr, period, task) {
 async function deleteTaskFromSupabase(task, day, period) {
   if (!tasksSyncService) return;
 
+  queuePendingTaskDelete(task, day, period);
+
   markLocalSupabaseMutation();
   startSyncActivity('Removendo tarefa na nuvem...');
   try {
-    await tasksSyncService.deleteTaskFromSupabase(task, day, period);
+    const result = await tasksSyncService.deleteTaskFromSupabase(task, day, period);
+    if (!result || result.success !== true) {
+      throw new Error((result && result.errorText) || 'Falha ao remover tarefa');
+    }
+    clearPendingTaskDelete(task, day, period);
     finishSyncActivity(true);
   } catch (err) {
+    scheduleUnsyncedTasksSync(1200);
     finishSyncActivity(false, 'Falha ao remover tarefa');
     throw err;
   }
@@ -165,3 +258,7 @@ async function syncHabitToSupabase(habitText, date, completed) {
     throw err;
   }
 }
+
+window.flushPendingTaskDeletesToSupabase = flushPendingTaskDeletesToSupabase;
+window.queuePendingTaskDelete = queuePendingTaskDelete;
+window.clearPendingTaskDelete = clearPendingTaskDelete;

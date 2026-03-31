@@ -37,6 +37,7 @@ var dbUserSettings = { enable_week_hover_animation: true };
 var dailyRoutine = safeJSONParse(localStorage.getItem('dailyRoutine'), []);
 var weeklyRecurringTasks = safeJSONParse(localStorage.getItem('weeklyRecurringTasks'), []);
 var allTasksData = safeJSONParse(localStorage.getItem('allTasksData'), {});
+var pendingTaskDeletes = safeJSONParse(localStorage.getItem('flowlyPendingTaskDeletes'), []);
 var collapsedTaskGroups = safeJSONParse(localStorage.getItem('flowlyCollapsedTaskGroups'), {});
 var weekData = {
   'Segunda': {},
@@ -59,6 +60,7 @@ window.FlowlyState = {
       currentMonthOffset,
       currentUser,
       allTasksData,
+      pendingTaskDeletes,
       allRecurringTasks,
       habitsHistory,
       sextaState

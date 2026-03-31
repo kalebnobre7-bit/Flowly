@@ -180,13 +180,18 @@
 
     async function deleteTaskFromSupabase(task, day, period) {
       const currentUser = getCurrentUser();
-      if (!currentUser || !task) return;
+      if (!currentUser || !task) {
+        return { success: false, errorText: 'Usuario nao autenticado ou tarefa invalida.' };
+      }
 
       try {
         if (task.supabaseId) {
           const { error } = await supabaseClient.from('tasks').delete().eq('id', task.supabaseId);
-          if (error) console.error('[Delete] Error by ID:', error.message);
-          return;
+          if (error) {
+            console.error('[Delete] Error by ID:', error.message);
+            return { success: false, errorText: error.message };
+          }
+          return { success: true, deletedId: task.supabaseId };
         }
 
         // Fallback para tarefas sem supabaseId (legacy): resolve um id e deleta apenas esse registro
@@ -204,16 +209,22 @@
 
           if (findError) {
             console.error('[Delete] Error finding fallback task:', findError.message);
-            return;
+            return { success: false, errorText: findError.message };
           }
 
           if (oneTask && oneTask.id) {
             const { error } = await supabaseClient.from('tasks').delete().eq('id', oneTask.id);
-            if (error) console.error('[Delete] Error by resolved ID:', error.message);
+            if (error) {
+              console.error('[Delete] Error by resolved ID:', error.message);
+              return { success: false, errorText: error.message };
+            }
+            return { success: true, deletedId: oneTask.id };
           }
         }
+        return { success: true, missing: true };
       } catch (err) {
         console.error('[Delete] Fatal:', err.message);
+        return { success: false, errorText: err && err.message ? err.message : String(err || '') };
       }
     }
 

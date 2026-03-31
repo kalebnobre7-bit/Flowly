@@ -10,6 +10,10 @@
   function createLocalStore() {
     function saveCoreState(state) {
       localStorage.setItem('allTasksData', JSON.stringify(state.allTasksData));
+      localStorage.setItem(
+        'flowlyPendingTaskDeletes',
+        JSON.stringify(state.pendingTaskDeletes || [])
+      );
       localStorage.setItem('allRecurringTasks', JSON.stringify(state.allRecurringTasks));
       localStorage.setItem('routineCompletions', JSON.stringify(state.routineCompletions));
       localStorage.setItem('habitsHistory', JSON.stringify(state.habitsHistory));

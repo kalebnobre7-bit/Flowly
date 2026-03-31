@@ -94,10 +94,17 @@ function ensureMoneyPriorityOption() {
   }
 
   const existingMap = new Map(customTaskPriorities.map((item) => [String(item.id || '').toLowerCase(), item]));
-  customTaskPriorities = defaults.map((item) => {
+  const defaultIds = new Set(defaults.map((item) => String(item.id || '').toLowerCase()));
+  const mergedDefaults = defaults.map((item) => {
     const existing = existingMap.get(String(item.id).toLowerCase());
     return existing ? { ...existing, name: item.name, color: item.color } : { ...item };
   });
+  const customExtras = customTaskPriorities.filter((item) => {
+    const id = String((item && item.id) || '').toLowerCase();
+    return id && !defaultIds.has(id);
+  });
+
+  customTaskPriorities = [...mergedDefaults, ...customExtras];
 }
 
 // Estruturas compartilhadas carregadas via js/flowly-state.js
