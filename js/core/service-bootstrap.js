@@ -60,6 +60,9 @@ function initializeFlowlyServices() {
         allTasksData = next;
       },
       getPendingTaskDeletes: () => pendingTaskDeletes,
+      setPendingTaskDeletes: (next) => {
+        pendingTaskDeletes = Array.isArray(next) ? next : [];
+      },
       getAllRecurringTasks: () => allRecurringTasks,
       setAllRecurringTasks: (next) => {
         allRecurringTasks = next;

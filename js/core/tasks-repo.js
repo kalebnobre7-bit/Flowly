@@ -7,6 +7,7 @@
     const getAllTasksData = deps.getAllTasksData;
     const setAllTasksData = deps.setAllTasksData;
     const getPendingTaskDeletes = deps.getPendingTaskDeletes || function () { return []; };
+    const setPendingTaskDeletes = deps.setPendingTaskDeletes || function () {};
     const getAllRecurringTasks = deps.getAllRecurringTasks;
     const setAllRecurringTasks = deps.setAllRecurringTasks;
     const getHabitsHistory = deps.getHabitsHistory;
@@ -68,6 +69,35 @@
           return normalizeDeleteKey(entry, entry && entry.day, entry && entry.period);
         })
       );
+    }
+
+    function cleanupResolvedPendingDeletes(tasks) {
+      const entries = Array.isArray(getPendingTaskDeletes()) ? getPendingTaskDeletes() : [];
+      if (entries.length === 0) return;
+
+      const remoteKeys = new Set(
+        (Array.isArray(tasks) ? tasks : []).map(function (task) {
+          return normalizeDeleteKey(task, task && task.day, task && task.period);
+        })
+      );
+
+      const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const nextEntries = entries.filter(function (entry) {
+        if (!entry) return false;
+        const key = normalizeDeleteKey(entry, entry.day, entry.period);
+        if (remoteKeys.has(key)) return true;
+
+        const queuedAtMs = entry.queuedAt ? new Date(entry.queuedAt).getTime() : 0;
+        if (queuedAtMs > 0 && now - queuedAtMs > maxAgeMs) return false;
+
+        return false;
+      });
+
+      if (nextEntries.length !== entries.length) {
+        setPendingTaskDeletes(nextEntries);
+        localStorage.setItem('flowlyPendingTaskDeletes', JSON.stringify(nextEntries));
+      }
     }
 
     function mergeLocalTaskIntoRemote(remoteTask, localTask) {
@@ -337,6 +367,8 @@
         }
         return;
       }
+
+      cleanupResolvedPendingDeletes(tasks || []);
 
       const localSnapshot = (function () {
         try {
