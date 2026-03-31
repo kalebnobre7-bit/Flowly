@@ -659,7 +659,26 @@ function handleDropZoneDrop(e, dz) {
 
 // Sincroniza todas as tarefas de uma data via Upsert seguro para preservar parent_id
 async function syncDateToSupabase(dateStr) {
-  if (!currentUser) return;
+  let syncUser = currentUser;
+  if (!syncUser) {
+    try {
+      const result = await supabaseClient.auth.getSession();
+      const session = result && result.data ? result.data.session : null;
+      if (session && session.user) {
+        currentUser = session.user;
+        syncUser = session.user;
+      }
+    } catch (err) {
+      console.error('[SyncDate] Falha ao recuperar sessao:', err);
+    }
+  }
+
+  if (!syncUser) {
+    if (typeof scheduleUnsyncedTasksSync === 'function') {
+      scheduleUnsyncedTasksSync(600);
+    }
+    return;
+  }
   markLocalSupabaseMutation(2400);
   _isSyncingDate = true;
 
@@ -686,7 +705,7 @@ async function syncDateToSupabase(dateStr) {
         if (task.isWeeklyRecurring || task.isRoutine || task.isRecurring) return;
 
         const payload = {
-          user_id: currentUser.id,
+          user_id: syncUser.id,
           day: dateStr,
           period,
           text: task.text,
@@ -705,7 +724,7 @@ async function syncDateToSupabase(dateStr) {
           timer_started_at: task.timerStartedAt || null,
           timer_last_stopped_at: task.timerLastStoppedAt || null,
           timer_sessions_count: Math.max(0, Math.floor(Number(task.timerSessionsCount || 0) || 0)),
-          updated_at: new Date().toISOString()
+          updated_at: task.updatedAt || new Date().toISOString()
         };
 
         if (task.supabaseId && task.supabaseId.indexOf('-') > -1) {
@@ -718,7 +737,27 @@ async function syncDateToSupabase(dateStr) {
     });
 
     if (updates.length > 0) {
-      await supabaseClient.from('tasks').upsert(updates, { onConflict: 'id' });
+      const { data, error } = await supabaseClient
+        .from('tasks')
+        .upsert(updates, { onConflict: 'id' })
+        .select('id, updated_at');
+
+      if (error) {
+        throw error;
+      }
+
+      if (Array.isArray(data)) {
+        const updatedById = new Map(data.map((row) => [row.id, row.updated_at || null]));
+        Object.values(periods).forEach((tasks) => {
+          if (!Array.isArray(tasks)) return;
+          tasks.forEach((task) => {
+            if (!task || !task.supabaseId) return;
+            if (updatedById.has(task.supabaseId)) {
+              task.updatedAt = updatedById.get(task.supabaseId) || task.updatedAt;
+            }
+          });
+        });
+      }
     }
 
     if (inserts.length > 0) {
@@ -750,6 +789,7 @@ async function syncDateToSupabase(dateStr) {
 
           if (localIdx >= 0) {
             inserts[localIdx].taskRef.supabaseId = row.id;
+            inserts[localIdx].taskRef.updatedAt = row.updated_at || inserts[localIdx].taskRef.updatedAt;
             usedLocalIdx.add(localIdx);
           }
         });
@@ -867,8 +907,17 @@ function showColorMenu(e, task, label) {
     s.onclick = () => {
       const color = s.dataset.color;
       task.color = color;
+      task.updatedAt = new Date().toISOString();
       saveToLocalStorage();
       renderView();
+      const taskElement = label.closest('.task-item');
+      const dateStr = taskElement && taskElement.dataset ? taskElement.dataset.date : null;
+      const period = taskElement && taskElement.dataset ? taskElement.dataset.period : null;
+      if (dateStr && period && period !== 'Rotina') {
+        syncDateToSupabase(dateStr).catch((err) =>
+          console.error('[ColorMenu] Background sync error:', err)
+        );
+      }
     };
   });
 }

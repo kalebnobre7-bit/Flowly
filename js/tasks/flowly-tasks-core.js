@@ -289,6 +289,7 @@ window.toggleTaskStatus = function (dateStr, period, index, isChecked, element) 
 
   const task = list[index];
   if (!task.createdAt) task.createdAt = new Date().toISOString();
+  task.updatedAt = new Date().toISOString();
 
   // 1. Atualizar Estado
   task.completed = isChecked;
@@ -436,6 +437,7 @@ function createTaskViaSexta(dateStr, text, period = 'Tarefas') {
     isHabit: false,
     supabaseId: null,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     completedAt: null,
     timerTotalMs: 0,
     timerStartedAt: null,

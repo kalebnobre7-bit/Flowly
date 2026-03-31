@@ -83,7 +83,7 @@
           timer_started_at: task.timerStartedAt || null,
           timer_last_stopped_at: task.timerLastStoppedAt || null,
           timer_sessions_count: Math.max(0, Math.floor(Number(task.timerSessionsCount || 0) || 0)),
-          updated_at: new Date().toISOString(),
+          updated_at: task.updatedAt || new Date().toISOString(),
           completed_at: task.completed === true ? task.completedAt || new Date().toISOString() : null
         };
 
@@ -127,7 +127,7 @@
             timer_started_at: task.timerStartedAt || null,
             timer_last_stopped_at: task.timerLastStoppedAt || null,
             timer_sessions_count: Math.max(0, Math.floor(Number(task.timerSessionsCount || 0) || 0)),
-            updated_at: new Date().toISOString()
+            updated_at: task.updatedAt || new Date().toISOString()
           };
 
           if (task.supabaseId && task.supabaseId.includes('-')) {
@@ -152,6 +152,7 @@
         const arr = Array.isArray(data) ? data : [data];
         if (arr && arr[0] && arr[0].id) {
           task.supabaseId = arr[0].id;
+          task.updatedAt = arr[0].updated_at || payloadBase.updated_at;
           return { success: true, data: arr[0] };
         }
 

@@ -262,6 +262,7 @@
             isHabit: task.is_habit,
             supabaseId: task.id,
             createdAt: task.created_at || null,
+            updatedAt: task.updated_at || task.created_at || null,
             completedAt: task.completed ? task.completed_at || task.updated_at || new Date().toISOString() : null,
             timerTotalMs: Math.max(0, Number(task.timer_total_ms || 0) || 0),
             timerStartedAt: task.timer_started_at || null,
@@ -319,9 +320,21 @@
                   return serverTask && serverTask.supabaseId === localTaskId;
                 });
                 if (remoteMatch) {
+                  const remoteUpdatedTs = remoteMatch.updatedAt ? new Date(remoteMatch.updatedAt).getTime() : 0;
+                  const localUpdatedTs = localTask.updatedAt ? new Date(localTask.updatedAt).getTime() : 0;
+                  const preferLocal = localUpdatedTs > remoteUpdatedTs;
                   if (!remoteMatch.projectId && localTask.projectId) remoteMatch.projectId = localTask.projectId;
                   if (!remoteMatch.projectName && localTask.projectName) remoteMatch.projectName = localTask.projectName;
                   if ((!remoteMatch.color || remoteMatch.color === 'default') && localTask.color) remoteMatch.color = localTask.color;
+                  if (preferLocal && typeof localTask.completed === 'boolean') {
+                    remoteMatch.completed = localTask.completed === true;
+                    remoteMatch.completedAt = localTask.completed === true ? localTask.completedAt || remoteMatch.completedAt : null;
+                  }
+                  if (preferLocal && localTask.color) remoteMatch.color = localTask.color;
+                  if (preferLocal && typeof localTask.position === 'number') remoteMatch.position = localTask.position;
+                  if (preferLocal && localTask.priority !== undefined) remoteMatch.priority = localTask.priority || null;
+                  if (preferLocal && localTask.type) remoteMatch.type = localTask.type;
+                  if (preferLocal) remoteMatch.updatedAt = localTask.updatedAt;
                   if (!remoteMatch.timerStartedAt && localTask.timerStartedAt) remoteMatch.timerStartedAt = localTask.timerStartedAt;
                   if (!remoteMatch.timerLastStoppedAt && localTask.timerLastStoppedAt) remoteMatch.timerLastStoppedAt = localTask.timerLastStoppedAt;
                   if ((Number(remoteMatch.timerTotalMs || 0) || 0) < (Number(localTask.timerTotalMs || 0) || 0)) {
@@ -349,6 +362,7 @@
                     : serverTasks.length + localIndex,
                 isHabit: localTask.isHabit === true,
                 supabaseId: null,
+                updatedAt: localTask.updatedAt || null,
                 completedAt: localTask.completedAt || null,
                 timerTotalMs: Math.max(0, Number(localTask.timerTotalMs || 0) || 0),
                 timerStartedAt: localTask.timerStartedAt || null,
