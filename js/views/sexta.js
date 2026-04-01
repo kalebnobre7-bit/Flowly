@@ -74,10 +74,10 @@ renderSextaView = function () {
   const memoryStatus = memories.length > 0 ? `${memories.length} memoria(s) salvas` : 'memoria livre';
   const profileStatus = profileSummary ? 'briefing operacional ativo' : 'sem briefing fixo';
   const statPills = [
-    { label: 'Hoje', value: `${pending} abertas`, detail: `${completed}/${total} concluidas` },
+    { label: 'Hoje', value: `${pending} abertas`, detail: `${completed}/${total} concluídas` },
     { label: 'Caixa', value: String(snapshot.moneyEntries.length), detail: 'tarefas puxando receita' },
     { label: 'Projetos', value: String(snapshot.activeProjects.length), detail: `${snapshot.lateProjects.length} em risco` },
-    { label: 'Semana', value: `${weekRate}%`, detail: `${weekCompleted}/${weekTotal} concluidas` }
+    { label: 'Semana', value: `${weekRate}%`, detail: `${weekCompleted}/${weekTotal} concluídas` }
   ]
     .map(
       (item) => `
@@ -100,11 +100,11 @@ renderSextaView = function () {
     )
     .join('');
   const quickCommands = [
-    { label: 'criar tarefa', prompt: 'cria tarefa cobrar cliente antigo' },
-    { label: 'concluir tarefa', prompt: 'conclui a tarefa fechar pacote de thumbs com a Jess' },
-    { label: 'mover para amanha', prompt: 'move a tarefa fechar pacote de thumbs com a Jess para amanha' },
-    { label: 'apagar tarefa', prompt: 'apaga a tarefa follow-up em geral' },
-    { label: 'analisar foco', prompt: 'o que eu ataco agora?' }
+    { label: 'Criar', prompt: 'cria tarefa cobrar cliente antigo' },
+    { label: 'Concluir', prompt: 'conclui a tarefa fechar pacote de thumbs com a Jess' },
+    { label: 'Mover', prompt: 'move a tarefa fechar pacote de thumbs com a Jess para amanha' },
+    { label: 'Apagar', prompt: 'apaga a tarefa follow-up em geral' },
+    { label: 'Foco', prompt: 'o que eu ataco agora?' }
   ]
     .map(
       (item) =>
@@ -259,37 +259,38 @@ renderSextaView = function () {
       <section class="sexta-topbar flowly-page-header">
         <div class="sexta-topbar-copy">
           <div class="sexta-kicker flowly-page-kicker">Sexta</div>
-          <h2 class="flowly-page-title">Assistente operacional do Flowly</h2>
-          <p class="flowly-page-subtitle">Chat para conversar, criar tarefa, concluir, mover, apagar e revisar o que esta acontecendo agora.</p>
+          <h2 class="flowly-page-title">Sexta</h2>
+          <p class="flowly-page-subtitle">Chat local para decidir, registrar e mover o que importa agora.</p>
         </div>
-        <div class="sexta-topbar-actions">
-          <span class="sexta-badge">${escapeProjectHtml(assistantModeLabel)}</span>
-          <button class="sexta-link-btn" type="button" data-sexta-open-settings="ia">Conectar IA</button>
+        <div class="sexta-topbar-actions flowly-page-actions">
+          <span class="flowly-status-chip">${escapeProjectHtml(assistantModeLabel)}</span>
+          <button class="btn-secondary btn-inline sexta-link-btn" type="button" data-sexta-open-settings="ia">Conectar IA</button>
         </div>
       </section>
 
-      <div class="sexta-stats-strip">
-        ${statPills}
-      </div>
+      ${activeTab === 'chat' ? '' : `<div class="sexta-stats-strip">${statPills}</div>`}
 
-      <div class="sexta-tabs sexta-tabs--compact">
-        ${tabButtons}
-      </div>
+      <section class="sexta-mode-bar sexta-card">
+        <div class="sexta-mode-bar-copy">
+          <div class="sexta-panel-label">Modo da assistente</div>
+          <p>Use chat para agir, contexto para diagnosticar e memória para fixar o comportamento.</p>
+        </div>
+        <div class="sexta-tabs sexta-tabs--compact">
+          ${tabButtons}
+        </div>
+      </section>
 
+      <div class="sexta-workspace${secondaryPanel ? ' sexta-workspace--split' : ''}">
       <section class="sexta-card sexta-chat-stage">
         <div class="sexta-chat-stage-head">
           <div>
-            <h3>Chat</h3>
+            <h3>Sala de operação</h3>
             <p>${escapeProjectHtml(assistantHint)}</p>
           </div>
           <div class="sexta-chat-stage-status">
             <div class="sexta-chat-stage-stat">
-              <span>Memoria</span>
-              <strong>${escapeProjectHtml(memoryStatus)}</strong>
-            </div>
-            <div class="sexta-chat-stage-stat">
-              <span>Briefing</span>
-              <strong>${escapeProjectHtml(profileStatus)}</strong>
+              <span>Operação</span>
+              <strong>${escapeProjectHtml(`${memoryStatus} • ${profileStatus}`)}</strong>
             </div>
           </div>
         </div>
@@ -299,12 +300,18 @@ renderSextaView = function () {
             .map((item) => {
               const roleClass = item.role === 'user' ? 'human' : 'ai';
               const author = item.role === 'user' ? 'Voce' : 'Sexta';
+              const token = item.role === 'user' ? 'V' : 'S';
               return `
                 <article class="sexta-chat-row ${roleClass}">
-                  <div class="sexta-chat-author">${author}</div>
-                  <div class="sexta-chat-bubble ${roleClass}">
-                    <div>${escapeProjectHtml(item.text)}</div>
-                    ${item.meta ? `<span class="sexta-chat-meta">${escapeProjectHtml(item.meta)}</span>` : ''}
+                  <div class="sexta-chat-line ${roleClass}">
+                    <span class="sexta-chat-token ${roleClass}">${token}</span>
+                    <div class="sexta-chat-content">
+                      <div class="sexta-chat-author">${author}</div>
+                      <div class="sexta-chat-bubble ${roleClass}">
+                        <div>${escapeProjectHtml(item.text)}</div>
+                        ${item.meta ? `<span class="sexta-chat-meta">${escapeProjectHtml(item.meta)}</span>` : ''}
+                      </div>
+                    </div>
                   </div>
                 </article>
               `;
@@ -312,17 +319,32 @@ renderSextaView = function () {
             .join('')}
         </div>
 
-        <div class="sexta-quick-actions sexta-quick-actions--minimal">
-          ${quickCommands}
-        </div>
+        <div class="sexta-dock-grid">
+          <div class="sexta-action-dock">
+            <div class="sexta-action-dock-head">
+              <span class="sexta-panel-label">Ações rápidas</span>
+              <span class="sexta-action-dock-note">toque para preencher o comando</span>
+            </div>
+            <div class="sexta-quick-actions sexta-quick-actions--minimal">
+              ${quickCommands}
+            </div>
+          </div>
 
-        <div class="sexta-command-row sexta-command-row--composer">
-          <input id="sextaCommandInput" class="task-input sexta-command-input" type="text" placeholder="Ex.: cria tarefa cobrar cliente, conclui follow-up, move site para amanha, o que eu ataco agora?" />
-          <button class="btn-primary" type="button" data-sexta-command-action="send">Enviar</button>
+          <div class="sexta-composer-card">
+            <div class="sexta-composer-head">
+              <span class="sexta-panel-label">Comando</span>
+              <span class="sexta-composer-hint">Enter envia. Use verbos curtos e objetivos.</span>
+            </div>
+            <div class="sexta-command-row sexta-command-row--composer">
+              <input id="sextaCommandInput" class="task-input sexta-command-input" type="text" placeholder="Ex.: cria tarefa cobrar cliente, conclui follow-up, move site para amanha, o que eu ataco agora?" />
+              <button class="btn-primary btn-inline" type="button" data-sexta-command-action="send">Enviar</button>
+            </div>
+          </div>
         </div>
       </section>
 
       ${secondaryPanel}
+      </div>
     </div>
   `;
 

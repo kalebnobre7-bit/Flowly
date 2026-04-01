@@ -59,7 +59,7 @@ function renderProjectsView() {
     {
       label: 'Receita prevista',
       value: formatBRL(totalRevenue),
-      hint: paidCount > 0 ? `${paidCount} pago(s) no radar` : 'base financeira em construcao'
+      hint: paidCount > 0 ? `${paidCount} pago(s) no radar` : 'base financeira em construção'
     },
     {
       label: 'Nao pagos',
@@ -79,7 +79,7 @@ function renderProjectsView() {
   ];
 
   const heroInsight = (() => {
-    if (lateCount > 0) return `${lateCount} projeto(s) estao em atraso e pedem resposta hoje.`;
+    if (lateCount > 0) return `${lateCount} projeto(s) estão em atraso e pedem resposta hoje.`;
     if (deliveredUnpaidCount > 0) {
       return `${deliveredUnpaidCount} entrega(s) concluida(s) ainda nao viraram caixa.`;
     }
@@ -87,7 +87,7 @@ function renderProjectsView() {
       return `${urgentProjects.length} projeto(s) vencem nos proximos 5 dias.`;
     }
     if (taskBacklogCount > 0) {
-      return `${taskBacklogCount} tarefa(s) ainda estao soltas e podem virar projeto.`;
+      return `${taskBacklogCount} tarefa(s) ainda estão soltas e podem virar projeto.`;
     }
     return 'Operacao sob controle. Agora vale organizar melhor as proximas entregas.';
   })();
@@ -204,7 +204,7 @@ function renderProjectsView() {
                 </div>
                 <small class="projects-item-side-note">${
                   progressTotal > 0
-                    ? `${progressDone}/${progressTotal} tarefas concluidas`
+                    ? `${progressDone}/${progressTotal} tarefas concluídas`
                     : 'Nenhuma tarefa ligada ainda'
                 }</small>
               </div>
@@ -556,15 +556,14 @@ function renderProjectsView() {
     <div class="flowly-shell flowly-shell--wide projects-shell projects-shell--rebuilt">
       <section class="flowly-page-masthead projects-masthead">
         <div class="flowly-page-header projects-masthead-copy">
-          <div class="flowly-page-kicker">Projects OS</div>
-          <h2 class="flowly-page-title">Projetos com foco, prazo e caixa no mesmo painel</h2>
+          <div class="flowly-page-kicker">Central de projetos</div>
+          <h2 class="flowly-page-title">Projetos</h2>
           <p class="flowly-page-subtitle">${heroInsight}</p>
           <div class="flowly-inline-pills">
             <button type="button" data-projects-action="open-quick-modal" class="btn-primary projects-btn-inline projects-toolbar-cta">
               Novo projeto
             </button>
-            <span class="flowly-soft-pill">${filteredProjects.length} na visão</span>
-            <span class="flowly-soft-pill">${suggestionCount} sinais ativos</span>
+            <span class="flowly-soft-pill">${activeCount} ativos</span>
             <span class="flowly-soft-pill flowly-soft-pill--accent">${taskBacklogCount} sem projeto</span>
           </div>
         </div>
@@ -607,7 +606,7 @@ function renderProjectsView() {
                   </div>
                   <span class="projects-badge projects-badge--focus">Pronto para montar</span>
                 </div>
-                <p>Crie um projeto, puxe tarefas para dentro e use esse painel como base unica de execucao.</p>
+                <p>Crie um projeto, puxe tarefas para dentro e use esse painel como base única de execução.</p>
                 <div class="projects-row-badges">
                   <span class="projects-badge">Sem prazo</span>
                   <span class="projects-badge">Sem cliente</span>
@@ -615,20 +614,6 @@ function renderProjectsView() {
               `
           }
         </aside>
-      </section>
-
-      <section class="flowly-stat-grid projects-stat-grid">
-        ${projectsMetrics
-          .map(
-            (item) => `
-              <article class="flowly-stat-card">
-                <span>${item.label}</span>
-                <strong>${item.value}</strong>
-                <small>${item.hint}</small>
-              </article>
-            `
-          )
-          .join('')}
       </section>
 
       ${
@@ -657,14 +642,9 @@ function renderProjectsView() {
       <section class="finance-card projects-toolbar-card projects-toolbar-card--pipeline">
         <div class="projects-toolbar-head projects-toolbar-head--pipeline">
           <div>
-            <div class="projects-suggest-title">Pipeline view</div>
-            <h3>Troque o recorte sem perder contexto</h3>
-            <p>Uma leitura mais proxima de board, com menos ruído e filtros sempre a mao.</p>
-          </div>
-          <div class="projects-toolbar-meta">
-            <span class="projects-card-stat">${filteredProjects.length} cards</span>
-            <span class="projects-card-stat">${lateCount} em alerta</span>
-            <span class="projects-card-stat">${paidCount} pagos</span>
+            <div class="projects-suggest-title">Visão pipeline</div>
+            <h3>Painel de execução</h3>
+            <p>Filtros rápidos, menos ruído e leitura direta do que está em movimento.</p>
           </div>
         </div>
         <div class="projects-filters-bar projects-filters-bar--rebuilt">
@@ -691,9 +671,9 @@ function renderProjectsView() {
                 <section class="finance-card projects-pipeline-shell">
                   <div class="projects-board-header projects-board-header--pipeline">
                     <div>
-                      <div class="projects-suggest-title">Flow de entrega</div>
-                      <h3>Board vivo da operacao</h3>
-                      <p>Colunas por momento do projeto, com cards compactos e expansao sob demanda.</p>
+                      <div class="projects-suggest-title">Fluxo de entrega</div>
+                      <h3>Pipeline ativo</h3>
+                      <p>Colunas por etapa, com cards compactos e expansão só quando fizer sentido.</p>
                     </div>
                     <span class="projects-board-count">${filteredProjects.length}</span>
                   </div>
@@ -731,26 +711,26 @@ function renderProjectsView() {
                   <section class="finance-card projects-board-section projects-board-section--starter">
                     <div class="projects-board-header">
                       <div>
-                        <div class="projects-suggest-title">Comeco guiado</div>
-                        <h3>Transforme esse vazio em operacao</h3>
-                        <p>O lado esquerdo agora te ajuda a criar contexto, nao fica parado esperando projeto aparecer.</p>
+                        <div class="projects-suggest-title">Começo guiado</div>
+                        <h3>Monte o primeiro projeto sem ruído</h3>
+                        <p>Comece pelo essencial, puxe tarefas soltas e crie contexto antes de abrir outra frente.</p>
                       </div>
                     </div>
                     <div class="projects-starter-grid">
                       <article class="projects-starter-card">
                         <span class="projects-starter-step">01</span>
                         <strong>Crie o container do trabalho</strong>
-                        <p>Defina nome, cliente, prazo e valor. So isso ja organiza melhor o resto do Flowly.</p>
+                        <p>Defina nome, cliente, prazo e valor para criar um centro claro de execucao.</p>
                       </article>
                       <article class="projects-starter-card">
                         <span class="projects-starter-step">02</span>
                         <strong>Puxe as tarefas que ja existem</strong>
-                        <p>${taskBacklogCount} tarefa(s) estao sem projeto e podem virar contexto operacional agora.</p>
+                        <p>${taskBacklogCount} tarefa(s) estão sem projeto e podem virar contexto operacional agora.</p>
                       </article>
                       <article class="projects-starter-card">
                         <span class="projects-starter-step">03</span>
                         <strong>Feche o ciclo com receita</strong>
-                        <p>${suggestionCount} sugestao(oes) podem ligar entrega, recebimento e cliente na mesma visao.</p>
+                        <p>${suggestionCount} sugestão(ões) podem ligar entrega, cliente e recebimento na mesma leitura.</p>
                       </article>
                     </div>
                   </section>
@@ -759,8 +739,8 @@ function renderProjectsView() {
                     <div class="projects-board-header">
                       <div>
                         <div class="projects-suggest-title">Tarefas mais prontas</div>
-                        <h3>O que ja da para transformar em projeto</h3>
-                        <p>Essas tarefas estao mais proximas de virarem um card real na operacao.</p>
+                        <h3>O que ja pode virar projeto</h3>
+                        <p>Essas tarefas estão mais próximas de virarem um card real na operação.</p>
                       </div>
                       <span class="projects-board-count">${taskBacklogCount}</span>
                     </div>

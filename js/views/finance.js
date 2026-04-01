@@ -6,8 +6,8 @@ function renderFinanceView() {
 
   const analytics = buildFinanceAnalytics();
   const sourceHint = analytics.imports[0]
-    ? `Último import da Sexta: ${new Date(analytics.imports[0].importedAt).toLocaleString('pt-BR')}`
-    : 'Quando você mandar print do extrato pra Sexta, isso vai cair aqui organizado.';
+    ? `Importado em ${new Date(analytics.imports[0].importedAt).toLocaleString('pt-BR')}`
+    : 'Sem import recente da Sexta.';
 
   const expenseShare = analytics.expenseTotal > 0
     ? analytics.topExpenseCategories.map((item) => ({ ...item, share: Math.round((item.amount / analytics.expenseTotal) * 100) }))
@@ -20,12 +20,12 @@ function renderFinanceView() {
     <div class="flowly-shell flowly-shell--wide finance-shell finance-shell--rebuilt finance-shell--premium">
       <section class="finance-dashboard-hero">
         <div class="finance-hero-copy flowly-page-header">
-          <div class="finance-kicker flowly-page-kicker">Finance intelligence</div>
-          <h2 class="flowly-page-title">Financeiro claro, acionável e sem ruído</h2>
+          <div class="finance-kicker flowly-page-kicker">Painel financeiro</div>
+          <h2 class="flowly-page-title">Finanças</h2>
           <p class="flowly-page-subtitle">${analytics.analysisTone}</p>
           <div class="finance-inline-pills">
-            <span class="sexta-pill">${analytics.monthTransactionCount} movimentações</span>
-            <span class="sexta-pill sexta-pill--soft">${sourceHint}</span>
+            <span class="flowly-soft-pill flowly-soft-pill--accent">${analytics.monthTransactionCount} movimentações</span>
+            <span class="flowly-soft-pill">${sourceHint}</span>
           </div>
         </div>
         <div class="finance-kpi-strip">
@@ -214,7 +214,7 @@ function renderFinanceView() {
             </select>
           </div>
           <div class="finance-form-actions">
-            <button class="btn-primary" style="width:auto;padding:12px 18px;" onclick="saveFinanceTransactionFromForm()">Salvar movimentação</button>
+            <button class="btn-primary btn-inline" onclick="saveFinanceTransactionFromForm()">Salvar movimentação</button>
             <span class="finance-form-hint">Quanto mais você vincular entrada com tarefa/projeto, melhor fica a leitura do teu motor de caixa.</span>
           </div>
         </section>
@@ -229,7 +229,7 @@ function renderFinanceView() {
           <div class="finance-form-grid">
             <input id="projectQuickName" class="finance-input" type="text" placeholder="Nome do projeto">
             <input id="projectQuickClient" class="finance-input" type="text" placeholder="Cliente (opcional)">
-            <button class="btn-secondary" style="width:auto;padding:12px 18px;" onclick="createProjectQuick()">Criar projeto</button>
+            <button class="btn-secondary btn-inline" onclick="createProjectQuick()">Criar projeto</button>
           </div>
           <div class="finance-list finance-list--compact" style="margin-top:14px;">
             ${getProjectOptions().length > 0 ? getProjectOptions().slice(0, 8).map((project) => `
@@ -256,7 +256,7 @@ function renderFinanceView() {
               <strong>${analytics.formatBRL(analytics.goal)}</strong>
               <div class="finance-goal-inline">
                 <input id="financeMonthlyGoalInput" class="finance-input finance-input--sm" type="number" min="0" step="100" value="${analytics.goal}">
-                <button class="btn-secondary" style="width:auto;padding:10px 14px;" onclick="saveFinanceGoal()">Salvar meta</button>
+                <button class="btn-secondary btn-inline" onclick="saveFinanceGoal()">Salvar meta</button>
               </div>
             </div>
             <span>${analytics.progress}% da meta capturada • gap de ${analytics.formatBRL(analytics.gap)}</span>

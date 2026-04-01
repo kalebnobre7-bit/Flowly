@@ -493,30 +493,39 @@ function buildSettingsMarkup(ctx) {
   const currentTabPanels = tabPanels[settingsTab] || tabPanels.conta;
 
   return `
-    <div class="flowly-shell flowly-shell--narrow settings-shell">
+    <div class="flowly-shell flowly-shell--wide settings-shell settings-shell--refined">
       <div class="settings-topbar flowly-page-header">
         <div>
-          <h2 class="flowly-page-title flex items-center gap-3 text-2xl font-bold text-white">
+          <div class="flowly-page-kicker">Centro de ajustes</div>
+          <h2 class="flowly-page-title settings-page-title">
             <span class="settings-topbar-mark">
               <i data-lucide="settings-2" style="width:20px;height:20px;"></i>
             </span>
             Configurações
           </h2>
-          <p class="flowly-page-subtitle mt-1 text-sm text-gray-400">Agora separado por abas para você ajustar uma área por vez.</p>
+          <p class="flowly-page-subtitle settings-page-subtitle">Visual, comportamento e integrações no mesmo padrão do app.</p>
         </div>
-        <div class="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-300">
-          <div class="font-semibold text-gray-200">FLOWLY v1.2</div>
-          <div class="text-gray-400">Sincronizado via Supabase</div>
+        <div class="flowly-page-actions">
+          <div class="flowly-page-badge">
+          <div class="flowly-page-badge-title">FLOWLY v1.2</div>
+          <div class="flowly-page-badge-copy">Sincronizado via Supabase</div>
+          </div>
         </div>
       </div>
 
-      <div class="settings-tabs" role="tablist">
-        ${buildSettingsTabNav(settingsTab)}
-      </div>
+      <section class="settings-toolbar-card flowly-panel">
+        <div class="settings-toolbar-copy">
+          <div class="settings-toolbar-label">Áreas do app</div>
+          <p>Escolha uma área e ajuste o essencial sem sair do fluxo.</p>
+        </div>
+        <div class="settings-tabs" role="tablist">
+          ${buildSettingsTabNav(settingsTab)}
+        </div>
+      </section>
 
       <div class="settings-panels">
-        <div class="space-y-4">${currentTabPanels.main.join('')}</div>
-        <div class="space-y-4">${currentTabPanels.side.join('')}</div>
+        <div class="settings-main-stack">${currentTabPanels.main.join('')}</div>
+        <aside class="settings-side-stack">${currentTabPanels.side.join('')}</aside>
       </div>
     </div>
   `;

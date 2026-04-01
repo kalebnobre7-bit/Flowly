@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-31",
+  "project": "Flowly",
+  "principles": [
+    "Ownership real por arquivo, não por ideia genérica",
+    "Um único design system para todas as views",
+    "Persistência validada com reload e cross-device",
+    "QA real com Playwright MCP antes de push em mudanças críticas"
+  ],
+  "agents": [
+    {
+      "id": "experience-design",
+      "name": "Experience & Design System",
+      "focus": [
+        "design system",
+        "layout",
+        "responsividade",
+        "consistência entre views"
+      ],
+      "owns": [
+        "index.html",
+        "styles.css",
+        "bento-theme.css",
+        "js/views",
+        "js/core/ui-bootstrap.js",
+        "js/core/ui-dialogs.js",
+        "js/core/navigation-runtime.js"
+      ],
+      "must_not_own": [
+        "js/core/tasks-repo.js",
+        "js/core/tasks-sync.js",
+        "js/core/sync-runtime.js"
+      ]
+    },
+    {
+      "id": "task-runtime",
+      "name": "Task Runtime & Interaction",
+      "focus": [
+        "tarefas",
+        "subtarefas",
+        "drag and drop",
+        "timers",
+        "expansão",
+        "espelhos de projeto"
+      ],
+      "owns": [
+        "js/tasks",
+        "js/components/task-actions.js",
+        "js/components/drag-drop.js",
+        "js/core/task-timers.js",
+        "js/core/task-normalizer-runtime.js",
+        "js/core/task-metrics.js",
+        "js/core/projects-runtime.js",
+        "js/core/routine-service.js"
+      ],
+      "must_not_own": [
+        "service-worker.js",
+        "supabase",
+        "setup_supabase.sql"
+      ]
+    },
+    {
+      "id": "sync-platform",
+      "name": "Sync, Data & Platform",
+      "focus": [
+        "supabase",
+        "persistência",
+        "auth",
+        "offline",
+        "PWA",
+        "service worker"
+      ],
+      "owns": [
+        "js/core/tasks-repo.js",
+        "js/core/tasks-sync.js",
+        "js/core/sync-runtime.js",
+        "js/core/service-bootstrap.js",
+        "js/core/sync-status-runtime.js",
+        "js/core/local-store.js",
+        "js/core/app-storage.js",
+        "js/core/auth-runtime.js",
+        "js/core/auth-session.js",
+        "js/core/app-runtime.js",
+        "js/core/pwa.js",
+        "service-worker.js",
+        "supabase",
+        "setup_supabase.sql"
+      ],
+      "must_not_own": [
+        "styles.css",
+        "js/views/projects.js",
+        "js/views/today.js"
+      ]
+    },
+    {
+      "id": "qa-release",
+      "name": "QA, Regression & Release",
+      "focus": [
+        "playwright",
+        "smoke",
+        "regressão",
+        "release confidence"
+      ],
+      "owns": [
+        "tests",
+        "scripts/browser-smoke.js",
+        "scripts/check-syntax.js",
+        "REGRESSION_CHECKLIST.md"
+      ],
+      "must_not_own": [
+        "product feature ownership"
+      ]
+    }
+  ]
+}

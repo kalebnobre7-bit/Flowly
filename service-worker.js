@@ -1,6 +1,6 @@
 ﻿const STATIC_CACHE = 'flowly-static-v10';
 
-const ACTIVE_STATIC_CACHE = 'flowly-static-v13';
+const ACTIVE_STATIC_CACHE = 'flowly-static-v14';
 
 const APP_SCOPE_URL = new URL(self.registration.scope);
 const APP_SCOPE_PATH = APP_SCOPE_URL.pathname.endsWith('/')

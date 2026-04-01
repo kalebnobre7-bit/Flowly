@@ -1,8 +1,15 @@
 function setView(view) {
+  const previousView = currentView;
+
   if (view === 'routine') {
     const analyticsView = document.getElementById('analyticsView');
     if (analyticsView) analyticsView.dataset.mainTab = 'routine';
     view = 'analytics';
+  }
+
+  if (view === 'sexta' && previousView !== 'sexta' && typeof sextaState === 'object' && sextaState) {
+    sextaState.activeTab = 'chat';
+    if (typeof persistSextaState === 'function') persistSextaState();
   }
 
   currentView = view;
