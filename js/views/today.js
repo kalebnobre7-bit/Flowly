@@ -61,7 +61,6 @@ function renderToday() {
   allTasks = unifiedTaskSort(allTasks);
 
   const actionableEntries = allTasks.filter((entry) => entry.task && !entry.task.isProjectMirror);
-  const projectMirrorCount = allTasks.filter((entry) => entry.task && entry.task.isProjectMirror).length;
   const completedCount = actionableEntries.filter((entry) => entry.task && entry.task.completed).length;
   const pendingEntries = actionableEntries.filter((entry) => entry.task && !entry.task.completed);
   const routinePending = pendingEntries.filter((entry) => entry.period === 'Rotina').length;
@@ -215,20 +214,6 @@ function renderToday() {
 
   const taskShell = document.createElement('section');
   taskShell.className = focusOnlyMode ? 'today-task-panel today-task-panel--focus' : 'today-task-panel';
-  if (!focusOnlyMode) {
-    taskShell.innerHTML = `
-      <div class="today-task-panel-head">
-          <div class="today-task-panel-copy">
-            <div class="today-card-label">Execução do dia</div>
-            <p>
-              ${pendingEntries.length} abertas • ${completedCount} concluídas${
-              projectMirrorCount ? ` • ${projectMirrorCount} com projeto` : ''
-            }
-          </p>
-        </div>
-      </div>
-    `;
-  }
 
   const taskListWrap = document.createElement('div');
   taskListWrap.className = focusOnlyMode ? 'today-task-list-wrap today-task-list-wrap--focus' : 'today-task-list-wrap';
@@ -243,8 +228,9 @@ function renderToday() {
   });
 
   const endDropZone = createDropZone(today, dateStr, 'Tarefas', allTasks.length);
-  endDropZone.classList.add('flex-grow', 'min-h-[40px]', 'today-end-dropzone');
+  endDropZone.classList.add('today-end-dropzone');
   endDropZone.innerText = '';
+  endDropZone.setAttribute('aria-label', 'Adicionar tarefa');
   endDropZone.addEventListener('click', () => {
     if (!document.body.classList.contains('dragging-active')) {
       insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);

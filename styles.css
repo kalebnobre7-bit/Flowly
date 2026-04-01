@@ -788,30 +788,31 @@ body.no-week-hover .day-column:hover {
 
 .today-focus-toggle-wrap {
     display: flex;
-    justify-content: flex-end;
-    margin-bottom: 10px;
-}
-
-.today-focus-toggle-wrap.focus-active {
     justify-content: center;
     margin-bottom: 6px;
 }
 
+.today-focus-toggle-wrap.focus-active {
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
 .today-focus-toggle-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(242, 116, 5, 0.18);
-    color: var(--text-secondary);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(226, 232, 240, 0.72);
+    border-radius: 999px;
     font-size: 12px;
-    font-weight: 700;
-    padding: 7px 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 7px 16px;
     transition: all 0.15s ease;
 }
 
 .today-focus-toggle-btn:hover {
-    background: rgba(242, 116, 5, 0.14);
-    border-color: rgba(242, 116, 5, 0.45);
-    color: #fff3ea;
+    background: rgba(255, 255, 255, 0.032);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(248, 250, 252, 0.88);
 }
 
 .today-main {
@@ -2524,7 +2525,7 @@ body.dragging-active .task-drop-zone {
     flex-direction: column;
     gap: 8px;
     padding: 12px;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-panel);
     background: var(--surface-panel-strong);
 }
@@ -2538,6 +2539,13 @@ body.dragging-active .task-drop-zone {
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: rgba(191, 219, 254, 0.78);
+}
+
+.settings-theme-field-copy {
+    margin: -2px 0 2px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
 }
 
 .settings-theme-input-wrap {
@@ -2558,6 +2566,69 @@ body.dragging-active .task-drop-zone {
 .settings-theme-input-wrap code {
     color: rgba(226, 232, 240, 0.72);
     font-size: 12px;
+}
+
+.settings-theme-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.settings-theme-choice-grid--compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settings-theme-choice {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 13px;
+    border-radius: calc(var(--radius-md) + 4px);
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.18);
+    color: rgba(226,232,240,0.9);
+    text-align: left;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.settings-theme-choice:hover {
+    border-color: rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.035);
+    transform: translateY(-1px);
+}
+
+.settings-theme-choice.is-active {
+    border-color: rgb(var(--accent-primary-rgb) / 0.28);
+    background:
+        linear-gradient(135deg, rgb(var(--accent-primary-rgb) / 0.12), rgb(var(--accent-secondary-rgb) / 0.04)),
+        rgba(255,255,255,0.03);
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-primary-rgb) / 0.16);
+}
+
+.settings-theme-choice-head {
+    display: grid;
+    gap: 4px;
+}
+
+.settings-theme-choice-head strong {
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.settings-theme-choice-head span {
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.settings-theme-choice-sample {
+    display: block;
+    color: rgba(248,250,252,0.84);
+    font-size: 15px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
 }
 
 .settings-theme-preview {
@@ -2596,6 +2667,10 @@ body.dragging-active .task-drop-zone {
 .settings-theme-preview-card p {
     margin: 6px 0 0;
     color: rgba(226, 232, 240, 0.66);
+}
+
+.settings-theme-preview--side {
+    margin-top: 16px;
 }
 
 .settings-theme-preview-actions {
@@ -2640,6 +2715,10 @@ body.dragging-active .task-drop-zone {
 .settings-theme-reset:hover {
     background: rgba(255, 255, 255, 0.06);
     color: #fff;
+}
+
+.settings-guide-list--theme div {
+    gap: 4px;
 }
 
 .flowly-accent-btn {
@@ -6758,6 +6837,11 @@ body.dragging-active .task-drop-zone {
         grid-template-columns: 1fr;
     }
 
+    .settings-theme-choice-grid,
+    .settings-theme-choice-grid--compact {
+        grid-template-columns: 1fr;
+    }
+
     .task-expansion--minimal {
         margin-left: 0;
         padding: 14px;
@@ -6799,6 +6883,10 @@ body.dragging-active .task-drop-zone {
 
     .settings-tab-btn {
         padding: 10px 12px;
+    }
+
+    .settings-theme-choice {
+        padding: 11px 12px;
     }
 
     .routine-section-card,
@@ -7381,36 +7469,42 @@ body.dragging-active .task-drop-zone {
 
 #todayView.today-container.today-focus-mode {
   max-width: 760px;
-  gap: 14px;
+  gap: 18px;
+  padding-top: 34px;
 }
 
 #todayView.today-container .today-focus-toggle-wrap {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  width: 100%;
+  margin: 2px 0 4px;
 }
 
 #todayView.today-container .today-focus-toggle-btn {
-  min-height: 38px;
-  padding: 0 15px;
+  min-height: 36px;
+  padding: 0 14px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.035);
-  color: rgba(255,255,255,0.82);
-  font-size: 12px;
-  font-weight: 800;
+  background: rgba(255,255,255,0.028);
+  color: rgba(226,232,240,0.74);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
 }
 
 #todayView.today-container .today-focus-toggle-btn:hover {
-  border-color: rgb(var(--accent-primary-rgb) / 0.3);
-  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.042);
+  color: rgba(248,250,252,0.9);
 }
 
 .today-card-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  color: rgb(var(--accent-primary-rgb) / 0.72);
+  color: rgba(226,232,240,0.46);
 }
 
 .today-dashboard-grid {
@@ -7424,8 +7518,8 @@ body.dragging-active .task-drop-zone {
   min-width: 0;
   padding: 18px;
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.022);
+  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.018);
   box-shadow: none;
 }
 
@@ -7450,7 +7544,7 @@ body.dragging-active .task-drop-zone {
   flex-direction: column;
   justify-content: center;
   min-height: 188px;
-  background: rgba(255,255,255,0.02);
+  background: rgba(255,255,255,0.014);
 }
 
 .today-overview-card--hero .flowly-page-title {
@@ -7459,9 +7553,9 @@ body.dragging-active .task-drop-zone {
 }
 
 .today-overview-date {
-  color: rgba(191,219,254,0.82);
+  color: rgba(226,232,240,0.72);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.02em;
 }
 
@@ -7478,7 +7572,7 @@ body.dragging-active .task-drop-zone {
 
 .today-task-panel {
   min-width: 0;
-  padding-right: 8px;
+  padding-right: 0;
 }
 
 .today-workspace {
@@ -7532,9 +7626,9 @@ body.dragging-active .task-drop-zone {
 }
 
 .today-task-list-wrap {
-  min-height: 320px;
+  min-height: 0;
   cursor: text;
-  padding-top: 4px;
+  padding-top: 0;
 }
 
 .today-task-list-wrap--focus {
@@ -7544,8 +7638,8 @@ body.dragging-active .task-drop-zone {
 .today-task-list--dashboard {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-height: 280px;
+  gap: 6px;
+  min-height: 0;
   max-width: none;
 }
 
@@ -7627,15 +7721,15 @@ body.dragging-active .task-drop-zone {
 
 .today-task-list--dashboard .task-item--project-anchor,
 .today-task-list--dashboard .task-item--project-mirror {
-  padding: 12px 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.06) !important;
-  background: rgba(255,255,255,0.03) !important;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  background: rgba(255,255,255,0.018) !important;
 }
 
 .today-task-list--dashboard .task-item--project-mirror {
-  border-color: rgba(77,107,254,0.16) !important;
-  background: rgba(77,107,254,0.05) !important;
+  border-color: rgba(255,255,255,0.06) !important;
+  background: rgba(255,255,255,0.022) !important;
 }
 
 .today-task-list--focus .task-item,
@@ -7647,11 +7741,77 @@ body.dragging-active .task-drop-zone {
   font-size: 18px;
 }
 
+.today-task-list--focus .task-item--project-anchor,
+.today-task-list--focus .task-item--project-mirror {
+  border-color: rgba(255,255,255,0.04) !important;
+  background: rgba(255,255,255,0.014) !important;
+}
+
 .today-end-dropzone {
-  margin-top: 8px;
-  border-radius: 16px;
+  position: relative;
+  height: 24px;
+  min-height: 24px;
+  margin-top: 2px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  opacity: 1;
+  pointer-events: auto;
+  cursor: text;
+  transition: opacity 0.16s ease, height 0.16s ease, margin 0.16s ease, background 0.16s ease;
+}
+
+.today-end-dropzone::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.16s ease;
+}
+
+.today-end-dropzone::after {
+  content: '+ nova tarefa';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 0 10px;
+  color: rgba(226,232,240,0.38);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  background: var(--bg-body);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.16s ease, color 0.16s ease;
+}
+
+body:not(.dragging-active) .today-end-dropzone:hover::before,
+body:not(.dragging-active) .today-end-dropzone:hover::after {
+  opacity: 1;
+}
+
+body:not(.dragging-active) .today-end-dropzone:hover::after {
+  color: rgba(248,250,252,0.72);
+}
+
+body.dragging-active .today-end-dropzone {
+  height: 16px;
+  min-height: 16px;
+  margin-top: 6px;
+  border-radius: 14px;
   border: 1px dashed rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.015);
+  background: rgba(255,255,255,0.012);
+  opacity: 1;
+}
+
+body.dragging-active .today-end-dropzone::before,
+body.dragging-active .today-end-dropzone::after {
+  opacity: 0;
 }
 
 .today-empty {
@@ -7795,7 +7955,11 @@ body.dragging-active .task-drop-zone {
     position: static;
   }
 
-  .today-overview-card--hero,
+  .today-overview-card--hero {
+    grid-column: span 1;
+    min-height: 0;
+  }
+
   .today-overview-card--wide {
     grid-column: span 2;
   }

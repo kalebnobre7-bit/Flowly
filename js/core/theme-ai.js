@@ -22,39 +22,89 @@ const FLOWLY_THEME_DEFAULTS = {
 const FLOWLY_FONT_PRESETS = {
   system: {
     label: 'Sistema',
+    hint: 'Neutro e nativo',
     main: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     display:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    sample: 'Fluxo claro e direto'
+  },
+  humanist: {
+    label: 'Humanista',
+    hint: 'Mais quente e legível',
+    main: '"Segoe UI", Candara, "Trebuchet MS", Verdana, sans-serif',
+    display: '"Trebuchet MS", "Segoe UI", Candara, sans-serif',
+    sample: 'Ritmo humano e macio'
   },
   geometric: {
-    label: 'Geometrica',
+    label: 'Geométrica',
+    hint: 'Produto mais firme',
     main: '"Avenir Next", "Futura", "Trebuchet MS", sans-serif',
-    display: '"Avenir Next", "Futura", "Trebuchet MS", sans-serif'
+    display: '"Century Gothic", "Avenir Next", "Trebuchet MS", sans-serif',
+    sample: 'Estrutura com precisão'
+  },
+  modern: {
+    label: 'Moderna',
+    hint: 'Mais limpa e silenciosa',
+    main: '"Segoe UI Variable", "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+    display: '"Segoe UI Variable Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+    sample: 'Clareza com menos ruído'
+  },
+  grotesk: {
+    label: 'Grotesca',
+    hint: 'SaaS mais editorial',
+    main: '"Helvetica Neue", "Arial Narrow", Arial, sans-serif',
+    display: '"Arial Black", "Helvetica Neue", Arial, sans-serif',
+    sample: 'Presença sem ornamento'
   },
   editorial: {
     label: 'Editorial',
-    main: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
-    display: '"Georgia", "Times New Roman", serif'
+    hint: 'Mais contraste e personalidade',
+    main: '"Palatino Linotype", "Book Antiqua", Georgia, serif',
+    display: '"Iowan Old Style", Georgia, "Times New Roman", serif',
+    sample: 'Peso e contraste na leitura'
   },
   mono: {
     label: 'Mono',
-    main: '"IBM Plex Sans", "Segoe UI", Arial, sans-serif',
-    display: '"IBM Plex Mono", "SFMono-Regular", Consolas, monospace'
+    hint: 'Operação técnica',
+    main: 'Consolas, "Lucida Sans Unicode", "Segoe UI", sans-serif',
+    display: 'Consolas, "SFMono-Regular", "Courier New", monospace',
+    sample: 'Contexto, sistema, comando'
+  },
+  industrial: {
+    label: 'Industrial',
+    hint: 'Mais seco e objetivo',
+    main: 'Tahoma, Verdana, "Segoe UI", sans-serif',
+    display: '"Arial Black", Tahoma, sans-serif',
+    sample: 'Direto ao ponto'
   }
 };
 const FLOWLY_RADIUS_PRESETS = {
-  compact: { label: 'Compacto', lg: '12px', md: '8px' },
-  soft: { label: 'Suave', lg: '16px', md: '10px' },
-  rounded: { label: 'Arredondado', lg: '24px', md: '16px' }
+  sharp: { label: 'Seco', hint: 'Mais reto e contido', lg: '10px', md: '6px', sm: '4px' },
+  compact: { label: 'Compacto', hint: 'Técnico e discreto', lg: '14px', md: '9px', sm: '6px' },
+  soft: { label: 'Suave', hint: 'Equilíbrio padrão', lg: '18px', md: '12px', sm: '8px' },
+  rounded: { label: 'Arredondado', hint: 'Mais amigável e fluido', lg: '26px', md: '18px', sm: '12px' },
+  organic: { label: 'Orgânico', hint: 'Curvas mais fortes', lg: '32px', md: '22px', sm: '14px' }
 };
 const FLOWLY_PAGE_WIDTH_PRESETS = {
-  compact: { label: 'Compacta', base: '1180px', narrow: '1040px', wide: '1280px' },
-  wide: { label: 'Equilibrada', base: '1280px', narrow: '1120px', wide: '1400px' },
-  cinematic: { label: 'Ampla', base: '1380px', narrow: '1200px', wide: '1520px' }
+  focused: { label: 'Focada', hint: 'Mais concentrada', base: '1100px', narrow: '980px', wide: '1200px' },
+  compact: { label: 'Compacta', hint: 'Mais densa', base: '1180px', narrow: '1040px', wide: '1280px' },
+  wide: { label: 'Equilibrada', hint: 'Padrão do app', base: '1280px', narrow: '1120px', wide: '1400px' },
+  cinematic: { label: 'Ampla', hint: 'Respira mais', base: '1380px', narrow: '1200px', wide: '1520px' }
 };
 const FLOWLY_PANEL_PRESETS = {
+  flat: {
+    label: 'Plano',
+    hint: 'Minimalista e leve',
+    panel: 'rgba(255,255,255,0.014)',
+    panelStrong: 'rgba(255,255,255,0.022)',
+    panelElevated: 'rgba(255,255,255,0.032)',
+    border: 'rgba(255,255,255,0.05)',
+    shadow: '0 10px 24px rgba(0,0,0,0.12)',
+    blur: '8px'
+  },
   soft: {
     label: 'Suave',
+    hint: 'Mais leve e translúcido',
     panel: 'rgba(255,255,255,0.024)',
     panelStrong: 'rgba(255,255,255,0.038)',
     panelElevated: 'rgba(255,255,255,0.055)',
@@ -64,6 +114,7 @@ const FLOWLY_PANEL_PRESETS = {
   },
   balanced: {
     label: 'Equilibrado',
+    hint: 'Contraste médio',
     panel: 'rgba(255,255,255,0.03)',
     panelStrong: 'rgba(255,255,255,0.05)',
     panelElevated: 'rgba(255,255,255,0.075)',
@@ -73,6 +124,7 @@ const FLOWLY_PANEL_PRESETS = {
   },
   crisp: {
     label: 'Marcado',
+    hint: 'Mais sólido e definido',
     panel: 'rgba(13,14,20,0.82)',
     panelStrong: 'rgba(18,20,28,0.94)',
     panelElevated: 'rgba(24,26,36,0.98)',
@@ -159,6 +211,7 @@ function applyFlowlyThemeSettings(settings = getFlowlyThemeSettings()) {
   root.style.setProperty('--accent-secondary-rgb', secondaryRgb);
   root.style.setProperty('--font-main', mainFont.main);
   root.style.setProperty('--font-display', displayFont.display);
+  root.style.setProperty('--radius-sm', radius.sm || radius.md);
   root.style.setProperty('--radius-lg', radius.lg);
   root.style.setProperty('--radius-md', radius.md);
   root.style.setProperty('--shell-max-width', pageWidth.base);

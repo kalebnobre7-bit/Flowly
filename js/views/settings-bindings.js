@@ -1,5 +1,55 @@
 function bindSettingsInteractions() {
   const notify = (message, level = 'warn') => window.FlowlyDialogs.notify(message, level);
+  const themeSettingUpdaters = {
+    fontMain: (current, value) => ({ ...current, fontMain: value }),
+    fontDisplay: (current, value) => ({ ...current, fontDisplay: value }),
+    radiusScale: (current, value) => ({ ...current, radiusScale: value }),
+    pageWidth: (current, value) => ({ ...current, pageWidth: value }),
+    panelStyle: (current, value) => ({ ...current, panelStyle: value })
+  };
+
+  const refreshThemeUi = (settings = getFlowlyThemeSettings()) => {
+    const normalized = getFlowlyThemeSettings ? normalizeFlowlyThemeSettings(settings) : settings;
+    const mainPreset = FLOWLY_FONT_PRESETS[normalized.fontMain] || FLOWLY_FONT_PRESETS.system;
+    const displayPreset =
+      FLOWLY_FONT_PRESETS[normalized.fontDisplay] || FLOWLY_FONT_PRESETS.system;
+    const radiusPreset =
+      FLOWLY_RADIUS_PRESETS[normalized.radiusScale] || FLOWLY_RADIUS_PRESETS.soft;
+    const widthPreset =
+      FLOWLY_PAGE_WIDTH_PRESETS[normalized.pageWidth] || FLOWLY_PAGE_WIDTH_PRESETS.wide;
+    const panelPreset =
+      FLOWLY_PANEL_PRESETS[normalized.panelStyle] || FLOWLY_PANEL_PRESETS.balanced;
+
+    const primaryCode = document.getElementById('themePrimaryCode');
+    const secondaryCode = document.getElementById('themeSecondaryCode');
+    if (primaryCode) primaryCode.textContent = normalized.primaryColor;
+    if (secondaryCode) secondaryCode.textContent = normalized.secondaryColor;
+
+    const summaryMap = {
+      themeSummaryFontMain: `${mainPreset.label} · ${mainPreset.hint || ''}`,
+      themeSummaryFontDisplay: `${displayPreset.label} · ${displayPreset.hint || ''}`,
+      themeSummaryRadius: `${radiusPreset.label} · ${radiusPreset.hint || ''}`,
+      themeSummaryWidth: `${widthPreset.label} · ${widthPreset.hint || ''}`,
+      themeSummaryPanel: `${panelPreset.label} · ${panelPreset.hint || ''}`
+    };
+    Object.entries(summaryMap).forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    });
+
+    const previewTitle = document.getElementById('themeSidePreviewTitle');
+    const previewCopy = document.getElementById('themeSidePreviewCopy');
+    if (previewTitle) previewTitle.style.fontFamily = displayPreset.display;
+    if (previewCopy) previewCopy.style.fontFamily = mainPreset.main;
+
+    document.querySelectorAll('[data-theme-setting][data-theme-value]').forEach((btn) => {
+      const isActive =
+        btn.dataset.themeSetting &&
+        normalized[btn.dataset.themeSetting] === (btn.dataset.themeValue || '');
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  };
 
   document.querySelectorAll('[data-settings-tab]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -14,14 +64,15 @@ function bindSettingsInteractions() {
 
     const commit = () => {
       const current = getFlowlyThemeSettings();
-      saveFlowlyThemeSettings(updater(current, el.value));
-      renderSettingsView();
+      const next = saveFlowlyThemeSettings(updater(current, el.value));
+      refreshThemeUi(next);
     };
 
     if (el.type === 'color') {
       el.oninput = function () {
         const current = getFlowlyThemeSettings();
-        saveFlowlyThemeSettings(updater(current, el.value));
+        const next = saveFlowlyThemeSettings(updater(current, el.value));
+        refreshThemeUi(next);
       };
       el.onchange = commit;
       return;
@@ -53,13 +104,27 @@ function bindSettingsInteractions() {
     panelStyle: value
   }));
 
+  document.querySelectorAll('[data-theme-setting][data-theme-value]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const fieldName = btn.dataset.themeSetting || '';
+      const value = btn.dataset.themeValue || '';
+      const updater = themeSettingUpdaters[fieldName];
+      if (!updater) return;
+      const current = getFlowlyThemeSettings();
+      const next = saveFlowlyThemeSettings(updater(current, value));
+      refreshThemeUi(next);
+    });
+  });
+
   const resetThemeBtn = document.getElementById('btnResetThemeSettings');
   if (resetThemeBtn) {
     resetThemeBtn.onclick = () => {
-      saveFlowlyThemeSettings(FLOWLY_THEME_DEFAULTS);
-      renderSettingsView();
+      const next = saveFlowlyThemeSettings(FLOWLY_THEME_DEFAULTS);
+      refreshThemeUi(next);
     };
   }
+
+  refreshThemeUi();
 
   const bindAiField = (id, fieldName) => {
     const el = document.getElementById(id);

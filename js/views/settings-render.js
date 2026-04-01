@@ -40,6 +40,48 @@ function createSettingsToggle(id, checked) {
   `;
 }
 
+function escapeSettingsHtml(value) {
+  return String(value == null ? '' : value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function createThemeChoiceGroup(fieldName, currentValue, options, groupClass = '') {
+  return `
+    <div class="settings-theme-choice-grid${groupClass ? ` ${groupClass}` : ''}">
+      ${options
+        .map((option) => {
+          const isActive = currentValue === option.value;
+          const previewStyle = option.previewStyle
+            ? ` style="${escapeSettingsHtml(option.previewStyle)}"`
+            : '';
+          return `
+            <button
+              type="button"
+              class="settings-theme-choice${isActive ? ' is-active' : ''}"
+              data-theme-setting="${escapeSettingsHtml(fieldName)}"
+              data-theme-value="${escapeSettingsHtml(option.value)}"
+            >
+              <span class="settings-theme-choice-head">
+                <strong>${escapeSettingsHtml(option.label)}</strong>
+                ${option.hint ? `<span>${escapeSettingsHtml(option.hint)}</span>` : ''}
+              </span>
+              ${
+                option.sample
+                  ? `<span class="settings-theme-choice-sample"${previewStyle}>${escapeSettingsHtml(option.sample)}</span>`
+                  : ''
+              }
+            </button>
+          `;
+        })
+        .join('')}
+    </div>
+  `;
+}
+
 function buildSettingsTabNav(settingsTab) {
   const settingsTabs = [
     { id: 'conta', label: 'Conta', icon: 'user-round' },
@@ -108,38 +150,70 @@ function buildSettingsMarkup(ctx) {
     ? 'Ambiente seguro detectado (HTTPS/localhost).'
     : 'Para ativar notificações, abra por HTTPS ou localhost.';
 
-  const fontMainOptions = Object.entries(FLOWLY_FONT_PRESETS)
-    .map(
-      ([key, preset]) =>
-        `<option value="${key}" ${themeSettings.fontMain === key ? 'selected' : ''}>${preset.label}</option>`
-    )
-    .join('');
-
-  const fontDisplayOptions = Object.entries(FLOWLY_FONT_PRESETS)
-    .map(
-      ([key, preset]) =>
-        `<option value="${key}" ${themeSettings.fontDisplay === key ? 'selected' : ''}>${preset.label}</option>`
-    )
-    .join('');
-
-  const radiusOptions = Object.entries(FLOWLY_RADIUS_PRESETS)
-    .map(
-      ([key, preset]) =>
-        `<option value="${key}" ${themeSettings.radiusScale === key ? 'selected' : ''}>${preset.label}</option>`
-    )
-    .join('');
-  const widthOptions = Object.entries(FLOWLY_PAGE_WIDTH_PRESETS)
-    .map(
-      ([key, preset]) =>
-        `<option value="${key}" ${themeSettings.pageWidth === key ? 'selected' : ''}>${preset.label}</option>`
-    )
-    .join('');
-  const panelOptions = Object.entries(FLOWLY_PANEL_PRESETS)
-    .map(
-      ([key, preset]) =>
-        `<option value="${key}" ${themeSettings.panelStyle === key ? 'selected' : ''}>${preset.label}</option>`
-    )
-    .join('');
+  const fontMainPreset = FLOWLY_FONT_PRESETS[themeSettings.fontMain] || FLOWLY_FONT_PRESETS.system;
+  const fontDisplayPreset =
+    FLOWLY_FONT_PRESETS[themeSettings.fontDisplay] || FLOWLY_FONT_PRESETS.system;
+  const radiusPreset =
+    FLOWLY_RADIUS_PRESETS[themeSettings.radiusScale] || FLOWLY_RADIUS_PRESETS.soft;
+  const widthPreset =
+    FLOWLY_PAGE_WIDTH_PRESETS[themeSettings.pageWidth] || FLOWLY_PAGE_WIDTH_PRESETS.wide;
+  const panelPreset =
+    FLOWLY_PANEL_PRESETS[themeSettings.panelStyle] || FLOWLY_PANEL_PRESETS.balanced;
+  const fontMainChoiceGrid = createThemeChoiceGroup(
+    'fontMain',
+    themeSettings.fontMain,
+    Object.entries(FLOWLY_FONT_PRESETS).map(([key, preset]) => ({
+      value: key,
+      label: preset.label,
+      hint: preset.hint,
+      sample: preset.sample || 'Preview',
+      previewStyle: `font-family:${preset.main};`
+    }))
+  );
+  const fontDisplayChoiceGrid = createThemeChoiceGroup(
+    'fontDisplay',
+    themeSettings.fontDisplay,
+    Object.entries(FLOWLY_FONT_PRESETS).map(([key, preset]) => ({
+      value: key,
+      label: preset.label,
+      hint: preset.hint,
+      sample: preset.sample || 'Preview',
+      previewStyle: `font-family:${preset.display};`
+    }))
+  );
+  const radiusChoiceGrid = createThemeChoiceGroup(
+    'radiusScale',
+    themeSettings.radiusScale,
+    Object.entries(FLOWLY_RADIUS_PRESETS).map(([key, preset]) => ({
+      value: key,
+      label: preset.label,
+      hint: preset.hint,
+      sample: `Cards em ${preset.lg}`
+    })),
+    'settings-theme-choice-grid--compact'
+  );
+  const widthChoiceGrid = createThemeChoiceGroup(
+    'pageWidth',
+    themeSettings.pageWidth,
+    Object.entries(FLOWLY_PAGE_WIDTH_PRESETS).map(([key, preset]) => ({
+      value: key,
+      label: preset.label,
+      hint: preset.hint,
+      sample: `Base ${preset.base}`
+    })),
+    'settings-theme-choice-grid--compact'
+  );
+  const panelChoiceGrid = createThemeChoiceGroup(
+    'panelStyle',
+    themeSettings.panelStyle,
+    Object.entries(FLOWLY_PANEL_PRESETS).map(([key, preset]) => ({
+      value: key,
+      label: preset.label,
+      hint: preset.hint,
+      sample: 'Superfícies e contraste'
+    })),
+    'settings-theme-choice-grid--compact'
+  );
 
   const profileSection = createSettingsSectionCard(
     'Perfil',
@@ -265,7 +339,7 @@ function buildSettingsMarkup(ctx) {
 
   const personalizationSection = createSettingsSectionCard(
     'Personalização',
-    'Cores, fontes, largura e painéis',
+    'Tema vivo, com escolhas mais previsíveis',
     'palette',
     `
       <div class="settings-theme-grid">
@@ -273,48 +347,74 @@ function buildSettingsMarkup(ctx) {
           <span>Cor primária</span>
           <div class="settings-theme-input-wrap">
             <input id="inputThemePrimaryColor" type="color" value="${themeSettings.primaryColor}" />
-            <code>${themeSettings.primaryColor}</code>
+            <code id="themePrimaryCode">${themeSettings.primaryColor}</code>
           </div>
         </label>
         <label class="settings-theme-field">
           <span>Cor secundária</span>
           <div class="settings-theme-input-wrap">
             <input id="inputThemeSecondaryColor" type="color" value="${themeSettings.secondaryColor}" />
-            <code>${themeSettings.secondaryColor}</code>
+            <code id="themeSecondaryCode">${themeSettings.secondaryColor}</code>
           </div>
         </label>
-        <label class="settings-theme-field">
+        <section class="settings-theme-field settings-theme-field--wide">
           <span>Fonte base</span>
-          <select id="selectThemeFontMain" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${fontMainOptions}</select>
-        </label>
-        <label class="settings-theme-field">
+          <p class="settings-theme-field-copy">Define o ritmo de leitura do app inteiro.</p>
+          ${fontMainChoiceGrid}
+        </section>
+        <section class="settings-theme-field settings-theme-field--wide">
           <span>Fonte de destaque</span>
-          <select id="selectThemeFontDisplay" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${fontDisplayOptions}</select>
-        </label>
-        <label class="settings-theme-field settings-theme-field--wide">
+          <p class="settings-theme-field-copy">Afeta títulos, números e cabeçalhos principais.</p>
+          ${fontDisplayChoiceGrid}
+        </section>
+        <section class="settings-theme-field settings-theme-field--wide">
           <span>Arredondamento</span>
-          <select id="selectThemeRadiusScale" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${radiusOptions}</select>
-        </label>
-        <label class="settings-theme-field">
+          <p class="settings-theme-field-copy">Muda o desenho dos cards, inputs e painéis.</p>
+          ${radiusChoiceGrid}
+        </section>
+        <section class="settings-theme-field">
           <span>Largura da app</span>
-          <select id="selectThemePageWidth" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${widthOptions}</select>
-        </label>
-        <label class="settings-theme-field">
+          <p class="settings-theme-field-copy">Mais denso ou com mais respiro.</p>
+          ${widthChoiceGrid}
+        </section>
+        <section class="settings-theme-field">
           <span>Estilo dos painéis</span>
-          <select id="selectThemePanelStyle" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">${panelOptions}</select>
-        </label>
+          <p class="settings-theme-field-copy">Controla contraste, vidro e peso das superfícies.</p>
+          ${panelChoiceGrid}
+        </section>
       </div>
       <div class="settings-theme-preview">
         <div class="settings-theme-preview-card">
           <div class="settings-theme-preview-kicker">Preview ativo</div>
-          <strong>Flowly do seu jeito</strong>
-          <p>Esse preview agora herda largura, contraste, destaque e hierarquia da interface real.</p>
+          <strong id="themePreviewTitle">Flowly do seu jeito</strong>
+          <p id="themePreviewCopy">Esse preview agora herda largura, contraste, destaque e hierarquia da interface real.</p>
           <div class="settings-theme-preview-actions">
             <span class="settings-theme-preview-primary">Primária</span>
             <span class="settings-theme-preview-secondary">Secundária</span>
           </div>
         </div>
         <button id="btnResetThemeSettings" class="settings-theme-reset">Restaurar visual padrão</button>
+      </div>
+    `
+  );
+  const personalizationStatusCard = createSettingsSectionCard(
+    'Tema ativo',
+    'Leitura rápida do que já está aplicado',
+    'sparkles',
+    `
+      <div class="settings-guide-list settings-guide-list--theme">
+        <div><strong>Fonte base</strong><span id="themeSummaryFontMain">${escapeSettingsHtml(fontMainPreset.label)} · ${escapeSettingsHtml(fontMainPreset.hint || '')}</span></div>
+        <div><strong>Fonte de destaque</strong><span id="themeSummaryFontDisplay">${escapeSettingsHtml(fontDisplayPreset.label)} · ${escapeSettingsHtml(fontDisplayPreset.hint || '')}</span></div>
+        <div><strong>Arredondamento</strong><span id="themeSummaryRadius">${escapeSettingsHtml(radiusPreset.label)} · ${escapeSettingsHtml(radiusPreset.hint || '')}</span></div>
+        <div><strong>Largura</strong><span id="themeSummaryWidth">${escapeSettingsHtml(widthPreset.label)} · ${escapeSettingsHtml(widthPreset.hint || '')}</span></div>
+        <div><strong>Painéis</strong><span id="themeSummaryPanel">${escapeSettingsHtml(panelPreset.label)} · ${escapeSettingsHtml(panelPreset.hint || '')}</span></div>
+      </div>
+      <div class="settings-theme-preview settings-theme-preview--side">
+        <div class="settings-theme-preview-card">
+          <div class="settings-theme-preview-kicker">Sample</div>
+          <strong id="themeSidePreviewTitle" style="font-family:${escapeSettingsHtml(fontDisplayPreset.display)};">Configura do seu jeito</strong>
+          <p id="themeSidePreviewCopy" style="font-family:${escapeSettingsHtml(fontMainPreset.main)};">Agora a personalização usa presets mais claros e controles do próprio app, em vez de depender do select nativo.</p>
+        </div>
       </div>
     `
   );
@@ -484,7 +584,7 @@ function buildSettingsMarkup(ctx) {
     conta: { main: [profileSection], side: [quickGuideCard] },
     notificacoes: { main: [notificationsSection], side: [notificationStatusCard] },
     app: { main: [appSection], side: [quickGuideCard] },
-    personalizacao: { main: [personalizationSection], side: [quickGuideCard] },
+    personalizacao: { main: [personalizationSection], side: [personalizationStatusCard] },
     ia: { main: [aiSection], side: [aiStatusCard] },
     operacao: { main: [prioritiesSection], side: [quickGuideCard] },
     dados: { main: [dataSection], side: [syncLogSection, quickGuideCard] }
