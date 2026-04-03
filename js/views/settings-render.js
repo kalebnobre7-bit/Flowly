@@ -1,16 +1,16 @@
 function createSettingsSectionCard(title, subtitle, icon, content) {
   return `
-    <section class="settings-card-shell overflow-hidden">
-      <header class="settings-card-head flex items-center gap-3 px-4 py-3 border-b border-white/10">
-        <span class="settings-card-icon inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-300">
+    <section class="settings-card-shell">
+      <header class="settings-card-head">
+        <span class="settings-card-icon">
           <i data-lucide="${icon}" style="width:16px;height:16px;"></i>
         </span>
-        <div class="min-w-0">
-          <h3 class="text-sm font-semibold text-gray-100">${title}</h3>
-          <p class="text-xs text-gray-400">${subtitle}</p>
+        <div>
+          <h3>${title}</h3>
+          <p>${subtitle}</p>
         </div>
       </header>
-      <div class="settings-card-body p-4">${content}</div>
+      <div class="settings-card-body">${content}</div>
     </section>
   `;
 }
@@ -22,12 +22,12 @@ function createSettingsRow(icon, title, desc, control) {
         <span class="settings-row-icon">
           <i data-lucide="${icon}" style="width:14px;height:14px;"></i>
         </span>
-        <div class="min-w-0">
-          <div class="text-sm font-medium text-gray-100">${title}</div>
-          <div class="truncate text-xs text-gray-400">${desc}</div>
+        <div>
+          <div class="settings-row-title">${title}</div>
+          <div class="settings-row-desc">${desc}</div>
         </div>
       </div>
-      <div class="flex-shrink-0">${control}</div>
+      <div>${control}</div>
     </div>
   `;
 }
@@ -159,6 +159,12 @@ function buildSettingsMarkup(ctx) {
     FLOWLY_PAGE_WIDTH_PRESETS[themeSettings.pageWidth] || FLOWLY_PAGE_WIDTH_PRESETS.wide;
   const panelPreset =
     FLOWLY_PANEL_PRESETS[themeSettings.panelStyle] || FLOWLY_PANEL_PRESETS.balanced;
+  const bodyAccentPreset =
+    FLOWLY_BODY_ACCENT_PRESETS[themeSettings.bodyAccent] || FLOWLY_BODY_ACCENT_PRESETS.subtle;
+  const shadowPreset =
+    FLOWLY_SHADOW_PRESETS[themeSettings.shadowStyle] || FLOWLY_SHADOW_PRESETS.soft;
+  const borderPreset =
+    FLOWLY_BORDER_PRESETS[themeSettings.borderStyle] || FLOWLY_BORDER_PRESETS.subtle;
   const fontMainChoiceGrid = createThemeChoiceGroup(
     'fontMain',
     themeSettings.fontMain,
@@ -214,26 +220,59 @@ function buildSettingsMarkup(ctx) {
     })),
     'settings-theme-choice-grid--compact'
   );
+  const bodyAccentChoiceGrid = createThemeChoiceGroup(
+    'bodyAccent',
+    themeSettings.bodyAccent,
+    Object.entries(FLOWLY_BODY_ACCENT_PRESETS).map(([key, preset]) => ({
+      value: key,
+      label: preset.label,
+      hint: preset.hint,
+      sample: 'Fundo e ambiente'
+    })),
+    'settings-theme-choice-grid--compact'
+  );
+  const shadowChoiceGrid = createThemeChoiceGroup(
+    'shadowStyle',
+    themeSettings.shadowStyle,
+    Object.entries(FLOWLY_SHADOW_PRESETS).map(([key, preset]) => ({
+      value: key,
+      label: preset.label,
+      hint: preset.hint,
+      sample: 'Profundidade visual'
+    })),
+    'settings-theme-choice-grid--compact'
+  );
+  const borderChoiceGrid = createThemeChoiceGroup(
+    'borderStyle',
+    themeSettings.borderStyle,
+    Object.entries(FLOWLY_BORDER_PRESETS).map(([key, preset]) => ({
+      value: key,
+      label: preset.label,
+      hint: preset.hint,
+      sample: 'Contorno dos elementos'
+    })),
+    'settings-theme-choice-grid--compact'
+  );
 
   const profileSection = createSettingsSectionCard(
     'Perfil',
     'Dados básicos e conta conectada',
     'user-round',
     `
-      <div class="flex items-center gap-3 rounded-xl border border-white/10 bg-black/25 p-3">
-        <div class="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 text-lg font-bold text-white">
+      <div style="display:flex;align-items:center;gap:14px;background:var(--ds-bg-glass);border:1px solid var(--ds-border);border-radius:var(--ds-r-lg);padding:14px">
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#0A84FF,#5E5CE6);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0">
           ${displayName.charAt(0).toUpperCase()}
         </div>
-        <div class="min-w-0 flex-1">
-          <label class="mb-1 block text-xs uppercase tracking-wide text-gray-400" for="inputDisplayName">Nome de exibição</label>
-          <input id="inputDisplayName" type="text" value="${displayName}" placeholder="Seu nome" class="w-full rounded-lg border border-white/15 bg-black/25 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-500/70" />
+        <div style="flex:1;min-width:0">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--ds-text-muted);display:block;margin-bottom:5px" for="inputDisplayName">Nome de exibição</label>
+          <input id="inputDisplayName" type="text" value="${displayName}" placeholder="Seu nome" class="finance-input" />
         </div>
       </div>
-      <div class="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
-        <span class="truncate">${currentUser ? `Conectado como ${currentUser.email}` : 'Sem conta conectada'}</span>
+      <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--ds-bg-glass);border:1px solid var(--ds-border);border-radius:var(--ds-r-md);padding:10px 14px;font-size:12px">
+        <span style="color:var(--ds-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${currentUser ? `Conectado como ${currentUser.email}` : 'Sem conta conectada'}</span>
         ${
           currentUser
-            ? '<span class="text-emerald-300">Conta ativa</span>'
+            ? '<span style="color:var(--ds-success);font-weight:600;font-size:11px">Conta ativa</span>'
             : '<button type="button" data-auth-modal="open" class="flowly-accent-btn">Entrar / Criar conta</button>'
         }
       </div>
@@ -245,52 +284,50 @@ function buildSettingsMarkup(ctx) {
     'Alertas, horários e mensagens',
     'bell-ring',
     `
-      <div class="space-y-3">
+      <div style="display:flex;flex-direction:column;gap:0">
         ${createSettingsRow('bell', 'Ativar notificações', 'Liga ou desliga alertas do app', createSettingsToggle('toggleNotif', notifEnabled))}
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Horário manhã</span>
-            <input id="inputMorningTime" type="time" value="${morningTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0">
+          <label class="projects-config-field">
+            <span>Manhã</span>
+            <input id="inputMorningTime" type="time" value="${morningTime}" class="finance-input" />
           </label>
-          <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Horário meio-dia</span>
-            <input id="inputMiddayTime" type="time" value="${middayTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+          <label class="projects-config-field">
+            <span>Meio-dia</span>
+            <input id="inputMiddayTime" type="time" value="${middayTime}" class="finance-input" />
           </label>
-          <label class="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Horário noite</span>
-            <input id="inputEveningTime" type="time" value="${eveningTime}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+          <label class="projects-config-field">
+            <span>Noite</span>
+            <input id="inputEveningTime" type="time" value="${eveningTime}" class="finance-input" />
           </label>
         </div>
-        <div class="space-y-3 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
-          ${createSettingsRow('timer-reset', 'Lembrete por inatividade', 'Se ficar muito tempo sem concluir tarefa', createSettingsToggle('toggleInactivityNotif', inactivityEnabled))}
-          <label class="block text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Limite inatividade (min)</span>
-            <input id="inputInactivityMinutes" type="number" min="30" max="480" step="10" value="${inactivityThresholdMinutes}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+        ${createSettingsRow('timer-reset', 'Inatividade', 'Alerta se não concluir tarefa', createSettingsToggle('toggleInactivityNotif', inactivityEnabled))}
+        <label class="projects-config-field" style="margin:8px 0">
+          <span>Limite inatividade (min)</span>
+          <input id="inputInactivityMinutes" type="number" min="30" max="480" step="10" value="${inactivityThresholdMinutes}" class="finance-input" />
+        </label>
+        ${createSettingsRow('gauge', 'Notificação de progresso', 'Notifica a cada tarefa concluída', createSettingsToggle('toggleProgressNotif', progressEnabled))}
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+          <label class="projects-config-field">
+            <span>Template manhã</span>
+            <input id="inputMorningTemplate" type="text" value="${morningTemplate}" class="finance-input" />
           </label>
-          ${createSettingsRow('gauge', 'Notificação de progresso', 'Notifica a cada tarefa concluída', createSettingsToggle('toggleProgressNotif', progressEnabled))}
-        </div>
-        <div class="grid grid-cols-1 gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
-          <label class="text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Template manhã</span>
-            <input id="inputMorningTemplate" type="text" value="${morningTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+          <label class="projects-config-field">
+            <span>Template meio-dia</span>
+            <input id="inputMiddayTemplate" type="text" value="${middayTemplate}" class="finance-input" />
           </label>
-          <label class="text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Template meio-dia</span>
-            <input id="inputMiddayTemplate" type="text" value="${middayTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+          <label class="projects-config-field">
+            <span>Template noite</span>
+            <input id="inputNightTemplate" type="text" value="${nightTemplate}" class="finance-input" />
           </label>
-          <label class="text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Template noite</span>
-            <input id="inputNightTemplate" type="text" value="${nightTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+          <label class="projects-config-field">
+            <span>Template inatividade</span>
+            <input id="inputInactivityTemplate" type="text" value="${inactivityTemplate}" class="finance-input" />
           </label>
-          <label class="text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Template inatividade</span>
-            <input id="inputInactivityTemplate" type="text" value="${inactivityTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+          <label class="projects-config-field">
+            <span>Template progresso</span>
+            <input id="inputProgressTemplate" type="text" value="${progressTemplate}" class="finance-input" />
           </label>
-          <label class="text-xs text-gray-300">
-            <span class="mb-1 block uppercase tracking-wide text-gray-400">Template progresso</span>
-            <input id="inputProgressTemplate" type="text" value="${progressTemplate}" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
-          </label>
-          <p class="text-[11px] text-gray-500">Use variáveis: {completed}, {total}, {pending}, {percentage}, {avgDuration}, {totalDuration}, {bestPeriod}.</p>
+          <p style="font-size:11px;color:var(--ds-text-muted)">Variáveis: {completed}, {total}, {pending}, {percentage}, {avgDuration}, {totalDuration}, {bestPeriod}.</p>
         </div>
       </div>
     `
@@ -301,18 +338,18 @@ function buildSettingsMarkup(ctx) {
     'Permissão e teste rápido',
     'shield-check',
     `
-      <div class="space-y-3">
-        <div class="mb-2 flex items-center justify-between gap-2 text-xs text-gray-300">
-          <span>Status da permissão</span>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <div class="settings-row">
+          <span class="settings-row-title">Permissão</span>
           ${permBadge}
         </div>
-        <p class="text-xs text-gray-400">${notifStatusText}</p>
-        <p class="text-xs ${notifSecureContext ? 'text-emerald-300' : 'text-amber-300'}">${secureContextText}</p>
-        <button id="btnTestNotification" class="flowly-accent-btn flowly-accent-btn--secondary mt-2">
+        <p style="font-size:12px;color:var(--ds-text-muted);padding:6px 0">${notifStatusText}</p>
+        <p style="font-size:12px;color:${notifSecureContext ? 'var(--ds-success)' : 'var(--ds-warning)'};padding-bottom:10px">${secureContextText}</p>
+        <button id="btnTestNotification" class="flowly-accent-btn flowly-accent-btn--secondary">
           <i data-lucide="send" style="width:14px;height:14px;"></i>
           Enviar notificação de teste
         </button>
-        <div id="notifTestFeedback" class="min-h-[16px] text-xs text-gray-400"></div>
+        <div id="notifTestFeedback" style="font-size:11px;color:var(--ds-text-muted);margin-top:6px"></div>
       </div>
     `
   );
@@ -322,17 +359,17 @@ function buildSettingsMarkup(ctx) {
     'Preferências de exibição e feedback',
     'sliders-horizontal',
     `
-      <div class="space-y-3">
-        <label class="block rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
-          <span class="mb-1 block uppercase tracking-wide text-gray-400">Inicio da semana</span>
-          <select id="selectWeekStart" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">
+      <div style="display:flex;flex-direction:column;gap:0">
+        <label class="projects-config-field" style="padding:12px 0;border-bottom:1px solid var(--ds-border)">
+          <span>Início da semana</span>
+          <select id="selectWeekStart" class="finance-input">
             <option value="sun" ${weekStart === 'sun' ? 'selected' : ''}>Domingo</option>
             <option value="mon" ${weekStart === 'mon' ? 'selected' : ''}>Segunda</option>
           </select>
         </label>
-        ${createSettingsRow('calendar-range', 'Mostrar fins de semana', 'Exibe sábado e domingo na semana', createSettingsToggle('toggleWeekends', showWeekends))}
+        ${createSettingsRow('calendar-range', 'Fins de semana', 'Exibe sábado e domingo na semana', createSettingsToggle('toggleWeekends', showWeekends))}
         ${createSettingsRow('vibrate', 'Feedback háptico', 'Vibração em interações suportadas', createSettingsToggle('toggleHaptics', hapticsEnabled))}
-        ${createSettingsRow('sparkles', 'Animação no hover semanal', 'Destaque visual ao passar o mouse na semana', createSettingsToggle('toggleWeekHover', enableWeekHoverAnimation))}
+        ${createSettingsRow('sparkles', 'Animação hover semanal', 'Destaque visual ao passar o mouse', createSettingsToggle('toggleWeekHover', enableWeekHoverAnimation))}
       </div>
     `
   );
@@ -382,6 +419,21 @@ function buildSettingsMarkup(ctx) {
           <p class="settings-theme-field-copy">Controla contraste, vidro e peso das superfícies.</p>
           ${panelChoiceGrid}
         </section>
+        <section class="settings-theme-field">
+          <span>Fundo do app</span>
+          <p class="settings-theme-field-copy">Intensidade da cor no gradiente do fundo.</p>
+          ${bodyAccentChoiceGrid}
+        </section>
+        <section class="settings-theme-field">
+          <span>Sombras</span>
+          <p class="settings-theme-field-copy">Nível de elevação e profundidade dos cards.</p>
+          ${shadowChoiceGrid}
+        </section>
+        <section class="settings-theme-field">
+          <span>Bordas</span>
+          <p class="settings-theme-field-copy">Visibilidade dos contornos em todo o app.</p>
+          ${borderChoiceGrid}
+        </section>
       </div>
       <div class="settings-theme-preview">
         <div class="settings-theme-preview-card">
@@ -408,6 +460,9 @@ function buildSettingsMarkup(ctx) {
         <div><strong>Arredondamento</strong><span id="themeSummaryRadius">${escapeSettingsHtml(radiusPreset.label)} · ${escapeSettingsHtml(radiusPreset.hint || '')}</span></div>
         <div><strong>Largura</strong><span id="themeSummaryWidth">${escapeSettingsHtml(widthPreset.label)} · ${escapeSettingsHtml(widthPreset.hint || '')}</span></div>
         <div><strong>Painéis</strong><span id="themeSummaryPanel">${escapeSettingsHtml(panelPreset.label)} · ${escapeSettingsHtml(panelPreset.hint || '')}</span></div>
+        <div><strong>Fundo</strong><span id="themeSummaryBodyAccent">${escapeSettingsHtml(bodyAccentPreset.label)} · ${escapeSettingsHtml(bodyAccentPreset.hint || '')}</span></div>
+        <div><strong>Sombras</strong><span id="themeSummaryShadow">${escapeSettingsHtml(shadowPreset.label)} · ${escapeSettingsHtml(shadowPreset.hint || '')}</span></div>
+        <div><strong>Bordas</strong><span id="themeSummaryBorder">${escapeSettingsHtml(borderPreset.label)} · ${escapeSettingsHtml(borderPreset.hint || '')}</span></div>
       </div>
       <div class="settings-theme-preview settings-theme-preview--side">
         <div class="settings-theme-preview-card">
@@ -540,26 +595,26 @@ function buildSettingsMarkup(ctx) {
     'Backup, reparo e limpeza',
     'database',
     `
-      <div class="grid grid-cols-2 gap-2">
-        <button id="btnExportSettings" class="group flex flex-col items-center justify-center gap-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-emerald-200 hover:bg-emerald-500/20">
-          <i data-lucide="download" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i>
-          <span class="text-xs font-semibold">Exportar Backup</span>
+      <div class="settings-data-grid">
+        <button id="btnExportSettings" class="settings-data-btn settings-data-btn--export">
+          <i data-lucide="download" style="width:18px;height:18px;"></i>
+          Exportar Backup
         </button>
-        <label class="group flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-3 text-blue-200 hover:bg-blue-500/20">
-          <i data-lucide="upload" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i>
-          <span class="text-xs font-semibold">Importar Backup</span>
-          <input id="fileImportSettings" type="file" accept="application/json" class="hidden" />
+        <label class="settings-data-btn settings-data-btn--import" style="cursor:pointer">
+          <i data-lucide="upload" style="width:18px;height:18px;"></i>
+          Importar Backup
+          <input id="fileImportSettings" type="file" accept="application/json" style="display:none" />
         </label>
-        <button id="btnFixDuplicates" class="group flex flex-col items-center justify-center gap-1 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-3 text-amber-200 hover:bg-amber-500/20">
-          <i data-lucide="wrench" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i>
-          <span class="text-xs font-semibold">Corrigir Banco</span>
+        <button id="btnFixDuplicates" class="settings-data-btn settings-data-btn--repair">
+          <i data-lucide="wrench" style="width:18px;height:18px;"></i>
+          Corrigir Banco
         </button>
-        <button id="btnClearAllSettings" class="group flex flex-col items-center justify-center gap-1 rounded-xl border border-rose-500/35 bg-rose-500/10 px-3 py-3 text-rose-200 hover:bg-rose-500/20">
-          <i data-lucide="trash-2" class="transition-transform group-hover:scale-110" style="width:16px;height:16px;"></i>
-          <span class="text-xs font-semibold">Limpar Tudo</span>
+        <button id="btnClearAllSettings" class="settings-data-btn settings-data-btn--danger">
+          <i data-lucide="trash-2" style="width:18px;height:18px;"></i>
+          Limpar Tudo
         </button>
       </div>
-      <p class="mt-3 text-[11px] text-gray-500">A limpeza remove dados locais e remotos da sua conta. Use com cuidado.</p>
+      <p style="margin-top:12px;font-size:11px;color:var(--ds-text-muted)">A limpeza remove dados locais e remotos. Use com cuidado.</p>
     `
   );
 
@@ -593,35 +648,27 @@ function buildSettingsMarkup(ctx) {
   const currentTabPanels = tabPanels[settingsTab] || tabPanels.conta;
 
   return `
-    <div class="flowly-shell flowly-shell--wide settings-shell settings-shell--refined">
-      <div class="settings-topbar flowly-page-header">
-        <div>
+    <div class="flowly-shell flowly-shell--wide settings-shell">
+      <div class="flowly-page-header">
+        <div class="flowly-page-header-left">
           <div class="flowly-page-kicker">Centro de ajustes</div>
-          <h2 class="flowly-page-title settings-page-title">
-            <span class="settings-topbar-mark">
-              <i data-lucide="settings-2" style="width:20px;height:20px;"></i>
-            </span>
-            Configurações
-          </h2>
-          <p class="flowly-page-subtitle settings-page-subtitle">Visual, comportamento e integrações no mesmo padrão do app.</p>
+          <h2 class="flowly-page-title">Configurações</h2>
+          <p class="flowly-page-subtitle">Visual, comportamento e integrações no mesmo padrão do app.</p>
         </div>
         <div class="flowly-page-actions">
-          <div class="flowly-page-badge">
-          <div class="flowly-page-badge-title">FLOWLY v1.2</div>
-          <div class="flowly-page-badge-copy">Sincronizado via Supabase</div>
+          <div class="settings-page-badge">
+            <div class="settings-page-badge-title">FLOWLY v1.2</div>
+            <div class="settings-page-badge-sub">Sincronizado via Supabase</div>
           </div>
         </div>
       </div>
 
-      <section class="settings-toolbar-card flowly-panel">
-        <div class="settings-toolbar-copy">
-          <div class="settings-toolbar-label">Áreas do app</div>
-          <p>Escolha uma área e ajuste o essencial sem sair do fluxo.</p>
-        </div>
+      <div class="settings-toolbar-card">
+        <span class="settings-toolbar-label">Área</span>
         <div class="settings-tabs" role="tablist">
           ${buildSettingsTabNav(settingsTab)}
         </div>
-      </section>
+      </div>
 
       <div class="settings-panels">
         <div class="settings-main-stack">${currentTabPanels.main.join('')}</div>

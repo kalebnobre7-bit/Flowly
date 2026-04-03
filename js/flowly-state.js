@@ -35,7 +35,10 @@ var syncStatus = {
 };
 
 // Data structures
-var allRecurringTasks = safeJSONParse(localStorage.getItem('allRecurringTasks'), []);
+var allRecurringTasks =
+  typeof normalizeRecurringTasksList === 'function'
+    ? normalizeRecurringTasksList(safeJSONParse(localStorage.getItem('allRecurringTasks'), []))
+    : safeJSONParse(localStorage.getItem('allRecurringTasks'), []);
 var customTaskTypes = [];
 var customTaskPriorities = [];
 var dbUserSettings = { enable_week_hover_animation: true };

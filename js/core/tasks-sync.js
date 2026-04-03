@@ -76,7 +76,10 @@
       const currentUser = getCurrentUser();
       if (!currentUser) return;
 
-      const allRecurringTasks = getAllRecurringTasks();
+      const allRecurringTasks =
+        typeof normalizeRecurringTasksList === 'function'
+          ? normalizeRecurringTasksList(getAllRecurringTasks())
+          : getAllRecurringTasks();
 
       const { data: serverTasks } = await supabaseClient
         .from('tasks')
@@ -103,11 +106,27 @@
         await supabaseClient.from('tasks').delete().in('id', toDelete);
       }
 
-      for (const task of allRecurringTasks) {
+      for (const [index, task] of allRecurringTasks.entries()) {
+        if (typeof ensureRecurringTaskIdentity === 'function') {
+          ensureRecurringTaskIdentity(task);
+        }
+
+        // Serializar daysOfWeek junto com campos extras (startDate, priority) no campo period
+        const periodData = {
+          daysOfWeek: task.daysOfWeek || [],
+          routineId:
+            typeof getRecurringTaskIdentity === 'function'
+              ? getRecurringTaskIdentity(task)
+              : task.routineId || task.supabaseId || task.text,
+          order: index
+        };
+        if (task.startDate) periodData.startDate = task.startDate;
+        if (task.priority && task.priority !== 'none') periodData.priority = task.priority;
+
         const payload = {
           user_id: currentUser.id,
           day: 'RECURRING',
-          period: JSON.stringify(task.daysOfWeek || []),
+          period: JSON.stringify(periodData),
           text: task.text,
           is_habit: task.isHabit || false,
           type: task.type || 'OPERATIONAL',
@@ -116,9 +135,16 @@
 
         if (task.supabaseId) {
           await supabaseClient.from('tasks').update(payload).eq('id', task.supabaseId);
+          task._syncPending = false;
+          task.order = index;
         } else {
           const { data } = await supabaseClient.from('tasks').insert(payload).select();
-          if (data && data[0]) task.supabaseId = data[0].id;
+          if (data && data[0]) {
+            task.supabaseId = data[0].id;
+            if (!task.routineId) task.routineId = data[0].id;
+          }
+          task._syncPending = false;
+          task.order = index;
         }
       }
 
@@ -301,5 +327,4 @@
     create: createTasksSync
   };
 })();
-
 

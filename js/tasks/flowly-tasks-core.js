@@ -174,8 +174,8 @@ function persistCollapsedTaskGroups() {
   localStorage.setItem('flowlyCollapsedTaskGroups', JSON.stringify(collapsedTaskGroups || {}));
 }
 
-function isTaskGroupCollapsed(task) {
-  const id = getTaskTreeId(task);
+function isTaskGroupCollapsed(task, collapseKeyOverride) {
+  const id = collapseKeyOverride || getTaskTreeId(task);
   return Boolean(id && collapsedTaskGroups && collapsedTaskGroups[id] === true);
 }
 
@@ -186,8 +186,8 @@ function getTaskChildrenCount(dateStr, period, task) {
   return list.filter((item) => item && item.parent_id === parentId).length;
 }
 
-window.toggleTaskTreeCollapse = function (task) {
-  const id = getTaskTreeId(task);
+window.toggleTaskTreeCollapse = function (task, collapseKeyOverride) {
+  const id = collapseKeyOverride || getTaskTreeId(task);
   if (!id) return;
   collapsedTaskGroups[id] = !collapsedTaskGroups[id];
   if (!collapsedTaskGroups[id]) delete collapsedTaskGroups[id];
@@ -219,6 +219,22 @@ function unifiedTaskSort(taskList) {
 
   const uniqueTaskList = [];
   const seenRenderKeys = new Set();
+  const getRenderTreeKey = (item) => {
+    if (!item || !item.task) return '';
+    const taskId = getTaskTreeId(item.task);
+    if (!taskId) return '';
+    if (item.task.isProjectMirror) {
+      return `mirror:${item.dateStr || ''}:${taskId}`;
+    }
+    return `task:${taskId}`;
+  };
+  const getRenderParentKey = (item) => {
+    if (!item || !item.task || !item.task.parent_id) return '';
+    if (item.task.isProjectMirror) {
+      return `mirror:${item.dateStr || ''}:${String(item.task.parent_id).trim()}`;
+    }
+    return `task:${String(item.task.parent_id).trim()}`;
+  };
 
   taskList.forEach((item) => {
     if (!item || !item.task) return;
@@ -241,7 +257,8 @@ function unifiedTaskSort(taskList) {
   uniqueTaskList.forEach((item) => {
     if (!item.task) return;
     if (typeof item.task.position !== 'number') item.task.position = item.originalIndex || 0;
-    const id = item.task.supabaseId || item.task.text;
+    const id = getRenderTreeKey(item);
+    if (!id) return;
     itemMap.set(id, item);
   });
 
@@ -249,7 +266,7 @@ function unifiedTaskSort(taskList) {
 
   uniqueTaskList.forEach((item) => {
     if (!item.task) return;
-    const pId = item.task.parent_id;
+    const pId = getRenderParentKey(item);
     if (pId && itemMap.has(pId)) {
       if (!childrenMap.has(pId)) childrenMap.set(pId, []);
       childrenMap.get(pId).push(item);
@@ -310,8 +327,13 @@ function unifiedTaskSort(taskList) {
     item.task.depth = depth;
     flattened.push(item);
 
-    const id = item.task.supabaseId || item.task.text;
-    const shouldCollapseChildren = isTaskGroupCollapsed(item.task) || isProjectSubtasksCollapsed(item.task);
+    const id = getRenderTreeKey(item);
+    const mirrorCollapseKey =
+      item.task && item.task.isProjectMirror ? `${item.dateStr || ''}:${getTaskTreeId(item.task)}` : null;
+    const shouldCollapseChildren =
+      (mirrorCollapseKey
+        ? isTaskGroupCollapsed(item.task, mirrorCollapseKey)
+        : isTaskGroupCollapsed(item.task)) || isProjectSubtasksCollapsed(item.task);
     if (childrenMap.has(id) && !shouldCollapseChildren) {
       const children = childrenMap.get(id);
       children.sort(sortFn);
@@ -808,4 +830,3 @@ window.createSubtaskForTask = function (parentTask, options = {}) {
   }
   return newTask;
 };
-

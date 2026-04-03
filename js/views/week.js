@@ -1,14 +1,49 @@
-﻿// View extra?da de app.js
+window.toggleSmartWeek = function() {
+  const isSmart = localStorage.getItem('flowly_smart_week') === 'true';
+  localStorage.setItem('flowly_smart_week', isSmart ? 'false' : 'true');
+  currentWeekOffset = 0; // reset offset when switching Modes
+  renderView(); // Re-render the current view (week)
+};
+
 function renderWeek() {
   const grid = document.getElementById('weekGrid');
   grid.className = '';
   grid.style.cssText = '';
   grid.innerHTML = '';
 
-  // Atualizar label da semana
-  document.getElementById('weekLabel').textContent = getWeekLabel(currentWeekOffset);
+  const isSmartWeek = localStorage.getItem('flowly_smart_week') === 'true';
 
-  const weekDates = getWeekDates(currentWeekOffset);
+  // Atualizar label da semana e botão de toggle
+  const smartBtn = document.getElementById('btnSmartWeekToggle');
+  if (smartBtn) {
+    if (isSmartWeek) {
+      smartBtn.classList.add('bg-blue-500/20', 'border-blue-500/50');
+      smartBtn.classList.remove('bg-blue-500/10', 'border-blue-500/20');
+    } else {
+      smartBtn.classList.remove('bg-blue-500/20', 'border-blue-500/50');
+      smartBtn.classList.add('bg-blue-500/10', 'border-blue-500/20');
+    }
+  }
+
+  document.getElementById('weekLabel').textContent = isSmartWeek ? 'Foco de 5 Dias' : getWeekLabel(currentWeekOffset);
+
+  let weekDates = [];
+  if (isSmartWeek) {
+    const start = new Date();
+    // Allow smart view to navigate in 5-day leaps
+    start.setDate(start.getDate() + (currentWeekOffset * 5));
+    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    for(let i=0; i<5; i++){
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        weekDates.push({ dateStr: `${y}-${m}-${day}`, name: dayNames[d.getDay()] });
+    }
+  } else {
+    weekDates = getWeekDates(currentWeekOffset);
+  }
 
   // HIDRATAR A SEMANA: Garantir que as rotinas existam no banco para todos os dias visÃ­veis
   weekDates.forEach(({ dateStr }) => hydrateRoutineForDate(dateStr));
@@ -37,11 +72,12 @@ function renderWeek() {
     const header = document.createElement('h2');
     const dayNum = dateStr.split('-')[2].replace(/^0/, '');
 
-    header.className = `flex items-center gap-2 mb-3 ${isToday ? 'text-blue-500 font-bold' : 'text-gray-400'} `;
+    // Transformando header numa "strip col" emulado, evitando títulos soltos de uma palavra.
+    header.className = `today-strip-col px-3 py-4 mb-2 border-b border-white/5`;
     header.innerHTML = `
-    <span> ${day}</span>
-        <span class="${isToday ? 'bg-blue-500/10 text-blue-400' : 'bg-white/5 text-gray-500'} text-xs px-2 py-0.5 rounded-full font-mono">${dayNum}</span>
-`;
+      <span class="today-strip-label ${isToday ? 'text-accent-primary' : ''}">${day}</span>
+      <span class="today-strip-value ${isToday ? 'text-accent-primary' : ''}" style="font-size: 20px;">${dayNum}</span>
+    `;
     col.appendChild(header);
 
     // Flatten all tasks
@@ -117,6 +153,7 @@ function renderWeek() {
 
   // --- Dynamic Column Hover Resizing ---
   const columns = grid.querySelectorAll('.day-column');
+  grid.style.gridTemplateColumns = `repeat(${columns.length}, 1fr)`;
   columns.forEach((col, index) => {
     col.addEventListener('mouseenter', () => {
       // Use 0.9fr for others, 1.6fr for hovered

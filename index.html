@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
@@ -34,8 +34,10 @@
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
     <script src="js/flowly-utils.js?v=1" defer></script>
     <script src="js/flowly-state.js?v=1" defer></script>
-    <link rel="stylesheet" href="styles.css?v=14">
-    <link rel="stylesheet" href="bento-theme.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=27">
+    <link rel="stylesheet" href="bento-theme.css?v=6">
+    <link rel="stylesheet" href="flowly-design-system.css?v=1">
+    <link rel="stylesheet" href="views-redesign.css?v=4">
 </head>
 
 <body class="safe-area-bottom">
@@ -87,13 +89,7 @@
                 </button>
             </nav>
 
-            <div class="sidebar-section-label">Em breve</div>
-            <div class="sidebar-coming-soon">
-                <div class="sidebar-coming-item">
-                    <i data-lucide="message-circle-more" style="width: 16px; height: 16px;"></i>
-                    <span>WhatsApp</span>
-                </div>
-            </div>
+
 
             <div class="sidebar-footer">
                 <button id="btnSettings" class="sidebar-nav-btn sidebar-nav-btn--ghost" data-flowly-view="settings">
@@ -105,14 +101,21 @@
 
         <main class="app-main">
         <!-- Week Navigation (Controls) -->
-        <div id="weekNav" class="hidden flex items-center justify-center gap-4 mb-6">
-            <button id="btnPrevWeek" class="utility-btn" data-week-nav="-1"><i data-lucide="chevron-left"
-                    style="width: 18px; height: 18px;"></i></button>
-            <div class="text-sm text-gray-400" id="weekLabel">Semana Atual</div>
-            <button id="btnNextWeek" class="utility-btn" data-week-nav="1"><i data-lucide="chevron-right"
-                    style="width: 18px; height: 18px;"></i></button>
-            <button id="btnCurrentWeek" class="btn-secondary text-xs px-3 py-1 ml-4" data-week-nav="current"
-                style="width: auto; padding: 6px 12px;">Atual</button>
+        <div id="weekNav" class="hidden flex justify-center w-full mb-8">
+            <div class="today-dashboard-strip" style="margin-bottom: 0px; gap: 24px; padding: 12px 24px;">
+                <button id="btnPrevWeek" class="utility-btn text-white/50 hover:text-white transition-colors" data-week-nav="-1"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
+                <div class="today-strip-col" style="align-items: center;">
+                    <span class="today-strip-label">Período Selecionado</span>
+                    <span class="today-strip-value text-sm" id="weekLabel">Semana Atual</span>
+                </div>
+                <button id="btnNextWeek" class="utility-btn text-white/50 hover:text-white transition-colors" data-week-nav="1"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                <div class="today-strip-divider" style="height: 24px;"></div>
+                <button id="btnCurrentWeek" class="text-[11px] font-bold uppercase tracking-widest px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-white/70 hover:text-white" data-week-nav="current">Semana Atual</button>
+                <div class="today-strip-divider" style="height: 24px;"></div>
+                <button id="btnSmartWeekToggle" class="utility-btn text-blue-500/50 hover:text-blue-400 transition-colors" title="Foco de 5 Dias" onclick="toggleSmartWeek()">
+                    <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Main Content -->
@@ -135,40 +138,26 @@
     <nav
         class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1c1c1e]/95 backdrop-blur-xl border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
         <div class="flex justify-around items-center h-16 px-2">
-            <button id="btnMobileWeek" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
-                data-flowly-view="week">
+            <button id="btnMobileWeek" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="week">
                 <i data-lucide="calendar" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">Semana</span>
             </button>
-            <button id="btnMobileAnalytics" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
-                data-flowly-view="analytics">
+            <button id="btnMobileAnalytics" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="analytics">
                 <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">Analytics</span>
             </button>
-            <button id="btnMobileFinance" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
-                data-flowly-view="finance">
+            <button id="btnMobileFinance" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="finance">
                 <i data-lucide="wallet" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">Finance</span>
             </button>
-            <button id="btnMobileProjects" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
-                data-flowly-view="projects">
+            <button id="btnMobileProjects" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="projects">
                 <i data-lucide="briefcase-business" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">Projetos</span>
             </button>
-            <button id="btnMobileToday" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
-                data-flowly-view="today">
+            <button id="btnMobileToday" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="today">
                 <i data-lucide="sun" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">Hoje</span>
             </button>
-            <button id="btnMobileSexta" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
-                data-flowly-view="sexta">
+            <button id="btnMobileSexta" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="sexta">
                 <i data-lucide="sparkles" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">Sexta</span>
             </button>
-            <button id="btnMobileSettings" class="mobile-nav-btn flex flex-col items-center gap-1 w-14 text-gray-500 transition-colors"
-                data-flowly-view="settings">
+            <button id="btnMobileSettings" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="settings">
                 <i data-lucide="settings-2" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">Ajustes</span>
             </button>
         </div>
     </nav>
@@ -269,7 +258,7 @@
     <script src="js/core/sync-runtime.js?v=1" defer></script>
     <script src="js/core/routine-service.js?v=1" defer></script>
     <script src="js/core/analytics-service.js?v=1" defer></script>
-    <script src="js/core/theme-ai.js?v=1" defer></script>
+    <script src="js/core/theme-ai.js?v=2" defer></script>
     <script src="js/core/task-timers.js?v=1" defer></script>
     <script src="js/core/task-metrics.js?v=1" defer></script>
     <script src="js/core/finance-runtime.js?v=1" defer></script>
@@ -288,18 +277,18 @@
     <script src="js/app.js?v=15" defer></script>
     <script src="js/core/progress-notifications.js?v=1" defer></script>
     <script src="js/tasks/flowly-tasks-core.js?v=1" defer></script>
-    <script src="js/tasks/task-expansion-runtime.js?v=1" defer></script>
+    <script src="js/tasks/task-expansion-runtime.js?v=8" defer></script>
     <script src="js/tasks/flowly-tasks-ui.js?v=1" defer></script>
     <script src="js/views/analytics.js?v=1" defer></script>
     <script src="js/views/finance.js?v=1" defer></script>
     <script src="js/views/projects.js?v=1" defer></script>
-    <script src="js/views/settings-render.js?v=1" defer></script>
-    <script src="js/views/settings-bindings.js?v=1" defer></script>
+    <script src="js/views/settings-render.js?v=2" defer></script>
+    <script src="js/views/settings-bindings.js?v=2" defer></script>
     <script src="js/views/settings.js?v=1" defer></script>
     <script src="js/views/sexta.js?v=1" defer></script>
-    <script src="js/views/today.js?v=1" defer></script>
+    <script src="js/views/today.js?v=3" defer></script>
     <script src="js/views/month.js?v=1" defer></script>
-    <script src="js/views/week.js?v=1" defer></script>
+    <script src="js/views/week.js?v=3" defer></script>
     <script src="js/core/ui-bootstrap.js?v=1" defer></script>
 </body>
 

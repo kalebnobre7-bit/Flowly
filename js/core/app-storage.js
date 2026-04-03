@@ -1,4 +1,8 @@
 function saveToLocalStorage() {
+  if (typeof normalizeRecurringTasksList === 'function') {
+    allRecurringTasks = normalizeRecurringTasksList(allRecurringTasks);
+  }
+
   if (localStore) {
     localStore.saveCoreState({
       allTasksData,
@@ -47,6 +51,10 @@ function loadFromLocalStorage() {
     pendingTaskDeletes || []
   );
   allRecurringTasks = parse(localStorage.getItem('allRecurringTasks'), allRecurringTasks || []);
+  if (typeof normalizeRecurringTasksList === 'function') {
+    allRecurringTasks = normalizeRecurringTasksList(allRecurringTasks);
+    localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
+  }
   routineCompletions = parse(
     localStorage.getItem('routineCompletions'),
     routineCompletions || {}

@@ -43,7 +43,10 @@ async function removeHabit(habitText) {
   if (!confirmed) return;
 
   // Remover de allRecurringTasks
-  const recurringIdx = allRecurringTasks.findIndex((t) => t.text === habitText);
+  const recurringIdx =
+    typeof findRecurringTaskIndex === 'function'
+      ? findRecurringTaskIndex(allRecurringTasks, habitText)
+      : allRecurringTasks.findIndex((t) => t.text === habitText);
   if (recurringIdx !== -1) {
     allRecurringTasks.splice(recurringIdx, 1);
     saveToLocalStorage();

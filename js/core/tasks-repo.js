@@ -401,6 +401,12 @@
           return null;
         }
       })();
+      const localRecurringSnapshot =
+        typeof normalizeRecurringTasksList === 'function'
+          ? normalizeRecurringTasksList(getAllRecurringTasks())
+          : Array.isArray(getAllRecurringTasks())
+            ? getAllRecurringTasks()
+            : [];
 
       const idsToDelete = [];
       const remoteTaskIds = new Set();
@@ -414,16 +420,28 @@
           if (task.day === 'ROUTINE') return;
 
           if (task.day === 'RECURRING') {
+            var recurringParsed = (function () {
+              try { return JSON.parse(task.period); } catch (e) { return null; }
+            })();
+            // period pode ser array simples (legacy) ou objeto {daysOfWeek, startDate, priority}
+            var recurringDaysOfWeek = Array.isArray(recurringParsed)
+              ? recurringParsed
+              : (recurringParsed && Array.isArray(recurringParsed.daysOfWeek) ? recurringParsed.daysOfWeek : [0,1,2,3,4,5,6]);
+            var recurringStartDate = (recurringParsed && !Array.isArray(recurringParsed) && recurringParsed.startDate) || null;
+            var recurringPriority = (recurringParsed && !Array.isArray(recurringParsed) && recurringParsed.priority) || null;
+            var recurringRoutineId =
+              (recurringParsed && !Array.isArray(recurringParsed) && recurringParsed.routineId) || task.id;
+            var recurringOrder =
+              recurringParsed && !Array.isArray(recurringParsed) && Number.isFinite(Number(recurringParsed.order))
+                ? Number(recurringParsed.order)
+                : null;
             remoteRecurringTasks.push({
               text: task.text,
-              daysOfWeek: (function () {
-                try {
-                  return JSON.parse(task.period);
-                } catch (e) {
-                  return [0, 1, 2, 3, 4, 5, 6];
-                }
-              })(),
-              priority: null,
+              daysOfWeek: recurringDaysOfWeek,
+              startDate: recurringStartDate,
+              priority: recurringPriority,
+              routineId: recurringRoutineId,
+              order: recurringOrder,
               color: task.color || 'default',
               type: task.type || 'OPERATIONAL',
               isHabit: task.is_habit || false,
@@ -605,31 +623,107 @@
       pendingLocalSync.forEach(function (entry) {
         syncTaskToSupabase(entry.dateStr, entry.period, entry.task);
       });
-      const allRecurringTasks = getAllRecurringTasks();
+      remoteRecurringTasks.sort(function (a, b) {
+        const orderA = Number.isFinite(Number(a && a.order)) ? Number(a.order) : Number.MAX_SAFE_INTEGER;
+        const orderB = Number.isFinite(Number(b && b.order)) ? Number(b.order) : Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) return orderA - orderB;
+        return String((a && a.createdAt) || '').localeCompare(String((b && b.createdAt) || ''));
+      });
+
+      const allRecurringTasks = localRecurringSnapshot;
       const localNewTasks = allRecurringTasks.filter(function (t) {
         return !t.supabaseId;
       });
+      const getRecurringMergeKey = function (task) {
+        if (typeof getRecurringTaskIdentity === 'function') {
+          return getRecurringTaskIdentity(task) || String((task && task.text) || '').trim().toLowerCase();
+        }
+        return String((task && (task.routineId || task.supabaseId || task.text)) || '')
+          .trim()
+          .toLowerCase();
+      };
+      const findLocalRecurringMatch = function (remoteTask) {
+        const remoteKey = getRecurringMergeKey(remoteTask);
+        return allRecurringTasks.find(function (localTask) {
+          if (!localTask) return false;
+          const localKey = getRecurringMergeKey(localTask);
+          if (remoteKey && localKey && remoteKey === localKey) return true;
+          if (localTask.supabaseId && remoteTask.supabaseId) {
+            return localTask.supabaseId === remoteTask.supabaseId;
+          }
+          return String(localTask.text || '').trim() === String(remoteTask.text || '').trim();
+        });
+      };
 
       // Prefer cloud recurring tasks, but preserve local unsynced recurring tasks until sync completes.
+      // Also merge local-only fields (startDate, priority, color) that are not stored in Supabase.
       let nextRecurringTasks = [];
-      const uniqueTextMap = new Map();
+      const uniqueRecurringMap = new Map();
+      const remoteRecurringIds = new Set(
+        remoteRecurringTasks.map(function (t) { return t.supabaseId; }).filter(Boolean)
+      );
 
       remoteRecurringTasks.forEach(function (t) {
         if (!t || !t.text) return;
-        uniqueTextMap.set(t.text, t);
+        // Merge local extra fields (startDate, priority) preserving what was already synced back
+        const localMatch = findLocalRecurringMatch(t);
+        const merged = Object.assign({}, t);
+        if (localMatch) {
+          merged.routineId = localMatch.routineId || merged.routineId;
+          const preferLocal = localMatch._syncPending === true;
+          if (preferLocal) {
+            if (localMatch.text) merged.text = localMatch.text;
+            if (Array.isArray(localMatch.daysOfWeek)) merged.daysOfWeek = localMatch.daysOfWeek.slice();
+            if (localMatch.startDate) merged.startDate = localMatch.startDate;
+            if (localMatch.priority != null) merged.priority = localMatch.priority;
+            if (localMatch.color) merged.color = localMatch.color;
+            if (localMatch.type) merged.type = localMatch.type;
+            if (typeof localMatch.isHabit === 'boolean') merged.isHabit = localMatch.isHabit;
+            if (Number.isFinite(Number(localMatch.order))) merged.order = Number(localMatch.order);
+            merged._syncPending = true;
+          } else {
+            if (!merged.startDate && localMatch.startDate) merged.startDate = localMatch.startDate;
+            if (!merged.priority && localMatch.priority && localMatch.priority !== 'none') merged.priority = localMatch.priority;
+            if ((!merged.color || merged.color === 'default') && localMatch.color && localMatch.color !== 'default') merged.color = localMatch.color;
+            if (!Number.isFinite(Number(merged.order)) && Number.isFinite(Number(localMatch.order))) {
+              merged.order = Number(localMatch.order);
+            }
+          }
+        }
+        uniqueRecurringMap.set(getRecurringMergeKey(merged), merged);
       });
 
       localNewTasks.forEach(function (t) {
         if (!t || !t.text) return;
-        if (!uniqueTextMap.has(t.text)) uniqueTextMap.set(t.text, t);
+        const key = getRecurringMergeKey(t);
+        if (!uniqueRecurringMap.has(key)) uniqueRecurringMap.set(key, t);
       });
 
-      nextRecurringTasks = Array.from(uniqueTextMap.values());
+      // Preserve local recurring tasks with supabaseId that still exist in the server
+      // but temporarily didn't appear in this response (e.g. network race condition).
+      allRecurringTasks.forEach(function (t) {
+        if (!t || !t.text || !t.supabaseId) return;
+        if (!remoteRecurringIds.has(t.supabaseId)) return; // deletada no servidor — não ressuscitar
+        const key = getRecurringMergeKey(t);
+        if (!uniqueRecurringMap.has(key)) uniqueRecurringMap.set(key, t);
+      });
+
+      nextRecurringTasks = Array.from(uniqueRecurringMap.values()).sort(function (a, b) {
+        const orderA = Number.isFinite(Number(a && a.order)) ? Number(a.order) : Number.MAX_SAFE_INTEGER;
+        const orderB = Number.isFinite(Number(b && b.order)) ? Number(b.order) : Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) return orderA - orderB;
+        return String((a && a.createdAt) || '').localeCompare(String((b && b.createdAt) || ''));
+      });
 
       setAllRecurringTasks(nextRecurringTasks);
       localStorage.setItem('allRecurringTasks', JSON.stringify(nextRecurringTasks));
 
-      if (localNewTasks.length > 0) {
+      if (
+        localNewTasks.length > 0 ||
+        nextRecurringTasks.some(function (task) {
+          return task && task._syncPending === true;
+        })
+      ) {
         await syncRecurringTasksToSupabase();
       }
 
@@ -719,7 +813,6 @@
     create: createFlowlyTasksRepo
   };
 })();
-
 
 
 

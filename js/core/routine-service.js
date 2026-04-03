@@ -30,10 +30,14 @@
       const dateParts = dateStr.split('-');
       const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
       const dayOfWeek = dateObj.getDay();
-      const allRecurringTasks = getAllRecurringTasks();
+      const allRecurringTasks =
+        typeof normalizeRecurringTasksList === 'function'
+          ? normalizeRecurringTasksList(getAllRecurringTasks())
+          : getAllRecurringTasks();
       const habitsHistory = getHabitsHistory();
 
       allRecurringTasks.forEach(function (habit) {
+        if (!habit || habit._deletedPending) return;
         if (!isTaskActiveForDate(habit, dateStr)) return;
 
         let isForToday = false;
@@ -50,7 +54,14 @@
 
         tasks.push({
           text: habit.text,
-          routineKey: habit.supabaseId || habit.text,
+          routineId:
+            typeof ensureRecurringTaskIdentity === 'function'
+              ? ensureRecurringTaskIdentity(habit)
+              : habit.routineId || habit.supabaseId || habit.text,
+          routineKey:
+            typeof getRecurringTaskIdentity === 'function'
+              ? getRecurringTaskIdentity(habit)
+              : habit.routineId || habit.supabaseId || habit.text,
           completed: !!historyValue,
           completedAt: completedAt,
           color: habit.color || 'default',
@@ -68,10 +79,14 @@
       const habits = [];
       const habitMap = new Map();
       const today = localDateStr();
-      const allRecurringTasks = getAllRecurringTasks();
+      const allRecurringTasks =
+        typeof normalizeRecurringTasksList === 'function'
+          ? normalizeRecurringTasksList(getAllRecurringTasks())
+          : getAllRecurringTasks();
       const habitsHistory = getHabitsHistory();
 
       allRecurringTasks.forEach(function (task) {
+        if (!task || task._deletedPending) return;
         if (!isTaskActiveForDate(task, today)) return;
 
         if (

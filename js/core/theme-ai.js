@@ -17,7 +17,10 @@ const FLOWLY_THEME_DEFAULTS = {
   fontDisplay: 'system',
   radiusScale: 'soft',
   pageWidth: 'wide',
-  panelStyle: 'balanced'
+  panelStyle: 'balanced',
+  bodyAccent: 'subtle',
+  shadowStyle: 'soft',
+  borderStyle: 'subtle'
 };
 const FLOWLY_FONT_PRESETS = {
   system: {
@@ -91,6 +94,38 @@ const FLOWLY_PAGE_WIDTH_PRESETS = {
   wide: { label: 'Equilibrada', hint: 'Padrão do app', base: '1280px', narrow: '1120px', wide: '1400px' },
   cinematic: { label: 'Ampla', hint: 'Respira mais', base: '1380px', narrow: '1200px', wide: '1520px' }
 };
+const FLOWLY_BODY_ACCENT_PRESETS = {
+  none:   { label: 'Sem tint',  hint: 'Fundo totalmente neutro',       opacity: '0',    purple: '0'    },
+  subtle: { label: 'Sutil',     hint: 'Toque mínimo de cor',           opacity: '0.03', purple: '0.02' },
+  soft:   { label: 'Suave',     hint: 'Cor ambiente visível',          opacity: '0.05', purple: '0.03' },
+  vivid:  { label: 'Vívido',    hint: 'Mais presença da cor no fundo', opacity: '0.09', purple: '0.05' }
+};
+const FLOWLY_SHADOW_PRESETS = {
+  flat:  {
+    label: 'Plano',   hint: 'Sem elevação — mais flat',
+    card:        '0 0 0 1px rgba(255,255,255,0.04)',
+    cardHover:   '0 0 0 1px rgba(255,255,255,0.07)',
+    glow:        '0 0 0 rgba(0,0,0,0)'
+  },
+  soft:  {
+    label: 'Suave',   hint: 'Elevação discreta',
+    card:        '0 0 0 1px rgba(255,255,255,0.04), 0 2px 4px rgba(0,0,0,0.32), 0 8px 20px rgba(0,0,0,0.18)',
+    cardHover:   '0 0 0 1px rgba(255,255,255,0.07), 0 4px 10px rgba(0,0,0,0.36), 0 16px 36px rgba(0,0,0,0.24)',
+    glow:        '0 0 36px rgba(var(--accent-primary-rgb), 0.07)'
+  },
+  float: {
+    label: 'Flutuante', hint: 'Cards elevados com profundidade',
+    card:        '0 0 0 1px rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.44), 0 18px 44px rgba(0,0,0,0.30)',
+    cardHover:   '0 0 0 1px rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.50), 0 28px 64px rgba(0,0,0,0.38)',
+    glow:        '0 0 48px rgba(var(--accent-primary-rgb), 0.12)'
+  }
+};
+const FLOWLY_BORDER_PRESETS = {
+  none:    { label: 'Invisível', hint: 'Bordas totalmente apagadas',  subtle: 'rgba(255,255,255,0.022)', active: 'rgba(var(--accent-primary-rgb), 0.12)' },
+  subtle:  { label: 'Sutil',     hint: 'Bordas quase invisíveis',     subtle: 'rgba(255,255,255,0.055)', active: 'rgba(var(--accent-primary-rgb), 0.22)' },
+  defined: { label: 'Definida',  hint: 'Bordas mais presentes',       subtle: 'rgba(255,255,255,0.09)',  active: 'rgba(var(--accent-primary-rgb), 0.35)' },
+  bold:    { label: 'Marcada',   hint: 'Bordas claramente visíveis',   subtle: 'rgba(255,255,255,0.14)',  active: 'rgba(var(--accent-primary-rgb), 0.50)' }
+};
 const FLOWLY_PANEL_PRESETS = {
   flat: {
     label: 'Plano',
@@ -153,6 +188,9 @@ function normalizeFlowlyThemeSettings(rawSettings = {}) {
   if (!FLOWLY_RADIUS_PRESETS[base.radiusScale]) base.radiusScale = FLOWLY_THEME_DEFAULTS.radiusScale;
   if (!FLOWLY_PAGE_WIDTH_PRESETS[base.pageWidth]) base.pageWidth = FLOWLY_THEME_DEFAULTS.pageWidth;
   if (!FLOWLY_PANEL_PRESETS[base.panelStyle]) base.panelStyle = FLOWLY_THEME_DEFAULTS.panelStyle;
+  if (!FLOWLY_BODY_ACCENT_PRESETS[base.bodyAccent]) base.bodyAccent = FLOWLY_THEME_DEFAULTS.bodyAccent;
+  if (!FLOWLY_SHADOW_PRESETS[base.shadowStyle]) base.shadowStyle = FLOWLY_THEME_DEFAULTS.shadowStyle;
+  if (!FLOWLY_BORDER_PRESETS[base.borderStyle]) base.borderStyle = FLOWLY_THEME_DEFAULTS.borderStyle;
   return base;
 }
 
@@ -202,6 +240,9 @@ function applyFlowlyThemeSettings(settings = getFlowlyThemeSettings()) {
   const radius = FLOWLY_RADIUS_PRESETS[normalized.radiusScale] || FLOWLY_RADIUS_PRESETS.soft;
   const pageWidth = FLOWLY_PAGE_WIDTH_PRESETS[normalized.pageWidth] || FLOWLY_PAGE_WIDTH_PRESETS.wide;
   const panelStyle = FLOWLY_PANEL_PRESETS[normalized.panelStyle] || FLOWLY_PANEL_PRESETS.balanced;
+  const bodyAccent = FLOWLY_BODY_ACCENT_PRESETS[normalized.bodyAccent] || FLOWLY_BODY_ACCENT_PRESETS.subtle;
+  const shadowStyle = FLOWLY_SHADOW_PRESETS[normalized.shadowStyle] || FLOWLY_SHADOW_PRESETS.soft;
+  const borderStyle = FLOWLY_BORDER_PRESETS[normalized.borderStyle] || FLOWLY_BORDER_PRESETS.subtle;
   const primaryRgb = hexToRgbString(normalized.primaryColor, '10 132 255');
   const secondaryRgb = hexToRgbString(normalized.secondaryColor, '255 159 10');
 
@@ -223,6 +264,15 @@ function applyFlowlyThemeSettings(settings = getFlowlyThemeSettings()) {
   root.style.setProperty('--border-panel', panelStyle.border);
   root.style.setProperty('--shadow-panel', panelStyle.shadow);
   root.style.setProperty('--panel-blur', panelStyle.blur);
+
+  /* --- novos controles visuais --- */
+  root.style.setProperty('--body-accent-opacity', bodyAccent.opacity);
+  root.style.setProperty('--body-accent-purple', bodyAccent.purple);
+  root.style.setProperty('--shadow-card', shadowStyle.card);
+  root.style.setProperty('--shadow-card-hover', shadowStyle.cardHover);
+  root.style.setProperty('--shadow-glow-blue', shadowStyle.glow);
+  root.style.setProperty('--border-subtle', borderStyle.subtle);
+  root.style.setProperty('--border-active', borderStyle.active);
 
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   if (themeColorMeta) {

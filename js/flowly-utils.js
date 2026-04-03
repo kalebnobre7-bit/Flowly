@@ -53,6 +53,90 @@
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 
+  function generateFlowlyId(prefix = 'flowly') {
+    return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function getRecurringTaskIdentity(task) {
+    if (!task) return '';
+    if (typeof task === 'string') return String(task).trim();
+    return String(task.routineId || task.routineKey || task.supabaseId || task.id || task.text || '').trim();
+  }
+
+  function ensureRecurringTaskIdentity(task) {
+    if (!task || typeof task !== 'object') return '';
+
+    const existing = String(task.routineId || '').trim();
+    if (existing) {
+      task.routineId = existing;
+      return existing;
+    }
+
+    const remoteId = String(task.supabaseId || task.id || '').trim();
+    if (remoteId) {
+      task.routineId = remoteId;
+      return task.routineId;
+    }
+
+    task.routineId = generateFlowlyId('routine');
+    return task.routineId;
+  }
+
+  function normalizeRecurringTasksList(list) {
+    const source = Array.isArray(list) ? list : [];
+
+    return source.reduce(function (acc, task, index) {
+      if (!task || typeof task !== 'object') return acc;
+      if (!task._deletedPending && !String(task.text || '').trim()) return acc;
+
+      if (typeof task.text === 'string') {
+        task.text = task.text.trim();
+      }
+      if (!Array.isArray(task.daysOfWeek)) {
+        task.daysOfWeek = [];
+      }
+      if (!task.createdAt || Number.isNaN(new Date(task.createdAt).getTime())) {
+        task.createdAt = new Date().toISOString();
+      }
+
+      ensureRecurringTaskIdentity(task);
+
+      if (!Number.isFinite(Number(task.order))) {
+        task.order = index;
+      } else {
+        task.order = Number(task.order);
+      }
+
+      acc.push(task);
+      return acc;
+    }, []);
+  }
+
+  function findRecurringTaskIndex(list, needle) {
+    const items = Array.isArray(list) ? list : [];
+    const targetId = getRecurringTaskIdentity(needle);
+
+    if (targetId) {
+      return items.findIndex(function (task) {
+        return getRecurringTaskIdentity(task) === targetId;
+      });
+    }
+
+    const fallbackText =
+      typeof needle === 'string' ? String(needle).trim() : String((needle && needle.text) || '').trim();
+    if (!fallbackText) return -1;
+
+    return items.findIndex(function (task) {
+      return String((task && task.text) || '').trim() === fallbackText;
+    });
+  }
+
+  function findRecurringTask(list, needle) {
+    const index = findRecurringTaskIndex(list, needle);
+    if (index < 0) return null;
+    return list[index] || null;
+  }
+
   function fixMojibakeText(value) {
     if (typeof value !== 'string' || value.length === 0) return value;
 
@@ -111,11 +195,23 @@
     localDateStr,
     formatElapsedShort,
     formatDurationClock,
+    generateFlowlyId,
+    getRecurringTaskIdentity,
+    ensureRecurringTaskIdentity,
+    normalizeRecurringTasksList,
+    findRecurringTaskIndex,
+    findRecurringTask,
     fixMojibakeText
   };
   window.safeJSONParse = safeJSONParse;
   window.localDateStr = localDateStr;
   window.formatElapsedShort = formatElapsedShort;
   window.formatDurationClock = formatDurationClock;
+  window.generateFlowlyId = generateFlowlyId;
+  window.getRecurringTaskIdentity = getRecurringTaskIdentity;
+  window.ensureRecurringTaskIdentity = ensureRecurringTaskIdentity;
+  window.normalizeRecurringTasksList = normalizeRecurringTasksList;
+  window.findRecurringTaskIndex = findRecurringTaskIndex;
+  window.findRecurringTask = findRecurringTask;
   window.fixMojibakeText = fixMojibakeText;
 })();

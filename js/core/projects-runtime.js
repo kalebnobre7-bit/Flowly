@@ -871,13 +871,25 @@ function getProjectMirrorEntriesForDate(dateStr, dayLabel = '') {
   );
 
   return projects.flatMap((project, order) => {
-    const linkedEntries = collectProjectTaskCandidates({
+    const allLinkedEntries = collectProjectTaskCandidates({
       includeLinked: true,
       max: 200,
       projectId: project.id
     });
     const sourceEntry = getProjectAnchorSourceTask(project.id);
-    if (!sourceEntry || linkedEntries.length === 0) return [];
+    if (!sourceEntry || allLinkedEntries.length === 0) return [];
+
+    // Filtrar tarefas por data: mostrar apenas as do dia atual ou carry-forward de dias passados não concluídas
+    const linkedEntries = allLinkedEntries.filter((entry) => {
+      const taskDateStr = entry.dateStr || '';
+      const isCompleted = entry.task?.completed === true;
+      if (taskDateStr === dateStr) return true;       // tarefa do dia: sempre mostra
+      if (taskDateStr > dateStr) return false;         // tarefa futura: não mostra
+      if (isCompleted) return false;                   // tarefa de dia passado e concluída: não mostra
+      return true;                                     // tarefa de dia passado não concluída: carry-forward
+    });
+
+    if (linkedEntries.length === 0) return [];
 
     const entryByTaskId = new Map();
     linkedEntries.forEach((entry) => {

@@ -5,7 +5,10 @@ function bindSettingsInteractions() {
     fontDisplay: (current, value) => ({ ...current, fontDisplay: value }),
     radiusScale: (current, value) => ({ ...current, radiusScale: value }),
     pageWidth: (current, value) => ({ ...current, pageWidth: value }),
-    panelStyle: (current, value) => ({ ...current, panelStyle: value })
+    panelStyle: (current, value) => ({ ...current, panelStyle: value }),
+    bodyAccent: (current, value) => ({ ...current, bodyAccent: value }),
+    shadowStyle: (current, value) => ({ ...current, shadowStyle: value }),
+    borderStyle: (current, value) => ({ ...current, borderStyle: value })
   };
 
   const refreshThemeUi = (settings = getFlowlyThemeSettings()) => {
@@ -19,6 +22,12 @@ function bindSettingsInteractions() {
       FLOWLY_PAGE_WIDTH_PRESETS[normalized.pageWidth] || FLOWLY_PAGE_WIDTH_PRESETS.wide;
     const panelPreset =
       FLOWLY_PANEL_PRESETS[normalized.panelStyle] || FLOWLY_PANEL_PRESETS.balanced;
+    const bodyAccentPreset =
+      FLOWLY_BODY_ACCENT_PRESETS[normalized.bodyAccent] || FLOWLY_BODY_ACCENT_PRESETS.subtle;
+    const shadowPreset =
+      FLOWLY_SHADOW_PRESETS[normalized.shadowStyle] || FLOWLY_SHADOW_PRESETS.soft;
+    const borderPreset =
+      FLOWLY_BORDER_PRESETS[normalized.borderStyle] || FLOWLY_BORDER_PRESETS.subtle;
 
     const primaryCode = document.getElementById('themePrimaryCode');
     const secondaryCode = document.getElementById('themeSecondaryCode');
@@ -30,7 +39,10 @@ function bindSettingsInteractions() {
       themeSummaryFontDisplay: `${displayPreset.label} · ${displayPreset.hint || ''}`,
       themeSummaryRadius: `${radiusPreset.label} · ${radiusPreset.hint || ''}`,
       themeSummaryWidth: `${widthPreset.label} · ${widthPreset.hint || ''}`,
-      themeSummaryPanel: `${panelPreset.label} · ${panelPreset.hint || ''}`
+      themeSummaryPanel: `${panelPreset.label} · ${panelPreset.hint || ''}`,
+      themeSummaryBodyAccent: `${bodyAccentPreset.label} · ${bodyAccentPreset.hint || ''}`,
+      themeSummaryShadow: `${shadowPreset.label} · ${shadowPreset.hint || ''}`,
+      themeSummaryBorder: `${borderPreset.label} · ${borderPreset.hint || ''}`
     };
     Object.entries(summaryMap).forEach(([id, value]) => {
       const el = document.getElementById(id);

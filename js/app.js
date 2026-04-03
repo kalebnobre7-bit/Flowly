@@ -54,8 +54,11 @@ const width = 600;
 
 // Utilitarios compartilhados carregados via js/flowly-utils.js e js/core/*.js
 function getRoutineKey(task) {
+  if (typeof getRecurringTaskIdentity === 'function') {
+    return getRecurringTaskIdentity(task);
+  }
   if (!task) return '';
-  return task.routineKey || task.supabaseId || task.text || '';
+  return task.routineKey || task.routineId || task.supabaseId || task.text || '';
 }
 
 // Helper para JSON seguro
@@ -185,6 +188,15 @@ function reorderRoutineTasksForDate(dateStr, sourceRoutineKey, insertAt) {
     });
   }
 
+  allRecurringTasks.forEach((task, idx) => {
+    if (!task || typeof task !== 'object') return;
+    task.order = idx;
+    task._syncPending = true;
+    if (typeof ensureRecurringTaskIdentity === 'function') {
+      ensureRecurringTaskIdentity(task);
+    }
+  });
+
   saveToLocalStorage();
   if (typeof syncRecurringTasksToSupabase === 'function') {
     syncRecurringTasksToSupabase();
@@ -259,5 +271,4 @@ initializeFlowlyServices();
 initFlowlyAppRuntime();
 
 // Bootstrap da interface movido para js/core/ui-bootstrap.js
-
 

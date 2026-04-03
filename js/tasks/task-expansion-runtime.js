@@ -62,7 +62,12 @@ window.toggleTaskExpansion = function (task, el) {
     if (reopen) reopenExpansion();
   };
 
-  const recDefinition = isRecurring ? allRecurringTasks.find((rt) => rt.text === task.text) : null;
+  const recDefinition =
+    isRecurring && typeof findRecurringTask === 'function'
+      ? findRecurringTask(allRecurringTasks, task)
+      : isRecurring
+        ? allRecurringTasks.find((rt) => rt.text === task.text)
+        : null;
   const repeatedMatch = getProjectOptions().find(
     (project) => task.text && task.text.toLowerCase().includes(project.name.toLowerCase())
   );
@@ -70,43 +75,15 @@ window.toggleTaskExpansion = function (task, el) {
   const header = document.createElement('div');
   header.className = 'task-expansion-head';
 
-  const kicker = document.createElement('div');
-  kicker.className = 'task-expansion-kicker';
-  kicker.textContent = isRecurring ? 'Rotina' : task.completed ? 'Concluida' : 'Tarefa';
-  header.appendChild(kicker);
 
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
   nameInput.value = task.text || '';
-  nameInput.className = 'finance-input finance-input--full task-expansion-title-input';
+  nameInput.className = 'task-expansion-title-input';
   nameInput.setAttribute('maxlength', '180');
   header.appendChild(nameInput);
 
-  const metaRow = document.createElement('div');
-  metaRow.className = 'task-expansion-meta';
 
-  const appendMetaPill = (text, modifier = '') => {
-    const pill = document.createElement('span');
-    pill.className = `task-expansion-meta-pill${modifier ? ` ${modifier}` : ''}`;
-    pill.textContent = text;
-    metaRow.appendChild(pill);
-  };
-
-  if (task.projectName) appendMetaPill(task.projectName);
-  if (task.priority) {
-    const prio = getTaskPriorities().find((item) => item.id === task.priority);
-    if (prio) appendMetaPill(prio.name);
-  }
-  if (isTimerEligible && (task.timerStartedAt || getTaskTimerTotalMs(task) > 0)) {
-    appendMetaPill(
-      task.timerStartedAt
-        ? `Em execucao · ${formatDurationClock(getTaskTimerTotalMs(task))}`
-        : `Tempo · ${formatDurationClock(getTaskTimerTotalMs(task))}`,
-      task.timerStartedAt ? 'is-running' : ''
-    );
-  }
-  if (task.completed && task.completedAt) appendMetaPill(`Feita ${formatTimeSince(task.completedAt)}`);
-  if (metaRow.childNodes.length > 0) header.appendChild(metaRow);
   exp.appendChild(header);
 
   const applyTaskRename = async () => {
@@ -129,6 +106,7 @@ window.toggleTaskExpansion = function (task, el) {
 
     if (isRecurring && recDefinition) {
       recDefinition.text = newText;
+      recDefinition._syncPending = true;
       task.text = newText;
 
       if (habitsHistory[oldText] && !habitsHistory[newText]) {
@@ -176,19 +154,30 @@ window.toggleTaskExpansion = function (task, el) {
   const grid = document.createElement('div');
   grid.className = 'task-expansion-grid';
 
-  const createCard = (eyebrow, title, modifier = '') => {
+  const createCard = (label, iconName, modifier = '') => {
     const card = document.createElement('section');
-    card.className = `task-expansion-card${modifier ? ` ${modifier}` : ''}`;
+    card.className = `task-expansion-property-row${modifier ? ` ${modifier}` : ''}`;
 
-    const eyebrowEl = document.createElement('div');
-    eyebrowEl.className = 'task-expansion-card-eyebrow';
-    eyebrowEl.textContent = eyebrow;
-    card.appendChild(eyebrowEl);
+    const labelContainer = document.createElement('div');
+    labelContainer.className = 'task-expansion-property-label';
+    if (iconName) {
+      labelContainer.innerHTML = `<i data-lucide="${iconName}" style="width:16px;height:16px;color:#fff;"></i>`;
+      labelContainer.title = label;
+    } else {
+      labelContainer.textContent = label;
+    }
+    card.appendChild(labelContainer);
 
-    const titleEl = document.createElement('h4');
-    titleEl.className = 'task-expansion-card-title';
-    titleEl.textContent = title;
-    card.appendChild(titleEl);
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'task-expansion-property-content';
+    card.appendChild(contentContainer);
+
+    // Intercept appendChild to redirect inputs/buttons to the content area effortlessly
+    const originalAppend = card.appendChild.bind(card);
+    card.appendChild = (el) => {
+        if(el === labelContainer || el === contentContainer) return originalAppend(el);
+        return contentContainer.appendChild(el);
+    };
 
     return card;
   };
@@ -210,9 +199,9 @@ window.toggleTaskExpansion = function (task, el) {
     return btn;
   };
 
-  const projectCard = createCard('Contexto', 'Projeto');
+  const projectCard = createCard('Projeto', 'folder');
   const projectSelect = document.createElement('select');
-  projectSelect.className = 'finance-input finance-input--full task-expansion-select';
+  projectSelect.className = 'task-expansion-select';
   const projectOptions = [{ id: '', name: 'Sem projeto', clientName: '' }, ...getProjectOptions()];
   projectSelect.innerHTML = projectOptions
     .map(
@@ -252,22 +241,16 @@ window.toggleTaskExpansion = function (task, el) {
   }
   grid.appendChild(projectCard);
 
-  const timerCard = createCard('Execucao', isTimerEligible ? 'Tempo real' : 'Timer');
-  const timerValue = document.createElement('strong');
-  timerValue.className = 'task-expansion-timer-value';
-  timerCard.appendChild(timerValue);
-
-  const timerStatus = document.createElement('span');
-  timerStatus.className = 'task-expansion-timer-status';
-  timerCard.appendChild(timerStatus);
-
-  const timerHint = document.createElement('p');
-  timerHint.className = 'task-expansion-timer-hint';
-  timerCard.appendChild(timerHint);
-
+  const timerCard = createCard(isTimerEligible ? 'Tempo real' : 'Timer', 'play-circle');
   const timerActions = document.createElement('div');
   timerActions.className = 'task-expansion-actions';
   timerCard.appendChild(timerActions);
+
+  const timerValue = document.createElement('strong');
+  timerValue.className = 'task-expansion-timer-value';
+  timerValue.style.marginRight = 'auto'; // Push actions to the right
+  timerValue.style.fontSize = '14px';
+  timerActions.appendChild(timerValue);
 
   const timerToggleBtn = document.createElement('button');
   timerToggleBtn.type = 'button';
@@ -277,7 +260,8 @@ window.toggleTaskExpansion = function (task, el) {
   const timerResetBtn = document.createElement('button');
   timerResetBtn.type = 'button';
   timerResetBtn.className = 'btn-secondary task-expansion-inline-button';
-  timerResetBtn.textContent = 'Zerar';
+  timerResetBtn.innerHTML = '<i data-lucide="rotate-ccw" style="width:14px;height:14px"></i>';
+  timerResetBtn.title = 'Zerar Timer';
   timerActions.appendChild(timerResetBtn);
 
   const timerCompleteBtn = document.createElement('button');
@@ -285,55 +269,38 @@ window.toggleTaskExpansion = function (task, el) {
   timerCompleteBtn.className = 'btn-secondary task-expansion-inline-button task-expansion-complete-button';
   timerActions.appendChild(timerCompleteBtn);
 
-  const timerMeta = document.createElement('div');
-  timerMeta.className = 'task-expansion-caption';
-  timerCard.appendChild(timerMeta);
+
 
   let timerInterval = null;
   const refreshTimerCard = () => {
     normalizeTaskTimerData(task);
 
     if (!isTimerEligible) {
-      timerValue.textContent = 'Disponivel so para tarefas do dia';
-      timerStatus.textContent = 'Rotinas seguem outro fluxo.';
-      timerHint.textContent = 'Use o timer em tarefas normais para medir execucao real.';
+      timerValue.textContent = 'Não disponivel em rotinas';
       timerToggleBtn.disabled = true;
       timerResetBtn.disabled = true;
       timerCompleteBtn.disabled = true;
-      timerCompleteBtn.textContent = 'Concluir';
-      timerMeta.textContent = '';
+      timerCompleteBtn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px"></i>';
       return;
     }
 
     const totalMs = getTaskTimerTotalMs(task);
     const isRunning = Boolean(task.timerStartedAt);
     timerValue.textContent = formatDurationClock(totalMs);
-    timerStatus.textContent = task.completed
-      ? 'Concluida'
-      : isRunning
-        ? 'Rodando agora'
-        : totalMs > 0
-          ? 'Tempo acumulado'
-          : 'Nenhuma sessao ainda';
-    timerHint.textContent = isRunning
-      ? 'Quando pausar ou concluir, o tempo fecha automaticamente.'
-      : task.completed && totalMs > 0
-        ? `Fechada com ${formatDurationClock(totalMs)} registrados.`
-        : task.completed
-          ? 'Tarefa concluida e registrada.'
-      : task.timerLastStoppedAt
-        ? `Ultima pausa ${formatTimeSince(task.timerLastStoppedAt)}.`
-        : 'Inicie quando comecar a executar de verdade.';
+
     timerToggleBtn.disabled = task.completed && !isRunning;
-    timerToggleBtn.textContent = isRunning ? 'Pausar' : totalMs > 0 ? 'Retomar' : 'Iniciar';
+    timerToggleBtn.innerHTML = isRunning 
+      ? '<i data-lucide="pause" style="width:14px;height:14px"></i>' 
+      : '<i data-lucide="play" style="width:14px;height:14px"></i>';
+    timerToggleBtn.title = isRunning ? 'Pausar' : 'Iniciar';
+
     timerCompleteBtn.disabled = false;
-    timerCompleteBtn.textContent = task.completed ? 'Reabrir' : 'Concluir';
-    timerMeta.textContent =
-      task.completed && task.completedAt
-        ? `Feita ${formatTimeSince(task.completedAt)}`
-        : Number(task.timerSessionsCount || 0) > 0
-        ? `${Math.max(1, Number(task.timerSessionsCount || 0))} sessao(oes)`
-        : 'Sem historico ainda';
+    timerCompleteBtn.innerHTML = task.completed 
+      ? '<i data-lucide="calendar-check" style="width:14px;height:14px"></i>' 
+      : '<i data-lucide="check" style="width:14px;height:14px"></i>';
+    timerCompleteBtn.title = task.completed ? 'Reabrir' : 'Concluir';
+
+
 
     if (isRunning && !timerInterval) {
       timerInterval = setInterval(refreshTimerCard, 1000);
@@ -393,7 +360,7 @@ window.toggleTaskExpansion = function (task, el) {
   };
   grid.appendChild(timerCard);
 
-  const prioCard = createCard('Sinal', 'Prioridade', 'task-expansion-card--wide');
+  const prioCard = createCard('Prioridade', 'flag');
   ensureMoneyPriorityOption();
   const prios = getTaskPriorities();
   let currentPrio = task.priority || null;
@@ -406,6 +373,7 @@ window.toggleTaskExpansion = function (task, el) {
         const newPrio = task.priority === p.id ? null : p.id;
         if (isRecurring && recDefinition) {
           recDefinition.priority = newPrio;
+          recDefinition._syncPending = true;
         } else {
           task.priority = newPrio;
         }
@@ -416,7 +384,7 @@ window.toggleTaskExpansion = function (task, el) {
   prioCard.appendChild(priosWrap);
   grid.appendChild(prioCard);
 
-  const repeatCard = createCard('Cadencia', 'Repetir', 'task-expansion-card--wide');
+  const repeatCard = createCard('Repetir', 'repeat-2');
   const days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
   let activeDays = recDefinition ? recDefinition.daysOfWeek || [] : [];
   const repWrap = document.createElement('div');
@@ -436,14 +404,39 @@ window.toggleTaskExpansion = function (task, el) {
           priority: task.priority || null,
           color: task.color || 'default',
           type: task.type || 'OPERATIONAL',
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          _syncPending: true,
+          order: allRecurringTasks.length
         };
-        allRecurringTasks.push(newRecTask);
-        if (allTasksData[dateStr] && allTasksData[dateStr][period]) {
-          allTasksData[dateStr][period].splice(parseInt(index, 10), 1);
+        if (typeof ensureRecurringTaskIdentity === 'function') {
+          ensureRecurringTaskIdentity(newRecTask);
         }
+        allRecurringTasks.push(newRecTask);
+        const sourceTask =
+          allTasksData?.[dateStr]?.[period]?.[parseInt(index, 10)] || null;
+        let removed = false;
+
+        if (sourceTask && typeof window.deleteTaskOptimistically === 'function') {
+          const removal = window.deleteTaskOptimistically(dateStr, period, sourceTask, {
+            sync: false,
+            render: false
+          });
+          removed = removal && removal.deleted === true;
+        }
+
+        if (!removed && allTasksData[dateStr] && allTasksData[dateStr][period]) {
+          allTasksData[dateStr][period].splice(parseInt(index, 10), 1);
+          allTasksData[dateStr][period].forEach((entry, entryIndex) => {
+            if (!entry || typeof entry !== 'object') return;
+            entry.position = entryIndex;
+          });
+        }
+
         saveToLocalStorage();
-        syncRecurringTasksToSupabase().then(renderView);
+        Promise.all([
+          Promise.resolve(syncRecurringTasksToSupabase()),
+          Promise.resolve(typeof syncDateToSupabase === 'function' ? syncDateToSupabase(dateStr) : null)
+        ]).then(() => renderView());
         return;
       } else if (recDefinition) {
         const dayIndex = activeDays.indexOf(i);
@@ -459,7 +452,11 @@ window.toggleTaskExpansion = function (task, el) {
               }
             );
             if (confirmed) {
-              allRecurringTasks = allRecurringTasks.filter((t) => t.text !== task.text);
+              const recIndex =
+                typeof findRecurringTaskIndex === 'function'
+                  ? findRecurringTaskIndex(allRecurringTasks, recDefinition)
+                  : allRecurringTasks.findIndex((t) => t.text === task.text);
+              if (recIndex >= 0) allRecurringTasks.splice(recIndex, 1);
             } else {
               recDefinition.daysOfWeek.push(i);
             }
@@ -467,33 +464,29 @@ window.toggleTaskExpansion = function (task, el) {
         } else {
           recDefinition.daysOfWeek.push(i);
         }
+        recDefinition._syncPending = true;
         persistTaskChanges({ reopen: true });
       }
     };
     repWrap.appendChild(dayBtn);
   });
   repeatCard.appendChild(repWrap);
-  const repeatHint = document.createElement('p');
-  repeatHint.className = 'task-expansion-caption';
-  repeatHint.textContent = recDefinition
-    ? 'Ativar dias aqui ajusta a rotina original.'
-    : 'Clique em um dia para transformar essa tarefa em recorrente.';
-  repeatCard.appendChild(repeatHint);
+
   grid.appendChild(repeatCard);
 
   if (!isRecurring) {
-    const moveCard = createCard('Agenda', 'Mover tarefa', 'task-expansion-card--wide');
+    const moveCard = createCard('Mover', 'calendar');
     const moveControls = document.createElement('div');
     moveControls.className = 'task-expansion-move-controls';
 
     const moveDateInput = document.createElement('input');
     moveDateInput.type = 'date';
     moveDateInput.value = dateStr;
-    moveDateInput.className = 'finance-input finance-input--full task-expansion-select';
+    moveDateInput.className = 'task-expansion-select';
     moveControls.appendChild(moveDateInput);
 
     const movePeriodSelect = document.createElement('select');
-    movePeriodSelect.className = 'finance-input finance-input--full task-expansion-select';
+    movePeriodSelect.className = 'task-expansion-select';
     movePeriodSelect.innerHTML = `
       <option value="Tarefas" ${period === 'Tarefas' ? 'selected' : ''}>Tarefas</option>
       <option value="Later" ${period === 'Later' ? 'selected' : ''}>Later</option>
@@ -535,24 +528,17 @@ window.toggleTaskExpansion = function (task, el) {
         moveDateInput.value = nextWeekDate;
       })
     );
-    moveCard.appendChild(quickMoveRow);
-
-    const moveActionRow = document.createElement('div');
-    moveActionRow.className = 'task-expansion-actions';
     const moveBtn = document.createElement('button');
     moveBtn.type = 'button';
     moveBtn.className = 'btn-secondary task-expansion-inline-button';
-    moveBtn.textContent = 'Mover agora';
+    moveBtn.innerHTML = '<i data-lucide="arrow-right" style="width:14px;height:14px"></i>';
+    moveBtn.title = 'Confirmar Mover';
     moveBtn.onclick = () => {
       applyMove(moveDateInput.value, movePeriodSelect.value || 'Tarefas');
     };
-    moveActionRow.appendChild(moveBtn);
-    moveCard.appendChild(moveActionRow);
+    quickMoveRow.appendChild(moveBtn);
+    moveCard.appendChild(quickMoveRow);
 
-    const moveHint = document.createElement('p');
-    moveHint.className = 'task-expansion-caption task-expansion-caption--show';
-    moveHint.textContent = 'Move a tarefa e a árvore inteira de subtarefas para outra data.';
-    moveCard.appendChild(moveHint);
 
     grid.appendChild(moveCard);
   }
@@ -562,24 +548,14 @@ window.toggleTaskExpansion = function (task, el) {
   const footer = document.createElement('div');
   footer.className = 'task-expansion-footer';
 
-  const summary = document.createElement('span');
-  summary.className = 'task-expansion-caption';
-  if (isTimerEligible && (task.timerStartedAt || getTaskTimerTotalMs(task) > 0)) {
-    summary.textContent = task.timerStartedAt
-      ? `Em execucao ha ${formatElapsedShort(getTaskTimerTotalMs(task))}`
-      : `Total rastreado ${formatDurationClock(getTaskTimerTotalMs(task))}`;
-  } else {
-    summary.textContent = task.projectName
-      ? `Vinculada a ${task.projectName}`
-      : 'Sem projeto vinculado ainda';
-  }
-  footer.appendChild(summary);
+
 
   if (!isRecurring) {
     const addSubtaskBtn = document.createElement('button');
     addSubtaskBtn.type = 'button';
     addSubtaskBtn.className = 'btn-secondary task-expansion-inline-button';
-    addSubtaskBtn.textContent = 'Subtarefa';
+    addSubtaskBtn.innerHTML = '<i data-lucide="indent" style="width:14px;height:14px"></i>';
+    addSubtaskBtn.title = 'Adicionar Subtarefa';
     addSubtaskBtn.onclick = async (e) => {
       e.stopPropagation();
       const text = await window.FlowlyDialogs.prompt('Digite a subtarefa:', {
@@ -607,7 +583,8 @@ window.toggleTaskExpansion = function (task, el) {
   const delBtn = document.createElement('button');
   delBtn.type = 'button';
   delBtn.className = 'task-expansion-delete';
-  delBtn.innerHTML = '<i data-lucide="trash-2" style="width:13px;height:13px"></i> Excluir';
+  delBtn.innerHTML = '<i data-lucide="trash-2" style="width:14px;height:14px"></i>';
+  delBtn.title = 'Excluir';
   delBtn.onclick = (e) => {
     e.stopPropagation();
     window.deleteTaskInline(task, dateStr, period, index, isRecurring);
@@ -640,8 +617,14 @@ window.deleteTaskInline = async function (task, dateStr, period, _indexStr, isRe
     }
     let deleted = false;
 
-    if (isRecurring || allRecurringTasks.some((t) => t.text === task.text)) {
-      const recIndex = allRecurringTasks.findIndex((t) => t.text === task.text);
+    const recIndex =
+      isRecurring && typeof findRecurringTaskIndex === 'function'
+        ? findRecurringTaskIndex(allRecurringTasks, task)
+        : isRecurring
+          ? allRecurringTasks.findIndex((t) => t.text === task.text)
+          : -1;
+
+    if (isRecurring && recIndex >= 0) {
       if (recIndex >= 0) allRecurringTasks.splice(recIndex, 1);
 
       const textToRemove = task.text;
@@ -649,7 +632,8 @@ window.deleteTaskInline = async function (task, dateStr, period, _indexStr, isRe
         Object.keys(allTasksData[dStr] || {}).forEach((per) => {
           if (Array.isArray(allTasksData[dStr][per])) {
             allTasksData[dStr][per] = allTasksData[dStr][per].filter(
-              (t) => t.text !== textToRemove
+              (t) =>
+                t.text !== textToRemove || !(t.isHabit || t.isRecurring || t.isRoutine)
             );
             if (allTasksData[dStr][per].length === 0) delete allTasksData[dStr][per];
           }

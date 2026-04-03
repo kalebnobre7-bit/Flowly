@@ -282,7 +282,7 @@ async function testMoveTaskUnderParent() {
   assert.deepEqual(ctx.__syncedDates, ['2026-03-31']);
 }
 
-function testProjectMirrorsIncludeCrossDateSubtasks() {
+function testProjectMirrorsSkipCompletedCrossDateSubtasks() {
   const projectState = {
     projects: [
       {
@@ -340,7 +340,134 @@ function testProjectMirrorsIncludeCrossDateSubtasks() {
   const texts = mirrors.map((entry) => entry.task.text);
 
   assert.ok(texts.includes('Projeto raiz'));
-  assert.ok(texts.includes('Sub concluida'));
+  assert.ok(!texts.includes('Sub concluida'));
+}
+
+function testProjectMirrorsCarryForwardPendingSubtasks() {
+  const projectState = {
+    projects: [
+      {
+        id: 'proj_1',
+        name: 'Projeto X',
+        clientName: 'Cliente X',
+        status: 'active',
+        startDate: '2026-03-29',
+        completionDate: '',
+        deadline: '',
+        collapseSubtasks: true,
+        createdAt: '2026-03-29T10:00:00.000Z',
+        updatedAt: '2026-03-29T10:00:00.000Z'
+      }
+    ]
+  };
+
+  const ctx = createBrowserLikeContext({
+    allTasksData: {
+      '2026-03-29': {
+        Tarefas: [
+          {
+            text: 'Projeto raiz',
+            supabaseId: 'proj-root-1',
+            projectId: 'proj_1',
+            projectName: 'Projeto X',
+            parent_id: null,
+            position: 0,
+            completed: false
+          }
+        ]
+      },
+      '2026-03-31': {
+        Tarefas: [
+          {
+            text: 'Sub pendente',
+            supabaseId: 'child-1',
+            projectId: 'proj_1',
+            projectName: 'Projeto X',
+            parent_id: 'proj-root-1',
+            position: 0,
+            completed: false
+          }
+        ]
+      }
+    }
+  });
+
+  ctx.localStorage.setItem('flowlyProjectsState', JSON.stringify(projectState));
+
+  loadBrowserScript('js/tasks/flowly-tasks-core.js', ctx);
+  loadBrowserScript('js/core/projects-runtime.js', ctx);
+
+  const mirrors = ctx.window.getProjectMirrorEntriesForDate('2026-04-01', 'Hoje');
+  const texts = mirrors.map((entry) => entry.task.text);
+
+  assert.ok(texts.includes('Projeto raiz'));
+  assert.ok(texts.includes('Sub pendente'));
+}
+
+function testProjectMirrorCollapseIsScopedPerDay() {
+  const ctx = createBrowserLikeContext({
+    collapsedTaskGroups: {
+      '2026-04-01:proj-root-1': true
+    }
+  });
+
+  loadBrowserScript('js/tasks/flowly-tasks-core.js', ctx);
+
+  const flattened = ctx.unifiedTaskSort([
+    {
+      task: {
+        text: 'Projeto raiz',
+        supabaseId: 'proj-root-1',
+        isProjectMirror: true,
+        mirrorSourceTaskId: 'proj-root-1',
+        renderChildrenCount: 1
+      },
+      dateStr: '2026-04-01',
+      period: 'Projetos',
+      originalIndex: 0
+    },
+    {
+      task: {
+        text: 'Sub 1',
+        supabaseId: 'child-1',
+        parent_id: 'proj-root-1',
+        isProjectMirror: true,
+        mirrorSourceTaskId: 'child-1'
+      },
+      dateStr: '2026-04-01',
+      period: 'Projetos',
+      originalIndex: 1
+    },
+    {
+      task: {
+        text: 'Projeto raiz',
+        supabaseId: 'proj-root-1',
+        isProjectMirror: true,
+        mirrorSourceTaskId: 'proj-root-1',
+        renderChildrenCount: 1
+      },
+      dateStr: '2026-04-02',
+      period: 'Projetos',
+      originalIndex: 2
+    },
+    {
+      task: {
+        text: 'Sub 1',
+        supabaseId: 'child-1',
+        parent_id: 'proj-root-1',
+        isProjectMirror: true,
+        mirrorSourceTaskId: 'child-1'
+      },
+      dateStr: '2026-04-02',
+      period: 'Projetos',
+      originalIndex: 3
+    }
+  ]);
+
+  assert.equal(
+    JSON.stringify(flattened.map((entry) => `${entry.dateStr}:${entry.task.text}`)),
+    JSON.stringify(['2026-04-01:Projeto raiz', '2026-04-02:Projeto raiz', '2026-04-02:Sub 1'])
+  );
 }
 
 async function main() {
@@ -350,7 +477,9 @@ async function main() {
   await testTasksSyncSkipsCompletedAtAfterSchemaDetection();
   await testCreateSubtaskForTask();
   await testMoveTaskUnderParent();
-  testProjectMirrorsIncludeCrossDateSubtasks();
+  testProjectMirrorsSkipCompletedCrossDateSubtasks();
+  testProjectMirrorsCarryForwardPendingSubtasks();
+  testProjectMirrorCollapseIsScopedPerDay();
   console.log('tests: ok');
 }
 

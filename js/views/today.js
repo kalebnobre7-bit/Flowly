@@ -155,59 +155,29 @@ function renderToday() {
 
   if (!focusOnlyMode) {
     const dashboard = document.createElement('section');
-    dashboard.className = 'today-dashboard-grid';
+    dashboard.className = 'today-dashboard-section';
     dashboard.innerHTML = `
-      <article class="today-overview-card today-overview-card--hero">
-        <div class="today-card-label">Painel de hoje</div>
-        <h2 class="flowly-page-title">${escapeTodayText(today)}</h2>
-        <div class="today-overview-date">${escapeTodayText(dateLabel)}</div>
-        <div class="today-overview-pills">
-          <span class="flowly-soft-pill flowly-soft-pill--accent">Modo ${escapeTodayText(
-            focusModeLabel
-          )}</span>
-          <span class="flowly-soft-pill">${
-            dailyTarget > 0 ? `Meta ${dailyTarget} concluídas` : 'Dia leve'
-          }</span>
+      <div class="today-dashboard-strip">
+        <div class="today-strip-col">
+          <span class="today-strip-label">Hoje</span>
+          <span class="today-strip-value">${escapeTodayText(today)}</span>
         </div>
-      </article>
-
-      <article class="today-overview-card">
-        <div class="today-card-label">Planejadas</div>
-        <strong>${totalTasksPreview}</strong>
-        <p>tarefas mapeadas pro dia</p>
-      </article>
-
-      <article class="today-overview-card">
-        <div class="today-card-label">Pendentes</div>
-        <strong>${pendingEntries.length}</strong>
-        <p>${routinePending} de rotina ainda abertas</p>
-      </article>
-
-      <article class="today-overview-card today-overview-card--wide">
-        <div class="today-card-label">Próxima ação</div>
-        <strong>${escapeTodayText(focusLabel)}</strong>
-        <p>${escapeTodayText(
-          nextTask
-            ? 'Fecha essa antes de abrir outra frente.'
-            : 'Sem trava urgente. Usa o espaço para escolher a próxima frente com intenção.'
-        )}</p>
-      </article>
-
-      <article class="today-overview-card">
-        <div class="today-card-label">Progresso</div>
-        <strong>${completedCount}/${actionableEntries.length || 0}</strong>
-        <p>${progressPct}% concluído</p>
-      </article>
-
-      <article class="today-overview-card">
-        <div class="today-card-label">Prioridade</div>
-        <strong>${moneyEntries.length > 0 ? 'Dinheiro' : focusModeLabel}</strong>
-        <p>${
-          moneyEntries.length > 0
-            ? `${moneyEntries.length} tarefa(s) com impacto financeiro`
-            : heroInsight
-        }</p>
-      </article>
+        <div class="today-strip-divider"></div>
+        <div class="today-strip-col">
+          <span class="today-strip-label">Progresso</span>
+          <span class="today-strip-value">${completedCount}/${actionableEntries.length || 0}</span>
+        </div>
+        <div class="today-strip-divider"></div>
+        <div class="today-strip-col">
+          <span class="today-strip-label">Foco</span>
+          <span class="today-strip-value">${moneyEntries.length > 0 ? 'Foco Dinheiro' : focusModeLabel}</span>
+        </div>
+        <div class="today-strip-divider"></div>
+        <div class="today-strip-col">
+          <span class="today-strip-label">Próxima Ação</span>
+          <span class="today-strip-value" title="${escapeTodayText(focusLabel)}">${escapeTodayText(focusLabel)}</span>
+        </div>
+      </div>
     `;
     grid.appendChild(dashboard);
   }
@@ -274,7 +244,7 @@ function renderToday() {
     insights.className = 'today-insights-grid';
     insights.innerHTML = `
       <article class="today-insight-card">
-        <div class="today-card-label">Resumo</div>
+        <div class="today-card-label">Visão Geral</div>
         <div class="today-insight-list">
           <div><span>Pendentes</span><strong>${pendingEntries.length}</strong></div>
           <div><span>Rotina</span><strong>${routineCompleted}/${routineTotal}</strong></div>

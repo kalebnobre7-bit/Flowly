@@ -144,7 +144,9 @@ function createTaskElement(day, dateStr, period, task, index) {
       ? getTaskChildrenCount(dateStr, period, task)
       : 0;
   const hasChildren = childrenCount > 0;
-  const isCollapsed = hasChildren ? isTaskGroupCollapsed(task) : false;
+  // Para mirrors de projeto, usar chave composta dateStr:taskId para isolar collapse por dia
+  const mirrorCollapseKey = isProjectMirror ? (dateStr + ':' + getTaskTreeId(task)) : null;
+  const isCollapsed = hasChildren ? isTaskGroupCollapsed(task, mirrorCollapseKey) : false;
 
   let collapseBtn = null;
   if (hasChildren) {
@@ -156,7 +158,7 @@ function createTaskElement(day, dateStr, period, task, index) {
       e.preventDefault();
       e.stopPropagation();
       if (isProjectMirror) {
-        window.toggleTaskTreeCollapse(task);
+        window.toggleTaskTreeCollapse(task, mirrorCollapseKey);
         return;
       }
       window.toggleTaskChildrenCollapse(dateStr, period, normalizedIndex);
@@ -956,18 +958,27 @@ function showEditToolbar(e, task, label) {
     if (task.isHabit) {
       const alreadyInRecurring = allRecurringTasks.some((t) => t.text === task.text);
       if (!alreadyInRecurring) {
-        allRecurringTasks.push({
+        const recurringTask = {
           text: task.text,
           daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
           priority: task.priority || 'none',
           color: task.color || 'default',
           isHabit: true,
-          createdAt: new Date().toISOString()
-        });
+          createdAt: new Date().toISOString(),
+          _syncPending: true,
+          order: allRecurringTasks.length
+        };
+        if (typeof ensureRecurringTaskIdentity === 'function') {
+          ensureRecurringTaskIdentity(recurringTask);
+        }
+        allRecurringTasks.push(recurringTask);
       }
       window.FlowlyDialogs.notify(`"${task.text}" marcado como habito e adicionado a Rotina!`, 'success');
     } else {
-      const recurringIdx2 = allRecurringTasks.findIndex((t) => t.text === task.text);
+      const recurringIdx2 =
+        typeof findRecurringTaskIndex === 'function'
+          ? findRecurringTaskIndex(allRecurringTasks, task)
+          : allRecurringTasks.findIndex((t) => t.text === task.text);
       if (recurringIdx2 !== -1) allRecurringTasks.splice(recurringIdx2, 1);
       window.FlowlyDialogs.notify(`"${task.text}" removido dos habitos e da Rotina.`, 'success');
     }
@@ -1065,15 +1076,21 @@ document.querySelectorAll('.quick-add-option').forEach((option) => {
         inputPlaceholder: 'Ex: Oracao e Salmo'
       });
       if (text && text.trim()) {
-        allRecurringTasks.push({
+        const recurringTask = {
           text: text.trim(),
           daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
           priority: null,
           color: 'default',
           type: 'OPERATIONAL',
           isHabit: true,
-          createdAt: new Date().toISOString()
-        });
+          createdAt: new Date().toISOString(),
+          _syncPending: true,
+          order: allRecurringTasks.length
+        };
+        if (typeof ensureRecurringTaskIdentity === 'function') {
+          ensureRecurringTaskIdentity(recurringTask);
+        }
+        allRecurringTasks.push(recurringTask);
         saveToLocalStorage();
         syncRecurringTasksToSupabase();
         renderView();

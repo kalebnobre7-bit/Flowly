@@ -25,14 +25,21 @@
     const exists = allRecurringTasks.find((task) => task.text === text);
     if (exists) return;
 
-    allRecurringTasks.push({
+    const nextTask = {
       text,
       daysOfWeek,
       priority: 'none',
       color: 'default',
       isHabit: false,
-      createdAt: new Date().toISOString()
-    });
+      createdAt: new Date().toISOString(),
+      _syncPending: true,
+      order: allRecurringTasks.length
+    };
+    if (typeof ensureRecurringTaskIdentity === 'function') {
+      ensureRecurringTaskIdentity(nextTask);
+    }
+
+    allRecurringTasks.push(nextTask);
     saveToLocalStorage();
     syncRecurringTasksToSupabase();
     renderView();
@@ -46,7 +53,10 @@
       tone: 'danger'
     }).then((confirmed) => {
       if (!confirmed) return;
-      const idx = allRecurringTasks.findIndex((task) => task.text === text);
+      const idx =
+        typeof findRecurringTaskIndex === 'function'
+          ? findRecurringTaskIndex(allRecurringTasks, text)
+          : allRecurringTasks.findIndex((task) => task.text === text);
       if (idx < 0) return;
 
       allRecurringTasks.splice(idx, 1);
