@@ -233,6 +233,7 @@ Deno.serve(async (req) => {
         supabaseAdmin,
         userId: linkedConnection.user_id,
         prompt: text,
+        channel: 'telegram',
         history: normalizeTelegramHistory(text),
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         model: 'manifest/auto',

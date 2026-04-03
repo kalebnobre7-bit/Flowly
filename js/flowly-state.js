@@ -19,6 +19,9 @@ var sextaState = safeJSONParse(localStorage.getItem('flowly_sexta_state'), {
   suggestions: [],
   chatHistory: [],
   memories: [],
+  goals: [],
+  episodeSummaries: [],
+  capabilityBacklog: [],
   activeTab: 'chat',
   profile: {
     memoryNotes: '',

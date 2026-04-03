@@ -111,12 +111,67 @@ function applySextaAgentStateToLocal(state) {
       })
       .filter((item) => item && item.text)
       .slice(-24);
-    persistSextaState();
   }
+
+  sextaState.goals = Array.isArray(state.goals)
+    ? state.goals
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null;
+          return {
+            id: String(item.id || ''),
+            title: String(item.title || '').trim(),
+            scope: String(item.scope || 'operational').trim(),
+            status: String(item.status || 'active').trim(),
+            why: String(item.why || '').trim(),
+            source: String(item.source || 'reflection').trim(),
+            createdAt: String(item.createdAt || '').trim(),
+            updatedAt: String(item.updatedAt || '').trim()
+          };
+        })
+        .filter((item) => item && item.title)
+        .slice(0, 16)
+    : [];
+
+  sextaState.episodeSummaries = Array.isArray(state.episodes)
+    ? state.episodes
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null;
+          return {
+            id: String(item.id || ''),
+            channel: String(item.channel || 'app').trim(),
+            summary: String(item.summary || item.userMessage || '').trim(),
+            createdAt: String(item.createdAt || '').trim()
+          };
+        })
+        .filter((item) => item && item.summary)
+        .slice(0, 12)
+    : [];
+
+  sextaState.capabilityBacklog = Array.isArray(state.capabilities)
+    ? state.capabilities
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null;
+          return {
+            id: String(item.id || ''),
+            title: String(item.title || '').trim(),
+            description: String(item.description || '').trim(),
+            status: String(item.status || 'proposed').trim(),
+            source: String(item.source || 'reflection').trim(),
+            updatedAt: String(item.updatedAt || '').trim()
+          };
+        })
+        .filter((item) => item && item.title)
+        .slice(0, 16)
+    : [];
+
+  persistSextaState();
 
   return {
     profile: getSextaProfile(),
-    memories: getSextaMemories()
+    memories: getSextaMemories(),
+    goals: Array.isArray(sextaState.goals) ? sextaState.goals : [],
+    episodes: Array.isArray(sextaState.episodeSummaries) ? sextaState.episodeSummaries : [],
+    capabilities: Array.isArray(sextaState.capabilityBacklog) ? sextaState.capabilityBacklog : []
   };
 }
 

@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
       supabaseAdmin,
       userId: user.id,
       prompt,
+      channel: 'app',
       history: normalizeHistory(body?.history),
       systemPrompt: String(body?.systemPrompt || '').trim(),
       model: String(body?.model || '').trim() || 'manifest/auto',
@@ -133,6 +134,7 @@ Deno.serve(async (req) => {
       provider: 'manifest',
       model: String(body?.model || '').trim() || 'manifest/auto',
       state: agentResult.state,
+      reflection: agentResult.reflection || null,
       toolResults: agentResult.toolResults
     });
   } catch (error) {

@@ -48,6 +48,13 @@ renderSextaView = function () {
   const notes = Array.isArray(sextaState.notes) ? sextaState.notes.slice().reverse().slice(0, 4) : [];
   const latestIaNote = notes.find((note) => note.action === 'ia');
   const memories = getSextaMemories().slice().reverse();
+  const activeGoals = Array.isArray(sextaState.goals) ? sextaState.goals.slice(0, 4) : [];
+  const recentEpisodes = Array.isArray(sextaState.episodeSummaries)
+    ? sextaState.episodeSummaries.slice(0, 4)
+    : [];
+  const capabilityBacklog = Array.isArray(sextaState.capabilityBacklog)
+    ? sextaState.capabilityBacklog.slice(0, 4)
+    : [];
   const profile = getSextaProfile();
   const profileSummary = getSextaProfileSummary(profile);
   const history =
@@ -180,6 +187,19 @@ renderSextaView = function () {
               : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma acao registrada ainda.</span></div>'}
           </div>
         </div>
+
+        <div class="sexta-panel-block sexta-panel-block--soft">
+          <div class="sexta-panel-label">Objetivos ativos</div>
+          <div class="sexta-log-list">
+            ${activeGoals.length > 0
+              ? activeGoals
+                  .map(
+                    (goal) => `<div class="sexta-log-item"><strong>${escapeProjectHtml(goal.title)}</strong><span>${escapeProjectHtml(goal.why || goal.status || 'ativo')}</span></div>`
+                  )
+                  .join('')
+              : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhum objetivo ativo registrado ainda.</span></div>'}
+          </div>
+        </div>
       </section>
     `;
   } else if (activeTab === 'memory') {
@@ -255,6 +275,32 @@ renderSextaView = function () {
                   .join('')
               : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma memoria salva ainda.</span></div>'
           }
+        </div>
+
+        <div class="sexta-panel-block sexta-panel-block--soft">
+          <div class="sexta-panel-label">Memoria episodica</div>
+          <div class="sexta-log-list">
+            ${recentEpisodes.length > 0
+              ? recentEpisodes
+                  .map(
+                    (episode) => `<div class="sexta-log-item"><strong>${escapeProjectHtml(episode.channel || 'app')}</strong><span>${escapeProjectHtml(episode.summary || '')}</span></div>`
+                  )
+                  .join('')
+              : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhum episodio resumido ainda.</span></div>'}
+          </div>
+        </div>
+
+        <div class="sexta-panel-block sexta-panel-block--soft">
+          <div class="sexta-panel-label">Capacidades em evolucao</div>
+          <div class="sexta-log-list">
+            ${capabilityBacklog.length > 0
+              ? capabilityBacklog
+                  .map(
+                    (item) => `<div class="sexta-log-item"><strong>${escapeProjectHtml(item.title)}</strong><span>${escapeProjectHtml(item.description || item.status || 'proposto')}</span></div>`
+                  )
+                  .join('')
+              : '<div class="sexta-log-item"><strong>vazio</strong><span>Nenhuma melhoria sugerida ainda.</span></div>'}
+          </div>
         </div>
       </section>
     `;

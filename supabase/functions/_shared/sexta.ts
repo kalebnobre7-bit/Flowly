@@ -61,6 +61,43 @@ type SextaMemoryRow = {
   created_at: string | null;
 };
 
+type SextaEpisodeRow = {
+  id: string;
+  user_id: string;
+  channel: string | null;
+  user_message: string | null;
+  assistant_reply: string | null;
+  summary: string | null;
+  decision_log: string | null;
+  tool_results: unknown;
+  memories_applied: unknown;
+  created_at: string | null;
+};
+
+type SextaGoalRow = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  scope: string | null;
+  status: string | null;
+  why: string | null;
+  source: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  last_reviewed_at: string | null;
+};
+
+type SextaCapabilityRow = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  description: string | null;
+  status: string | null;
+  source: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
 export type SextaProfile = {
   memoryNotes?: string;
   operatorRules?: string;
@@ -73,6 +110,40 @@ export type SextaMemory = {
   text: string;
   source?: string;
   createdAt?: string;
+};
+
+export type SextaGoal = {
+  id?: string;
+  title: string;
+  scope?: string;
+  status?: string;
+  why?: string;
+  source?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  lastReviewedAt?: string;
+};
+
+export type SextaEpisode = {
+  id?: string;
+  channel?: string;
+  userMessage?: string;
+  assistantReply?: string;
+  summary?: string;
+  decisionLog?: string;
+  toolResults?: unknown[];
+  memoriesApplied?: string[];
+  createdAt?: string;
+};
+
+export type SextaCapability = {
+  id?: string;
+  title: string;
+  description?: string;
+  status?: string;
+  source?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type ChatMessage = {
@@ -89,6 +160,7 @@ type AgentRunInput = {
   supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>;
   userId: string;
   prompt: string;
+  channel?: string;
   history?: ChatMessage[];
   systemPrompt?: string;
   model?: string;
@@ -111,8 +183,13 @@ const DEFAULT_SYSTEM_PROMPT =
 
 const TOOL_DEFINITIONS = [
   { name: 'get_today_overview', description: 'Le detalhes do dia atual.', input: { focus: 'tasks|projects|finance|all' } },
+  { name: 'get_workspace_state', description: 'Retorna um snapshot integrado do workspace atual.', input: { detail: 'compact|full' } },
+  { name: 'search_workspace', description: 'Busca texto em tarefas, projetos, memorias, episodios e backlog.', input: { query: 'texto', scope: 'all|tasks|projects|memory|episodes|capabilities' } },
   { name: 'list_tasks', description: 'Lista tarefas com filtros.', input: { scope: 'today|week|all', query: 'texto', project: 'nome ou id', completed: true } },
   { name: 'list_projects', description: 'Lista projetos ativos, atrasados, nao pagos ou todos.', input: { scope: 'active|late|unpaid|all', query: 'texto' } },
+  { name: 'list_goals', description: 'Lista objetivos ativos, pausados ou concluidos da Sexta.', input: { status: 'active|paused|done|all' } },
+  { name: 'list_episodes', description: 'Lista resumos das ultimas conversas e decisoes.', input: { limit: 6 } },
+  { name: 'list_capabilities', description: 'Lista backlog de capacidades e melhorias sugeridas.', input: { status: 'proposed|approved|done|all' } },
   { name: 'get_finance_summary', description: 'Resume entradas, saidas, saldo e fontes do mes.', input: { window: 'month' } },
   { name: 'list_memory', description: 'Mostra memorias persistidas.', input: {} },
   { name: 'save_memory', description: 'Salva memoria persistida.', input: { text: 'conteudo', source: 'manual|chat|sync|telegram' } },
@@ -121,7 +198,9 @@ const TOOL_DEFINITIONS = [
   { name: 'create_project', description: 'Cria um projeto no Flowly.', input: { name: 'nome', client: 'cliente opcional', deadline: 'YYYY-MM-DD opcional', expectedValue: 0 } },
   { name: 'add_finance_transaction', description: 'Registra entrada ou saida financeira.', input: { type: 'income|expense', amount: 0, description: 'descricao', category: 'categoria', date: 'YYYY-MM-DD opcional', project: 'nome ou id opcional' } },
   { name: 'complete_task', description: 'Conclui uma tarefa por busca textual.', input: { query: 'texto', scope: 'today|week|all' } },
-  { name: 'move_task', description: 'Move uma tarefa para outra data ou coluna.', input: { query: 'texto', day: 'YYYY-MM-DD', period: 'Tarefas|Manha|Tarde|Noite', scope: 'today|week|all' } }
+  { name: 'move_task', description: 'Move uma tarefa para outra data ou coluna.', input: { query: 'texto', day: 'YYYY-MM-DD', period: 'Tarefas|Manha|Tarde|Noite', scope: 'today|week|all' } },
+  { name: 'update_goal_status', description: 'Atualiza status de um objetivo existente.', input: { title: 'titulo', status: 'active|paused|done', why: 'motivo opcional' } },
+  { name: 'save_capability_note', description: 'Salva uma proposta de melhoria ou funcionalidade da Sexta.', input: { title: 'titulo', description: 'descricao', status: 'proposed|approved|done' } }
 ];
 
 export function jsonResponse(payload: Record<string, unknown>, status = 200) {
@@ -217,6 +296,48 @@ function serializeMemoryRow(row: SextaMemoryRow): SextaMemory {
     text: safeString(row.content),
     source: safeString(row.source) || 'manual',
     createdAt: safeString(row.created_at) || new Date().toISOString()
+  };
+}
+
+function serializeGoalRow(row: SextaGoalRow): SextaGoal {
+  return {
+    id: row.id,
+    title: safeString(row.title),
+    scope: safeString(row.scope) || 'operational',
+    status: safeString(row.status) || 'active',
+    why: safeString(row.why),
+    source: safeString(row.source) || 'reflection',
+    createdAt: safeString(row.created_at) || new Date().toISOString(),
+    updatedAt: safeString(row.updated_at) || safeString(row.created_at) || new Date().toISOString(),
+    lastReviewedAt: safeString(row.last_reviewed_at) || ''
+  };
+}
+
+function serializeEpisodeRow(row: SextaEpisodeRow): SextaEpisode {
+  return {
+    id: row.id,
+    channel: safeString(row.channel) || 'app',
+    userMessage: safeString(row.user_message),
+    assistantReply: safeString(row.assistant_reply),
+    summary: safeString(row.summary),
+    decisionLog: safeString(row.decision_log),
+    toolResults: Array.isArray(row.tool_results) ? row.tool_results : [],
+    memoriesApplied: Array.isArray(row.memories_applied)
+      ? row.memories_applied.map((item) => safeString(item)).filter(Boolean)
+      : [],
+    createdAt: safeString(row.created_at) || new Date().toISOString()
+  };
+}
+
+function serializeCapabilityRow(row: SextaCapabilityRow): SextaCapability {
+  return {
+    id: row.id,
+    title: safeString(row.title),
+    description: safeString(row.description),
+    status: safeString(row.status) || 'proposed',
+    source: safeString(row.source) || 'reflection',
+    createdAt: safeString(row.created_at) || new Date().toISOString(),
+    updatedAt: safeString(row.updated_at) || safeString(row.created_at) || new Date().toISOString()
   };
 }
 
@@ -334,7 +455,7 @@ export async function loadSextaAgentState(
   supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
   userId: string
 ) {
-  const [profileResult, memoriesResult] = await Promise.all([
+  const [profileResult, memoriesResult, goalsResult, episodesResult, capabilitiesResult] = await Promise.all([
     supabaseAdmin
       .from('sexta_profiles')
       .select('user_id, memory_notes, operator_rules, command_style, autonomy_mode')
@@ -345,7 +466,25 @@ export async function loadSextaAgentState(
       .select('id, user_id, content, source, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: true })
-      .limit(24)
+      .limit(24),
+    supabaseAdmin
+      .from('sexta_goals')
+      .select('id, user_id, title, scope, status, why, source, created_at, updated_at, last_reviewed_at')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(16),
+    supabaseAdmin
+      .from('sexta_episodes')
+      .select('id, user_id, channel, user_message, assistant_reply, summary, decision_log, tool_results, memories_applied, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(12),
+    supabaseAdmin
+      .from('sexta_capability_backlog')
+      .select('id, user_id, title, description, status, source, created_at, updated_at')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(16)
   ]);
 
   if (profileResult.error && !isTableMissingError(profileResult.error)) {
@@ -354,12 +493,28 @@ export async function loadSextaAgentState(
   if (memoriesResult.error && !isTableMissingError(memoriesResult.error)) {
     throw new Error(`Sexta memories query failed: ${memoriesResult.error.message}`);
   }
+  if (goalsResult.error && !isTableMissingError(goalsResult.error)) {
+    throw new Error(`Sexta goals query failed: ${goalsResult.error.message}`);
+  }
+  if (episodesResult.error && !isTableMissingError(episodesResult.error)) {
+    throw new Error(`Sexta episodes query failed: ${episodesResult.error.message}`);
+  }
+  if (capabilitiesResult.error && !isTableMissingError(capabilitiesResult.error)) {
+    throw new Error(`Sexta capabilities query failed: ${capabilitiesResult.error.message}`);
+  }
 
   return {
     profile: serializeProfileRow((profileResult.data || null) as SextaProfileRow | null),
     memories: ((memoriesResult.data || []) as SextaMemoryRow[])
       .map(serializeMemoryRow)
-      .filter((item) => item.text)
+      .filter((item) => item.text),
+    goals: ((goalsResult.data || []) as SextaGoalRow[]).map(serializeGoalRow).filter((item) => item.title),
+    episodes: ((episodesResult.data || []) as SextaEpisodeRow[])
+      .map(serializeEpisodeRow)
+      .filter((item) => item.summary || item.userMessage || item.assistantReply),
+    capabilities: ((capabilitiesResult.data || []) as SextaCapabilityRow[])
+      .map(serializeCapabilityRow)
+      .filter((item) => item.title)
   };
 }
 
@@ -463,6 +618,145 @@ export async function clearSextaMemories(
   }
 }
 
+export async function upsertSextaGoal(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+  goal: SextaGoal
+) {
+  const title = safeString(goal.title);
+  if (!title) return null;
+  const existingResult = await supabaseAdmin
+    .from('sexta_goals')
+    .select('id, user_id, title, scope, status, why, source, created_at, updated_at, last_reviewed_at')
+    .eq('user_id', userId)
+    .ilike('title', title)
+    .maybeSingle();
+  if (existingResult.error && !isTableMissingError(existingResult.error)) {
+    throw new Error(`Sexta goal lookup failed: ${existingResult.error.message}`);
+  }
+
+  if (existingResult.data) {
+    const current = serializeGoalRow(existingResult.data as SextaGoalRow);
+    const updateResult = await supabaseAdmin
+      .from('sexta_goals')
+      .update({
+        scope: safeString(goal.scope) || current.scope || 'operational',
+        status: safeString(goal.status) || current.status || 'active',
+        why: safeString(goal.why) || current.why || '',
+        source: safeString(goal.source) || current.source || 'reflection',
+        updated_at: new Date().toISOString(),
+        last_reviewed_at: new Date().toISOString()
+      })
+      .eq('id', current.id);
+    if (updateResult.error && !isTableMissingError(updateResult.error)) {
+      throw new Error(`Sexta goal update failed: ${updateResult.error.message}`);
+    }
+    return { ...current, ...goal, title };
+  }
+
+  const insertResult = await supabaseAdmin
+    .from('sexta_goals')
+    .insert([
+      {
+        user_id: userId,
+        title,
+        scope: safeString(goal.scope) || 'operational',
+        status: safeString(goal.status) || 'active',
+        why: safeString(goal.why) || '',
+        source: safeString(goal.source) || 'reflection',
+        updated_at: new Date().toISOString(),
+        last_reviewed_at: new Date().toISOString()
+      }
+    ])
+    .select('id, user_id, title, scope, status, why, source, created_at, updated_at, last_reviewed_at')
+    .single();
+  if (insertResult.error && !isTableMissingError(insertResult.error)) {
+    throw new Error(`Sexta goal write failed: ${insertResult.error.message}`);
+  }
+  return insertResult.data ? serializeGoalRow(insertResult.data as SextaGoalRow) : null;
+}
+
+export async function saveSextaCapability(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+  capability: SextaCapability
+) {
+  const title = safeString(capability.title);
+  if (!title) return null;
+  const existingResult = await supabaseAdmin
+    .from('sexta_capability_backlog')
+    .select('id, user_id, title, description, status, source, created_at, updated_at')
+    .eq('user_id', userId)
+    .ilike('title', title)
+    .maybeSingle();
+  if (existingResult.error && !isTableMissingError(existingResult.error)) {
+    throw new Error(`Sexta capability lookup failed: ${existingResult.error.message}`);
+  }
+
+  if (existingResult.data) {
+    const current = serializeCapabilityRow(existingResult.data as SextaCapabilityRow);
+    const updateResult = await supabaseAdmin
+      .from('sexta_capability_backlog')
+      .update({
+        description: safeString(capability.description) || current.description || '',
+        status: safeString(capability.status) || current.status || 'proposed',
+        source: safeString(capability.source) || current.source || 'reflection',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', current.id);
+    if (updateResult.error && !isTableMissingError(updateResult.error)) {
+      throw new Error(`Sexta capability update failed: ${updateResult.error.message}`);
+    }
+    return { ...current, ...capability, title };
+  }
+
+  const insertResult = await supabaseAdmin
+    .from('sexta_capability_backlog')
+    .insert([
+      {
+        user_id: userId,
+        title,
+        description: safeString(capability.description) || '',
+        status: safeString(capability.status) || 'proposed',
+        source: safeString(capability.source) || 'reflection',
+        updated_at: new Date().toISOString()
+      }
+    ])
+    .select('id, user_id, title, description, status, source, created_at, updated_at')
+    .single();
+  if (insertResult.error && !isTableMissingError(insertResult.error)) {
+    throw new Error(`Sexta capability write failed: ${insertResult.error.message}`);
+  }
+  return insertResult.data ? serializeCapabilityRow(insertResult.data as SextaCapabilityRow) : null;
+}
+
+export async function saveSextaEpisode(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+  episode: SextaEpisode
+) {
+  const insertResult = await supabaseAdmin
+    .from('sexta_episodes')
+    .insert([
+      {
+        user_id: userId,
+        channel: safeString(episode.channel) || 'app',
+        user_message: safeString(episode.userMessage),
+        assistant_reply: safeString(episode.assistantReply),
+        summary: safeString(episode.summary),
+        decision_log: safeString(episode.decisionLog),
+        tool_results: Array.isArray(episode.toolResults) ? episode.toolResults : [],
+        memories_applied: Array.isArray(episode.memoriesApplied) ? episode.memoriesApplied : []
+      }
+    ])
+    .select('id, user_id, channel, user_message, assistant_reply, summary, decision_log, tool_results, memories_applied, created_at')
+    .single();
+  if (insertResult.error && !isTableMissingError(insertResult.error)) {
+    throw new Error(`Sexta episode write failed: ${insertResult.error.message}`);
+  }
+  return insertResult.data ? serializeEpisodeRow(insertResult.data as SextaEpisodeRow) : null;
+}
+
 async function syncClientStateToServer(
   supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
   userId: string,
@@ -497,6 +791,13 @@ export async function buildSextaContextSummary(
   profile: SextaProfile | null = null,
   memories: Array<SextaMemory | string> = []
 ) {
+  const agentStatePromise = loadSextaAgentState(supabaseAdmin, userId).catch(() => ({
+    profile: normalizeSextaProfile(profile || {}),
+    memories: mergeSextaMemories([], memories),
+    goals: [],
+    episodes: [],
+    capabilities: []
+  }));
   const timezone = await getUserTimezone(supabaseAdmin, userId);
   const todayDate = getNowInTimezone(timezone).dateKey;
   const weekEndDate = addDaysToDateKey(todayDate, 7);
@@ -617,6 +918,24 @@ export async function buildSextaContextSummary(
     project: safeString(task.project_name) || null,
     period: safeString(task.period) || 'Tarefas'
   }));
+  const agentState = await agentStatePromise;
+  const activeGoals = Array.isArray(agentState.goals)
+    ? agentState.goals.filter((goal) => safeLower(goal.status) !== 'done').slice(0, 8)
+    : [];
+  const recentEpisodes = Array.isArray(agentState.episodes)
+    ? agentState.episodes.slice(0, 6).map((episode) => ({
+        channel: safeString(episode.channel) || 'app',
+        summary: safeString(episode.summary) || safeString(episode.userMessage),
+        createdAt: safeString(episode.createdAt)
+      }))
+    : [];
+  const capabilityBacklog = Array.isArray(agentState.capabilities)
+    ? agentState.capabilities.slice(0, 8).map((item) => ({
+        title: safeString(item.title),
+        status: safeString(item.status) || 'proposed',
+        description: safeString(item.description)
+      }))
+    : [];
 
   return {
     date: todayDate,
@@ -661,6 +980,14 @@ export async function buildSextaContextSummary(
         project: safeString(item.project_name) || null
       }))
     },
+    activeGoals: activeGoals.map((goal) => ({
+      title: safeString(goal.title),
+      scope: safeString(goal.scope) || 'operational',
+      status: safeString(goal.status) || 'active',
+      why: safeString(goal.why)
+    })),
+    recentEpisodes,
+    capabilityBacklog,
     memories: mergeSextaMemories([], memories).slice(-10).map((item) => item.text),
     profile: normalizeSextaProfile(profile || {})
   };
@@ -918,6 +1245,96 @@ async function executeSextaTool(input: {
     };
   }
 
+  if (tool === 'get_workspace_state') {
+    const detail = safeLower(toolInput.detail) || 'compact';
+    const state = await loadSextaAgentState(supabaseAdmin, userId);
+    return {
+      detail,
+      context: input.contextSummary,
+      memories: detail === 'full' ? state.memories.slice(-16) : state.memories.slice(-6),
+      goals: detail === 'full' ? state.goals.slice(0, 12) : state.goals.slice(0, 5),
+      episodes: detail === 'full' ? state.episodes.slice(0, 8) : state.episodes.slice(0, 4),
+      capabilities:
+        detail === 'full' ? state.capabilities.slice(0, 12) : state.capabilities.slice(0, 5)
+    };
+  }
+
+  if (tool === 'search_workspace') {
+    const query = normalizeTextMatch(toolInput.query);
+    const scope = safeLower(toolInput.scope) || 'all';
+    if (!query) return { count: 0, results: [] };
+    const state = await loadSextaAgentState(supabaseAdmin, userId);
+    const results: Array<Record<string, unknown>> = [];
+
+    if (scope === 'all' || scope === 'memory') {
+      state.memories.forEach((item) => {
+        if (normalizeTextMatch(item.text).includes(query)) {
+          results.push({ type: 'memory', text: item.text, source: item.source || 'manual' });
+        }
+      });
+    }
+    if (scope === 'all' || scope === 'episodes') {
+      state.episodes.forEach((item) => {
+        if (
+          normalizeTextMatch(item.summary).includes(query) ||
+          normalizeTextMatch(item.userMessage).includes(query) ||
+          normalizeTextMatch(item.assistantReply).includes(query)
+        ) {
+          results.push({
+            type: 'episode',
+            summary: item.summary || item.userMessage || '',
+            channel: item.channel || 'app'
+          });
+        }
+      });
+    }
+    if (scope === 'all' || scope === 'capabilities') {
+      state.capabilities.forEach((item) => {
+        if (
+          normalizeTextMatch(item.title).includes(query) ||
+          normalizeTextMatch(item.description).includes(query)
+        ) {
+          results.push({
+            type: 'capability',
+            title: item.title,
+            description: item.description || '',
+            status: item.status || 'proposed'
+          });
+        }
+      });
+    }
+    if (scope === 'all' || scope === 'projects') {
+      const projectResults = await executeSextaTool({
+        ...input,
+        tool: 'list_projects',
+        toolInput: { scope: 'all', query: toolInput.query }
+      });
+      if (Array.isArray((projectResults as { projects?: unknown[] }).projects)) {
+        (projectResults as { projects: Array<Record<string, unknown>> }).projects.forEach((item) =>
+          results.push({ type: 'project', ...item })
+        );
+      }
+    }
+    if (scope === 'all' || scope === 'tasks') {
+      const taskResults = await executeSextaTool({
+        ...input,
+        tool: 'list_tasks',
+        toolInput: { scope: 'all', query: toolInput.query }
+      });
+      if (Array.isArray((taskResults as { tasks?: unknown[] }).tasks)) {
+        (taskResults as { tasks: Array<Record<string, unknown>> }).tasks.forEach((item) =>
+          results.push({ type: 'task', ...item })
+        );
+      }
+    }
+
+    return {
+      scope,
+      count: results.length,
+      results: results.slice(0, 24)
+    };
+  }
+
   if (tool === 'list_tasks') {
     const scope = safeLower(toolInput.scope) || 'today';
     const query = safeString(toolInput.query);
@@ -997,6 +1414,41 @@ async function executeSextaTool(input: {
       scope,
       count: filtered.length,
       projects: filtered
+    };
+  }
+
+  if (tool === 'list_goals') {
+    const status = safeLower(toolInput.status) || 'active';
+    const state = await loadSextaAgentState(supabaseAdmin, userId);
+    const goals = (state.goals || [])
+      .filter((goal) => status === 'all' || safeLower(goal.status) === status)
+      .slice(0, 12);
+    return {
+      status,
+      count: goals.length,
+      goals
+    };
+  }
+
+  if (tool === 'list_episodes') {
+    const limit = Math.max(1, Math.min(12, Number(toolInput.limit || 6)));
+    const state = await loadSextaAgentState(supabaseAdmin, userId);
+    return {
+      count: Math.min(limit, state.episodes.length),
+      episodes: state.episodes.slice(0, limit)
+    };
+  }
+
+  if (tool === 'list_capabilities') {
+    const status = safeLower(toolInput.status) || 'proposed';
+    const state = await loadSextaAgentState(supabaseAdmin, userId);
+    const capabilities = (state.capabilities || [])
+      .filter((item) => status === 'all' || safeLower(item.status) === status)
+      .slice(0, 12);
+    return {
+      status,
+      count: capabilities.length,
+      capabilities
     };
   }
 
@@ -1133,6 +1585,32 @@ async function executeSextaTool(input: {
     };
   }
 
+  if (tool === 'update_goal_status') {
+    const updated = await upsertSextaGoal(supabaseAdmin, userId, {
+      title: safeString(toolInput.title),
+      status: safeString(toolInput.status) || 'active',
+      why: safeString(toolInput.why),
+      source: 'agent-tool'
+    });
+    return {
+      updated: Boolean(updated),
+      goal: updated
+    };
+  }
+
+  if (tool === 'save_capability_note') {
+    const capability = await saveSextaCapability(supabaseAdmin, userId, {
+      title: safeString(toolInput.title),
+      description: safeString(toolInput.description),
+      status: safeString(toolInput.status) || 'proposed',
+      source: 'agent-tool'
+    });
+    return {
+      saved: Boolean(capability),
+      capability
+    };
+  }
+
   if (tool === 'complete_task' || tool === 'move_task') {
     const query = safeString(toolInput.query);
     if (!query) throw new Error(`${tool} needs query.`);
@@ -1186,6 +1664,176 @@ async function executeSextaTool(input: {
   throw new Error(`Unknown Sexta tool: ${tool}`);
 }
 
+function mergeSparseProfilePatch(current: SextaProfile, patch: Partial<SextaProfile> | null = null) {
+  const normalizedPatch = normalizeSextaProfile(patch || {});
+  return {
+    memoryNotes: normalizedPatch.memoryNotes || current.memoryNotes || '',
+    operatorRules: normalizedPatch.operatorRules || current.operatorRules || '',
+    commandStyle: normalizedPatch.commandStyle || current.commandStyle || '',
+    autonomyMode: normalizedPatch.autonomyMode || current.autonomyMode || ''
+  };
+}
+
+function parseReflectionPayload(rawReply: string) {
+  const parsed = extractFirstJsonObject(rawReply);
+  if (!parsed || typeof parsed !== 'object') {
+    return {
+      summary: '',
+      decisionLog: '',
+      profilePatch: null,
+      memoryCandidates: [],
+      goals: [],
+      capabilities: []
+    };
+  }
+
+  const record = parsed as Record<string, unknown>;
+  return {
+    summary: safeString(record.summary),
+    decisionLog: safeString(record.decisionLog),
+    profilePatch:
+      record.profilePatch && typeof record.profilePatch === 'object'
+        ? normalizeSextaProfile(record.profilePatch)
+        : null,
+    memoryCandidates: Array.isArray(record.memoryCandidates)
+      ? record.memoryCandidates
+          .map((item) => {
+            const entry = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+            return {
+              text: safeString(entry.text),
+              source: safeString(entry.source) || 'reflection',
+              confidence: Number(entry.confidence || 0)
+            };
+          })
+          .filter((item) => item.text && item.confidence >= 0.72)
+          .slice(0, 4)
+      : [],
+    goals: Array.isArray(record.goals)
+      ? record.goals
+          .map((item) => {
+            const entry = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+            return {
+              title: safeString(entry.title),
+              scope: safeString(entry.scope) || 'operational',
+              status: safeString(entry.status) || 'active',
+              why: safeString(entry.why),
+              source: 'reflection'
+            };
+          })
+          .filter((item) => item.title)
+          .slice(0, 4)
+      : [],
+    capabilities: Array.isArray(record.capabilities)
+      ? record.capabilities
+          .map((item) => {
+            const entry = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+            return {
+              title: safeString(entry.title),
+              description: safeString(entry.description),
+              status: safeString(entry.status) || 'proposed',
+              source: 'reflection'
+            };
+          })
+          .filter((item) => item.title)
+          .slice(0, 4)
+      : []
+  };
+}
+
+async function runSextaReflection(input: {
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>;
+  userId: string;
+  channel?: string;
+  prompt: string;
+  reply: string;
+  toolResults: Array<{ tool: string; result: unknown }>;
+  profile: SextaProfile;
+  memories: SextaMemory[];
+  contextSummary: Record<string, unknown>;
+  model?: string;
+}) {
+  const reflectionMessages = [
+    {
+      role: 'system',
+      content: [
+        'Voce esta rodando uma reflexao interna da Sexta.',
+        'Seu objetivo e atualizar memoria, perfil, objetivos e backlog de capacidades com base na conversa.',
+        'Responda em JSON puro com este formato:',
+        '{"summary":"...","decisionLog":"...","profilePatch":{"memoryNotes":"","operatorRules":"","commandStyle":"","autonomyMode":""},"memoryCandidates":[{"text":"","confidence":0.0,"source":"reflection"}],"goals":[{"title":"","scope":"operational","status":"active","why":""}],"capabilities":[{"title":"","description":"","status":"proposed"}]}',
+        'So proponha profilePatch quando a conversa trouxer preferencia estavel ou regra recorrente.',
+        'So proponha memoryCandidates com confidence alta quando houver aprendizado util e persistente.',
+        'Use goals para registrar objetivos operacionais ainda ativos.',
+        'Use capabilities para registrar lacunas reais de ferramenta, contexto ou automacao.'
+      ].join('\n\n')
+    },
+    {
+      role: 'user',
+      content: [
+        `Canal: ${safeString(input.channel) || 'app'}`,
+        `Pedido do usuario: ${safeString(input.prompt)}`,
+        `Resposta da Sexta: ${safeString(input.reply)}`,
+        `Resultados de ferramentas: ${compactJson(input.toolResults, 4500)}`,
+        `Perfil atual: ${compactJson(input.profile, 2500)}`,
+        `Memorias atuais: ${compactJson(input.memories.slice(-12), 2500)}`,
+        `Contexto atual: ${compactJson(input.contextSummary, 5000)}`
+      ].join('\n\n')
+    }
+  ];
+
+  const reflectionReply = await requestManifestChat({
+    messages: reflectionMessages,
+    model: safeString(input.model) || 'manifest/auto',
+    temperature: 0.15,
+    maxTokens: 800
+  });
+  const reflection = parseReflectionPayload(reflectionReply.reply);
+
+  let nextProfile = input.profile;
+  if (reflection.profilePatch) {
+    nextProfile = mergeSparseProfilePatch(input.profile, reflection.profilePatch);
+    if (compactJson(nextProfile) !== compactJson(input.profile)) {
+      await saveSextaProfile(input.supabaseAdmin, input.userId, nextProfile);
+    }
+  }
+
+  const savedMemories: string[] = [];
+  for (const memory of reflection.memoryCandidates) {
+    const saved = await saveSextaMemory(
+      input.supabaseAdmin,
+      input.userId,
+      memory.text,
+      memory.source || 'reflection'
+    );
+    if (saved?.text) savedMemories.push(saved.text);
+  }
+
+  for (const goal of reflection.goals) {
+    await upsertSextaGoal(input.supabaseAdmin, input.userId, goal);
+  }
+
+  for (const capability of reflection.capabilities) {
+    await saveSextaCapability(input.supabaseAdmin, input.userId, capability);
+  }
+
+  await saveSextaEpisode(input.supabaseAdmin, input.userId, {
+    channel: safeString(input.channel) || 'app',
+    userMessage: input.prompt,
+    assistantReply: input.reply,
+    summary: reflection.summary || `Conversa sobre: ${safeString(input.prompt).slice(0, 140)}`,
+    decisionLog:
+      reflection.decisionLog ||
+      input.toolResults.map((item) => item.tool).filter(Boolean).join(', '),
+    toolResults: input.toolResults,
+    memoriesApplied: savedMemories
+  });
+
+  return {
+    profile: nextProfile,
+    savedMemories,
+    reflection
+  };
+}
+
 export async function runSextaAgentLoop(input: AgentRunInput) {
   const supabaseAdmin = input.supabaseAdmin;
   const userId = input.userId;
@@ -1235,9 +1883,23 @@ export async function runSextaAgentLoop(input: AgentRunInput) {
     if (mode === 'reply') {
       const reply = safeString((parsed as { reply?: unknown }).reply);
       if (reply) {
+        const reflectionResult = await runSextaReflection({
+          supabaseAdmin,
+          userId,
+          channel: input.channel || 'app',
+          prompt: input.prompt,
+          reply,
+          toolResults,
+          profile: syncedState.profile,
+          memories: currentMemories,
+          contextSummary,
+          model: input.model
+        });
+        const latestState = await loadSextaAgentState(supabaseAdmin, userId);
         return {
           reply,
-          state: { profile: syncedState.profile, memories: currentMemories },
+          state: latestState,
+          reflection: reflectionResult.reflection,
           toolResults
         };
       }
@@ -1268,7 +1930,9 @@ export async function runSextaAgentLoop(input: AgentRunInput) {
       tool === 'complete_task' ||
       tool === 'move_task' ||
       tool === 'create_project' ||
-      tool === 'add_finance_transaction'
+      tool === 'add_finance_transaction' ||
+      tool === 'update_goal_status' ||
+      tool === 'save_capability_note'
     ) {
       contextSummary = await buildSextaContextSummary(
         supabaseAdmin,
@@ -1297,9 +1961,24 @@ export async function runSextaAgentLoop(input: AgentRunInput) {
     maxTokens: 700
   });
 
+  const reflectionResult = await runSextaReflection({
+    supabaseAdmin,
+    userId,
+    channel: input.channel || 'app',
+    prompt: input.prompt,
+    reply: fallback.reply,
+    toolResults,
+    profile: syncedState.profile,
+    memories: currentMemories,
+    contextSummary,
+    model: input.model
+  });
+  const latestState = await loadSextaAgentState(supabaseAdmin, userId);
+
   return {
     reply: fallback.reply,
-    state: { profile: syncedState.profile, memories: currentMemories },
+    state: latestState,
+    reflection: reflectionResult.reflection,
     toolResults
   };
 }
