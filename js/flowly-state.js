@@ -23,7 +23,8 @@ var sextaState = safeJSONParse(localStorage.getItem('flowly_sexta_state'), {
   profile: {
     memoryNotes: '',
     operatorRules: '',
-    commandStyle: ''
+    commandStyle: '',
+    autonomyMode: ''
   }
 });
 var syncStatus = {

@@ -1,6 +1,7 @@
 const FLOWLY_AI_STORAGE_KEY = 'flowly_ai_settings';
 const FLOWLY_THEME_STORAGE_KEY = 'flowly_theme_settings';
 const FLOWLY_SETTINGS_TAB_KEY = 'flowly_settings_tab';
+const FLOWLY_TELEGRAM_LINK_STORAGE_KEY = 'flowly_telegram_link_state';
 const FLOWLY_AI_DEFAULTS = {
   enabled: false,
   provider: 'local',
@@ -216,6 +217,50 @@ function getFlowlyAISettings() {
 function saveFlowlyAISettings(nextSettings) {
   const normalized = normalizeFlowlyAISettings(nextSettings);
   localStorage.setItem(FLOWLY_AI_STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+function getFlowlyManifestAiPreset(currentSettings = {}) {
+  return normalizeFlowlyAISettings({
+    ...currentSettings,
+    enabled: true,
+    provider: 'manifest',
+    model: 'manifest/auto',
+    endpoint: 'sexta-ai',
+    apiKey: ''
+  });
+}
+
+function normalizeFlowlyTelegramLinkState(rawState = {}) {
+  const base = {
+    linked: false,
+    telegramUsername: '',
+    chatIdMasked: '',
+    code: '',
+    expiresAt: '',
+    webhookConfigured: false,
+    webhookUrl: ''
+  };
+  const next = { ...base, ...(rawState || {}) };
+  next.linked = next.linked === true;
+  next.telegramUsername = String(next.telegramUsername || '').trim();
+  next.chatIdMasked = String(next.chatIdMasked || '').trim();
+  next.code = String(next.code || '').trim().toUpperCase();
+  next.expiresAt = String(next.expiresAt || '').trim();
+  next.webhookConfigured = next.webhookConfigured === true;
+  next.webhookUrl = String(next.webhookUrl || '').trim();
+  return next;
+}
+
+function getFlowlyTelegramLinkState() {
+  return normalizeFlowlyTelegramLinkState(
+    safeJSONParse(localStorage.getItem(FLOWLY_TELEGRAM_LINK_STORAGE_KEY), {})
+  );
+}
+
+function saveFlowlyTelegramLinkState(nextState) {
+  const normalized = normalizeFlowlyTelegramLinkState(nextState);
+  localStorage.setItem(FLOWLY_TELEGRAM_LINK_STORAGE_KEY, JSON.stringify(normalized));
   return normalized;
 }
 

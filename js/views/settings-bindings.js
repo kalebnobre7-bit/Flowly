@@ -151,11 +151,52 @@ function bindSettingsInteractions() {
     };
   };
 
-  bindAiField('selectAiProvider', 'provider');
   bindAiField('inputAiModel', 'model');
   bindAiField('inputAiEndpoint', 'endpoint');
-  bindAiField('inputAiApiKey', 'apiKey');
   bindAiField('inputAiSystemPrompt', 'systemPrompt');
+
+  const aiProviderSelect = document.getElementById('selectAiProvider');
+  if (aiProviderSelect) {
+    aiProviderSelect.onchange = function () {
+      const current = getFlowlyAISettings();
+      let nextSettings = {
+        ...current,
+        provider: this.value
+      };
+      if (this.value === 'manifest' && typeof getFlowlyManifestAiPreset === 'function') {
+        nextSettings = getFlowlyManifestAiPreset(current);
+      } else if (this.value === 'local') {
+        nextSettings = {
+          ...current,
+          enabled: false,
+          provider: 'local',
+          model: 'flowly-local-ops',
+          endpoint: ''
+        };
+      }
+      saveFlowlyAISettings(nextSettings);
+      renderSettingsView();
+    };
+  }
+
+  const aiPresetBtn = document.getElementById('btnApplyManifestPreset');
+  if (aiPresetBtn) {
+    aiPresetBtn.onclick = function () {
+      const current = getFlowlyAISettings();
+      const next =
+        typeof getFlowlyManifestAiPreset === 'function'
+          ? getFlowlyManifestAiPreset(current)
+          : {
+              ...current,
+              enabled: true,
+              provider: 'manifest',
+              model: 'manifest/auto',
+              endpoint: 'sexta-ai'
+            };
+      saveFlowlyAISettings(next);
+      renderSettingsView();
+    };
+  }
 
   const toggleAiEnabled = document.getElementById('toggleAiEnabled');
   if (toggleAiEnabled) {
@@ -168,6 +209,136 @@ function bindSettingsInteractions() {
       renderSettingsView();
     };
   }
+
+  const getStoredTelegramState = () =>
+    typeof getFlowlyTelegramLinkState === 'function'
+      ? getFlowlyTelegramLinkState()
+      : {
+          linked: false,
+          telegramUsername: '',
+          chatIdMasked: '',
+          code: '',
+          expiresAt: '',
+          webhookConfigured: false,
+          webhookUrl: ''
+        };
+
+  const saveTelegramState = (state) =>
+    typeof saveFlowlyTelegramLinkState === 'function' ? saveFlowlyTelegramLinkState(state) : state;
+
+  const renderTelegramStatus = (state) => {
+    const safeState = state || getStoredTelegramState();
+    const statusEl = document.getElementById('telegramLinkStatusText');
+    const webhookEl = document.getElementById('telegramWebhookStatusText');
+    const codeEl = document.getElementById('telegramLinkCodeBox');
+    if (statusEl) {
+      statusEl.textContent = safeState.linked
+        ? `Bot vinculado${safeState.telegramUsername ? ` com @${safeState.telegramUsername}` : ''}${safeState.chatIdMasked ? ` · chat ${safeState.chatIdMasked}` : ''}`
+        : 'Bot ainda nao vinculado ao seu usuario.';
+    }
+    if (webhookEl) {
+      webhookEl.textContent = safeState.webhookConfigured
+        ? 'Webhook do Telegram registrado.'
+        : 'Webhook ainda nao registrado no bot.';
+    }
+    if (codeEl) {
+      codeEl.textContent = safeState.code
+        ? `Codigo atual: ${safeState.code}${safeState.expiresAt ? ` · expira ${new Date(safeState.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}`
+        : 'Gere um codigo temporario e envie no Telegram com /start CODIGO.';
+    }
+  };
+
+  const invokeTelegramLink = async (action) => {
+    const sessionResult = await supabaseClient.auth.getSession();
+    const accessToken = sessionResult?.data?.session?.access_token || '';
+    if (!accessToken) {
+      throw new Error('Sessao expirada. Faca login novamente.');
+    }
+
+    const result = await supabaseClient.functions.invoke('telegram-link', {
+      body: { action },
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    if (result.error) {
+      throw result.error;
+    }
+    const payload = result.data || {};
+    const nextState = saveTelegramState(payload.status || payload);
+    renderTelegramStatus(nextState);
+    return payload;
+  };
+
+  const refreshTelegramStatus = async () => {
+    if (!currentUser || !document.getElementById('telegramLinkStatusText')) return;
+    try {
+      await invokeTelegramLink('status');
+    } catch (error) {
+      notify(`Nao foi possivel carregar status do Telegram: ${error.message || error}`, 'warn');
+    }
+  };
+
+  const generateTelegramCodeBtn = document.getElementById('btnGenerateTelegramCode');
+  if (generateTelegramCodeBtn) {
+    generateTelegramCodeBtn.onclick = async function () {
+      if (!currentUser) {
+        notify('Faca login para gerar o codigo do Telegram.', 'warn');
+        return;
+      }
+      try {
+        const payload = await invokeTelegramLink('generate_code');
+        if (payload.code && navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(`/start ${payload.code}`);
+          } catch (_) {}
+        }
+        notify('Codigo do Telegram gerado. O comando /start CODIGO foi copiado quando o navegador permitiu.', 'success');
+      } catch (error) {
+        notify(`Falha ao gerar codigo do Telegram: ${error.message || error}`, 'error');
+      }
+    };
+  }
+
+  const refreshTelegramStatusBtn = document.getElementById('btnRefreshTelegramStatus');
+  if (refreshTelegramStatusBtn) {
+    refreshTelegramStatusBtn.onclick = refreshTelegramStatus;
+  }
+
+  const registerTelegramWebhookBtn = document.getElementById('btnRegisterTelegramWebhook');
+  if (registerTelegramWebhookBtn) {
+    registerTelegramWebhookBtn.onclick = async function () {
+      if (!currentUser) {
+        notify('Faca login para registrar o webhook do Telegram.', 'warn');
+        return;
+      }
+      try {
+        await invokeTelegramLink('register_webhook');
+        notify('Webhook do Telegram registrado.', 'success');
+      } catch (error) {
+        notify(`Falha ao registrar webhook do Telegram: ${error.message || error}`, 'error');
+      }
+    };
+  }
+
+  const disconnectTelegramBtn = document.getElementById('btnDisconnectTelegram');
+  if (disconnectTelegramBtn) {
+    disconnectTelegramBtn.onclick = async function () {
+      if (!currentUser) {
+        notify('Faca login para desconectar o Telegram.', 'warn');
+        return;
+      }
+      try {
+        await invokeTelegramLink('disconnect');
+        notify('Telegram desconectado do Flowly.', 'success');
+      } catch (error) {
+        notify(`Falha ao desconectar Telegram: ${error.message || error}`, 'error');
+      }
+    };
+  }
+
+  renderTelegramStatus(getStoredTelegramState());
+  refreshTelegramStatus();
 
   const nameInput = document.getElementById('inputDisplayName');
   if (nameInput) {

@@ -220,6 +220,12 @@ renderSextaView = function () {
                 profile.commandStyle
               )}</textarea>
             </label>
+            <label class="sexta-config-field sexta-config-field--wide">
+              <span>Loop e autonomia</span>
+              <textarea id="sextaAutonomyModeInput" rows="3" placeholder="Ex.: pode consultar tarefas, projetos, financas e agir em ate 2 passos antes de responder.">${escapeProjectHtml(
+                profile.autonomyMode || ''
+              )}</textarea>
+            </label>
           </div>
           <div class="sexta-panel-caption">${
             profileSummary
@@ -377,17 +383,25 @@ renderSextaView = function () {
       };
     });
     view.querySelectorAll('[data-sexta-profile-action]').forEach((btn) => {
-      btn.onclick = () => {
+      btn.onclick = async () => {
         if ((btn.dataset.sextaProfileAction || '') !== 'save') return;
         const memoryNotes = document.getElementById('sextaMemoryProfileInput');
         const operatorRules = document.getElementById('sextaOperatorRulesInput');
         const commandStyle = document.getElementById('sextaCommandStyleInput');
-        saveSextaProfile({
+        const autonomyMode = document.getElementById('sextaAutonomyModeInput');
+        const nextProfile = saveSextaProfile({
           memoryNotes: memoryNotes ? memoryNotes.value : '',
           operatorRules: operatorRules ? operatorRules.value : '',
-          commandStyle: commandStyle ? commandStyle.value : ''
+          commandStyle: commandStyle ? commandStyle.value : '',
+          autonomyMode: autonomyMode ? autonomyMode.value : ''
         });
+        try {
+          if (typeof saveSextaProfileToServer === 'function') {
+            await saveSextaProfileToServer(nextProfile);
+          }
+        } catch (_) {}
         pushSextaNote('perfil', 'Briefing da Sexta atualizado.');
+        persistSextaState();
         renderSextaView();
       };
     });
@@ -414,6 +428,8 @@ renderSextaView = function () {
     }
     const thread = view.querySelector('.sexta-chat-thread');
     if (thread) thread.scrollTop = thread.scrollHeight;
+    if (typeof syncSextaServerState === 'function') {
+      syncSextaServerState();
+    }
   }, 0);
 };
-

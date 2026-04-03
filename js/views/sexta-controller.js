@@ -47,7 +47,8 @@ function getSextaProfile() {
   return {
     memoryNotes: String(profile.memoryNotes || '').trim(),
     operatorRules: String(profile.operatorRules || '').trim(),
-    commandStyle: String(profile.commandStyle || '').trim()
+    commandStyle: String(profile.commandStyle || '').trim(),
+    autonomyMode: String(profile.autonomyMode || '').trim()
   };
 }
 
@@ -68,6 +69,11 @@ function saveSextaProfile(nextProfile = {}) {
       Object.prototype.hasOwnProperty.call(nextProfile, 'commandStyle')
         ? nextProfile.commandStyle
         : current.commandStyle
+    ).trim(),
+    autonomyMode: String(
+      Object.prototype.hasOwnProperty.call(nextProfile, 'autonomyMode')
+        ? nextProfile.autonomyMode
+        : current.autonomyMode
     ).trim()
   };
   persistSextaState();
@@ -78,10 +84,116 @@ function getSextaProfileSummary(profile = getSextaProfile()) {
   return [
     profile.memoryNotes ? `Memórias fixas: ${profile.memoryNotes}` : '',
     profile.operatorRules ? `Regras: ${profile.operatorRules}` : '',
-    profile.commandStyle ? `Formato: ${profile.commandStyle}` : ''
+    profile.commandStyle ? `Formato: ${profile.commandStyle}` : '',
+    profile.autonomyMode ? `Autonomia: ${profile.autonomyMode}` : ''
   ]
     .filter(Boolean)
     .join(' | ');
+}
+
+function applySextaAgentStateToLocal(state) {
+  if (!state || typeof state !== 'object') return null;
+
+  if (state.profile && typeof state.profile === 'object') {
+    saveSextaProfile(state.profile);
+  }
+
+  if (Array.isArray(state.memories)) {
+    sextaState.memories = state.memories
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        return {
+          id: String(item.id || `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+          text: String(item.text || '').trim(),
+          source: String(item.source || 'manual').trim() || 'manual',
+          createdAt: String(item.createdAt || new Date().toISOString()).trim()
+        };
+      })
+      .filter((item) => item && item.text)
+      .slice(-24);
+    persistSextaState();
+  }
+
+  return {
+    profile: getSextaProfile(),
+    memories: getSextaMemories()
+  };
+}
+
+let sextaServerStateSyncPromise = null;
+let sextaServerStateLoadedAt = 0;
+
+function getSextaEdgeEndpoint() {
+  const aiSettings = getFlowlyAISettings();
+  return String(aiSettings.endpoint || '').trim() || 'sexta-ai';
+}
+
+async function invokeSextaEdgeAction(action, payload = {}) {
+  if (!currentUser || !supabaseClient) {
+    throw new Error('Usuario nao autenticado.');
+  }
+
+  const sessionResult = await supabaseClient.auth.getSession();
+  const accessToken = sessionResult?.data?.session?.access_token || '';
+  if (!accessToken) {
+    throw new Error('Sessao expirada. Faca login novamente.');
+  }
+
+  const edgeEndpoint = getSextaEdgeEndpoint();
+  const requestBody = { action, ...payload };
+
+  if (/^https?:\/\//i.test(edgeEndpoint)) {
+    const response = await fetch(edgeEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Sexta ${response.status}: ${text.slice(0, 220)}`);
+    }
+    return response.json();
+  }
+
+  const result = await supabaseClient.functions.invoke(edgeEndpoint || 'sexta-ai', {
+    body: requestBody,
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+  if (result.error) throw result.error;
+  return result.data || {};
+}
+
+async function syncSextaServerState(force = false) {
+  if (!currentUser || !supabaseClient) return null;
+  const ageMs = Date.now() - sextaServerStateLoadedAt;
+  if (!force && sextaServerStateLoadedAt > 0 && ageMs < 120000) {
+    return { profile: getSextaProfile(), memories: getSextaMemories() };
+  }
+  if (sextaServerStateSyncPromise) return sextaServerStateSyncPromise;
+
+  sextaServerStateSyncPromise = invokeSextaEdgeAction('state')
+    .then((payload) => {
+      sextaServerStateLoadedAt = Date.now();
+      return applySextaAgentStateToLocal(payload.state || null);
+    })
+    .catch(() => null)
+    .finally(() => {
+      sextaServerStateSyncPromise = null;
+    });
+
+  return sextaServerStateSyncPromise;
+}
+
+async function saveSextaProfileToServer(profile) {
+  const payload = await invokeSextaEdgeAction('save_profile', { profile });
+  sextaServerStateLoadedAt = Date.now();
+  applySextaAgentStateToLocal(payload.state || null);
+  return payload;
 }
 
 function saveSextaMemory(text, source) {
@@ -101,6 +213,7 @@ function saveSextaMemory(text, source) {
   };
 
   sextaState.memories = [...getSextaMemories().slice(-19), memory];
+  persistSextaState();
   return memory;
 }
 
@@ -115,11 +228,13 @@ function removeSextaMemory(query) {
   if (!target) return null;
 
   sextaState.memories = memories.filter((item) => item.id !== target.id);
+  persistSextaState();
   return target;
 }
 
 function clearSextaMemories() {
   sextaState.memories = [];
+  persistSextaState();
 }
 
 function getSextaOperationalSnapshot() {
@@ -204,6 +319,49 @@ function buildSextaContextSummary(snapshot) {
 
 async function requestSextaExternalReply(userPrompt) {
   const aiSettings = getFlowlyAISettings();
+  if (!aiSettings.enabled || aiSettings.provider === 'local') return null;
+  if (!currentUser || !supabaseClient) return null;
+
+  const provider = String(aiSettings.provider || '').toLowerCase();
+  const baseHistory = (Array.isArray(sextaState.chatHistory) ? sextaState.chatHistory : [])
+    .filter((item) => item && (item.role === 'user' || item.role === 'assistant'))
+    .slice(-8)
+    .map((item) => ({
+      role: item.role,
+      content: String(item.text || '')
+    }));
+  const edgePayload = {
+    action: 'chat',
+    prompt: String(userPrompt || '').trim(),
+    provider,
+    model:
+      provider === 'manifest' && (!aiSettings.model || aiSettings.model === 'flowly-local-ops')
+        ? 'manifest/auto'
+        : aiSettings.model,
+    systemPrompt: aiSettings.systemPrompt,
+    history: baseHistory,
+    memories: getSextaMemories()
+      .slice(-8)
+      .map((item) => item.text),
+    profile: getSextaProfile()
+  };
+  const edgeEndpoint = getSextaEdgeEndpoint();
+
+  if (/^https?:\/\//i.test(edgeEndpoint)) {
+    const data = await invokeSextaEdgeAction('chat', edgePayload);
+    if (data && data.state) applySextaAgentStateToLocal(data.state);
+    const reply = data && typeof data.reply === 'string' ? data.reply.trim() : '';
+    if (!reply) throw new Error('IA sem resposta valida');
+    return data;
+  }
+  const data = await invokeSextaEdgeAction('chat', edgePayload);
+  if (data && data.state) applySextaAgentStateToLocal(data.state);
+  const edgeReply =
+    data && typeof data.reply === 'string' ? data.reply.trim() : '';
+  if (!edgeReply) throw new Error('IA sem resposta valida');
+  return data;
+
+  /* legacy client-side connector kept disabled for reference
   if (!aiSettings.enabled || !aiSettings.apiKey) return null;
 
   const provider = String(aiSettings.provider || '').toLowerCase();
@@ -261,6 +419,7 @@ async function requestSextaExternalReply(userPrompt) {
 
   if (!content) throw new Error('IA sem resposta em choices[0].message.content');
   return String(content).trim();
+  */
 }
 
 function buildSextaAssistantReply(prompt) {
@@ -344,11 +503,11 @@ function buildSextaAssistantReply(prompt) {
     return `O que eu tenho salvo na memoria: ${memories.map((item) => item.text).join(' | ')}.${profileHint ? ` ${profileHint}` : ''}`.trim();
   }
 
-  if (/(ia|modelo|chatgpt|minimax|openai)/i.test(lower)) {
+  if (/(ia|modelo|chatgpt|manifest|minimax|openai|telegram)/i.test(lower)) {
     if (aiSettings.enabled && aiSettings.provider !== 'local') {
-      return `O conector de IA esta configurado para ${aiSettings.provider} com modelo ${aiSettings.model}. A interface ja esta pronta; o proximo passo e plugar isso num backend seguro. ${combinedHint}`.trim();
+      return `O conector de IA esta configurado para ${aiSettings.provider} com modelo ${aiSettings.model}. Agora a rota recomendada e Edge Function segura, sem chave no navegador, com opcao de conversar tambem pelo Telegram. ${combinedHint}`.trim();
     }
-    return 'No momento a Sexta esta respondendo no modo local, usando os dados do Flowly. Se quiser IA externa, configura em Ajustes > IA e depois a gente liga isso num backend.';
+    return 'No momento a Sexta esta respondendo no modo local, usando os dados do Flowly. Se quiser IA externa, ativa isso em Ajustes > IA com o preset do Manifest.';
   }
 
   if (snapshot.followupEntries.length > 0) {
@@ -499,6 +658,16 @@ var runSextaCommand = async function () {
       .replace(/^guarde\s+/i, '')
       .trim();
     const memory = saveSextaMemory(memoryText, 'chat');
+    if (memory && currentUser) {
+      try {
+        const payload = await invokeSextaEdgeAction('save_memory', {
+          text: memory.text,
+          source: 'chat'
+        });
+        applySextaAgentStateToLocal(payload.state || null);
+        sextaServerStateLoadedAt = Date.now();
+      } catch (_) {}
+    }
     responseText = memory
       ? `Guardei isso na memoria: ${memory.text}`
       : 'Nao consegui registrar essa memoria.';
@@ -511,11 +680,27 @@ var runSextaCommand = async function () {
       .replace(/^remove da memoria\s+/i, '')
       .trim();
     const removed = removeSextaMemory(memoryQuery);
+    if (removed && currentUser) {
+      try {
+        const payload = await invokeSextaEdgeAction('remove_memory', {
+          query: memoryQuery
+        });
+        applySextaAgentStateToLocal(payload.state || null);
+        sextaServerStateLoadedAt = Date.now();
+      } catch (_) {}
+    }
     responseText = removed
       ? `Removi da memoria: ${removed.text}`
       : 'Nao achei nada parecido na memoria para remover.';
   } else if (normalizedLower.includes('limpar memoria')) {
     clearSextaMemories();
+    if (currentUser) {
+      try {
+        const payload = await invokeSextaEdgeAction('clear_memory');
+        applySextaAgentStateToLocal(payload.state || null);
+        sextaServerStateLoadedAt = Date.now();
+      } catch (_) {}
+    }
     responseText = 'Limpei a memoria da Sexta.';
   } else if (createMatch) {
     const taskText = createMatch[2].trim();
@@ -580,8 +765,11 @@ var runSextaCommand = async function () {
     try {
       const externalReply = await requestSextaExternalReply(raw);
       if (externalReply) {
-        responseText = externalReply;
-        responseMeta = providerLabel;
+        responseText = String(externalReply.reply || '').trim();
+        responseMeta =
+          externalReply.toolResults && externalReply.toolResults.length > 0
+            ? `${providerLabel} agent`
+            : providerLabel;
       } else {
         responseText = buildSextaAssistantReply(raw);
         responseMeta = 'modo local';
@@ -609,10 +797,12 @@ window.FlowlySexta = {
   getSextaMemories,
   getSextaProfile,
   saveSextaProfile,
+  saveSextaProfileToServer,
   getSextaProfileSummary,
   saveSextaMemory,
   removeSextaMemory,
   clearSextaMemories,
+  syncSextaServerState,
   getSextaOperationalSnapshot,
   buildSextaContextSummary,
   requestSextaExternalReply,

@@ -35,6 +35,18 @@ function renderSettingsView() {
       localStorage.getItem('flowly_display_name') ||
       (currentUser ? currentUser.email.split('@')[0] : 'Usuario'),
     aiSettings: getFlowlyAISettings(),
+    telegramLinkState:
+      typeof getFlowlyTelegramLinkState === 'function'
+        ? getFlowlyTelegramLinkState()
+        : {
+            linked: false,
+            telegramUsername: '',
+            chatIdMasked: '',
+            code: '',
+            expiresAt: '',
+            webhookConfigured: false,
+            webhookUrl: ''
+          },
     themeSettings: getFlowlyThemeSettings(),
     settingsTab: localStorage.getItem(FLOWLY_SETTINGS_TAB_KEY) || 'conta',
     currentUser,

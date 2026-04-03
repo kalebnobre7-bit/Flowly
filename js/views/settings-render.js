@@ -126,6 +126,7 @@ function buildSettingsMarkup(ctx) {
     hapticsEnabled,
     displayName,
     aiSettings,
+    telegramLinkState,
     themeSettings,
     settingsTab,
     currentUser,
@@ -476,32 +477,33 @@ function buildSettingsMarkup(ctx) {
 
   const aiSection = createSettingsSectionCard(
     'Conexão de IA',
-    'Deixa a Sexta pronta para conversar com provedores externos',
+    'Liga a Sexta ao backend seguro do Flowly sem expor chave no navegador',
     'bot',
     `
       <div class="space-y-3">
         ${createSettingsRow('bot', 'Ativar conector externo', 'Mantém a configuração de IA pronta para backend seguro', createSettingsToggle('toggleAiEnabled', aiSettings.enabled === true))}
+        <div class="flex flex-wrap gap-2">
+          <button id="btnApplyManifestPreset" class="flowly-accent-btn">
+            <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+            Usar preset Manifest
+          </button>
+        </div>
         <div class="settings-ai-grid">
           <label class="settings-theme-field">
             <span>Provedor</span>
             <select id="selectAiProvider" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">
               <option value="local" ${aiSettings.provider === 'local' ? 'selected' : ''}>Local Flowly</option>
-              <option value="minimax" ${aiSettings.provider === 'minimax' ? 'selected' : ''}>MiniMax</option>
-              <option value="openai" ${aiSettings.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+              <option value="manifest" ${aiSettings.provider === 'manifest' ? 'selected' : ''}>Manifest</option>
               <option value="custom" ${aiSettings.provider === 'custom' ? 'selected' : ''}>Custom</option>
             </select>
           </label>
           <label class="settings-theme-field">
             <span>Modelo</span>
-            <input id="inputAiModel" type="text" value="${escapeProjectHtml(aiSettings.model)}" placeholder="Ex.: minimax-text-01" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+            <input id="inputAiModel" type="text" value="${escapeProjectHtml(aiSettings.model)}" placeholder="Ex.: manifest/auto" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
           </label>
           <label class="settings-theme-field settings-theme-field--wide">
             <span>Endpoint / Edge Function</span>
-            <input id="inputAiEndpoint" type="text" value="${escapeProjectHtml(aiSettings.endpoint)}" placeholder="https://.../functions/v1/ask-flowly" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
-          </label>
-          <label class="settings-theme-field settings-theme-field--wide">
-            <span>API key</span>
-            <input id="inputAiApiKey" type="password" value="${escapeProjectHtml(aiSettings.apiKey)}" placeholder="Cole a chave aqui se quiser testar localmente" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
+            <input id="inputAiEndpoint" type="text" value="${escapeProjectHtml(aiSettings.endpoint)}" placeholder="sexta-ai ou https://.../functions/v1/sexta-ai" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
           </label>
         </div>
         <label class="settings-theme-field settings-theme-field--wide">
@@ -528,6 +530,56 @@ function buildSettingsMarkup(ctx) {
           <div><strong>1. Salvar provedor</strong><span>MiniMax, OpenAI ou endpoint custom</span></div>
           <div><strong>2. Ligar backend</strong><span>Ideal via Supabase Edge Function</span></div>
           <div><strong>3. Conversar na Sexta</strong><span>usar o chat já dentro do Flowly</span></div>
+        </div>
+      </div>
+    `
+  );
+
+  const telegramCodeText = telegramLinkState.code
+    ? `Codigo atual: ${telegramLinkState.code}${telegramLinkState.expiresAt ? ` · expira ${new Date(telegramLinkState.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}`
+    : 'Gere um codigo temporario e envie no Telegram com /start CODIGO.';
+  const telegramStatusText = currentUser
+    ? telegramLinkState.linked
+      ? `Bot vinculado${telegramLinkState.telegramUsername ? ` com @${escapeSettingsHtml(telegramLinkState.telegramUsername)}` : ''}${telegramLinkState.chatIdMasked ? ` · chat ${escapeSettingsHtml(telegramLinkState.chatIdMasked)}` : ''}`
+      : 'Bot ainda nao vinculado ao seu usuario.'
+    : 'Faca login no Flowly para vincular o bot ao seu usuario.';
+  const telegramWebhookText = telegramLinkState.webhookConfigured
+    ? 'Webhook do Telegram registrado.'
+    : 'Webhook ainda nao registrado no bot.';
+  const telegramStatusCard = createSettingsSectionCard(
+    'Telegram',
+    'Vinculo do bot com seu usuario do Flowly',
+    'message-circle',
+    `
+      <div class="space-y-3">
+        <div class="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+          <div class="text-xs uppercase tracking-wide text-gray-400">Status atual</div>
+          <div class="mt-1 text-sm font-semibold text-white" id="telegramLinkStatusText">${telegramStatusText}</div>
+          <p class="mt-2 text-xs text-gray-400" id="telegramWebhookStatusText">${telegramWebhookText}</p>
+          <div class="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-300" id="telegramLinkCodeBox">${telegramCodeText}</div>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button id="btnGenerateTelegramCode" class="flowly-accent-btn flowly-accent-btn--secondary" ${currentUser ? '' : 'disabled'}>
+              <i data-lucide="link-2" style="width:14px;height:14px;"></i>
+              Gerar codigo
+            </button>
+            <button id="btnRefreshTelegramStatus" class="flowly-accent-btn flowly-accent-btn--secondary" ${currentUser ? '' : 'disabled'}>
+              <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
+              Atualizar status
+            </button>
+            <button id="btnRegisterTelegramWebhook" class="flowly-accent-btn flowly-accent-btn--secondary" ${currentUser ? '' : 'disabled'}>
+              <i data-lucide="bot" style="width:14px;height:14px;"></i>
+              Registrar webhook
+            </button>
+            <button id="btnDisconnectTelegram" class="flowly-accent-btn flowly-accent-btn--secondary" ${currentUser ? '' : 'disabled'}>
+              <i data-lucide="unlink" style="width:14px;height:14px;"></i>
+              Desconectar
+            </button>
+          </div>
+        </div>
+        <div class="settings-guide-list">
+          <div><strong>1. Preset Manifest</strong><span>modelo <code>manifest/auto</code> no <code>sexta-ai</code></span></div>
+          <div><strong>2. Registrar webhook</strong><span>liga o bot do Telegram na Edge Function</span></div>
+          <div><strong>3. Gerar codigo</strong><span>enviar <code>/start CODIGO</code> no bot para vincular</span></div>
         </div>
       </div>
     `
@@ -640,7 +692,7 @@ function buildSettingsMarkup(ctx) {
     notificacoes: { main: [notificationsSection], side: [notificationStatusCard] },
     app: { main: [appSection], side: [quickGuideCard] },
     personalizacao: { main: [personalizationSection], side: [personalizationStatusCard] },
-    ia: { main: [aiSection], side: [aiStatusCard] },
+    ia: { main: [aiSection], side: [aiStatusCard, telegramStatusCard] },
     operacao: { main: [prioritiesSection], side: [quickGuideCard] },
     dados: { main: [dataSection], side: [syncLogSection, quickGuideCard] }
   };
