@@ -335,24 +335,24 @@ function renderMonth() {
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--wide mc-shell">
 
-      <div class="mc-header">
-        <div class="mc-header-left">
-          <div class="flowly-page-kicker">Visão mensal</div>
-          <h2 class="mc-title">${monthNames[month]} <span>${year}</span></h2>
+      <header class="flowly-page-header mc-header">
+        <div class="flowly-page-header__title">
+          <h1>${monthNames[month]} <span class="mc-title-year">${year}</span></h1>
+          <p class="flowly-page-header__subtitle">Visão mensal</p>
         </div>
-        <div class="mc-header-right">
+        <div class="flowly-page-header__actions">
           <div class="mc-legend">${legendHTML}</div>
           <div class="mc-nav">
-            <button data-month-nav="-1" class="mc-nav-btn" title="Mês anterior">
+            <button data-month-nav="-1" class="flowly-btn flowly-btn--ghost flowly-btn--icon flowly-btn--sm" title="Mês anterior">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <button data-month-nav="current" class="mc-nav-today">Hoje</button>
-            <button data-month-nav="1" class="mc-nav-btn" title="Próximo mês">
+            <button data-month-nav="current" class="flowly-btn flowly-btn--ghost flowly-btn--sm">Hoje</button>
+            <button data-month-nav="1" class="flowly-btn flowly-btn--ghost flowly-btn--icon flowly-btn--sm" title="Próximo mês">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
       ${finStrip}
 

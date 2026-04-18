@@ -111,18 +111,16 @@
 
         <main class="app-main">
         <!-- Week Navigation (Controls) -->
-        <div id="weekNav" class="hidden flex justify-center w-full mb-8">
-            <div class="today-dashboard-strip" style="margin-bottom: 0px; gap: 24px; padding: 12px 24px;">
-                <button id="btnPrevWeek" class="utility-btn text-white/50 hover:text-white transition-colors" data-week-nav="-1"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
-                <div class="today-strip-col" style="align-items: center;">
-                    <span class="today-strip-label">Período Selecionado</span>
-                    <span class="today-strip-value text-sm" id="weekLabel">Semana Atual</span>
-                </div>
-                <button id="btnNextWeek" class="utility-btn text-white/50 hover:text-white transition-colors" data-week-nav="1"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
-                <div class="today-strip-divider" style="height: 24px;"></div>
-                <button id="btnCurrentWeek" class="text-[11px] font-bold uppercase tracking-widest px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-white/70 hover:text-white" data-week-nav="current">Semana Atual</button>
-                <div class="today-strip-divider" style="height: 24px;"></div>
-                <button id="btnSmartWeekToggle" class="utility-btn text-blue-500/50 hover:text-blue-400 transition-colors" title="Foco de 5 Dias" onclick="toggleSmartWeek()">
+        <div id="weekNav" class="hidden flowly-page-header">
+            <div class="flowly-page-header__title">
+                <h1>Semana</h1>
+                <p class="flowly-page-header__subtitle" id="weekLabel">Semana Atual</p>
+            </div>
+            <div class="flowly-page-header__actions">
+                <button id="btnPrevWeek" class="flowly-btn flowly-btn--ghost flowly-btn--icon flowly-btn--sm" data-week-nav="-1" title="Semana anterior"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
+                <button id="btnCurrentWeek" class="flowly-btn flowly-btn--ghost flowly-btn--sm" data-week-nav="current">Semana Atual</button>
+                <button id="btnNextWeek" class="flowly-btn flowly-btn--ghost flowly-btn--icon flowly-btn--sm" data-week-nav="1" title="Próxima semana"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                <button id="btnSmartWeekToggle" class="flowly-btn flowly-btn--ghost flowly-btn--icon flowly-btn--sm" title="Foco de 5 Dias" onclick="toggleSmartWeek()">
                     <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
                 </button>
             </div>
@@ -146,7 +144,7 @@
 
     <!-- Mobile Bottom Navigation (New Feature - Kept) -->
     <nav
-        class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1c1c1e]/95 backdrop-blur-xl border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
+        class="md:hidden fixed bottom-0 left-0 right-0 z-40 flowly-bottom-nav pb-[env(safe-area-inset-bottom)]">
         <div class="flex justify-around items-center h-16 px-2">
             <button id="btnMobileWeek" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="week">
                 <i data-lucide="calendar" class="w-6 h-6"></i>
@@ -178,13 +176,13 @@
     <!-- Original Quick Menu (Restored Structure) -->
     <div id="quickAddMenu" class="context-menu"
         style="position: fixed; bottom: 100px; right: 32px; min-width: 200px; flex-direction: column; gap: 4px; display: none;">
-        <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm flex items-center gap-2"
+        <div class="quick-add-option p-2 rounded cursor-pointer text-sm flex items-center gap-2"
             data-type="routine"><i data-lucide="repeat" style="width: 16px; height: 16px;"></i> Rotina Diaria
         </div>
-        <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm flex items-center gap-2"
+        <div class="quick-add-option p-2 rounded cursor-pointer text-sm flex items-center gap-2"
             data-type="weekly"><i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Tarefa Semanal
         </div>
-        <div class="quick-add-option p-2 hover:bg-[#333] rounded cursor-pointer text-sm flex items-center gap-2"
+        <div class="quick-add-option p-2 rounded cursor-pointer text-sm flex items-center gap-2"
             data-type="custom"><i data-lucide="plus" style="width: 16px; height: 16px;"></i> Tarefa Avulsa
         </div>
     </div>
@@ -236,18 +234,13 @@
                 style="width: 16px; height: 16px;"></i></button>
     </div>
 
-    <!-- Color Menu (Restored) -->
+    <!-- Color Menu -->
     <div id="colorMenu" class="context-menu" style="display: none; grid-template-columns: repeat(5, 1fr); gap: 8px;">
-        <div class="color-swatch" data-color="default"
-            style="width: 20px; height: 20px; border-radius: 50%; background: #888; cursor: pointer;"></div>
-        <div class="color-swatch" data-color="blue"
-            style="width: 20px; height: 20px; border-radius: 50%; background: #0A84FF; cursor: pointer;"></div>
-        <div class="color-swatch" data-color="green"
-            style="width: 20px; height: 20px; border-radius: 50%; background: #30D158; cursor: pointer;"></div>
-        <div class="color-swatch" data-color="yellow"
-            style="width: 20px; height: 20px; border-radius: 50%; background: #FFD60A; cursor: pointer;"></div>
-        <div class="color-swatch" data-color="red"
-            style="width: 20px; height: 20px; border-radius: 50%; background: #FF453A; cursor: pointer;"></div>
+        <div class="color-swatch flowly-color-swatch" data-color="default"></div>
+        <div class="color-swatch flowly-color-swatch" data-color="blue"></div>
+        <div class="color-swatch flowly-color-swatch" data-color="green"></div>
+        <div class="color-swatch flowly-color-swatch" data-color="yellow"></div>
+        <div class="color-swatch flowly-color-swatch" data-color="red"></div>
     </div>
 
     <script>

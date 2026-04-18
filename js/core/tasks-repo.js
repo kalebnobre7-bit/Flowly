@@ -494,7 +494,11 @@
         });
 
         if (idsToDelete.length > 0) {
-          await supabaseClient.from('tasks').delete().in('id', idsToDelete);
+          try {
+            await supabaseClient.from('tasks').delete().in('id', idsToDelete);
+          } catch (e) {
+            debugLog('Failed to delete orphan tasks', e);
+          }
         }
       }
 

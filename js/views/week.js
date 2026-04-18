@@ -16,13 +16,8 @@ function renderWeek() {
   // Atualizar label da semana e botão de toggle
   const smartBtn = document.getElementById('btnSmartWeekToggle');
   if (smartBtn) {
-    if (isSmartWeek) {
-      smartBtn.classList.add('bg-blue-500/20', 'border-blue-500/50');
-      smartBtn.classList.remove('bg-blue-500/10', 'border-blue-500/20');
-    } else {
-      smartBtn.classList.remove('bg-blue-500/20', 'border-blue-500/50');
-      smartBtn.classList.add('bg-blue-500/10', 'border-blue-500/20');
-    }
+    smartBtn.classList.toggle('is-active', isSmartWeek);
+    smartBtn.setAttribute('aria-pressed', isSmartWeek ? 'true' : 'false');
   }
 
   document.getElementById('weekLabel').textContent = isSmartWeek ? 'Foco de 5 Dias' : getWeekLabel(currentWeekOffset);

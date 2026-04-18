@@ -309,6 +309,11 @@
     color: var(--flowly-text-primary);
 }
 
+.flowly-btn--ghost.is-active {
+    background: rgba(var(--flowly-accent-primary-rgb, 10, 132, 255), 0.16);
+    color: var(--flowly-accent-primary);
+}
+
 /* Danger — delete, reset */
 .flowly-btn--danger {
     background: rgba(var(--flowly-accent-danger-rgb), 0.1);
@@ -1067,3 +1072,50 @@ input[type="checkbox"]:focus {
     box-shadow: 0 0 0 3px rgba(var(--flowly-accent-primary-rgb), 0.2) !important;
     border-color: var(--flowly-accent-primary) !important;
 }
+
+/* =============================================================
+   FLOWLY-BOTTOM-NAV — barra mobile fixa (substitui bg-[#1c1c1e]/95)
+   ============================================================= */
+.flowly-bottom-nav {
+    background: rgba(14, 15, 20, 0.95);
+    backdrop-filter: blur(var(--flowly-blur-modal));
+    -webkit-backdrop-filter: blur(var(--flowly-blur-modal));
+    border-top: 1px solid var(--flowly-border-subtle);
+}
+
+/* =============================================================
+   FLOWLY-QUICK-ADD — menu de adicao rapida (substitui hover:bg-[#333])
+   ============================================================= */
+.quick-add-option {
+    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
+                color var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.quick-add-option:hover {
+    background: var(--flowly-bg-elevated-hover);
+    color: var(--flowly-text-primary);
+}
+
+/* =============================================================
+   FLOWLY-COLOR-SWATCH — paleta de cores inline (sem hex hardcoded)
+   ============================================================= */
+.flowly-color-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--flowly-radius-full);
+    cursor: pointer;
+    border: 1px solid var(--flowly-border-subtle);
+    transition: transform var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.flowly-color-swatch:hover { transform: scale(1.15); }
+
+.flowly-color-swatch[data-color="default"] { background: var(--flowly-tag-gray); }
+.flowly-color-swatch[data-color="blue"]    { background: var(--flowly-tag-blue); }
+.flowly-color-swatch[data-color="green"]   { background: var(--flowly-tag-green); }
+.flowly-color-swatch[data-color="yellow"]  { background: var(--flowly-tag-yellow); }
+.flowly-color-swatch[data-color="red"]     { background: var(--flowly-tag-red); }
+.flowly-color-swatch[data-color="orange"]  { background: var(--flowly-tag-orange); }
+.flowly-color-swatch[data-color="pink"]    { background: var(--flowly-tag-pink); }
+.flowly-color-swatch[data-color="purple"]  { background: var(--flowly-tag-purple); }
+.flowly-color-swatch[data-color="brown"]   { background: var(--flowly-tag-brown); }

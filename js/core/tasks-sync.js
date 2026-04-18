@@ -103,7 +103,11 @@
         });
 
       if (toDelete.length > 0) {
-        await supabaseClient.from('tasks').delete().in('id', toDelete);
+        try {
+          await supabaseClient.from('tasks').delete().in('id', toDelete);
+        } catch (err) {
+          debugLog('Failed to delete recurring tasks from Supabase', err);
+        }
       }
 
       for (const [index, task] of allRecurringTasks.entries()) {

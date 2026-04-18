@@ -136,12 +136,21 @@ function renderToday() {
   const routineTotal = routineTasks.length;
   const routineCompleted = routineTasks.filter((task) => task.completed).length;
 
-  const focusToggleWrap = document.createElement('div');
-  focusToggleWrap.className = focusOnlyMode
-    ? 'today-focus-toggle-wrap focus-active'
-    : 'today-focus-toggle-wrap';
+  const pageHeader = document.createElement('header');
+  pageHeader.className = 'flowly-page-header';
+  pageHeader.innerHTML = `
+    <div class="flowly-page-header__title">
+      <h1>Hoje</h1>
+      <p class="flowly-page-header__subtitle">${escapeTodayText(today)} · ${escapeTodayText(dateLabel)}</p>
+    </div>
+    <div class="flowly-page-header__actions"></div>
+  `;
   const focusToggleBtn = document.createElement('button');
-  focusToggleBtn.className = 'today-focus-toggle-btn';
+  focusToggleBtn.type = 'button';
+  focusToggleBtn.className = focusOnlyMode
+    ? 'flowly-btn flowly-btn--ghost flowly-btn--sm is-active'
+    : 'flowly-btn flowly-btn--ghost flowly-btn--sm';
+  focusToggleBtn.setAttribute('aria-pressed', focusOnlyMode ? 'true' : 'false');
   focusToggleBtn.textContent = focusOnlyMode ? 'Mostrar dados' : 'Modo foco';
   focusToggleBtn.onclick = (event) => {
     event.stopPropagation();
@@ -150,8 +159,8 @@ function renderToday() {
     localStorage.setItem('flowly_today_view_settings', JSON.stringify(currentSettings));
     renderView();
   };
-  focusToggleWrap.appendChild(focusToggleBtn);
-  grid.appendChild(focusToggleWrap);
+  pageHeader.querySelector('.flowly-page-header__actions').appendChild(focusToggleBtn);
+  grid.appendChild(pageHeader);
 
   if (!focusOnlyMode) {
     const dashboard = document.createElement('section');

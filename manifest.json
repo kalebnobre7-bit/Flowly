@@ -4,8 +4,8 @@
   "description": "Gerenciador de tarefas e hábitos com analytics e notificações inteligentes",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1c1c1e",
-  "theme_color": "#1c1c1e",
+  "background_color": "#08090e",
+  "theme_color": "#08090e",
   "orientation": "portrait-primary",
   "scope": "./",
   "icons": [
@@ -14,10 +14,21 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "logo_flowly.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo_flowly.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "categories": ["productivity", "lifestyle"],
-  "screenshots": [],
   "shortcuts": [
     {
       "name": "Hoje",

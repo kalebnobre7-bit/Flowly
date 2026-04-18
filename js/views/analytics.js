@@ -86,14 +86,14 @@ function renderHabitsView() {
   }
 
   let html = `<div class="flowly-shell flowly-shell--narrow"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Meus HÃ¡bitos</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Total de HÃ¡bitos</div><div class="text-3xl font-bold text-white">${habits.length}</div></div>
-            <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">ConcluÃ­dos Hoje</div><div class="text-3xl font-bold text-[#30d158]">${habits.filter((h) => h.completedToday).length}</div></div>
-            <div class="bg-[#1c1c1e] bg-opacity-60 backdrop-blur-xl border border-white/10 rounded-2xl p-6"><div class="text-gray-400 text-sm mb-1 uppercase tracking-wider font-semibold">Taxa Hoje</div><div class="text-3xl font-bold text-[#0A84FF]">${habits.length > 0 ? Math.round((habits.filter((h) => h.completedToday).length / habits.length) * 100) : 0}%</div></div></div><div class="space-y-3">`;
+            <div class="flowly-stat-card"><span class="flowly-stat-card__label">Total de Hábitos</span><span class="flowly-stat-card__value">${habits.length}</span></div>
+            <div class="flowly-stat-card flowly-stat-card--success"><span class="flowly-stat-card__label">Concluídos Hoje</span><span class="flowly-stat-card__value">${habits.filter((h) => h.completedToday).length}</span></div>
+            <div class="flowly-stat-card" style="--flowly-stat-card-value-color: var(--flowly-accent-info);"><span class="flowly-stat-card__label">Taxa Hoje</span><span class="flowly-stat-card__value" style="color: var(--flowly-accent-info);">${habits.length > 0 ? Math.round((habits.filter((h) => h.completedToday).length / habits.length) * 100) : 0}%</span></div></div><div class="space-y-3">`;
 
   habits.forEach((habit, index) => {
     const streak = getHabitStreak(habit.text),
       completionRate = getHabitCompletionRate(habit.text, 30);
-    html += `<div class="bg-[#1c1c1e] bg-opacity-40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:bg-opacity-60 transition-all flex items-center justify-between gap-4 group">
+    html += `<div class="flowly-panel flowly-panel--compact flex items-center justify-between gap-4 group">
                 
                 
                 
