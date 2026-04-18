@@ -166,25 +166,25 @@ function renderToday() {
     const dashboard = document.createElement('section');
     dashboard.className = 'today-dashboard-section';
     dashboard.innerHTML = `
-      <div class="today-dashboard-strip">
-        <div class="today-strip-col">
-          <span class="today-strip-label">Hoje</span>
-          <span class="today-strip-value">${escapeTodayText(today)}</span>
+      <div class="flowly-stat-strip today-dashboard-strip">
+        <div class="flowly-stat-card flowly-stat-card--inline">
+          <span class="flowly-stat-card__label">Hoje</span>
+          <span class="flowly-stat-card__value">${escapeTodayText(today)}</span>
         </div>
-        <div class="today-strip-divider"></div>
-        <div class="today-strip-col">
-          <span class="today-strip-label">Progresso</span>
-          <span class="today-strip-value">${completedCount}/${actionableEntries.length || 0}</span>
+        <div class="flowly-stat-strip__divider"></div>
+        <div class="flowly-stat-card flowly-stat-card--inline">
+          <span class="flowly-stat-card__label">Progresso</span>
+          <span class="flowly-stat-card__value">${completedCount}/${actionableEntries.length || 0}</span>
         </div>
-        <div class="today-strip-divider"></div>
-        <div class="today-strip-col">
-          <span class="today-strip-label">Foco</span>
-          <span class="today-strip-value">${moneyEntries.length > 0 ? 'Foco Dinheiro' : focusModeLabel}</span>
+        <div class="flowly-stat-strip__divider"></div>
+        <div class="flowly-stat-card flowly-stat-card--inline">
+          <span class="flowly-stat-card__label">Foco</span>
+          <span class="flowly-stat-card__value">${moneyEntries.length > 0 ? 'Foco Dinheiro' : focusModeLabel}</span>
         </div>
-        <div class="today-strip-divider"></div>
-        <div class="today-strip-col">
-          <span class="today-strip-label">Próxima Ação</span>
-          <span class="today-strip-value" title="${escapeTodayText(focusLabel)}">${escapeTodayText(focusLabel)}</span>
+        <div class="flowly-stat-strip__divider"></div>
+        <div class="flowly-stat-card flowly-stat-card--inline">
+          <span class="flowly-stat-card__label">Próxima Ação</span>
+          <span class="flowly-stat-card__value" title="${escapeTodayText(focusLabel)}">${escapeTodayText(focusLabel)}</span>
         </div>
       </div>
     `;

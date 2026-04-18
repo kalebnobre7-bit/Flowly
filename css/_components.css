@@ -146,6 +146,75 @@
 .flowly-stat-card--danger .flowly-stat-card__value { color: var(--flowly-accent-danger); }
 .flowly-stat-card--primary .flowly-stat-card__value { color: var(--flowly-accent-primary); }
 
+/* Accent border-top — pair with semantic modifiers when used as KPI strip */
+.flowly-stat-card--success { border-top: 2px solid var(--flowly-accent-success); }
+.flowly-stat-card--warning { border-top: 2px solid var(--flowly-accent-warning); }
+.flowly-stat-card--danger  { border-top: 2px solid var(--flowly-accent-danger); }
+.flowly-stat-card--primary { border-top: 2px solid var(--flowly-accent-primary); }
+
+/* Delta chip — up/down indicator inside a stat card */
+.flowly-stat-card__delta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--flowly-space-1);
+    align-self: flex-start;
+    font-size: var(--flowly-text-xs);
+    font-weight: var(--flowly-weight-semibold);
+    padding: 2px var(--flowly-space-2);
+    border-radius: var(--flowly-radius-full);
+}
+.flowly-stat-card__delta--up {
+    background: rgba(var(--flowly-accent-success-rgb, 48, 209, 88), 0.16);
+    color: var(--flowly-accent-success);
+}
+.flowly-stat-card__delta--down {
+    background: rgba(var(--flowly-accent-danger-rgb, 255, 69, 58), 0.16);
+    color: var(--flowly-accent-danger);
+}
+
+/* Inline variant — compacto, usado em strips horizontais */
+.flowly-stat-card--inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--flowly-space-1);
+    padding: var(--flowly-space-3) var(--flowly-space-4);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    backdrop-filter: none;
+}
+.flowly-stat-card--inline:hover {
+    border-color: transparent;
+}
+.flowly-stat-card--inline .flowly-stat-card__label {
+    font-size: var(--flowly-text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--flowly-letter-wide);
+    font-weight: var(--flowly-weight-semibold);
+}
+.flowly-stat-card--inline .flowly-stat-card__value {
+    font-size: var(--flowly-text-base);
+    font-weight: var(--flowly-weight-semibold);
+}
+
+.flowly-stat-strip {
+    display: flex;
+    align-items: stretch;
+    gap: var(--flowly-space-1);
+    padding: var(--flowly-space-2);
+    background: var(--flowly-bg-elevated);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-lg);
+    backdrop-filter: blur(var(--flowly-blur-panel));
+    flex-wrap: wrap;
+}
+.flowly-stat-strip__divider {
+    width: 1px;
+    background: var(--flowly-border-subtle);
+    align-self: stretch;
+    margin: var(--flowly-space-2) 0;
+}
+
 /* =============================================================
    4. FLOWLY-TASK-ITEM — item de tarefa unificado
    ============================================================= */

@@ -100,21 +100,21 @@ function renderFinanceView() {
 
       <!-- KPI STRIP -->
       <div class="finance-kpi-row">
-        <div class="finance-kpi-card finance-kpi-card--income">
-          <div class="finance-kpi-label">Entradas</div>
-          <div class="finance-kpi-value">${analytics.formatBRL(analytics.incomeTotal)}</div>
-          <div class="finance-kpi-meta">${analytics.incomeCount} lançamento(s) &bull; ticket médio ${analytics.formatBRL(analytics.avgTicketIn)}</div>
+        <div class="flowly-stat-card flowly-stat-card--success">
+          <div class="flowly-stat-card__label">Entradas</div>
+          <div class="flowly-stat-card__value">${analytics.formatBRL(analytics.incomeTotal)}</div>
+          <div class="flowly-stat-card__hint">${analytics.incomeCount} lançamento(s) &bull; ticket médio ${analytics.formatBRL(analytics.avgTicketIn)}</div>
         </div>
-        <div class="finance-kpi-card finance-kpi-card--expense">
-          <div class="finance-kpi-label">Saídas</div>
-          <div class="finance-kpi-value">${analytics.formatBRL(analytics.expenseTotal)}</div>
-          <div class="finance-kpi-meta">${analytics.expenseCount} lançamento(s) &bull; ticket médio ${analytics.formatBRL(analytics.avgTicketOut)}</div>
+        <div class="flowly-stat-card flowly-stat-card--danger">
+          <div class="flowly-stat-card__label">Saídas</div>
+          <div class="flowly-stat-card__value">${analytics.formatBRL(analytics.expenseTotal)}</div>
+          <div class="flowly-stat-card__hint">${analytics.expenseCount} lançamento(s) &bull; ticket médio ${analytics.formatBRL(analytics.avgTicketOut)}</div>
         </div>
-        <div class="finance-kpi-card finance-kpi-card--balance">
-          <div class="finance-kpi-label">Saldo do mês</div>
-          <div class="finance-kpi-value">${analytics.formatBRL(analytics.balance)}</div>
-          <div class="finance-kpi-meta">${balancePositive ? 'Operação no azul.' : 'Saldo pressionado.'}</div>
-          <span class="finance-kpi-delta finance-kpi-delta--${balancePositive ? 'up' : 'down'}">${balancePositive ? '↑' : '↓'} ${analytics.progress}% da meta</span>
+        <div class="flowly-stat-card flowly-stat-card--primary">
+          <div class="flowly-stat-card__label">Saldo do mês</div>
+          <div class="flowly-stat-card__value">${analytics.formatBRL(analytics.balance)}</div>
+          <div class="flowly-stat-card__hint">${balancePositive ? 'Operação no azul.' : 'Saldo pressionado.'}</div>
+          <span class="flowly-stat-card__delta flowly-stat-card__delta--${balancePositive ? 'up' : 'down'}">${balancePositive ? '↑' : '↓'} ${analytics.progress}% da meta</span>
         </div>
       </div>
 
