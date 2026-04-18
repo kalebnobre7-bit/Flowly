@@ -1,0 +1,321 @@
+/* =============================================================
+   FLOWLY — VIEW PROJECTS
+   Estilos específicos da view Projetos (redesign 2026).
+   Depende de: _tokens.css, _components.css.
+   ============================================================= */
+
+/* --- Layout principal: grid de cards + sidebar --- */
+.projects-shell-v2 {
+    max-width: var(--flowly-shell-max-wide);
+    margin: 0 auto;
+    width: 100%;
+}
+
+.projects-layout-v2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: var(--flowly-space-5);
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .projects-layout-v2 {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* --- Grid de cards de projeto (2 colunas em desktop) --- */
+.projects-grid-v2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--flowly-space-4);
+    min-width: 0;
+}
+
+/* --- Card de projeto (variante .flowly-panel) --- */
+.projects-card-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: var(--flowly-space-3);
+    padding: var(--flowly-space-5);
+    cursor: pointer;
+    transition: transform var(--flowly-duration-base) var(--flowly-ease-out),
+                border-color var(--flowly-duration-base) var(--flowly-ease-out),
+                background var(--flowly-duration-base) var(--flowly-ease-out);
+}
+
+.projects-card-v2:hover {
+    transform: translateY(-2px);
+    border-color: var(--flowly-border-strong);
+    background: var(--flowly-bg-elevated-hover);
+}
+
+.projects-card-v2__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--flowly-space-3);
+}
+
+.projects-card-v2__title {
+    min-width: 0;
+    flex: 1;
+}
+
+.projects-card-v2__title h3 {
+    font-family: var(--flowly-font-display);
+    font-size: var(--flowly-text-lg);
+    font-weight: 600;
+    letter-spacing: var(--flowly-letter-tight);
+    color: var(--flowly-text-primary);
+    line-height: var(--flowly-line-tight);
+    margin-bottom: var(--flowly-space-1);
+    /* line-clamp pra 2 linhas */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.projects-card-v2__title p {
+    font-size: var(--flowly-text-xs);
+    color: var(--flowly-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.projects-card-v2__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-2);
+    font-size: var(--flowly-text-xs);
+    color: var(--flowly-text-secondary);
+    flex-wrap: wrap;
+}
+
+.projects-card-v2__divider {
+    color: var(--flowly-text-tertiary);
+    opacity: 0.5;
+}
+
+.projects-card-v2__deadline.is-late {
+    color: var(--flowly-accent-danger);
+    font-weight: 600;
+}
+
+.projects-card-v2__foot {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-3);
+    padding-top: var(--flowly-space-3);
+    border-top: 1px solid var(--flowly-border-subtle);
+    margin-top: auto;
+}
+
+.projects-card-v2__amount {
+    display: flex;
+    flex-direction: column;
+    margin-left: auto;
+    text-align: right;
+    min-width: 0;
+}
+
+.projects-card-v2__amount-value {
+    font-family: var(--flowly-font-display);
+    font-size: var(--flowly-text-sm);
+    font-weight: 600;
+    color: var(--flowly-text-primary);
+    letter-spacing: var(--flowly-letter-snug);
+}
+
+.projects-card-v2__amount-caption {
+    font-size: var(--flowly-text-2xs);
+    color: var(--flowly-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* --- Sidebar direita --- */
+.projects-aside-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: var(--flowly-space-4);
+    min-width: 0;
+}
+
+.projects-stat-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--flowly-space-2);
+}
+
+.projects-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--flowly-space-2) 0;
+    border-bottom: 1px solid var(--flowly-border-subtle);
+    font-size: var(--flowly-text-sm);
+}
+
+.projects-stat-row:last-child {
+    border-bottom: 0;
+}
+
+.projects-stat-row span {
+    color: var(--flowly-text-secondary);
+}
+
+.projects-stat-row strong {
+    color: var(--flowly-text-primary);
+    font-weight: 600;
+    font-family: var(--flowly-font-display);
+}
+
+.projects-suggestion-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--flowly-space-3);
+    padding: var(--flowly-space-2) 0;
+    border-bottom: 1px solid var(--flowly-border-subtle);
+    font-size: var(--flowly-text-sm);
+}
+
+.projects-suggestion-row:last-child {
+    border-bottom: 0;
+}
+
+.projects-suggestion-row span {
+    color: var(--flowly-text-secondary);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- Filtros segmented adaptados pra ficar flow-wrap em mobile --- */
+.projects-filters-v2 {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.projects-filters-v2::-webkit-scrollbar {
+    display: none;
+}
+
+/* --- Modal de detalhes: form organizado --- */
+.projects-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--flowly-space-4);
+}
+
+.projects-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--flowly-space-3);
+}
+
+@media (max-width: 540px) {
+    .projects-modal-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.projects-modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--flowly-space-1);
+    min-width: 0;
+}
+
+.projects-modal-field > span {
+    font-size: var(--flowly-text-xs);
+    font-weight: 600;
+    color: var(--flowly-text-secondary);
+    letter-spacing: var(--flowly-letter-snug);
+}
+
+.projects-modal-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--flowly-space-4);
+    padding: var(--flowly-space-3) 0;
+    border-top: 1px solid var(--flowly-border-subtle);
+    border-bottom: 1px solid var(--flowly-border-subtle);
+}
+
+.projects-modal-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-2);
+    font-size: var(--flowly-text-sm);
+    color: var(--flowly-text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.projects-modal-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--flowly-accent-primary);
+    cursor: pointer;
+}
+
+.projects-linked-item-v2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--flowly-space-3);
+    padding: var(--flowly-space-3) var(--flowly-space-4);
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+}
+
+.projects-linked-item-v2 strong {
+    display: block;
+    font-size: var(--flowly-text-sm);
+    color: var(--flowly-text-primary);
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.projects-linked-item-v2 p {
+    font-size: var(--flowly-text-xs);
+    color: var(--flowly-text-tertiary);
+}
+
+.projects-modal-actions-v2 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--flowly-space-2);
+    padding-top: var(--flowly-space-3);
+    border-top: 1px solid var(--flowly-border-subtle);
+}
+
+.projects-modal-actions-v2 .flowly-btn--danger {
+    margin-left: auto;
+}
+
+/* --- Mobile adjustments --- */
+@media (max-width: 640px) {
+    .projects-card-v2 {
+        padding: var(--flowly-space-4);
+    }
+    .projects-card-v2__foot {
+        flex-wrap: wrap;
+        gap: var(--flowly-space-2);
+    }
+    .projects-card-v2__amount {
+        margin-left: 0;
+        text-align: left;
+        flex-direction: row;
+        align-items: baseline;
+        gap: var(--flowly-space-2);
+    }
+}

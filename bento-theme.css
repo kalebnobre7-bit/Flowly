@@ -7,7 +7,15 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
-/* ---- DESIGN TOKENS BASE (sobrescritos pelo JS via applyFlowlyThemeSettings) ---- */
+/* =============================================================
+   TOKENS DESABILITADOS (_tokens.css venceu via aliases).
+   Apenas os locais --body-accent-* continuam ativos.
+   ============================================================= */
+:root {
+    --body-accent-opacity: 0.04;
+    --body-accent-purple: 0.03;
+}
+/*
 :root {
     /* Background */
     --bg-body: #08090e;
@@ -52,6 +60,7 @@
     --body-accent-opacity: 0.04;
     --body-accent-purple: 0.03;
 }
+*/
 
 /* ---- BODY — fundo neutro, tint sutil via variável ---- */
 body {

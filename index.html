@@ -34,10 +34,20 @@
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
     <script src="js/flowly-utils.js?v=1" defer></script>
     <script src="js/flowly-state.js?v=1" defer></script>
+    <!-- Flowly Design Tokens (fonte unica de verdade — ver DESIGN-SYSTEM.md).
+         Carregado PRIMEIRO para estabelecer tokens --flowly-* e aliases de compat. -->
+    <link rel="stylesheet" href="css/_tokens.css?v=2">
     <link rel="stylesheet" href="styles.css?v=27">
     <link rel="stylesheet" href="bento-theme.css?v=6">
     <link rel="stylesheet" href="flowly-design-system.css?v=1">
     <link rel="stylesheet" href="views-redesign.css?v=4">
+    <!-- Componentes oficiais do design system (namespace .flowly-*).
+         Carregados POR ULTIMO para que as views novas usem eles sem conflito com os antigos. -->
+    <link rel="stylesheet" href="css/_components.css?v=6">
+    <link rel="stylesheet" href="css/_animations.css?v=1">
+    <link rel="stylesheet" href="css/_responsive.css?v=1">
+    <!-- CSS especificos de view (redesign 2026) -->
+    <link rel="stylesheet" href="css/views/projects.css?v=1">
 </head>
 
 <body class="safe-area-bottom">

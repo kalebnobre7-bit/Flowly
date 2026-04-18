@@ -1,0 +1,273 @@
+/* =============================================================
+   FLOWLY — DESIGN TOKENS
+   Fonte única de variáveis CSS. Namespace --flowly-*.
+   NUNCA declare tokens --flowly-* em outro arquivo.
+   Ver DESIGN-SYSTEM.md.
+   ============================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+    /* Superfícies */
+    --flowly-bg-body: #08090e;
+    --flowly-bg-body-gradient: radial-gradient(ellipse 60% 40% at 14% 8%, rgba(var(--flowly-accent-primary-rgb), 0.04) 0%, transparent 65%),
+                               radial-gradient(ellipse 42% 26% at 88% 84%, rgba(var(--flowly-accent-purple-rgb), 0.03) 0%, transparent 65%);
+    --flowly-bg-elevated: rgba(14, 15, 20, 0.78);
+    --flowly-bg-elevated-hover: rgba(18, 19, 26, 0.88);
+    --flowly-bg-glass: rgba(255, 255, 255, 0.028);
+    --flowly-bg-sidebar: linear-gradient(180deg, rgba(10, 11, 15, 0.98) 0%, rgba(11, 12, 18, 0.96) 100%);
+
+    /* Texto */
+    --flowly-text-primary: #f0eff4;
+    --flowly-text-secondary: #8e8a98;
+    --flowly-text-tertiary: #56535f;
+    --flowly-text-inverse: #08090e;
+
+    /* Bordas */
+    --flowly-border-subtle: rgba(255, 255, 255, 0.055);
+    --flowly-border-muted: rgba(255, 255, 255, 0.07);
+    --flowly-border-strong: rgba(255, 255, 255, 0.12);
+    --flowly-border-active: rgba(var(--flowly-accent-primary-rgb), 0.24);
+
+    /* Acentos — PRIMARY é verde (personalizável via --flowly-user-accent) */
+    --flowly-accent-primary: var(--flowly-user-accent, #22c55e);
+    --flowly-accent-primary-rgb: var(--flowly-user-accent-rgb, 34 197 94);
+    --flowly-accent-success: #22c55e;
+    --flowly-accent-success-rgb: 34 197 94;
+    --flowly-accent-info: #0A84FF;
+    --flowly-accent-info-rgb: 10 132 255;
+    --flowly-accent-warning: #FF9F0A;
+    --flowly-accent-warning-rgb: 255 159 10;
+    --flowly-accent-danger: #FF5C4D;
+    --flowly-accent-danger-rgb: 255 92 77;
+    --flowly-accent-purple: #a855f7;
+    --flowly-accent-purple-rgb: 168 85 247;
+    --flowly-accent-pink: #ec4899;
+    --flowly-accent-pink-rgb: 236 72 153;
+
+    /* Tags Notion-style */
+    --flowly-tag-default: transparent;
+    --flowly-tag-gray: #8e8a98;
+    --flowly-tag-blue: #0A84FF;
+    --flowly-tag-green: #22c55e;
+    --flowly-tag-yellow: #FFD60A;
+    --flowly-tag-orange: #FF9F0A;
+    --flowly-tag-red: #FF5C4D;
+    --flowly-tag-pink: #ec4899;
+    --flowly-tag-purple: #a855f7;
+    --flowly-tag-brown: #a77a4c;
+
+    /* Tipografia */
+    --flowly-font-main: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --flowly-font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --flowly-font-mono: ui-monospace, 'SF Mono', Menlo, 'JetBrains Mono', Consolas, monospace;
+
+    --flowly-text-2xs: 0.6875rem;
+    --flowly-text-xs:  0.75rem;
+    --flowly-text-sm:  0.8125rem;
+    --flowly-text-base: 0.9375rem;
+    --flowly-text-lg:  1.0625rem;
+    --flowly-text-xl:  1.25rem;
+    --flowly-text-2xl: 1.5rem;
+    --flowly-text-3xl: 2rem;
+    --flowly-text-display: clamp(2.25rem, 5vw, 3.5rem);
+
+    --flowly-line-tight: 1.15;
+    --flowly-line-snug: 1.3;
+    --flowly-line-base: 1.5;
+    --flowly-line-loose: 1.7;
+
+    --flowly-weight-regular: 400;
+    --flowly-weight-medium: 500;
+    --flowly-weight-semibold: 600;
+    --flowly-weight-bold: 700;
+    --flowly-weight-black: 800;
+
+    --flowly-letter-tight: -0.02em;
+    --flowly-letter-snug: -0.01em;
+    --flowly-letter-wide: 0.04em;
+    --flowly-letter-wider: 0.12em;
+
+    /* Radius */
+    --flowly-radius-sm: 8px;
+    --flowly-radius-md: 12px;
+    --flowly-radius-lg: 16px;
+    --flowly-radius-xl: 22px;
+    --flowly-radius-2xl: 28px;
+    --flowly-radius-full: 9999px;
+
+    /* Sombras */
+    --flowly-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --flowly-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.32);
+    --flowly-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+    --flowly-shadow-xl: 0 32px 64px rgba(0, 0, 0, 0.55);
+    --flowly-shadow-glow-primary: 0 8px 22px rgba(var(--flowly-accent-primary-rgb), 0.26);
+    --flowly-shadow-glow-success: 0 8px 22px rgba(var(--flowly-accent-success-rgb), 0.26);
+    --flowly-shadow-glow-danger: 0 8px 22px rgba(var(--flowly-accent-danger-rgb), 0.26);
+
+    /* Blur */
+    --flowly-blur-subtle: 8px;
+    --flowly-blur-panel: 12px;
+    --flowly-blur-modal: 24px;
+
+    /* Espaçamento */
+    --flowly-space-1: 4px;
+    --flowly-space-2: 8px;
+    --flowly-space-3: 12px;
+    --flowly-space-4: 16px;
+    --flowly-space-5: 20px;
+    --flowly-space-6: 24px;
+    --flowly-space-7: 28px;
+    --flowly-space-8: 32px;
+    --flowly-space-10: 40px;
+    --flowly-space-12: 48px;
+    --flowly-space-16: 64px;
+    --flowly-space-20: 80px;
+
+    /* Layout */
+    --flowly-shell-max: 1280px;
+    --flowly-shell-max-narrow: 1120px;
+    --flowly-shell-max-wide: 1400px;
+    --flowly-sidebar-width: 232px;
+    --flowly-sidebar-width-collapsed: 88px;
+    --flowly-mobile-nav-height: 64px;
+
+    /* Motion */
+    --flowly-duration-fast: 150ms;
+    --flowly-duration-base: 220ms;
+    --flowly-duration-slow: 380ms;
+    --flowly-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --flowly-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --flowly-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* Z-index */
+    --flowly-z-base: 1;
+    --flowly-z-sticky: 10;
+    --flowly-z-dropdown: 100;
+    --flowly-z-sidebar: 200;
+    --flowly-z-overlay: 500;
+    --flowly-z-modal: 1000;
+    --flowly-z-toast: 2000;
+    --flowly-z-noise: 9999;
+}
+
+/* =============================================================
+   ALIASES DE COMPATIBILIDADE — tokens legados resolvem pros --flowly-*
+   ============================================================= */
+:root {
+    /* Superfícies */
+    --bg-body: var(--flowly-bg-body);
+    --bg-card: var(--flowly-bg-elevated);
+    --bg-card-hover: var(--flowly-bg-elevated-hover);
+    --bg-glass: var(--flowly-bg-glass);
+
+    /* Texto */
+    --text-primary: var(--flowly-text-primary);
+    --text-secondary: var(--flowly-text-secondary);
+    --text-tertiary: var(--flowly-text-tertiary);
+
+    /* Bordas */
+    --border-subtle: var(--flowly-border-subtle);
+    --border-active: var(--flowly-border-active);
+    --border-panel: var(--flowly-border-muted);
+
+    /* Acentos legados */
+    --accent-blue: var(--flowly-accent-info);
+    --accent-green: var(--flowly-accent-success);
+    --accent-orange: var(--flowly-accent-warning);
+    --accent-red: var(--flowly-accent-danger);
+    --accent-purple: var(--flowly-accent-purple);
+    --accent-primary-rgb: var(--flowly-accent-primary-rgb);
+    --accent-secondary-rgb: var(--flowly-accent-warning-rgb);
+
+    /* Radius */
+    --radius-sm: var(--flowly-radius-sm);
+    --radius-md: var(--flowly-radius-md);
+    --radius-lg: var(--flowly-radius-lg);
+    --radius-xl: var(--flowly-radius-xl);
+    --radius-2xl: var(--flowly-radius-2xl);
+
+    /* Sombras */
+    --shadow-sm: var(--flowly-shadow-sm);
+    --shadow-md: var(--flowly-shadow-md);
+    --shadow-panel: var(--flowly-shadow-md);
+    --shadow-card: var(--flowly-shadow-sm);
+    --shadow-card-hover: var(--flowly-shadow-md);
+    --shadow-glow-blue: var(--flowly-shadow-glow-primary);
+    --shadow-glow-green: var(--flowly-shadow-glow-success);
+    --shadow-glow-purple: 0 8px 22px rgba(var(--flowly-accent-purple-rgb), 0.26);
+
+    /* Painel */
+    --surface-panel: var(--flowly-bg-elevated);
+    --surface-panel-strong: var(--flowly-bg-elevated-hover);
+    --surface-panel-elevated: var(--flowly-bg-elevated-hover);
+    --panel-blur: var(--flowly-blur-panel);
+
+    /* Shell */
+    --shell-max-width: var(--flowly-shell-max);
+    --shell-max-width-narrow: var(--flowly-shell-max-narrow);
+    --shell-max-width-wide: var(--flowly-shell-max-wide);
+
+    /* Tipografia */
+    --font-main: var(--flowly-font-main);
+    --font-display: var(--flowly-font-display);
+    --ease-out-expo: var(--flowly-ease-out);
+
+    /* Tokens --ds-* (Finance / Projects) */
+    --ds-bg-base: var(--flowly-bg-body);
+    --ds-bg-raised: var(--flowly-bg-elevated);
+    --ds-bg-overlay: var(--flowly-bg-elevated-hover);
+    --ds-bg-glass: var(--flowly-bg-glass);
+    --ds-bg-glass-strong: rgba(255, 255, 255, 0.06);
+    --ds-bg-input: rgba(255, 255, 255, 0.05);
+    --ds-border: var(--flowly-border-muted);
+    --ds-border-strong: var(--flowly-border-strong);
+    --ds-border-accent: rgba(var(--flowly-accent-primary-rgb), 0.26);
+    --ds-text-primary: var(--flowly-text-primary);
+    --ds-text-secondary: var(--flowly-text-secondary);
+    --ds-text-muted: var(--flowly-text-tertiary);
+    --ds-text-inverse: var(--flowly-text-inverse);
+    --ds-accent: var(--flowly-accent-primary);
+    --ds-accent-rgb: var(--flowly-accent-primary-rgb);
+    --ds-accent-dim: rgba(var(--flowly-accent-primary-rgb), 0.14);
+    --ds-accent-glow: rgba(var(--flowly-accent-primary-rgb), 0.22);
+    --ds-success: var(--flowly-accent-success);
+    --ds-success-rgb: var(--flowly-accent-success-rgb);
+    --ds-success-dim: rgba(var(--flowly-accent-success-rgb), 0.14);
+    --ds-warning: var(--flowly-accent-warning);
+    --ds-warning-dim: rgba(var(--flowly-accent-warning-rgb), 0.14);
+    --ds-danger: var(--flowly-accent-danger);
+    --ds-danger-dim: rgba(var(--flowly-accent-danger-rgb), 0.14);
+    --ds-info: var(--flowly-accent-info);
+    --ds-info-dim: rgba(var(--flowly-accent-info-rgb), 0.14);
+    --ds-purple: var(--flowly-accent-purple);
+    --ds-purple-dim: rgba(var(--flowly-accent-purple-rgb), 0.12);
+    --ds-r-xs: 4px;
+    --ds-r-sm: var(--flowly-radius-sm);
+    --ds-r-md: var(--flowly-radius-md);
+    --ds-r-lg: var(--flowly-radius-lg);
+    --ds-r-xl: var(--flowly-radius-xl);
+    --ds-r-2xl: var(--flowly-radius-2xl);
+    --ds-r-pill: var(--flowly-radius-full);
+    --ds-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.25);
+    --ds-shadow-sm: var(--flowly-shadow-sm);
+    --ds-shadow-md: var(--flowly-shadow-md);
+    --ds-shadow-lg: var(--flowly-shadow-lg);
+    --ds-shadow-glow: 0 0 28px rgba(var(--flowly-accent-primary-rgb), 0.18);
+    --ds-space-2: var(--flowly-space-2);
+    --ds-space-3: var(--flowly-space-3);
+    --ds-space-4: var(--flowly-space-4);
+    --ds-space-5: var(--flowly-space-5);
+    --ds-space-6: var(--flowly-space-6);
+    --ds-ease: var(--flowly-ease-out);
+    --ds-transition: var(--flowly-duration-base) var(--flowly-ease-out);
+    --ds-font-body: var(--flowly-font-main);
+    --ds-font-display: var(--flowly-font-display);
+    --ds-font-mono: var(--flowly-font-mono);
+    --ds-panel-bg: var(--flowly-bg-elevated);
+    --ds-panel-border: var(--flowly-border-subtle);
+    --ds-panel-blur: var(--flowly-blur-panel);
+    --ds-panel-radius: var(--flowly-radius-lg);
+    --ds-panel-shadow: var(--flowly-shadow-md);
+    --ds-panel-inner-highlight: rgba(255, 255, 255, 0.04);
+}

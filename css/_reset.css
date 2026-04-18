@@ -1,0 +1,139 @@
+/* =============================================================
+   FLOWLY — RESET GLOBAL
+   Normalizações, body base, scrollbar, noise.
+   Depende de: _tokens.css
+   ============================================================= */
+
+/* --- Reset moderno (Josh Comeau style, simplificado) --- */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+* {
+    margin: 0;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    line-height: var(--flowly-line-base);
+    font-family: var(--flowly-font-main);
+    color: var(--flowly-text-primary);
+    background-color: var(--flowly-bg-body);
+    background-image: var(--flowly-bg-body-gradient);
+    overflow-x: hidden;
+    padding: 0;
+}
+
+img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+}
+
+input, button, textarea, select {
+    font: inherit;
+    color: inherit;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+}
+
+button {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: inherit;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+:focus-visible {
+    outline: 2px solid var(--flowly-accent-primary);
+    outline-offset: 2px;
+    border-radius: var(--flowly-radius-sm);
+}
+
+::selection {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.28);
+    color: var(--flowly-text-primary);
+}
+
+/* --- Noise texture global (sutil, cinematográfica) --- */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.022;
+    pointer-events: none;
+    z-index: var(--flowly-z-noise);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 128px 128px;
+}
+
+/* --- Scrollbar unificada (5px, discreta) --- */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: var(--flowly-radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* --- Safe area (iOS notch, gesture bar) --- */
+.safe-area-top {
+    padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* --- Utilitários discretos --- */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- Checkboxes e radios nativos usam a cor primária do Flowly --- */
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--flowly-accent-primary);
+}

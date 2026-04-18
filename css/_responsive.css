@@ -1,0 +1,155 @@
+/* =============================================================
+   FLOWLY — RESPONSIVE
+   Media queries consolidadas. Mobile-first: aqui vivem APENAS
+   os overrides para viewports maiores.
+   Depende de: _tokens.css, _shell.css, _components.css
+   ============================================================= */
+
+/* =============================================================
+   Breakpoints oficiais
+     --  ≤640px : phone pequeno
+     --  ≤768px : phone grande / phablet
+     --  ≤1024px: tablet
+     --   >1024px: desktop
+   ============================================================= */
+
+/* --- Desktop ajustes (acima de 1024px) --- */
+@media (min-width: 1024px) {
+    .app-main {
+        padding: var(--flowly-space-7) var(--flowly-space-8);
+    }
+
+    .flowly-page-header__title h1 {
+        font-size: var(--flowly-text-2xl);
+    }
+}
+
+/* --- Desktop wide (acima de 1400px) --- */
+@media (min-width: 1400px) {
+    .app-main {
+        max-width: var(--flowly-shell-max-wide);
+    }
+}
+
+/* --- Tablet (até 1024px) --- */
+@media (max-width: 1024px) {
+    .app-shell {
+        grid-template-columns: var(--flowly-sidebar-width-collapsed) minmax(0, 1fr);
+    }
+
+    body:not(.sidebar-expanded-mobile) .sidebar-brand-copy,
+    body:not(.sidebar-expanded-mobile) .sidebar-nav-btn span {
+        display: none;
+    }
+}
+
+/* --- Mobile (até 768px) --- */
+@media (max-width: 768px) {
+    .app-shell {
+        display: block;
+    }
+
+    .app-main {
+        padding: var(--flowly-space-4) var(--flowly-space-3) calc(var(--flowly-mobile-nav-height) + var(--flowly-space-7));
+        max-width: 100%;
+    }
+
+    .flowly-panel {
+        padding: var(--flowly-space-4);
+        border-radius: var(--flowly-radius-md);
+    }
+
+    .flowly-page-header {
+        flex-direction: column;
+        align-items: stretch;
+        padding-bottom: var(--flowly-space-4);
+        margin-bottom: var(--flowly-space-4);
+    }
+
+    .flowly-page-header__title h1 {
+        font-size: var(--flowly-text-xl);
+    }
+
+    .flowly-stat-card {
+        padding: var(--flowly-space-3) var(--flowly-space-4);
+    }
+
+    .flowly-stat-card__value {
+        font-size: var(--flowly-text-2xl);
+    }
+
+    .flowly-modal__content {
+        padding: var(--flowly-space-5);
+        border-radius: var(--flowly-radius-lg);
+    }
+
+    .today-dashboard-strip {
+        gap: var(--flowly-space-3);
+        padding: var(--flowly-space-2) var(--flowly-space-3);
+        flex-wrap: wrap;
+    }
+}
+
+/* --- Phone pequeno (até 640px) --- */
+@media (max-width: 640px) {
+    .flowly-btn {
+        font-size: var(--flowly-text-sm);
+    }
+
+    .flowly-btn--lg {
+        padding: var(--flowly-space-3) var(--flowly-space-5);
+        font-size: var(--flowly-text-base);
+    }
+
+    .today-strip-divider {
+        display: none;
+    }
+}
+
+/* --- Phone bem pequeno (até 375px) --- */
+@media (max-width: 375px) {
+    .app-main {
+        padding-left: var(--flowly-space-2);
+        padding-right: var(--flowly-space-2);
+    }
+
+    .flowly-panel {
+        padding: var(--flowly-space-3);
+    }
+}
+
+/* --- Dark mode (já é o default; este bloco é um placeholder para futuro light mode) --- */
+@media (prefers-color-scheme: dark) {
+    /* Flowly já é dark-first. Nada a fazer. */
+}
+
+/* --- Touch devices (remove hovers fantasma) --- */
+@media (hover: none) {
+    .flowly-btn:hover {
+        transform: none;
+    }
+
+    .flowly-task-item:hover {
+        background: var(--flowly-bg-glass);
+        border-color: var(--flowly-border-subtle);
+    }
+
+    .flowly-panel:hover {
+        background: var(--flowly-bg-elevated);
+    }
+}
+
+/* --- Print (se algum dia fizer sentido) --- */
+@media print {
+    .app-sidebar,
+    .mobile-nav,
+    .flowly-modal,
+    #quickAddMenu {
+        display: none !important;
+    }
+
+    body {
+        background: #ffffff;
+        color: #000000;
+    }
+}

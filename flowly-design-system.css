@@ -19,95 +19,11 @@
 /* ---------------------------------------------------------
    IMPORTS
    --------------------------------------------------------- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Sora:wght@700;800;900&display=swap');
-
-/* ---------------------------------------------------------
-   1. DESIGN TOKENS
-   --------------------------------------------------------- */
-:root {
-  /* --- Backgrounds --- */
-  --ds-bg-base:          #08090e;
-  --ds-bg-raised:        rgba(15, 16, 22, 0.92);
-  --ds-bg-overlay:       rgba(20, 21, 30, 0.96);
-  --ds-bg-glass:         rgba(255, 255, 255, 0.032);
-  --ds-bg-glass-strong:  rgba(255, 255, 255, 0.06);
-  --ds-bg-input:         rgba(255, 255, 255, 0.05);
-
-  /* --- Borders --- */
-  --ds-border:           rgba(255, 255, 255, 0.07);
-  --ds-border-strong:    rgba(255, 255, 255, 0.13);
-  --ds-border-accent:    rgba(var(--ds-accent-rgb), 0.26);
-
-  /* --- Text --- */
-  --ds-text-primary:     #f0eff4;
-  --ds-text-secondary:   #8e8a98;
-  --ds-text-muted:       #4e4b58;
-  --ds-text-inverse:     #08090e;
-
-  /* --- Accent — Orange (Flowly primário) --- */
-  --ds-accent:           #F27405;
-  --ds-accent-rgb:       242, 116, 5;
-  --ds-accent-dim:       rgba(242, 116, 5, 0.14);
-  --ds-accent-glow:      rgba(242, 116, 5, 0.22);
-
-  /* --- Status colors --- */
-  --ds-success:          #22c55e;
-  --ds-success-rgb:      34, 197, 94;
-  --ds-success-dim:      rgba(34, 197, 94, 0.14);
-  --ds-warning:          #f59e0b;
-  --ds-warning-dim:      rgba(245, 158, 11, 0.14);
-  --ds-danger:           #ef4444;
-  --ds-danger-dim:       rgba(239, 68, 68, 0.14);
-  --ds-info:             #3b82f6;
-  --ds-info-dim:         rgba(59, 130, 246, 0.14);
-  --ds-purple:           #a855f7;
-  --ds-purple-dim:       rgba(168, 85, 247, 0.12);
-
-  /* --- Radius --- */
-  --ds-r-xs:   4px;
-  --ds-r-sm:   8px;
-  --ds-r-md:   12px;
-  --ds-r-lg:   16px;
-  --ds-r-xl:   20px;
-  --ds-r-2xl:  24px;
-  --ds-r-pill: 999px;
-
-  /* --- Shadows --- */
-  --ds-shadow-xs:   0 1px 3px rgba(0,0,0,0.25);
-  --ds-shadow-sm:   0 2px 8px rgba(0,0,0,0.32);
-  --ds-shadow-md:   0 6px 20px rgba(0,0,0,0.38);
-  --ds-shadow-lg:   0 16px 48px rgba(0,0,0,0.45);
-  --ds-shadow-glow: 0 0 28px rgba(var(--ds-accent-rgb), 0.18);
-
-  /* --- Typography --- */
-  --ds-font-body:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --ds-font-display: 'Sora', 'Inter', sans-serif;
-  --ds-font-mono:    'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-
-  /* --- Spacing scale (multiples of 4) --- */
-  --ds-space-1: 4px;
-  --ds-space-2: 8px;
-  --ds-space-3: 12px;
-  --ds-space-4: 16px;
-  --ds-space-5: 20px;
-  --ds-space-6: 24px;
-  --ds-space-8: 32px;
-  --ds-space-10: 40px;
-  --ds-space-12: 48px;
-
-  /* --- Transitions --- */
-  --ds-ease:       cubic-bezier(0.16, 1, 0.3, 1);
-  --ds-ease-fast:  cubic-bezier(0.23, 1, 0.32, 1);
-  --ds-transition: 0.22s var(--ds-ease);
-
-  /* --- Panel (card) system --- */
-  --ds-panel-bg:       rgba(14, 15, 21, 0.8);
-  --ds-panel-border:   rgba(255, 255, 255, 0.07);
-  --ds-panel-radius:   var(--ds-r-lg);
-  --ds-panel-blur:     12px;
-  --ds-panel-shadow:   var(--ds-shadow-sm);
-  --ds-panel-inner-highlight: inset 0 1px 0 rgba(255,255,255,0.07);
-}
+/* Inter/Sora removidos: fontes vem de _tokens.css */
+/* =============================================================
+   TOKENS DESABILITADOS — aliases --ds-* agora vivem em css/_tokens.css.
+   ============================================================= */
+/* Bloco :root original removido (aliases resolvem pros --flowly-*). */
 
 /* ---------------------------------------------------------
    2. GLOBAL RESET / TYPOGRAPHY

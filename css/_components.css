@@ -1,0 +1,1069 @@
+/* =============================================================
+   FLOWLY — COMPONENTES OFICIAIS
+   Cada classe tem UMA definição única.
+   Ver DESIGN-SYSTEM.md antes de editar.
+   Depende de: _tokens.css
+   ============================================================= */
+
+/* =============================================================
+   1. FLOWLY-PANEL — painel padrão (base de qualquer card)
+   ============================================================= */
+.flowly-panel {
+    background: var(--flowly-bg-elevated);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-lg);
+    backdrop-filter: blur(var(--flowly-blur-panel));
+    -webkit-backdrop-filter: blur(var(--flowly-blur-panel));
+    box-shadow: var(--flowly-shadow-md);
+    padding: var(--flowly-space-5);
+    transition: background var(--flowly-duration-base) var(--flowly-ease-out),
+                border-color var(--flowly-duration-base) var(--flowly-ease-out),
+                box-shadow var(--flowly-duration-base) var(--flowly-ease-out);
+}
+
+.flowly-panel:hover {
+    background: var(--flowly-bg-elevated-hover);
+}
+
+.flowly-panel--elevated {
+    box-shadow: var(--flowly-shadow-lg);
+}
+
+.flowly-panel--flat {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+}
+
+.flowly-panel--compact {
+    padding: var(--flowly-space-4);
+    border-radius: var(--flowly-radius-md);
+}
+
+/* =============================================================
+   2. FLOWLY-PAGE-HEADER — cabeçalho padrão de toda view
+   ============================================================= */
+.flowly-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--flowly-space-4);
+    flex-wrap: wrap;
+    padding: var(--flowly-space-2) 0 var(--flowly-space-6);
+    margin-bottom: var(--flowly-space-6);
+    border-bottom: 1px solid var(--flowly-border-muted);
+}
+
+.flowly-page-header__title {
+    display: flex;
+    flex-direction: column;
+    gap: var(--flowly-space-1);
+    flex: 1;
+    min-width: 0;
+}
+
+.flowly-page-header__title h1 {
+    font-family: var(--flowly-font-display);
+    font-size: var(--flowly-text-2xl);
+    font-weight: var(--flowly-weight-bold);
+    letter-spacing: var(--flowly-letter-tight);
+    color: var(--flowly-text-primary);
+    line-height: var(--flowly-line-tight);
+}
+
+.flowly-page-header__subtitle {
+    font-size: var(--flowly-text-sm);
+    color: var(--flowly-text-secondary);
+    line-height: var(--flowly-line-snug);
+}
+
+.flowly-page-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-2);
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .flowly-page-header {
+        padding: var(--flowly-space-1) 0 var(--flowly-space-4);
+        margin-bottom: var(--flowly-space-4);
+    }
+    .flowly-page-header__title h1 {
+        font-size: var(--flowly-text-xl);
+    }
+    .flowly-page-header__actions {
+        width: 100%;
+    }
+}
+
+/* =============================================================
+   3. FLOWLY-STAT-CARD — cartão de estatística
+   ============================================================= */
+.flowly-stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--flowly-space-2);
+    padding: var(--flowly-space-4) var(--flowly-space-5);
+    background: var(--flowly-bg-elevated);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-lg);
+    backdrop-filter: blur(var(--flowly-blur-panel));
+    transition: transform var(--flowly-duration-base) var(--flowly-ease-out),
+                border-color var(--flowly-duration-base) var(--flowly-ease-out);
+    position: relative;
+    overflow: hidden;
+}
+
+.flowly-stat-card:hover {
+    border-color: var(--flowly-border-strong);
+}
+
+.flowly-stat-card__label {
+    font-size: var(--flowly-text-sm);
+    font-weight: var(--flowly-weight-medium);
+    letter-spacing: 0;
+    color: var(--flowly-text-secondary);
+    font-family: var(--flowly-font-main);
+}
+
+.flowly-stat-card__value {
+    font-family: var(--flowly-font-display);
+    font-size: var(--flowly-text-3xl);
+    font-weight: var(--flowly-weight-bold);
+    letter-spacing: var(--flowly-letter-tight);
+    color: var(--flowly-text-primary);
+    line-height: var(--flowly-line-tight);
+}
+
+.flowly-stat-card__hint {
+    font-size: var(--flowly-text-xs);
+    color: var(--flowly-text-secondary);
+}
+
+.flowly-stat-card--success .flowly-stat-card__value { color: var(--flowly-accent-success); }
+.flowly-stat-card--warning .flowly-stat-card__value { color: var(--flowly-accent-warning); }
+.flowly-stat-card--danger .flowly-stat-card__value { color: var(--flowly-accent-danger); }
+.flowly-stat-card--primary .flowly-stat-card__value { color: var(--flowly-accent-primary); }
+
+/* =============================================================
+   4. FLOWLY-TASK-ITEM — item de tarefa unificado
+   ============================================================= */
+.flowly-task-item {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-3);
+    padding: var(--flowly-space-3) var(--flowly-space-4);
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
+                border-color var(--flowly-duration-fast) var(--flowly-ease-out),
+                transform var(--flowly-duration-fast) var(--flowly-ease-out);
+    min-height: 44px; /* Toque mínimo mobile */
+    cursor: pointer;
+}
+
+.flowly-task-item:hover {
+    background: rgba(255, 255, 255, 0.035);
+    border-color: var(--flowly-border-strong);
+}
+
+.flowly-task-item__check {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--flowly-radius-sm);
+    border: 1.5px solid var(--flowly-text-tertiary);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    transition: all var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.flowly-task-item__check:hover {
+    border-color: var(--flowly-accent-success);
+}
+
+.flowly-task-item__text {
+    flex: 1;
+    font-size: var(--flowly-text-base);
+    color: var(--flowly-text-primary);
+    line-height: var(--flowly-line-snug);
+    min-width: 0;
+}
+
+.flowly-task-item__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-2);
+    flex-shrink: 0;
+    color: var(--flowly-text-tertiary);
+}
+
+/* Estados */
+.flowly-task-item.is-done {
+    opacity: 0.5;
+}
+
+.flowly-task-item.is-done .flowly-task-item__text {
+    text-decoration: line-through;
+}
+
+.flowly-task-item.is-done .flowly-task-item__check {
+    background: var(--flowly-accent-success);
+    border-color: var(--flowly-accent-success);
+    color: var(--flowly-text-inverse);
+}
+
+.flowly-task-item.is-editing {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.08);
+    border-color: var(--flowly-border-active);
+}
+
+.flowly-task-item.is-dragging {
+    opacity: 0.4;
+    transform: scale(0.98);
+}
+
+/* Cores de categoria (Notion-style) */
+.flowly-task-item[data-color="blue"]   { border-left: 3px solid var(--flowly-tag-blue); }
+.flowly-task-item[data-color="green"]  { border-left: 3px solid var(--flowly-tag-green); }
+.flowly-task-item[data-color="yellow"] { border-left: 3px solid var(--flowly-tag-yellow); }
+.flowly-task-item[data-color="orange"] { border-left: 3px solid var(--flowly-tag-orange); }
+.flowly-task-item[data-color="red"]    { border-left: 3px solid var(--flowly-tag-red); }
+.flowly-task-item[data-color="pink"]   { border-left: 3px solid var(--flowly-tag-pink); }
+.flowly-task-item[data-color="purple"] { border-left: 3px solid var(--flowly-tag-purple); }
+.flowly-task-item[data-color="brown"]  { border-left: 3px solid var(--flowly-tag-brown); }
+.flowly-task-item[data-color="gray"]   { border-left: 3px solid var(--flowly-tag-gray); }
+
+/* =============================================================
+   5. FLOWLY-BTN — botão com variantes
+   ============================================================= */
+.flowly-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--flowly-space-2);
+    padding: var(--flowly-space-3) var(--flowly-space-5);
+    min-height: 44px;
+    min-width: 44px;
+    border-radius: var(--flowly-radius-md);
+    font-family: var(--flowly-font-main);
+    font-size: var(--flowly-text-sm);
+    font-weight: var(--flowly-weight-semibold);
+    letter-spacing: var(--flowly-letter-snug);
+    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
+                color var(--flowly-duration-fast) var(--flowly-ease-out),
+                transform var(--flowly-duration-fast) var(--flowly-ease-out),
+                box-shadow var(--flowly-duration-fast) var(--flowly-ease-out);
+    user-select: none;
+    white-space: nowrap;
+}
+
+.flowly-btn:hover {
+    transform: translateY(-1px);
+}
+
+.flowly-btn:active {
+    transform: translateY(0);
+}
+
+.flowly-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Primary — CTA principal */
+.flowly-btn--primary {
+    background: var(--flowly-accent-primary);
+    color: #ffffff;
+    box-shadow: var(--flowly-shadow-glow-primary);
+}
+
+.flowly-btn--primary:hover {
+    background: color-mix(in srgb, var(--flowly-accent-primary) 90%, white);
+}
+
+/* Secondary — ações secundárias */
+.flowly-btn--secondary {
+    background: var(--flowly-bg-elevated);
+    border: 1px solid var(--flowly-border-subtle);
+    color: var(--flowly-text-primary);
+    backdrop-filter: blur(var(--flowly-blur-panel));
+}
+
+.flowly-btn--secondary:hover {
+    background: var(--flowly-bg-elevated-hover);
+    border-color: var(--flowly-border-strong);
+}
+
+/* Ghost — ações terciárias */
+.flowly-btn--ghost {
+    background: transparent;
+    color: var(--flowly-text-secondary);
+}
+
+.flowly-btn--ghost:hover {
+    background: var(--flowly-bg-glass);
+    color: var(--flowly-text-primary);
+}
+
+/* Danger — delete, reset */
+.flowly-btn--danger {
+    background: rgba(var(--flowly-accent-danger-rgb), 0.1);
+    color: var(--flowly-accent-danger);
+    border: 1px solid rgba(var(--flowly-accent-danger-rgb), 0.24);
+}
+
+.flowly-btn--danger:hover {
+    background: rgba(var(--flowly-accent-danger-rgb), 0.18);
+}
+
+/* Sizes */
+.flowly-btn--sm {
+    padding: var(--flowly-space-2) var(--flowly-space-3);
+    min-height: 36px;
+    font-size: var(--flowly-text-xs);
+}
+
+.flowly-btn--lg {
+    padding: var(--flowly-space-4) var(--flowly-space-6);
+    min-height: 52px;
+    font-size: var(--flowly-text-base);
+}
+
+.flowly-btn--icon {
+    padding: 0;
+    width: 44px;
+    min-width: 44px;
+}
+
+/* =============================================================
+   6. FLOWLY-MODAL — modal padrão
+   ============================================================= */
+.flowly-modal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--flowly-z-modal);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--flowly-space-4);
+}
+
+.flowly-modal.is-open {
+    display: flex;
+}
+
+.flowly-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(var(--flowly-blur-modal));
+    -webkit-backdrop-filter: blur(var(--flowly-blur-modal));
+}
+
+.flowly-modal__content {
+    position: relative;
+    z-index: 1;
+    background: rgba(12, 13, 18, 0.94);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-xl);
+    box-shadow: var(--flowly-shadow-xl);
+    padding: var(--flowly-space-8);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    backdrop-filter: blur(var(--flowly-blur-panel));
+}
+
+.flowly-modal__close {
+    position: absolute;
+    top: var(--flowly-space-4);
+    right: var(--flowly-space-4);
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--flowly-radius-md);
+    color: var(--flowly-text-tertiary);
+    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
+                color var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.flowly-modal__close:hover {
+    background: var(--flowly-bg-glass);
+    color: var(--flowly-text-primary);
+}
+
+/* =============================================================
+   7. FLOWLY-PILL — pill / badge
+   ============================================================= */
+.flowly-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--flowly-space-1);
+    padding: 3px 10px;
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-full);
+    font-family: var(--flowly-font-main);
+    font-size: var(--flowly-text-xs);
+    font-weight: var(--flowly-weight-medium);
+    letter-spacing: 0;
+    color: var(--flowly-text-secondary);
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.flowly-pill--primary {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.12);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.28);
+    color: var(--flowly-accent-primary);
+}
+
+.flowly-pill--success {
+    background: rgba(var(--flowly-accent-success-rgb), 0.12);
+    border-color: rgba(var(--flowly-accent-success-rgb), 0.28);
+    color: var(--flowly-accent-success);
+}
+
+.flowly-pill--warning {
+    background: rgba(var(--flowly-accent-warning-rgb), 0.12);
+    border-color: rgba(var(--flowly-accent-warning-rgb), 0.28);
+    color: var(--flowly-accent-warning);
+}
+
+.flowly-pill--danger {
+    background: rgba(var(--flowly-accent-danger-rgb), 0.12);
+    border-color: rgba(var(--flowly-accent-danger-rgb), 0.28);
+    color: var(--flowly-accent-danger);
+}
+
+/* =============================================================
+   8. FLOWLY-INPUT — input de formulário
+   ============================================================= */
+.flowly-input {
+    width: 100%;
+    padding: var(--flowly-space-3) var(--flowly-space-4);
+    min-height: 44px;
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+    color: var(--flowly-text-primary);
+    font-family: var(--flowly-font-main);
+    font-size: var(--flowly-text-base);
+    transition: border-color var(--flowly-duration-fast) var(--flowly-ease-out),
+                background var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.flowly-input::placeholder {
+    color: var(--flowly-text-tertiary);
+}
+
+.flowly-input:focus {
+    outline: none;
+    background: var(--flowly-bg-elevated);
+    border-color: var(--flowly-border-active);
+    box-shadow: 0 0 0 3px rgba(var(--flowly-accent-primary-rgb), 0.12);
+}
+
+/* =============================================================
+   9. FLOWLY-DIVIDER
+   ============================================================= */
+.flowly-divider {
+    height: 1px;
+    background: var(--flowly-border-muted);
+    border: 0;
+    margin: var(--flowly-space-4) 0;
+}
+
+.flowly-divider--vertical {
+    width: 1px;
+    height: auto;
+    align-self: stretch;
+    margin: 0 var(--flowly-space-3);
+}
+
+/* =============================================================
+   10. FLOWLY-DELTA — badge de variação (+3.2% / -1.5%)
+   Estilo dos KPIs das referências visuais.
+   ============================================================= */
+.flowly-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 8px;
+    border-radius: var(--flowly-radius-sm);
+    font-family: var(--flowly-font-main);
+    font-size: var(--flowly-text-xs);
+    font-weight: var(--flowly-weight-medium);
+    letter-spacing: 0;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.flowly-delta--up {
+    background: rgba(var(--flowly-accent-success-rgb), 0.14);
+    color: var(--flowly-accent-success);
+}
+
+.flowly-delta--down {
+    background: rgba(var(--flowly-accent-danger-rgb), 0.14);
+    color: var(--flowly-accent-danger);
+}
+
+.flowly-delta--neutral {
+    background: var(--flowly-bg-glass);
+    color: var(--flowly-text-secondary);
+}
+
+/* =============================================================
+   11. FLOWLY-PRIORITY-CARD — card com top-border de prioridade
+   Inspirado nos kanban cards das referências (LOW / URGENT / etc).
+   ============================================================= */
+.flowly-priority-card {
+    position: relative;
+    background: var(--flowly-bg-elevated);
+    border: 1px dashed var(--flowly-border-muted);
+    border-radius: var(--flowly-radius-lg);
+    padding: var(--flowly-space-5);
+    padding-top: var(--flowly-space-6);
+    overflow: hidden;
+    transition: border-color var(--flowly-duration-base) var(--flowly-ease-out),
+                transform var(--flowly-duration-base) var(--flowly-ease-out);
+}
+
+.flowly-priority-card:hover {
+    border-color: var(--flowly-border-strong);
+    transform: translateY(-1px);
+}
+
+.flowly-priority-card__label {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 14px;
+    font-family: var(--flowly-font-main);
+    font-size: var(--flowly-text-2xs);
+    font-weight: var(--flowly-weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom-left-radius: var(--flowly-radius-sm);
+    border-bottom-right-radius: var(--flowly-radius-sm);
+    line-height: 1;
+    background: var(--flowly-accent-success);
+    color: var(--flowly-text-inverse);
+    white-space: nowrap;
+}
+
+.flowly-priority-card--low .flowly-priority-card__label    { background: var(--flowly-accent-success); color: var(--flowly-text-inverse); }
+.flowly-priority-card--medium .flowly-priority-card__label { background: var(--flowly-accent-info); color: #fff; }
+.flowly-priority-card--high .flowly-priority-card__label   { background: var(--flowly-accent-warning); color: var(--flowly-text-inverse); }
+.flowly-priority-card--urgent .flowly-priority-card__label { background: var(--flowly-accent-danger); color: #fff; }
+
+/* =============================================================
+   12. FLOWLY-KBD — atalho de teclado (estilo ⌘F das referências)
+   ============================================================= */
+.flowly-kbd {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-muted);
+    border-radius: var(--flowly-radius-sm);
+    font-family: var(--flowly-font-mono);
+    font-size: var(--flowly-text-2xs);
+    font-weight: var(--flowly-weight-medium);
+    color: var(--flowly-text-secondary);
+    line-height: 1;
+}
+
+/* =============================================================
+   13. FLOWLY-SEARCH-INPUT — campo de busca com ícone e shortcut
+   Estilo do search da sidebar das referências.
+   ============================================================= */
+.flowly-search {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-2);
+    padding: var(--flowly-space-2) var(--flowly-space-3);
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+    transition: border-color var(--flowly-duration-fast) var(--flowly-ease-out),
+                background var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.flowly-search:focus-within {
+    border-color: var(--flowly-border-active);
+    background: var(--flowly-bg-elevated);
+}
+
+.flowly-search__icon {
+    color: var(--flowly-text-tertiary);
+    flex-shrink: 0;
+}
+
+.flowly-search__input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    color: var(--flowly-text-primary);
+    font-family: var(--flowly-font-main);
+    font-size: var(--flowly-text-sm);
+}
+
+.flowly-search__input::placeholder {
+    color: var(--flowly-text-tertiary);
+}
+
+.flowly-search__shortcut {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+/* =============================================================
+   14. FLOWLY-STAT-CARD-RICH — variante do stat-card com delta integrado
+   Formato das KPIs das referências (Tasks completed / 158 / +3.2%).
+   ============================================================= */
+.flowly-stat-card-rich {
+    display: flex;
+    flex-direction: column;
+    gap: var(--flowly-space-4);
+    padding: var(--flowly-space-5) var(--flowly-space-6);
+    background: var(--flowly-bg-elevated);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-lg);
+    transition: border-color var(--flowly-duration-base) var(--flowly-ease-out);
+}
+
+.flowly-stat-card-rich:hover {
+    border-color: var(--flowly-border-strong);
+}
+
+.flowly-stat-card-rich__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--flowly-space-3);
+}
+
+.flowly-stat-card-rich__label {
+    font-size: var(--flowly-text-sm);
+    font-weight: var(--flowly-weight-medium);
+    color: var(--flowly-text-secondary);
+}
+
+.flowly-stat-card-rich__body {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--flowly-space-4);
+}
+
+.flowly-stat-card-rich__value {
+    font-family: var(--flowly-font-display);
+    font-size: var(--flowly-text-3xl);
+    font-weight: var(--flowly-weight-bold);
+    letter-spacing: var(--flowly-letter-tight);
+    color: var(--flowly-text-primary);
+    line-height: 1;
+}
+
+.flowly-stat-card-rich__viz {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    color: var(--flowly-text-tertiary);
+    flex-shrink: 0;
+    min-width: 0;
+    max-width: 50%;
+    overflow: hidden;
+}
+
+/* =============================================================
+   15. FLOWLY-AVATAR — avatar circular com variantes empilhadas
+   ============================================================= */
+.flowly-avatar {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--flowly-radius-full);
+    background: var(--flowly-bg-elevated);
+    border: 2px solid var(--flowly-bg-body);
+    font-size: var(--flowly-text-xs);
+    font-weight: var(--flowly-weight-semibold);
+    color: var(--flowly-text-primary);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.flowly-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.flowly-avatar-group {
+    display: inline-flex;
+}
+
+.flowly-avatar-group .flowly-avatar + .flowly-avatar {
+    margin-left: -8px;
+}
+
+.flowly-avatar--sm { width: 22px; height: 22px; }
+.flowly-avatar--lg { width: 36px; height: 36px; }
+
+/* =============================================================
+   16. FLOWLY-DOTTED — superfícies com borda tracejada (slots vazios)
+   ============================================================= */
+.flowly-dotted {
+    border: 1.5px dashed var(--flowly-border-muted);
+    background: transparent;
+    border-radius: var(--flowly-radius-lg);
+}
+
+.flowly-dotted:hover {
+    border-color: var(--flowly-border-strong);
+}
+
+/* =============================================================
+   17. FLOWLY-SEGMENTED — segmented control (tabs estilo "Overview / Team")
+   ============================================================= */
+.flowly-segmented {
+    display: inline-flex;
+    padding: 4px;
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+    gap: 2px;
+}
+
+.flowly-segmented__item {
+    padding: var(--flowly-space-2) var(--flowly-space-4);
+    border-radius: var(--flowly-radius-sm);
+    font-size: var(--flowly-text-sm);
+    font-weight: var(--flowly-weight-medium);
+    color: var(--flowly-text-secondary);
+    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
+                color var(--flowly-duration-fast) var(--flowly-ease-out);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.flowly-segmented__item:hover {
+    color: var(--flowly-text-primary);
+}
+
+.flowly-segmented__item.is-active {
+    background: var(--flowly-bg-elevated-hover);
+    color: var(--flowly-text-primary);
+    box-shadow: var(--flowly-shadow-sm);
+}
+
+/* Utility: aplica cor primária no texto — usado em week view para destacar o dia atual */
+.is-today-accent {
+    color: var(--flowly-accent-primary) !important;
+}
+
+/* Utility: botão de Foco de 5 Dias (toggle state via week.js) */
+.is-smart-week-active {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.2);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.5);
+    color: var(--flowly-accent-primary);
+}
+
+/* =============================================================
+   18. FLOWLY-TOGGLE — switch binário (on/off) estilo iOS
+   ============================================================= */
+.flowly-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 46px;
+    height: 26px;
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-full);
+    cursor: pointer;
+    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
+                border-color var(--flowly-duration-fast) var(--flowly-ease-out);
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.flowly-toggle__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: var(--flowly-text-primary);
+    border-radius: var(--flowly-radius-full);
+    box-shadow: var(--flowly-shadow-sm);
+    transition: transform var(--flowly-duration-base) var(--flowly-ease-out);
+}
+
+.flowly-toggle.is-on {
+    background: var(--flowly-accent-primary);
+    border-color: var(--flowly-accent-primary);
+}
+
+.flowly-toggle.is-on .flowly-toggle__thumb {
+    transform: translateX(20px);
+    background: #ffffff;
+}
+
+.flowly-toggle:disabled,
+.flowly-toggle.is-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Checkbox nativo escondido (opcional — para use com <input type="checkbox">) */
+.flowly-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* =============================================================
+   19. FLOWLY-TEXTAREA — textarea com DS styling
+   ============================================================= */
+.flowly-textarea {
+    width: 100%;
+    min-height: 88px;
+    padding: var(--flowly-space-3) var(--flowly-space-4);
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+    color: var(--flowly-text-primary);
+    font-family: var(--flowly-font-main);
+    font-size: var(--flowly-text-base);
+    line-height: var(--flowly-line-snug);
+    resize: vertical;
+    transition: border-color var(--flowly-duration-fast) var(--flowly-ease-out),
+                background var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.flowly-textarea::placeholder {
+    color: var(--flowly-text-tertiary);
+}
+
+.flowly-textarea:focus {
+    outline: none;
+    background: var(--flowly-bg-elevated);
+    border-color: var(--flowly-border-active);
+    box-shadow: 0 0 0 3px rgba(var(--flowly-accent-primary-rgb), 0.12);
+}
+
+/* =============================================================
+   20. FLOWLY-SELECT — select nativo com DS styling
+   ============================================================= */
+.flowly-select {
+    width: 100%;
+    min-height: 44px;
+    padding: var(--flowly-space-3) var(--flowly-space-8) var(--flowly-space-3) var(--flowly-space-4);
+    background-color: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+    color: var(--flowly-text-primary);
+    font-family: var(--flowly-font-main);
+    font-size: var(--flowly-text-base);
+    line-height: var(--flowly-line-base);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    /* Chevron custom (SVG inline) */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e8a98' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+    background-repeat: no-repeat;
+    background-position: right var(--flowly-space-4) center;
+    background-size: 12px;
+    cursor: pointer;
+    transition: border-color var(--flowly-duration-fast) var(--flowly-ease-out),
+                background-color var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.flowly-select:focus {
+    outline: none;
+    background-color: var(--flowly-bg-elevated);
+    border-color: var(--flowly-border-active);
+    box-shadow: 0 0 0 3px rgba(var(--flowly-accent-primary-rgb), 0.12);
+}
+
+.flowly-select option {
+    background: var(--flowly-bg-elevated);
+    color: var(--flowly-text-primary);
+}
+
+/* =============================================================
+   21. FLOWLY-CHOICE-GRID — grid de escolhas (theme picker, etc)
+   Cada item vira botão. Ativo fica destacado.
+   ============================================================= */
+.flowly-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: var(--flowly-space-2);
+}
+
+.flowly-choice-grid__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--flowly-space-1);
+    padding: var(--flowly-space-3) var(--flowly-space-3);
+    min-height: 64px;
+    background: var(--flowly-bg-glass);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+    color: var(--flowly-text-secondary);
+    font-family: var(--flowly-font-main);
+    font-size: var(--flowly-text-sm);
+    font-weight: var(--flowly-weight-medium);
+    cursor: pointer;
+    text-align: center;
+    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
+                border-color var(--flowly-duration-fast) var(--flowly-ease-out),
+                color var(--flowly-duration-fast) var(--flowly-ease-out),
+                transform var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.flowly-choice-grid__item:hover {
+    background: var(--flowly-bg-elevated);
+    color: var(--flowly-text-primary);
+    transform: translateY(-1px);
+}
+
+.flowly-choice-grid__item.is-active {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.12);
+    border-color: var(--flowly-border-active);
+    color: var(--flowly-text-primary);
+    box-shadow: 0 0 0 1px rgba(var(--flowly-accent-primary-rgb), 0.24) inset;
+}
+
+.flowly-choice-grid__item__icon {
+    font-size: var(--flowly-text-lg);
+    color: var(--flowly-text-secondary);
+    line-height: 1;
+}
+
+.flowly-choice-grid__item.is-active .flowly-choice-grid__item__icon {
+    color: var(--flowly-accent-primary);
+}
+
+.flowly-choice-grid__item__label {
+    font-size: var(--flowly-text-xs);
+    font-weight: var(--flowly-weight-semibold);
+    letter-spacing: var(--flowly-letter-snug);
+}
+
+/* Variante swatches (apenas cor, sem label grande) */
+.flowly-choice-grid--swatches .flowly-choice-grid__item {
+    padding: 0;
+    min-height: 44px;
+    border-radius: var(--flowly-radius-full);
+    width: 44px;
+    height: 44px;
+}
+
+/* =============================================================
+   22. FLOWLY-CHECKBOX — checkbox customizado alinhado ao DS
+   ============================================================= */
+.flowly-checkbox {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: 1.5px solid var(--flowly-text-tertiary);
+    border-radius: var(--flowly-radius-sm);
+    cursor: pointer;
+    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
+                border-color var(--flowly-duration-fast) var(--flowly-ease-out);
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.flowly-checkbox:hover {
+    border-color: var(--flowly-accent-primary);
+}
+
+.flowly-checkbox.is-checked {
+    background: var(--flowly-accent-primary);
+    border-color: var(--flowly-accent-primary);
+}
+
+.flowly-checkbox.is-checked::after {
+    content: '';
+    width: 11px;
+    height: 11px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'></polyline></svg>");
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+}
+
+.flowly-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* =============================================================
+   23. FLOWLY-PROGRESS — barra de progresso linear
+   ============================================================= */
+.flowly-progress {
+    width: 100%;
+    height: 6px;
+    background: var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-full);
+    overflow: hidden;
+}
+
+.flowly-progress__fill {
+    height: 100%;
+    background: var(--flowly-accent-primary);
+    border-radius: var(--flowly-radius-full);
+    transition: width var(--flowly-duration-slow) var(--flowly-ease-out);
+}
+
+.flowly-progress--sm { height: 4px; }
+.flowly-progress--lg { height: 10px; }
+
+.flowly-progress--success .flowly-progress__fill { background: var(--flowly-accent-success); }
+.flowly-progress--warning .flowly-progress__fill { background: var(--flowly-accent-warning); }
+.flowly-progress--danger  .flowly-progress__fill { background: var(--flowly-accent-danger); }
+
+/* --- Native controls usam a cor primária do Flowly (carregado via _components) --- */
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--flowly-accent-primary);
+}
+
+/* Sobrescreve checkbox do Tailwind CDN no modal de auth e afins
+   (Tailwind forms pinta o background:image azul por padrão — forçamos verde) */
+input[type="checkbox"]:checked {
+    background-color: var(--flowly-accent-primary) !important;
+    border-color: var(--flowly-accent-primary) !important;
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e") !important;
+}
+
+input[type="checkbox"]:focus {
+    box-shadow: 0 0 0 3px rgba(var(--flowly-accent-primary-rgb), 0.2) !important;
+    border-color: var(--flowly-accent-primary) !important;
+}
