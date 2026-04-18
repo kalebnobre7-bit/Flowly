@@ -67,62 +67,12 @@
   display: flex; flex-direction: column; gap: 16px;
 }
 
-/* KPI Row — topo da página */
+/* KPI Row — topo da página. Cards usam .flowly-stat-card (css/_components.css) */
 .finance-kpi-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
-
-.finance-kpi-card {
-  background: var(--ds-panel-bg);
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-r-xl);
-  padding: 20px;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(12px);
-  transition: border-color var(--ds-transition), transform var(--ds-transition);
-}
-.finance-kpi-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-}
-.finance-kpi-card:hover {
-  border-color: var(--ds-border-strong);
-  transform: translateY(-2px);
-}
-.finance-kpi-card--income { border-top: 2px solid var(--ds-success); }
-.finance-kpi-card--expense { border-top: 2px solid var(--ds-danger); }
-.finance-kpi-card--balance { border-top: 2px solid var(--ds-accent); }
-
-.finance-kpi-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--ds-text-muted); margin-bottom: 8px;
-}
-.finance-kpi-value {
-  font-family: var(--ds-font-display);
-  font-size: clamp(22px, 2.8vw, 32px);
-  font-weight: 800; letter-spacing: -0.04em;
-  color: var(--ds-text-primary); line-height: 1;
-  margin-bottom: 6px;
-}
-.finance-kpi-card--income .finance-kpi-value { color: var(--ds-success); }
-.finance-kpi-card--expense .finance-kpi-value { color: var(--ds-danger); }
-.finance-kpi-meta {
-  font-size: 11px; color: var(--ds-text-muted); line-height: 1.4;
-}
-.finance-kpi-delta {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11px; font-weight: 700;
-  padding: 2px 7px; border-radius: 99px;
-  margin-top: 6px;
-}
-.finance-kpi-delta--up { background: var(--ds-success-dim); color: var(--ds-success); }
-.finance-kpi-delta--down { background: var(--ds-danger-dim); color: var(--ds-danger); }
 
 /* Finance main grid */
 .finance-main-grid {
