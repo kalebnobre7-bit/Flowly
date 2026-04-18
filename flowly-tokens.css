@@ -1,0 +1,180 @@
+/* =============================================================
+   FLOWLY — DESIGN TOKENS (single source of truth)
+   Load FIRST. All other CSS files consume these variables.
+
+   Runtime note: theme-ai.js (applyFlowlyThemeSettings) overrides
+   a subset of these at boot based on the user's chosen theme in
+   Ajustes (accent, fonts, radius, panel/shadow/border style,
+   shell width, body accent). The values below are the fallbacks
+   used before theme-ai runs (and for tokens it never writes).
+   ============================================================= */
+
+/* ---------------------------------------------------------
+   FONT IMPORTS
+   --------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Sora:wght@700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* ---------------------------------------------------------
+     LEGACY / RUNTIME-CONTROLLED TOKENS
+     These are written by theme-ai.js at boot (see FLOWLY_*_PRESETS).
+     Values below are static fallbacks.
+     --------------------------------------------------------- */
+
+  /* Backgrounds */
+  --bg-body: #08090e;
+  --bg-card: rgba(14, 15, 20, 0.75);
+  --bg-card-hover: rgba(18, 19, 26, 0.88);
+  --bg-glass: rgba(255, 255, 255, 0.028);
+
+  /* Borders (subtle + active overridden by border style preset) */
+  --border-subtle: rgba(255, 255, 255, 0.055);
+  --border-active: rgba(var(--accent-primary-rgb), 0.24);
+  --border-panel: rgba(255, 255, 255, 0.07);
+
+  /* Text */
+  --text-primary: #f0eff4;
+  --text-secondary: #8e8a98;
+  --text-tertiary: #56535f;
+
+  /* Accents (primary + secondary controlled by theme-ai) */
+  --accent-blue: #0A84FF;
+  --accent-green: #22c55e;
+  --accent-orange: #FF9F0A;
+  --accent-red: #FF5C4D;
+  --accent-purple: #a855f7;
+  --accent-primary-rgb: 10 132 255;
+  --accent-secondary-rgb: 255 159 10;
+
+  /* Shadows (card/card-hover/glow overridden by shadow preset) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.12);
+  --shadow-panel: 0 10px 24px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-glow-blue: none;
+  --shadow-glow-green: none;
+  --shadow-glow-purple: none;
+
+  /* Radius (sm/md/lg overridden by radius preset) */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: var(--radius-lg);
+  --radius-2xl: calc(var(--radius-lg) + 6px);
+
+  /* Surfaces (overridden by panel style preset) */
+  --surface-panel: rgba(255, 255, 255, 0.024);
+  --surface-panel-strong: rgba(255, 255, 255, 0.03);
+  --surface-panel-elevated: rgba(255, 255, 255, 0.042);
+  --panel-blur: 10px;
+
+  /* Shell width (overridden by page width preset) */
+  --shell-max-width: 1280px;
+  --shell-max-width-narrow: 1120px;
+  --shell-max-width-wide: 1400px;
+
+  /* Fonts (overridden by font preset; Plus Jakarta Sans kept for
+     backwards compatibility with theme "system-plus" if selected) */
+  --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Body ambient tint (controlled by body accent preset) */
+  --body-accent-opacity: 0.04;
+  --body-accent-purple: 0.03;
+
+  /* ---------------------------------------------------------
+     DESIGN SYSTEM TOKENS (--ds-*)
+     Static. Used by the newer components (Finance, Projects,
+     Settings, Sexta, and parts of Analytics). Intentionally
+     independent from the runtime-driven tokens above so brand
+     UI stays visually stable across user theme changes.
+     --------------------------------------------------------- */
+
+  /* Backgrounds */
+  --ds-bg-base:          #08090e;
+  --ds-bg-raised:        rgba(15, 16, 22, 0.92);
+  --ds-bg-overlay:       rgba(20, 21, 30, 0.96);
+  --ds-bg-glass:         rgba(255, 255, 255, 0.032);
+  --ds-bg-glass-strong:  rgba(255, 255, 255, 0.06);
+  --ds-bg-input:         rgba(255, 255, 255, 0.05);
+
+  /* Borders */
+  --ds-border:           rgba(255, 255, 255, 0.07);
+  --ds-border-strong:    rgba(255, 255, 255, 0.13);
+  --ds-border-accent:    rgba(var(--ds-accent-rgb), 0.26);
+
+  /* Text */
+  --ds-text-primary:     #f0eff4;
+  --ds-text-secondary:   #8e8a98;
+  --ds-text-muted:       #4e4b58;
+  --ds-text-inverse:     #08090e;
+
+  /* Accent — Flowly orange */
+  --ds-accent:           #F27405;
+  --ds-accent-rgb:       242, 116, 5;
+  --ds-accent-dim:       rgba(242, 116, 5, 0.14);
+  --ds-accent-glow:      rgba(242, 116, 5, 0.22);
+
+  /* Status */
+  --ds-success:          #22c55e;
+  --ds-success-rgb:      34, 197, 94;
+  --ds-success-dim:      rgba(34, 197, 94, 0.14);
+  --ds-warning:          #f59e0b;
+  --ds-warning-dim:      rgba(245, 158, 11, 0.14);
+  --ds-danger:           #ef4444;
+  --ds-danger-dim:       rgba(239, 68, 68, 0.14);
+  --ds-info:             #3b82f6;
+  --ds-info-dim:         rgba(59, 130, 246, 0.14);
+  --ds-purple:           #a855f7;
+  --ds-purple-dim:       rgba(168, 85, 247, 0.12);
+
+  /* Radius scale */
+  --ds-r-xs:   4px;
+  --ds-r-sm:   8px;
+  --ds-r-md:   12px;
+  --ds-r-lg:   16px;
+  --ds-r-xl:   20px;
+  --ds-r-2xl:  24px;
+  --ds-r-pill: 999px;
+
+  /* Shadows */
+  --ds-shadow-xs:   0 1px 3px rgba(0, 0, 0, 0.25);
+  --ds-shadow-sm:   0 2px 8px rgba(0, 0, 0, 0.32);
+  --ds-shadow-md:   0 6px 20px rgba(0, 0, 0, 0.38);
+  --ds-shadow-lg:   0 16px 48px rgba(0, 0, 0, 0.45);
+  --ds-shadow-glow: 0 0 28px rgba(var(--ds-accent-rgb), 0.18);
+
+  /* Typography */
+  --ds-font-body:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --ds-font-display: 'Sora', 'Inter', sans-serif;
+  --ds-font-mono:    'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* Spacing (multiples of 4) */
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 20px;
+  --ds-space-6: 24px;
+  --ds-space-8: 32px;
+  --ds-space-10: 40px;
+  --ds-space-12: 48px;
+
+  /* Motion */
+  --ds-ease:       cubic-bezier(0.16, 1, 0.3, 1);
+  --ds-ease-fast:  cubic-bezier(0.23, 1, 0.32, 1);
+  --ds-transition: 0.22s var(--ds-ease);
+
+  /* Panel */
+  --ds-panel-bg:       rgba(14, 15, 21, 0.8);
+  --ds-panel-border:   rgba(255, 255, 255, 0.07);
+  --ds-panel-radius:   var(--ds-r-lg);
+  --ds-panel-blur:     12px;
+  --ds-panel-shadow:   var(--ds-shadow-sm);
+  --ds-panel-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
