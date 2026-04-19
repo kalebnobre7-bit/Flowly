@@ -348,6 +348,49 @@ function createTaskElement(day, dateStr, period, task, index) {
     label.appendChild(timerMeta);
   }
 
+  const isTimerEligible =
+    !task.isHabit &&
+    !task.isRoutine &&
+    !task.isRecurring &&
+    !task.isProjectAnchor &&
+    actionPeriod !== 'Rotina';
+
+  if (isTimerEligible) {
+    const timerBtn = document.createElement('button');
+    timerBtn.type = 'button';
+    const isRunning = Boolean(actionTask.timerStartedAt);
+    timerBtn.className = `task-item-timer-btn${isRunning ? ' is-running' : ''}`;
+    timerBtn.title = isRunning ? 'Pausar cronômetro' : 'Iniciar cronômetro';
+    timerBtn.setAttribute('aria-label', timerBtn.title);
+    timerBtn.innerHTML = isRunning
+      ? '<i data-lucide="pause" style="width:12px;height:12px"></i>'
+      : '<i data-lucide="play" style="width:12px;height:12px"></i>';
+    timerBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const nowIso = new Date().toISOString();
+      const syncDates = new Set([actionDateStr]);
+      if (actionTask.timerStartedAt) {
+        stopTaskTimer(actionTask, nowIso);
+      } else {
+        startTaskTimer(actionTask, nowIso).forEach((entry) => syncDates.add(entry.dateStr));
+      }
+      saveToLocalStorage();
+      renderView();
+      (async () => {
+        for (const syncDate of syncDates) {
+          if (typeof syncDateToSupabase === 'function') await syncDateToSupabase(syncDate);
+        }
+      })();
+    };
+    const contentSpan = label.querySelector('.task-content-span');
+    if (contentSpan && contentSpan.textContent.trim() !== '') {
+      contentSpan.appendChild(timerBtn);
+    } else {
+      label.insertBefore(timerBtn, label.firstChild);
+    }
+  }
+
   el.appendChild(label);
   if (collapseBtn) {
     collapseBtn.style.marginLeft = 'auto';
