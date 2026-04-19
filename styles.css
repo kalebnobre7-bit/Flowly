@@ -2812,9 +2812,11 @@ body.dragging-active .task-drop-zone {
 }
 
 .task-expansion-move-row .task-expansion-move-date::-webkit-calendar-picker-indicator {
-    padding-left: 2px;
-    width: 12px;
-    opacity: 0.5;
+    display: none;
+    opacity: 0;
+    width: 0;
+    padding: 0;
+    margin: 0;
 }
 
 .task-expansion-move-row .task-choice-chip {
@@ -2911,10 +2913,18 @@ body.dragging-active .task-drop-zone {
     color: #fff;
 }
 
+.task-timer-toggle {
+    margin-left: 2px;
+}
+
 .task-timer-secondary {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease;
+}
+
+.task-timer-secondary--first {
+    margin-left: auto;
 }
 
 .task-expansion-property-row:hover .task-timer-secondary,

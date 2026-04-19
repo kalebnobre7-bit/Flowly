@@ -248,18 +248,17 @@ window.toggleTaskExpansion = function (task, el) {
 
   const timerValue = document.createElement('strong');
   timerValue.className = 'task-expansion-timer-value';
-  timerValue.style.marginRight = 'auto'; // Push actions to the right
   timerValue.style.fontSize = '14px';
   timerActions.appendChild(timerValue);
 
   const timerToggleBtn = document.createElement('button');
   timerToggleBtn.type = 'button';
-  timerToggleBtn.className = 'btn-primary task-expansion-inline-button';
+  timerToggleBtn.className = 'btn-primary task-expansion-inline-button task-timer-toggle';
   timerActions.appendChild(timerToggleBtn);
 
   const timerResetBtn = document.createElement('button');
   timerResetBtn.type = 'button';
-  timerResetBtn.className = 'btn-secondary task-expansion-inline-button task-timer-secondary';
+  timerResetBtn.className = 'btn-secondary task-expansion-inline-button task-timer-secondary task-timer-secondary--first';
   timerResetBtn.innerHTML = '<i data-lucide="rotate-ccw" style="width:14px;height:14px"></i>';
   timerResetBtn.title = 'Zerar Timer';
   timerActions.appendChild(timerResetBtn);
