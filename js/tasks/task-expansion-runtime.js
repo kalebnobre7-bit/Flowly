@@ -259,14 +259,14 @@ window.toggleTaskExpansion = function (task, el) {
 
   const timerResetBtn = document.createElement('button');
   timerResetBtn.type = 'button';
-  timerResetBtn.className = 'btn-secondary task-expansion-inline-button';
+  timerResetBtn.className = 'btn-secondary task-expansion-inline-button task-timer-secondary';
   timerResetBtn.innerHTML = '<i data-lucide="rotate-ccw" style="width:14px;height:14px"></i>';
   timerResetBtn.title = 'Zerar Timer';
   timerActions.appendChild(timerResetBtn);
 
   const timerCompleteBtn = document.createElement('button');
   timerCompleteBtn.type = 'button';
-  timerCompleteBtn.className = 'btn-secondary task-expansion-inline-button task-expansion-complete-button';
+  timerCompleteBtn.className = 'btn-secondary task-expansion-inline-button task-expansion-complete-button task-timer-secondary';
   timerActions.appendChild(timerCompleteBtn);
 
 
@@ -365,23 +365,81 @@ window.toggleTaskExpansion = function (task, el) {
   const prios = getTaskPriorities();
   let currentPrio = task.priority || null;
   if (isRecurring && recDefinition && recDefinition.priority) currentPrio = recDefinition.priority;
-  const priosWrap = document.createElement('div');
-  priosWrap.className = 'task-expansion-chip-row';
+
+  const applyPrio = (newPrioId) => {
+    if (isRecurring && recDefinition) {
+      recDefinition.priority = newPrioId;
+      recDefinition._syncPending = true;
+    } else {
+      task.priority = newPrioId;
+    }
+    persistTaskChanges({ reopen: true });
+  };
+
+  const currentPrioObj = prios.find((p) => p.id === currentPrio) || null;
+  const prioPicker = document.createElement('div');
+  prioPicker.className = 'task-prio-picker';
+
+  const prioTrigger = document.createElement('button');
+  prioTrigger.type = 'button';
+  prioTrigger.className = 'task-prio-trigger';
+  prioTrigger.setAttribute('aria-haspopup', 'listbox');
+  prioTrigger.setAttribute('aria-expanded', 'false');
+  const triggerDotColor = currentPrioObj ? currentPrioObj.color : 'rgba(255,255,255,0.25)';
+  const triggerLabel = currentPrioObj ? currentPrioObj.name : 'Sem prioridade';
+  prioTrigger.innerHTML = `
+    <span class="task-prio-dot" style="background:${triggerDotColor}"></span>
+    <span class="task-prio-label">${triggerLabel}</span>
+    <svg class="task-prio-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  `;
+  prioPicker.appendChild(prioTrigger);
+
+  const prioMenu = document.createElement('div');
+  prioMenu.className = 'task-prio-menu';
+  prioMenu.setAttribute('role', 'listbox');
+  prioMenu.hidden = true;
+
+  const buildPrioItem = (id, name, color, isActive) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `task-prio-item${isActive ? ' is-active' : ''}`;
+    btn.setAttribute('role', 'option');
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    btn.innerHTML = `
+      <span class="task-prio-dot" style="background:${color}"></span>
+      <span class="task-prio-item-label">${name}</span>
+      ${isActive ? '<svg class="task-prio-check" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+    `;
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      applyPrio(id);
+    };
+    return btn;
+  };
+
+  prioMenu.appendChild(buildPrioItem(null, 'Sem prioridade', 'rgba(255,255,255,0.25)', currentPrio == null));
   prios.forEach((p) => {
-    priosWrap.appendChild(
-      createChoiceChip(p.name, currentPrio === p.id, p.color, () => {
-        const newPrio = task.priority === p.id ? null : p.id;
-        if (isRecurring && recDefinition) {
-          recDefinition.priority = newPrio;
-          recDefinition._syncPending = true;
-        } else {
-          task.priority = newPrio;
-        }
-        persistTaskChanges({ reopen: true });
-      })
-    );
+    prioMenu.appendChild(buildPrioItem(p.id, p.name, p.color, currentPrio === p.id));
   });
-  prioCard.appendChild(priosWrap);
+  prioPicker.appendChild(prioMenu);
+
+  const closePrioMenu = () => {
+    prioMenu.hidden = true;
+    prioTrigger.setAttribute('aria-expanded', 'false');
+  };
+  const onDocClickForPrio = (e) => {
+    if (!prioPicker.contains(e.target)) closePrioMenu();
+  };
+  prioTrigger.onclick = (e) => {
+    e.stopPropagation();
+    const willOpen = prioMenu.hidden;
+    prioMenu.hidden = !willOpen;
+    prioTrigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    if (willOpen) document.addEventListener('click', onDocClickForPrio);
+    else document.removeEventListener('click', onDocClickForPrio);
+  };
+
+  prioCard.appendChild(prioPicker);
   grid.appendChild(prioCard);
 
   const repeatCard = createCard('Repetir', 'repeat-2');
@@ -476,30 +534,44 @@ window.toggleTaskExpansion = function (task, el) {
 
   if (!isRecurring) {
     const moveCard = createCard('Mover', 'calendar');
-    const moveControls = document.createElement('div');
-    moveControls.className = 'task-expansion-move-controls';
+    const moveRow = document.createElement('div');
+    moveRow.className = 'task-expansion-move-row';
 
     const moveDateInput = document.createElement('input');
     moveDateInput.type = 'date';
     moveDateInput.value = dateStr;
-    moveDateInput.className = 'task-expansion-select';
-    moveControls.appendChild(moveDateInput);
+    moveDateInput.className = 'task-expansion-select task-expansion-move-date';
+    moveRow.appendChild(moveDateInput);
+
+    const todayDate = localDateStr();
+    const tomorrowDate = localDateStr(new Date(Date.now() + 86400000));
+    const nextWeekDate = localDateStr(new Date(Date.now() + 7 * 86400000));
+
+    moveRow.appendChild(
+      createChoiceChip('Hoje', dateStr === todayDate, null, () => {
+        moveDateInput.value = todayDate;
+      })
+    );
+    moveRow.appendChild(
+      createChoiceChip('Amanhã', dateStr === tomorrowDate, null, () => {
+        moveDateInput.value = tomorrowDate;
+      })
+    );
+    moveRow.appendChild(
+      createChoiceChip('+7d', false, null, () => {
+        moveDateInput.value = nextWeekDate;
+      })
+    );
 
     const movePeriodSelect = document.createElement('select');
-    movePeriodSelect.className = 'task-expansion-select';
+    movePeriodSelect.className = 'task-expansion-select task-expansion-move-period';
+    movePeriodSelect.title = 'Seção';
     movePeriodSelect.innerHTML = `
       <option value="Tarefas" ${period === 'Tarefas' ? 'selected' : ''}>Tarefas</option>
       <option value="Later" ${period === 'Later' ? 'selected' : ''}>Later</option>
       <option value="Follow-up" ${period === 'Follow-up' ? 'selected' : ''}>Follow-up</option>
     `;
-    moveControls.appendChild(movePeriodSelect);
-    moveCard.appendChild(moveControls);
-
-    const quickMoveRow = document.createElement('div');
-    quickMoveRow.className = 'task-expansion-chip-row';
-    const todayDate = localDateStr();
-    const tomorrowDate = localDateStr(new Date(Date.now() + 86400000));
-    const nextWeekDate = localDateStr(new Date(Date.now() + 7 * 86400000));
+    moveRow.appendChild(movePeriodSelect);
 
     const applyMove = (targetDate, targetPeriod) => {
       const result = window.moveTaskToDate(dateStr, period, numericIndex, targetDate, targetPeriod);
@@ -513,33 +585,17 @@ window.toggleTaskExpansion = function (task, el) {
       }
     };
 
-    quickMoveRow.appendChild(
-      createChoiceChip('Hoje', dateStr === todayDate, null, () => {
-        moveDateInput.value = todayDate;
-      })
-    );
-    quickMoveRow.appendChild(
-      createChoiceChip('Amanhã', dateStr === tomorrowDate, null, () => {
-        moveDateInput.value = tomorrowDate;
-      })
-    );
-    quickMoveRow.appendChild(
-      createChoiceChip('Próx. sem.', false, null, () => {
-        moveDateInput.value = nextWeekDate;
-      })
-    );
     const moveBtn = document.createElement('button');
     moveBtn.type = 'button';
-    moveBtn.className = 'btn-secondary task-expansion-inline-button';
+    moveBtn.className = 'btn-secondary task-expansion-inline-button task-expansion-move-confirm';
     moveBtn.innerHTML = '<i data-lucide="arrow-right" style="width:14px;height:14px"></i>';
     moveBtn.title = 'Confirmar Mover';
     moveBtn.onclick = () => {
       applyMove(moveDateInput.value, movePeriodSelect.value || 'Tarefas');
     };
-    quickMoveRow.appendChild(moveBtn);
-    moveCard.appendChild(quickMoveRow);
+    moveRow.appendChild(moveBtn);
 
-
+    moveCard.appendChild(moveRow);
     grid.appendChild(moveCard);
   }
 
