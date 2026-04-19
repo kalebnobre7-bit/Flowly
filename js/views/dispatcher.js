@@ -18,6 +18,7 @@
         const financeView = hideIfExists('financeView');
         const projectsView = hideIfExists('projectsView');
         const sextaView = hideIfExists('sextaView');
+        const watchView = hideIfExists('watchView');
         const settingsView = hideIfExists('settingsView');
         const weekNav = document.getElementById('weekNav');
         if (weekNav) weekNav.classList.add('hidden');
@@ -58,6 +59,14 @@
         if (currentView === 'sexta') {
           if (sextaView) sextaView.classList.remove('hidden');
           handlers.renderSextaView();
+          return;
+        }
+
+        if (currentView === 'watch') {
+          if (watchView) watchView.classList.remove('hidden');
+          if (typeof handlers.renderWatchView === 'function') {
+            handlers.renderWatchView();
+          }
           return;
         }
 

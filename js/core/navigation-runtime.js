@@ -23,6 +23,7 @@ function setView(view) {
     'financeView',
     'projectsView',
     'sextaView',
+    'watchView',
     'settingsView'
   ];
 
@@ -43,6 +44,7 @@ function setView(view) {
     finance: 'btnFinance',
     projects: 'btnProjects',
     sexta: 'btnSexta',
+    watch: 'btnWatch',
     settings: 'btnSettings'
   };
 

@@ -6,6 +6,7 @@ function renderView() {
       renderFinanceView,
       renderProjectsView,
       renderSextaView,
+      renderWatchView: typeof renderWatchView === 'function' ? renderWatchView : null,
       renderSettingsView,
       renderWeek,
       renderToday

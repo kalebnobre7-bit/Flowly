@@ -48,6 +48,7 @@
     <link rel="stylesheet" href="css/_responsive.css?v=1">
     <!-- CSS especificos de view (redesign 2026) -->
     <link rel="stylesheet" href="css/views/projects.css?v=1">
+    <link rel="stylesheet" href="css/views/watch-later.css?v=1">
 </head>
 
 <body class="safe-area-bottom">
@@ -93,6 +94,10 @@
                     <i data-lucide="briefcase" style="width: 18px; height: 18px;"></i>
                     <span>Projetos</span>
                 </button>
+                <button id="btnWatch" class="sidebar-nav-btn" data-flowly-view="watch">
+                    <i data-lucide="play-circle" style="width: 18px; height: 18px;"></i>
+                    <span>Assistir</span>
+                </button>
                 <button id="btnSexta" class="sidebar-nav-btn" data-flowly-view="sexta">
                     <i data-lucide="wand-2" style="width: 18px; height: 18px;"></i>
                     <span>Sexta</span>
@@ -137,6 +142,7 @@
             <div id="financeView" class="hidden"></div>
             <div id="projectsView" class="hidden"></div>
             <div id="sextaView" class="hidden"></div>
+            <div id="watchView" class="hidden"></div>
             <div id="settingsView" class="hidden"></div>
             <div id="todayView" class="hidden"></div>
         </div>
@@ -290,6 +296,7 @@
     <script src="js/views/settings-bindings.js?v=2" defer></script>
     <script src="js/views/settings.js?v=1" defer></script>
     <script src="js/views/sexta.js?v=1" defer></script>
+    <script src="js/views/watch-later.js?v=1" defer></script>
     <script src="js/views/today.js?v=3" defer></script>
     <script src="js/views/month.js?v=1" defer></script>
     <script src="js/views/week.js?v=3" defer></script>
