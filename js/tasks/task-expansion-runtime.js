@@ -524,7 +524,7 @@ window.toggleTaskExpansion = function (task, el) {
       })
     );
     quickMoveRow.appendChild(
-      createChoiceChip('Próx. semana', false, null, () => {
+      createChoiceChip('Próx. sem.', false, null, () => {
         moveDateInput.value = nextWeekDate;
       })
     );
