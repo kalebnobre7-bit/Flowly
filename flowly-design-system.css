@@ -216,7 +216,10 @@ body::before {
 /* Icon coloring */
 .sidebar-nav-btn [data-lucide],
 .sidebar-nav-btn svg {
-  color: var(--ds-text-muted);
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 255, 255, 0.72);
+  stroke-width: 1.8;
   flex-shrink: 0;
   transition: color var(--ds-transition);
 }
@@ -230,7 +233,7 @@ body::before {
 
 .sidebar-nav-btn:hover [data-lucide],
 .sidebar-nav-btn:hover svg {
-  color: var(--ds-text-secondary);
+  color: #fff;
 }
 
 /* Active */

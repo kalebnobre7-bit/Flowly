@@ -155,6 +155,25 @@ body.sidebar-collapsed .app-sidebar {
     transition: all 0.2s ease;
 }
 
+.sidebar-nav-btn svg,
+.sidebar-coming-item svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    stroke-width: 1.8;
+    color: rgba(255, 255, 255, 0.68);
+    transition: color 0.2s ease;
+}
+
+.sidebar-nav-btn:hover svg,
+.sidebar-nav-btn.active svg {
+    color: #fff;
+}
+
+.sidebar-nav-btn.active svg {
+    color: rgb(var(--accent-primary-rgb));
+}
+
 .sidebar-nav-btn {
     background: transparent;
     width: 100%;
