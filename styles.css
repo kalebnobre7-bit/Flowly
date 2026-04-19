@@ -2803,12 +2803,11 @@ body.dragging-active .task-drop-zone {
 }
 
 .task-expansion-move-row .task-expansion-move-date {
-    flex: 1 1 80px;
-    min-width: 80px;
-    width: auto;
+    flex: 0 0 auto;
+    width: 82px;
+    min-width: 82px;
     padding: 3px 4px;
     background-image: none;
-    padding-right: 4px;
 }
 
 .task-expansion-move-row .task-expansion-move-date::-webkit-calendar-picker-indicator {
