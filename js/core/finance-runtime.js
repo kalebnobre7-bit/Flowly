@@ -3,6 +3,42 @@
 let financeState = normalizeFinanceState(safeJSONParse(localStorage.getItem('flowlyFinanceState'), null));
 let financeSyncTimer = null;
 let financeChartsState = { cashflow: null, category: null };
+let financePeriodKey = null;
+
+function getFinancePeriodKey() {
+  if (financePeriodKey && /^\d{4}-\d{2}$/.test(financePeriodKey)) return financePeriodKey;
+  return localDateStr().slice(0, 7);
+}
+
+function setFinancePeriodKey(key) {
+  financePeriodKey = /^\d{4}-\d{2}$/.test(String(key || '')) ? String(key) : null;
+}
+
+function getFinanceAvailablePeriods() {
+  const set = new Set();
+  (financeState.transactions || []).forEach((item) => {
+    const k = String(item.date || '').slice(0, 7);
+    if (/^\d{4}-\d{2}$/.test(k)) set.add(k);
+  });
+  set.add(localDateStr().slice(0, 7));
+  return Array.from(set).sort();
+}
+
+function formatFinancePeriodLabel(key) {
+  const [y, m] = String(key || '').split('-');
+  const names = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const idx = Number(m) - 1;
+  if (!y || !(idx >= 0 && idx < 12)) return key || '';
+  return `${names[idx]} ${y}`;
+}
+
+function shiftFinancePeriod(key, delta) {
+  const [yStr, mStr] = String(key || '').split('-');
+  const y = Number(yStr), m = Number(mStr);
+  if (!y || !m) return key;
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
 
 function createFinanceId(prefix = 'fin') {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -225,9 +261,11 @@ function extractCurrencyValueFromText(text) {
   return Number(matches[1].replace(/\./g, '').replace(',', '.')) || 0;
 }
 
-function buildFinanceAnalytics() {
+function buildFinanceAnalytics(periodKeyArg) {
   financeState = normalizeFinanceState(financeState);
-  const monthKey = localDateStr().slice(0, 7);
+  const monthKey = /^\d{4}-\d{2}$/.test(String(periodKeyArg || ''))
+    ? String(periodKeyArg)
+    : getFinancePeriodKey();
   const formatBRL = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
   const currentMonthTransactions = financeState.transactions.filter((item) => String(item.date || '').startsWith(monthKey));
   const incomes = currentMonthTransactions.filter((item) => item.type === 'income');
@@ -348,7 +386,10 @@ function buildFinanceAnalytics() {
     chartLabels,
     chartIncome,
     chartExpense,
-    taskCandidates: getFinanceTaskCandidates()
+    taskCandidates: getFinanceTaskCandidates(),
+    periodKey: monthKey,
+    periodLabel: formatFinancePeriodLabel(monthKey),
+    availablePeriods: getFinanceAvailablePeriods()
   };
 }
 

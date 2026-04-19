@@ -67,6 +67,70 @@
   display: flex; flex-direction: column; gap: 16px;
 }
 
+.finance-period-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--flowly-border-subtle);
+  border-radius: var(--flowly-radius-pill);
+  background: var(--flowly-bg-elevated);
+}
+.finance-period-picker__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--flowly-text-secondary);
+  border-radius: var(--flowly-radius-pill);
+  cursor: pointer;
+  font-size: var(--flowly-text-base);
+  line-height: 1;
+  transition: background 160ms ease, color 160ms ease;
+}
+.finance-period-picker__nav:hover {
+  background: var(--flowly-bg-elevated-hover);
+  color: var(--flowly-text-primary);
+}
+.finance-period-picker__select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  height: 28px;
+  cursor: pointer;
+}
+.finance-period-picker__label {
+  font-size: var(--flowly-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--flowly-text-primary);
+  text-transform: capitalize;
+  pointer-events: none;
+}
+.finance-period-picker__select > select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: transparent;
+}
+.finance-period-picker__select:hover .finance-period-picker__label {
+  color: var(--flowly-text-primary);
+}
+.finance-period-picker__select:focus-within {
+  outline: 2px solid rgba(var(--accent-primary-rgb), 0.45);
+  outline-offset: 1px;
+  border-radius: var(--flowly-radius-pill);
+}
+
 /* KPI Row — topo da página. Cards usam .flowly-stat-card (css/_components.css) */
 .finance-kpi-row {
   display: grid;

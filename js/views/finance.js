@@ -131,6 +131,16 @@ function renderFinanceView() {
           <p class="flowly-page-subtitle">${analytics.analysisTone}</p>
         </div>
         <div class="flowly-page-actions">
+          <div class="finance-period-picker" role="group" aria-label="Selecionar período">
+            <button type="button" class="finance-period-picker__nav" data-finance-period-shift="-1" aria-label="Mês anterior">‹</button>
+            <label class="finance-period-picker__select">
+              <span class="finance-period-picker__label">${analytics.periodLabel}</span>
+              <select data-finance-period-select aria-label="Escolher mês">
+                ${analytics.availablePeriods.map((k) => `<option value="${k}"${k === analytics.periodKey ? ' selected' : ''}>${formatFinancePeriodLabel(k)}</option>`).join('')}
+              </select>
+            </label>
+            <button type="button" class="finance-period-picker__nav" data-finance-period-shift="1" aria-label="Próximo mês">›</button>
+          </div>
           <span class="flowly-soft-pill flowly-soft-pill--accent">${analytics.monthTransactionCount} movimentações</span>
           <button class="btn-primary" onclick="saveFinanceTransactionFromForm()" style="display:none" id="financeQuickSaveBtn">Salvar</button>
         </div>
@@ -315,5 +325,20 @@ function renderFinanceView() {
       item.classList.toggle('is-expanded', !open);
     });
   });
+  view.querySelectorAll('[data-finance-period-shift]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const delta = Number(btn.getAttribute('data-finance-period-shift')) || 0;
+      const next = shiftFinancePeriod(analytics.periodKey, delta);
+      setFinancePeriodKey(next);
+      renderFinanceView();
+    });
+  });
+  const periodSelect = view.querySelector('[data-finance-period-select]');
+  if (periodSelect) {
+    periodSelect.addEventListener('change', () => {
+      setFinancePeriodKey(periodSelect.value);
+      renderFinanceView();
+    });
+  }
   renderFinanceCharts(analytics);
 }
