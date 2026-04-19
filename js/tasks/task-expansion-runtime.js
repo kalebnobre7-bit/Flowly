@@ -563,15 +563,69 @@ window.toggleTaskExpansion = function (task, el) {
       })
     );
 
-    const movePeriodSelect = document.createElement('select');
-    movePeriodSelect.className = 'task-expansion-select task-expansion-move-period';
-    movePeriodSelect.title = 'Seção';
-    movePeriodSelect.innerHTML = `
-      <option value="Tarefas" ${period === 'Tarefas' ? 'selected' : ''}>Tarefas</option>
-      <option value="Later" ${period === 'Later' ? 'selected' : ''}>Later</option>
-      <option value="Follow-up" ${period === 'Follow-up' ? 'selected' : ''}>Follow-up</option>
-    `;
-    moveRow.appendChild(movePeriodSelect);
+    let selectedMovePeriod = period;
+    const sectionPicker = document.createElement('div');
+    sectionPicker.className = 'task-section-picker';
+
+    const sectionTrigger = document.createElement('button');
+    sectionTrigger.type = 'button';
+    sectionTrigger.className = 'task-section-trigger';
+    sectionTrigger.setAttribute('aria-haspopup', 'listbox');
+    sectionTrigger.setAttribute('aria-expanded', 'false');
+    sectionTrigger.title = `Seção: ${selectedMovePeriod}`;
+    sectionTrigger.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>`;
+    sectionPicker.appendChild(sectionTrigger);
+
+    const sectionMenu = document.createElement('div');
+    sectionMenu.className = 'task-section-menu';
+    sectionMenu.setAttribute('role', 'listbox');
+    sectionMenu.hidden = true;
+
+    const closeSectionMenu = () => {
+      sectionMenu.hidden = true;
+      sectionTrigger.setAttribute('aria-expanded', 'false');
+    };
+    const onDocClickForSection = (e) => {
+      if (!sectionPicker.contains(e.target)) {
+        closeSectionMenu();
+        document.removeEventListener('click', onDocClickForSection);
+      }
+    };
+
+    const sections = ['Tarefas', 'Later', 'Follow-up'];
+    sections.forEach((name) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `task-section-item${name === selectedMovePeriod ? ' is-active' : ''}`;
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-selected', name === selectedMovePeriod ? 'true' : 'false');
+      btn.textContent = name;
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        selectedMovePeriod = name;
+        sectionTrigger.title = `Seção: ${name}`;
+        sectionMenu.querySelectorAll('.task-section-item').forEach((n) => {
+          const active = n.textContent === name;
+          n.classList.toggle('is-active', active);
+          n.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        closeSectionMenu();
+        document.removeEventListener('click', onDocClickForSection);
+      };
+      sectionMenu.appendChild(btn);
+    });
+    sectionPicker.appendChild(sectionMenu);
+
+    sectionTrigger.onclick = (e) => {
+      e.stopPropagation();
+      const willOpen = sectionMenu.hidden;
+      sectionMenu.hidden = !willOpen;
+      sectionTrigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      if (willOpen) document.addEventListener('click', onDocClickForSection);
+      else document.removeEventListener('click', onDocClickForSection);
+    };
+
+    moveRow.appendChild(sectionPicker);
 
     const applyMove = (targetDate, targetPeriod) => {
       const result = window.moveTaskToDate(dateStr, period, numericIndex, targetDate, targetPeriod);
@@ -591,7 +645,7 @@ window.toggleTaskExpansion = function (task, el) {
     moveBtn.innerHTML = '<i data-lucide="arrow-right" style="width:14px;height:14px"></i>';
     moveBtn.title = 'Confirmar Mover';
     moveBtn.onclick = () => {
-      applyMove(moveDateInput.value, movePeriodSelect.value || 'Tarefas');
+      applyMove(moveDateInput.value, selectedMovePeriod || 'Tarefas');
     };
     moveRow.appendChild(moveBtn);
 
