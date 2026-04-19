@@ -1191,13 +1191,13 @@ body.dragging-active .task-drop-zone {
 }
 
 .weekly-day-btn:hover {
-    border-color: #0A84FF;
-    color: #0A84FF;
+    border-color: var(--flowly-accent-info);
+    color: var(--flowly-accent-info);
 }
 
 .weekly-day-btn.selected {
-    background: #0A84FF;
-    border-color: #0A84FF;
+    background: var(--flowly-accent-info);
+    border-color: var(--flowly-accent-info);
     color: white;
 }
 
@@ -1289,10 +1289,10 @@ body.dragging-active .task-drop-zone {
 
 /* Color classes — category shown via dot affordance, not text tint */
 .task-label.color-default { --task-color: transparent; }
-.task-label.color-blue    { --task-color: #0a84ff; }
+.task-label.color-blue    { --task-color: var(--flowly-accent-info); }
 .task-label.color-green   { --task-color: #30d158; }
 .task-label.color-yellow  { --task-color: #ffd60a; }
-.task-label.color-orange  { --task-color: #ff9f0a; }
+.task-label.color-orange  { --task-color: var(--flowly-accent-warning); }
 .task-label.color-red     { --task-color: #ff453a; }
 .task-label.color-purple  { --task-color: #bf5af2; }
 
@@ -1311,10 +1311,10 @@ body.dragging-active .task-drop-zone {
 .task-label.color-default::before { display: none; }
 
 /* Fallback for contexts where the variable isn't set */
-.color-blue:not(.task-label)    { color: #0a84ff; }
+.color-blue:not(.task-label)    { color: var(--flowly-accent-info); }
 .color-green:not(.task-label)   { color: #30d158; }
 .color-yellow:not(.task-label)  { color: #ffd60a; }
-.color-orange:not(.task-label)  { color: #ff9f0a; }
+.color-orange:not(.task-label)  { color: var(--flowly-accent-warning); }
 .color-red:not(.task-label)     { color: #ff453a; }
 .color-purple:not(.task-label)  { color: #bf5af2; }
 
@@ -1772,7 +1772,7 @@ body.dragging-active .task-drop-zone {
 }
 
 .task-item.priority-important {
-    border-left: 3px solid #FF9F0A;
+    border-left: 3px solid var(--flowly-accent-warning);
 }
 
 .task-item.priority-simple {
@@ -1948,8 +1948,8 @@ body.dragging-active .task-drop-zone {
 }
 
 .weekly-day-btn.active {
-    background: #0A84FF;
-    border-color: #0A84FF;
+    background: var(--flowly-accent-info);
+    border-color: var(--flowly-accent-info);
     color: white;
 }
 
@@ -3289,8 +3289,8 @@ body.dragging-active .task-drop-zone {
 }
 
 .routine-habit-check.done {
-    background: #0A84FF;
-    border-color: #0A84FF;
+    background: var(--flowly-accent-info);
+    border-color: var(--flowly-accent-info);
     color: white;
 }
 
@@ -3320,7 +3320,7 @@ body.dragging-active .task-drop-zone {
 
 .routine-insight.orange {
     background: rgba(255, 159, 10, 0.1);
-    color: #FF9F0A;
+    color: var(--flowly-accent-warning);
 }
 
 @media (max-width: 600px) {
@@ -3537,7 +3537,7 @@ body.dragging-active .task-drop-zone {
 
 .analytics-habit-streak {
     font-size: 11px;
-    color: #FF9F0A;
+    color: var(--flowly-accent-warning);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -3652,7 +3652,7 @@ body.dragging-active .task-drop-zone {
 
 .analytics-insight-card.green .analytics-insight-title { color: #30D158; }
 .analytics-insight-card.blue .analytics-insight-title { color: #64b5f6; }
-.analytics-insight-card.orange .analytics-insight-title { color: #FF9F0A; }
+.analytics-insight-card.orange .analytics-insight-title { color: var(--flowly-accent-warning); }
 .analytics-insight-card.purple .analytics-insight-title { color: #BF5AF2; }
 .analytics-insight-card.red .analytics-insight-title { color: #FF453A; }
 .analytics-insight-card.green .analytics-insight-text { color: #9ef5b5; }
@@ -3886,13 +3886,13 @@ body.dragging-active .task-drop-zone {
 .routine-streak-badge.fire {
     background: rgba(255,159,10,0.1);
     border-color: rgba(255,159,10,0.25);
-    color: #FF9F0A;
+    color: var(--flowly-accent-warning);
 }
 
 .routine-streak-badge.blue {
     background: rgba(10,132,255,0.1);
     border-color: rgba(10,132,255,0.25);
-    color: #0A84FF;
+    color: var(--flowly-accent-info);
 }
 
 .routine-streak-badge.green {
@@ -4124,8 +4124,8 @@ body.dragging-active .task-drop-zone {
 }
 
 .routine-habit-check-v2.done {
-    background: #0A84FF;
-    border-color: #0A84FF;
+    background: var(--flowly-accent-info);
+    border-color: var(--flowly-accent-info);
     color: white;
     box-shadow: 0 0 12px rgba(10,132,255,0.35);
 }
@@ -4182,7 +4182,7 @@ body.dragging-active .task-drop-zone {
 
 .routine-habit-streak-v2 {
     font-size: 10px;
-    color: #FF9F0A;
+    color: var(--flowly-accent-warning);
     font-weight: 700;
     margin-top: 2px;
 }
@@ -4221,7 +4221,7 @@ body.dragging-active .task-drop-zone {
     color: var(--text-tertiary);
 }
 
-.routine-weekly-day-col.today .routine-weekly-day-label { color: #0A84FF; }
+.routine-weekly-day-col.today .routine-weekly-day-label { color: var(--flowly-accent-info); }
 
 .routine-weekly-rate {
     font-size: 18px;
@@ -6021,7 +6021,7 @@ body.dragging-active .task-drop-zone {
 
 .analytics-insight-v2.green .analytics-insight-v2-title  { color: #30D158; }
 .analytics-insight-v2.blue  .analytics-insight-v2-title  { color: #64b5f6; }
-.analytics-insight-v2.orange .analytics-insight-v2-title { color: #FF9F0A; }
+.analytics-insight-v2.orange .analytics-insight-v2-title { color: var(--flowly-accent-warning); }
 .analytics-insight-v2.purple .analytics-insight-v2-title { color: #BF5AF2; }
 .analytics-insight-v2.red   .analytics-insight-v2-title  { color: #FF453A; }
 .analytics-insight-v2.green .analytics-insight-v2-text   { color: #9ef5b5; }
@@ -6063,7 +6063,7 @@ body.dragging-active .task-drop-zone {
     color: var(--text-tertiary);
 }
 
-.analytics-day-perf-col.today-col .analytics-day-label { color: #0A84FF; }
+.analytics-day-perf-col.today-col .analytics-day-label { color: var(--flowly-accent-info); }
 
 .analytics-day-rate-v2 {
     font-size: 16px;
