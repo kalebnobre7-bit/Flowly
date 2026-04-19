@@ -128,6 +128,14 @@ function bindSettingsInteractions() {
     });
   });
 
+  document.querySelectorAll('[data-theme-combo]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const comboId = btn.dataset.themeCombo || '';
+      const next = applyFlowlyComboPreset(comboId);
+      if (next && typeof renderView === 'function') renderView();
+    });
+  });
+
   const resetThemeBtn = document.getElementById('btnResetThemeSettings');
   if (resetThemeBtn) {
     resetThemeBtn.onclick = () => {
@@ -382,6 +390,15 @@ function bindSettingsInteractions() {
       localStorage.setItem('flowly_notif_settings', JSON.stringify(cur));
       await saveNotifSettingsToSupabase();
       renderSettingsView();
+    };
+  }
+
+  const btnRequestNotifPermission = document.getElementById('btnRequestNotifPermission');
+  if (btnRequestNotifPermission) {
+    btnRequestNotifPermission.onclick = async function () {
+      this.disabled = true;
+      try { await requestNotificationPermission(); } catch (_e) {}
+      if (typeof renderView === 'function') renderView();
     };
   }
 

@@ -81,17 +81,17 @@ renderSextaView = function () {
   const memoryStatus = memories.length > 0 ? `${memories.length} memoria(s) salvas` : 'memoria livre';
   const profileStatus = profileSummary ? 'briefing operacional ativo' : 'sem briefing fixo';
   const statPills = [
-    { label: 'Hoje', value: `${pending} abertas`, detail: `${completed}/${total} concluídas` },
-    { label: 'Caixa', value: String(snapshot.moneyEntries.length), detail: 'tarefas puxando receita' },
-    { label: 'Projetos', value: String(snapshot.activeProjects.length), detail: `${snapshot.lateProjects.length} em risco` },
-    { label: 'Semana', value: `${weekRate}%`, detail: `${weekCompleted}/${weekTotal} concluídas` }
+    { label: 'Hoje', value: `${pending} abertas`, detail: `${completed}/${total} concluídas`, tone: pending === 0 ? 'success' : 'primary' },
+    { label: 'Caixa', value: String(snapshot.moneyEntries.length), detail: 'tarefas puxando receita', tone: 'warning' },
+    { label: 'Projetos', value: String(snapshot.activeProjects.length), detail: `${snapshot.lateProjects.length} em risco`, tone: snapshot.lateProjects.length > 0 ? 'danger' : 'success' },
+    { label: 'Semana', value: `${weekRate}%`, detail: `${weekCompleted}/${weekTotal} concluídas`, tone: weekRate >= 70 ? 'success' : 'primary' }
   ]
     .map(
       (item) => `
-        <article class="sexta-stat-pill-card">
-          <span class="sexta-panel-label">${item.label}</span>
-          <strong>${escapeProjectHtml(item.value)}</strong>
-          <span>${escapeProjectHtml(item.detail)}</span>
+        <article class="sexta-stat-pill-card flowly-stat-card flowly-stat-card--${item.tone}">
+          <span class="flowly-stat-card__label">${item.label}</span>
+          <span class="flowly-stat-card__value">${escapeProjectHtml(item.value)}</span>
+          <span class="flowly-stat-card__hint">${escapeProjectHtml(item.detail)}</span>
         </article>
       `
     )
@@ -309,9 +309,9 @@ renderSextaView = function () {
   view.innerHTML = `
     <div class="flowly-shell flowly-shell--wide sexta-shell sexta-shell--chatfirst">
       <section class="sexta-topbar flowly-page-header">
-        <div class="sexta-topbar-copy">
-          <div class="sexta-kicker flowly-page-kicker">Sexta</div>
-          <h2 class="flowly-page-title">Sexta</h2>
+        <div class="sexta-topbar-copy flowly-page-header-left">
+          <div class="flowly-page-kicker">Assistente</div>
+          <h1 class="flowly-page-title">Sexta</h1>
           <p class="flowly-page-subtitle">Chat local para decidir, registrar e mover o que importa agora.</p>
         </div>
         <div class="sexta-topbar-actions flowly-page-actions">

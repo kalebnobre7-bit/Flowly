@@ -12,7 +12,7 @@ function debugLog(...args) {
   }
 }
 
-// Inicializar flowly_persist_session como true por padrÃ£o (checkbox vem marcado)
+// Inicializar flowly_persist_session como true por padrão (checkbox vem marcado)
 if (localStorage.getItem('flowly_persist_session') === null) {
   localStorage.setItem('flowly_persist_session', 'true');
 }
@@ -114,7 +114,7 @@ function ensureMoneyPriorityOption() {
 // Estado de recorr?ncia carregado via js/flowly-state.js
 
 
-// FunÃ§Ã£o para abrir o modal de ediÃ§Ã£o
+// Função para abrir o modal de edição
 // toggleTaskExpansion e deleteTaskInline movidos para js/tasks/task-expansion-runtime.js
 
 function getPriorityColorName(priority) {
@@ -140,15 +140,15 @@ function getPriorityColorName(priority) {
 
 // ===== DRAG AND DROP =====
 
-// Retorna tarefas de rotina para exibiÃ§Ã£o (NÃƒO persiste em allTasksData)
+// Retorna tarefas de rotina para exibição (NÃƒO persiste em allTasksData)
 function getRoutineTasksForDate(dateStr) {
   if (routineService) return routineService.getRoutineTasksForDate(dateStr);
   return [];
 }
 
-// Compatibilidade: manter hydrateRoutineForDate como no-op para nÃ£o quebrar chamadas existentes
+// Compatibilidade: manter hydrateRoutineForDate como no-op para não quebrar chamadas existentes
 function hydrateRoutineForDate(dateStr) {
-  // NÃ£o faz mais nada - rotinas sÃ£o geradas dinamicamente
+  // Não faz mais nada - rotinas são geradas dinamicamente
 }
 
 function reorderRoutineTasksForDate(dateStr, sourceRoutineKey, insertAt) {
@@ -205,7 +205,7 @@ function reorderRoutineTasksForDate(dateStr, sourceRoutineKey, insertAt) {
   return true;
 }
 
-// Fallback: drop na coluna (nÃ£o em drop zone) â†’ insere no fim da lista do dia
+// Fallback: drop na coluna (não em drop zone) â†’ insere no fim da lista do dia
 function columnDropFallback(e) {
   e.preventDefault();
   e.stopPropagation();

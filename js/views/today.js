@@ -148,8 +148,8 @@ function renderToday() {
   const focusToggleBtn = document.createElement('button');
   focusToggleBtn.type = 'button';
   focusToggleBtn.className = focusOnlyMode
-    ? 'flowly-btn flowly-btn--ghost flowly-btn--sm is-active'
-    : 'flowly-btn flowly-btn--ghost flowly-btn--sm';
+    ? 'flowly-btn flowly-btn--ghost--subtle flowly-btn--sm is-active'
+    : 'flowly-btn flowly-btn--ghost--subtle flowly-btn--sm';
   focusToggleBtn.setAttribute('aria-pressed', focusOnlyMode ? 'true' : 'false');
   focusToggleBtn.textContent = focusOnlyMode ? 'Mostrar dados' : 'Modo foco';
   focusToggleBtn.onclick = (event) => {

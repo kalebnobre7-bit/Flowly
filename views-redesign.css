@@ -77,10 +77,11 @@
 /* Finance main grid */
 .finance-main-grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 16px;
   align-items: start;
 }
+.finance-main-grid > * { min-width: 0; }
 
 /* Finance card base */
 .finance-card {
@@ -227,6 +228,39 @@
 }
 .finance-tx-amount--income { color: var(--ds-success); }
 .finance-tx-amount--expense { color: var(--ds-danger); }
+.finance-tx-right {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.finance-tx-expand {
+  display: grid; place-items: center;
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  color: var(--ds-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--ds-transition), color var(--ds-transition), transform var(--ds-transition);
+}
+.finance-tx-expand svg { width: 14px; height: 14px; }
+.finance-tx-expand:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--ds-text-primary);
+}
+.finance-tx-item.is-expanded .finance-tx-expand {
+  transform: rotate(180deg);
+  color: var(--ds-accent);
+}
+.finance-tx-detail {
+  font-size: 11px;
+  color: var(--ds-text-muted);
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--ds-border);
+  line-height: 1.5;
+  word-break: break-word;
+}
 
 /* Category dot legend */
 .finance-legend-row {
@@ -273,6 +307,48 @@
 .finance-empty {
   padding: 24px 20px; text-align: center; font-size: 13px;
   color: var(--ds-text-muted);
+}
+
+/* empty state with CTA */
+.finance-empty-cta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.015);
+}
+.finance-empty-cta__icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(var(--ds-accent-rgb, 10, 132, 255), 0.1);
+  color: var(--ds-accent, #0a84ff);
+}
+.finance-empty-cta__icon svg {
+  width: 20px;
+  height: 20px;
+}
+.finance-empty-cta__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.finance-empty-cta__body strong {
+  font-size: 13px;
+  color: var(--ds-text-primary, #f5f5f7);
+  font-weight: 600;
+}
+.finance-empty-cta__body span {
+  font-size: 12px;
+  color: var(--ds-text-muted);
+  line-height: 1.4;
 }
 
 /* second row grid */
@@ -696,11 +772,42 @@
 
 /* Panels layout */
 .settings-panels {
-  display: grid; grid-template-columns: 1fr 300px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px;
   gap: 16px; align-items: start;
 }
+.settings-panels--full {
+  grid-template-columns: minmax(0, 1fr);
+}
+.settings-panels > * { min-width: 0; }
 .settings-main-stack { display: flex; flex-direction: column; gap: 16px; }
 .settings-side-stack { display: flex; flex-direction: column; gap: 16px; }
+
+.settings-notif-gate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--ds-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+.settings-notif-gate > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.settings-notif-gate strong { font-size: 13px; font-weight: 600; color: var(--ds-text-primary); }
+.settings-notif-gate span { font-size: 12px; color: var(--ds-text-muted); }
+
+.settings-notif-gate--denied {
+  border-color: rgba(var(--ds-danger-rgb, 255, 69, 58), 0.32);
+  background: rgba(var(--ds-danger-rgb, 255, 69, 58), 0.06);
+  color: var(--ds-danger, #ff453a);
+}
+.settings-notif-gate--denied strong { color: var(--ds-danger, #ff453a); }
+
+.settings-notif-gate--default {
+  border-color: rgba(var(--ds-accent-rgb, 10, 132, 255), 0.28);
+  background: rgba(var(--ds-accent-rgb, 10, 132, 255), 0.06);
+  color: var(--ds-accent, #0a84ff);
+}
 
 /* Section cards */
 .settings-card-shell {
@@ -792,6 +899,59 @@
 .settings-data-btn--import { border-color: rgba(59,130,246,0.22); color: var(--ds-info); background: var(--ds-info-dim); }
 .settings-data-btn--repair { border-color: rgba(245,158,11,0.22); color: var(--ds-warning); background: var(--ds-warning-dim); }
 .settings-data-btn--danger { border-color: rgba(239,68,68,0.22); color: var(--ds-danger); background: var(--ds-danger-dim); }
+
+/* Theme combo presets */
+.settings-theme-combos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--flowly-space-3);
+  padding: var(--flowly-space-4);
+  margin-bottom: var(--flowly-space-5);
+  border: 1px solid var(--flowly-border-subtle);
+  border-radius: var(--flowly-radius-md);
+  background: var(--flowly-bg-glass);
+}
+.settings-theme-combos__head { display: flex; flex-direction: column; gap: 2px; }
+.settings-theme-combos__head > span {
+  font-size: var(--flowly-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--flowly-text-tertiary);
+  font-weight: 600;
+}
+.settings-theme-combos__head > p {
+  margin: 0;
+  font-size: var(--flowly-text-sm);
+  color: var(--flowly-text-secondary);
+}
+.settings-theme-combos__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--flowly-space-2);
+}
+.settings-theme-combo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--flowly-space-3);
+  text-align: left;
+  border: 1px solid var(--flowly-border-subtle);
+  border-radius: var(--flowly-radius-md);
+  background: var(--flowly-bg-elevated);
+  color: var(--flowly-text-primary);
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.settings-theme-combo:hover {
+  border-color: rgba(var(--accent-primary-rgb), 0.35);
+  background: var(--flowly-bg-elevated-hover);
+}
+.settings-theme-combo.is-active {
+  border-color: rgba(var(--accent-primary-rgb), 0.55);
+  background: rgba(var(--accent-primary-rgb), 0.08);
+}
+.settings-theme-combo > strong { font-size: var(--flowly-text-sm); font-weight: 600; }
+.settings-theme-combo > span { font-size: var(--flowly-text-xs); color: var(--flowly-text-tertiary); }
 
 /* Theme grids */
 .settings-theme-grid {

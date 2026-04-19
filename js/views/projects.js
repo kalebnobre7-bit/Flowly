@@ -1,5 +1,51 @@
-// renderProjectsView — redesign 2026 (grid de cards + modal de detalhes).
+// renderProjectsView — redesign 2026 (kanban board + modal de detalhes).
 // Lógica de dados preservada (mesmos data-* attributes do runtime).
+
+const PROJECTS_KANBAN_COLUMNS = [
+  { id: 'todo', label: 'A fazer', hint: 'Ainda não começou' },
+  { id: 'doing', label: 'Em andamento', hint: 'Com tarefas abertas' },
+  { id: 'late', label: 'Em atraso', hint: 'Passou do prazo', readonly: true },
+  { id: 'awaiting-payment', label: 'Aguardando pagamento', hint: 'Entregue, falta receber' },
+  { id: 'done', label: 'Concluído', hint: 'Entregue e pago' },
+  { id: 'archived', label: 'Arquivado', hint: 'Fora do radar' }
+];
+
+function getProjectKanbanColumnId(project, today, progressRate) {
+  if (project.status === 'archived') return 'archived';
+  if (project.completionDate) return project.isPaid ? 'done' : 'awaiting-payment';
+  if (project.deadline && project.deadline < today) return 'late';
+  const rate = progressRate != null ? progressRate : (getProjectProgressRate(project.id)?.pct || 0);
+  return rate > 0 ? 'doing' : 'todo';
+}
+
+window.moveProjectToKanbanColumn = function (projectId, columnId) {
+  const today = localDateStr();
+  updateProjectRecord(projectId, (project) => {
+    if (columnId === 'archived') {
+      project.status = 'archived';
+      return project;
+    }
+    if (project.status === 'archived') project.status = project.isDraft ? 'draft' : 'active';
+    if (columnId === 'todo' || columnId === 'doing') {
+      project.completionDate = '';
+      project.isPaid = false;
+      if (project.isDraft) { project.isDraft = false; project.status = 'active'; }
+      return project;
+    }
+    if (columnId === 'awaiting-payment') {
+      if (!project.completionDate) project.completionDate = today;
+      project.isPaid = false;
+      return project;
+    }
+    if (columnId === 'done') {
+      if (!project.completionDate) project.completionDate = today;
+      project.isPaid = true;
+      return project;
+    }
+    return project;
+  });
+  if (currentView === 'projects') renderProjectsView();
+};
 
 function renderProjectsView() {
   const view = document.getElementById('projectsView');
@@ -9,199 +55,111 @@ function renderProjectsView() {
   const formatBRL = (value) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
   const taskBacklogCount = collectProjectTaskCandidates({ includeLinked: false, max: 999 }).length;
-  const draftTemplates = getProjectOptions().filter((p) => p.isDraft || p.status === 'draft');
   const today = localDateStr();
-  const allProjects = analytics.projects;
-  const filteredProjects = sortProjectsForBoard(filterProjects(allProjects, projectsFilter, today), today);
-  const activeCount = allProjects.filter((p) => !p.isDraft && !p.completionDate && p.status !== 'archived').length;
-  const lateCount = allProjects.filter((p) => !p.completionDate && p.deadline && p.deadline < today && !p.isDraft).length;
-  const draftCount = allProjects.filter((p) => p.isDraft || p.status === 'draft').length;
-  const doneCount = allProjects.filter((p) => !!p.completionDate).length;
-  const archivedCount = allProjects.filter((p) => p.status === 'archived').length;
-  const paidCount = allProjects.filter((p) => p.isPaid).length;
-  const unpaidCount = allProjects.filter((p) => !p.isPaid && !p.isDraft).length;
-  const totalRevenue = allProjects.reduce((sum, p) => sum + (p.expectedValue || 0), 0);
+  const allProjects = analytics.projects.filter((p) => !p.isDraft && p.status !== 'draft');
+  const activeCount = allProjects.filter((p) => !p.completionDate && p.status !== 'archived').length;
+  const lateCount = allProjects.filter((p) => !p.completionDate && p.deadline && p.deadline < today).length;
+  const unpaidCount = allProjects.filter((p) => !p.isPaid && p.status !== 'archived').length;
   const deliveredUnpaidCount = allProjects.filter((p) => p.completionDate && !p.isPaid).length;
+  const totalRevenue = allProjects.reduce((sum, p) => sum + (p.expectedValue || 0), 0);
 
   const heroInsight = (() => {
     if (lateCount > 0) return lateCount + ' projeto(s) em atraso. Precisam de resposta.';
-    if (deliveredUnpaidCount > 0) return deliveredUnpaidCount + ' entrega(s) concluidas aguardando pagamento.';
+    if (deliveredUnpaidCount > 0) return deliveredUnpaidCount + ' entrega(s) concluídas aguardando pagamento.';
     if (taskBacklogCount > 0) return taskBacklogCount + ' tarefa(s) soltas podem virar projeto.';
-    return 'Operacao sob controle. Organize as proximas entregas.';
+    return 'Operação sob controle. Organize as próximas entregas.';
   })();
 
-  const filterTabs = [
-    { id: 'all', label: 'Todos', count: allProjects.length },
-    { id: 'active', label: 'Ativos', count: activeCount },
-    { id: 'late', label: 'Atrasados', count: lateCount },
-    { id: 'unpaid', label: 'Nao pagos', count: unpaidCount },
-    { id: 'done', label: 'Concluidos', count: doneCount },
-    { id: 'draft', label: 'Templates', count: draftCount },
-    { id: 'archived', label: 'Arquivados', count: archivedCount }
-  ];
+  // Agrupa projetos por coluna
+  const projectsByColumn = {};
+  PROJECTS_KANBAN_COLUMNS.forEach((col) => { projectsByColumn[col.id] = []; });
+  allProjects.forEach((project) => {
+    const colId = getProjectKanbanColumnId(project, today);
+    if (projectsByColumn[colId]) projectsByColumn[colId].push(project);
+  });
 
-  const renderProjectCard = (project) => {
+  const renderKanbanCard = (project) => {
     const progress = getProjectProgressRate(project.id);
-    const statusBadge = getProjectStatus(project, today);
-    const deadlineDiff = getProjectDeadlineDiff(project.deadline, today);
     const progressPct = progress ? progress.pct : 0;
     const progressTotal = progress ? progress.total : 0;
+    const deadlineDiff = getProjectDeadlineDiff(project.deadline, today);
+    const isLate = !project.completionDate && deadlineDiff !== null && deadlineDiff < 0;
+    const isDone = !!project.completionDate;
 
     const deadlineText = (() => {
       if (project.completionDate) return 'Fechado ' + formatProjectDateShort(project.completionDate);
       if (deadlineDiff === null) return 'Sem prazo';
       if (deadlineDiff < 0) return Math.abs(deadlineDiff) + 'd atraso';
       if (deadlineDiff === 0) return 'Hoje';
-      if (deadlineDiff === 1) return 'Amanha';
+      if (deadlineDiff === 1) return 'Amanhã';
       return 'em ' + deadlineDiff + 'd';
     })();
 
-    const isLate = !project.completionDate && deadlineDiff !== null && deadlineDiff < 0;
-    const isDone = !!project.completionDate;
+    const amountLabel = project.closedValue > 0
+      ? formatBRL(project.closedValue)
+      : (project.expectedValue > 0 ? formatBRL(project.expectedValue) : '');
+
+    const safeName = escapeProjectHtml(project.name);
+    const safeClient = escapeProjectHtml(project.clientName || project.serviceType || '');
+
     const progressVariant = isDone ? 'flowly-progress--success'
       : isLate ? 'flowly-progress--danger'
       : progressPct >= 60 ? ''
       : 'flowly-progress--warning';
 
-    const palette = [
-      'linear-gradient(135deg, #22c55e, #0A84FF)',
-      'linear-gradient(135deg, #a855f7, #ec4899)',
-      'linear-gradient(135deg, #FF9F0A, #FF5C4D)'
-    ];
-    const avatarSources = [project.clientName, project.serviceType].filter(Boolean).slice(0, 2);
-    const avatarTokens = avatarSources.length > 0
-      ? avatarSources.map((label, i) => {
-          const initials = String(label).trim().split(/\s+/).slice(0, 2)
-            .map((p) => p.charAt(0)).join('').slice(0, 2).toUpperCase();
-          return '<span class="flowly-avatar flowly-avatar--sm" style="background:' + palette[i % palette.length] + '">' + escapeProjectHtml(initials || '?') + '</span>';
-        }).join('')
-      : '<span class="flowly-avatar flowly-avatar--sm" style="background:' + palette[0] + '">FL</span>';
+    const avatarLabel = (project.clientName || project.serviceType || project.name || '?').trim();
+    const initials = avatarLabel.split(/\s+/).slice(0, 2).map((p) => p.charAt(0)).join('').slice(0, 2).toUpperCase() || '?';
 
-    const amountLabel = project.closedValue > 0
-      ? formatBRL(project.closedValue)
-      : formatBRL(project.expectedValue || 0);
-    const amountCaption = project.closedValue > 0 ? 'Fechado' : 'Previsto';
-    const safeName = escapeProjectHtml(project.name);
-    const safeClient = escapeProjectHtml(project.clientName || '');
-    const safeType = escapeProjectHtml(project.serviceType || '');
-
-    const badgeVariant = isDone ? 'flowly-pill--success'
-      : isLate ? 'flowly-pill--danger'
-      : project.isDraft ? 'flowly-pill'
-      : 'flowly-pill--primary';
-
-    const metaBits = [];
-    metaBits.push('<span class="projects-card-v2__deadline' + (isLate ? ' is-late' : '') + '">' + deadlineText + '</span>');
-    metaBits.push('<span class="projects-card-v2__divider">·</span>');
-    metaBits.push('<span>' + (progressTotal > 0 ? progress.done + '/' + progressTotal + ' tarefas' : 'Sem tarefas') + '</span>');
-    if (project.isPaid) {
-      metaBits.push('<span class="flowly-pill flowly-pill--success" style="margin-left:auto">Pago</span>');
-    } else if (!project.isDraft) {
-      metaBits.push('<span class="flowly-pill" style="margin-left:auto">Em aberto</span>');
-    }
-
-    return '<article class="projects-card-v2 flowly-panel" data-project-card-id="' + project.id + '" data-project-id="' + project.id + '">'
-      + '<header class="projects-card-v2__head">'
-      +   '<div class="projects-card-v2__title">'
-      +     '<h3>' + safeName + '</h3>'
-      +     ((safeClient || safeType) ? '<p>' + [safeClient, safeType].filter(Boolean).join(' · ') + '</p>' : '')
-      +   '</div>'
-      +   '<span class="flowly-pill ' + badgeVariant + '">' + statusBadge.label + '</span>'
-      + '</header>'
-      + '<div class="projects-card-v2__meta">' + metaBits.join('') + '</div>'
+    return '<article class="kanban-card" draggable="true" data-project-card-id="' + project.id + '" data-project-id="' + project.id + '">'
+      + '<div class="kanban-card__title">' + safeName + '</div>'
+      + (safeClient ? '<div class="kanban-card__sub">' + safeClient + '</div>' : '')
       + (progressTotal > 0
-          ? '<div class="flowly-progress ' + progressVariant + '" style="margin-bottom:var(--flowly-space-4)"><div class="flowly-progress__fill" style="width:' + progressPct + '%"></div></div>'
-          : '<div style="height:var(--flowly-space-4)"></div>')
-      + '<footer class="projects-card-v2__foot">'
-      +   '<div class="flowly-avatar-group">' + avatarTokens + '</div>'
-      +   '<div class="projects-card-v2__amount">'
-      +     '<span class="projects-card-v2__amount-value">' + amountLabel + '</span>'
-      +     '<span class="projects-card-v2__amount-caption">' + amountCaption + '</span>'
-      +   '</div>'
-      +   '<button type="button" class="flowly-btn flowly-btn--ghost flowly-btn--sm" data-project-card-action="open-detail" data-project-id="' + project.id + '">Detalhes</button>'
-      + '</footer>'
+          ? '<div class="kanban-card__progress"><div class="flowly-progress ' + progressVariant + '"><div class="flowly-progress__fill" style="width:' + progressPct + '%"></div></div><span>' + progress.done + '/' + progressTotal + '</span></div>'
+          : '<div class="kanban-card__progress kanban-card__progress--empty">Sem tarefas</div>')
+      + '<div class="kanban-card__foot">'
+      +   '<span class="kanban-card__deadline' + (isLate ? ' is-late' : '') + '">' + deadlineText + '</span>'
+      +   (amountLabel ? '<span class="kanban-card__amount">' + amountLabel + '</span>' : '')
+      +   '<span class="flowly-avatar flowly-avatar--sm kanban-card__avatar">' + escapeProjectHtml(initials) + '</span>'
+      + '</div>'
       + '</article>';
   };
 
-  const sidebarStats = '<section class="flowly-panel">'
-    + '<header style="margin-bottom:var(--flowly-space-4)">'
-    +   '<h3 style="font-size:var(--flowly-text-base);font-weight:600;color:var(--flowly-text-primary);margin-bottom:var(--flowly-space-1)">Leitura rapida</h3>'
-    +   '<p style="font-size:var(--flowly-text-xs);color:var(--flowly-text-secondary)">Sinais da operacao agora.</p>'
-    + '</header>'
-    + '<div class="projects-stat-list">'
-    +   '<div class="projects-stat-row"><span>Ativos</span><strong>' + activeCount + '</strong></div>'
-    +   '<div class="projects-stat-row"><span>Atrasados</span><strong style="color:' + (lateCount > 0 ? 'var(--flowly-accent-danger)' : 'var(--flowly-text-primary)') + '">' + lateCount + '</strong></div>'
-    +   '<div class="projects-stat-row"><span>Nao pagos</span><strong style="color:' + (unpaidCount > 0 ? 'var(--flowly-accent-warning)' : 'var(--flowly-text-primary)') + '">' + unpaidCount + '</strong></div>'
-    +   '<div class="projects-stat-row"><span>Receita prevista</span><strong>' + formatBRL(totalRevenue) + '</strong></div>'
-    +   '<div class="projects-stat-row"><span>Entregue sem pagar</span><strong style="color:' + (deliveredUnpaidCount > 0 ? 'var(--flowly-accent-danger)' : 'var(--flowly-text-primary)') + '">' + deliveredUnpaidCount + '</strong></div>'
-    +   '<div class="projects-stat-row"><span>Tarefas sem contexto</span><strong>' + taskBacklogCount + '</strong></div>'
-    + '</div>'
-    + '</section>';
-
-  const draftOptionsHtml = draftTemplates.length > 0
-    ? '<select id="projectTemplateSource" class="flowly-select"><option value="">Sem template</option>'
-      + draftTemplates.map((p) => '<option value="' + p.id + '">' + escapeProjectHtml(p.name) + (p.templateTasks && p.templateTasks.length ? ' · ' + p.templateTasks.length + ' tarefas' : '') + '</option>').join('')
-      + '</select>'
-    : '';
-
-  const newProjectForm = '<section class="flowly-panel">'
-    + '<header style="margin-bottom:var(--flowly-space-4)">'
-    +   '<h3 style="font-size:var(--flowly-text-base);font-weight:600;color:var(--flowly-text-primary);margin-bottom:var(--flowly-space-1)">Novo projeto</h3>'
-    +   '<p style="font-size:var(--flowly-text-xs);color:var(--flowly-text-secondary)">Essencial agora, detalhes depois.</p>'
-    + '</header>'
-    + '<div style="display:flex;flex-direction:column;gap:var(--flowly-space-2)">'
-    +   '<input id="projectQuickName" class="flowly-input" type="text" placeholder="Nome do projeto">'
-    +   '<input id="projectQuickClient" class="flowly-input" type="text" placeholder="Cliente (opcional)">'
-    +   '<input id="projectQuickServiceType" class="flowly-input" type="text" placeholder="Tipo: LP, Site, etc.">'
-    +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--flowly-space-2)">'
-    +     '<input id="projectQuickDeadline" class="flowly-input" type="date" title="Prazo">'
-    +     '<input id="projectQuickExpectedValue" class="flowly-input" type="number" min="0" step="0.01" placeholder="Valor R$">'
-    +   '</div>'
-    +   draftOptionsHtml
-    +   '<div style="display:flex;gap:var(--flowly-space-2);margin-top:var(--flowly-space-2)">'
-    +     '<button type="button" class="flowly-btn flowly-btn--primary" data-projects-action="create-linked" style="flex:1">Criar projeto</button>'
-    +     '<button type="button" class="flowly-btn flowly-btn--secondary" data-projects-action="create-quick">Rapido</button>'
-    +   '</div>'
-    + '</div>'
-    + '</section>';
-
-  const suggestionsPanel = (analytics.suggestionTasks.length > 0 || analytics.suggestionTransactions.length > 0)
-    ? '<section class="flowly-panel">'
-      + '<header style="margin-bottom:var(--flowly-space-4)">'
-      +   '<h3 style="font-size:var(--flowly-text-base);font-weight:600;color:var(--flowly-text-primary);margin-bottom:var(--flowly-space-1)">Sugestoes</h3>'
-      +   '<p style="font-size:var(--flowly-text-xs);color:var(--flowly-text-secondary)">Vinculos que fazem sentido.</p>'
+  const renderKanbanColumn = (col) => {
+    const items = projectsByColumn[col.id] || [];
+    return '<section class="kanban-column' + (col.readonly ? ' kanban-column--readonly' : '') + '" data-kanban-column="' + col.id + '">'
+      + '<header class="kanban-column__header">'
+      +   '<div class="kanban-column__title">'
+      +     '<span>' + col.label + '</span>'
+      +     '<span class="kanban-column__count">' + items.length + '</span>'
+      +   '</div>'
+      +   '<div class="kanban-column__hint">' + col.hint + '</div>'
       + '</header>'
-      + '<div style="display:flex;flex-direction:column;gap:var(--flowly-space-2)">'
-      + analytics.suggestionTasks.slice(0, 3).map((item) => '<div class="projects-suggestion-row"><span>' + escapeProjectHtml(item.text) + '</span><button type="button" class="flowly-btn flowly-btn--ghost flowly-btn--sm" data-projects-apply-task-date="' + item.dateStr + '" data-projects-apply-task-period="' + item.period + '" data-projects-apply-task-index="' + item.index + '" data-projects-suggestion="' + item.suggestion.id + '">Aplicar</button></div>').join('')
-      + analytics.suggestionTransactions.slice(0, 3).map((item) => '<div class="projects-suggestion-row"><span>' + escapeProjectHtml(item.transaction.description) + '</span><button type="button" class="flowly-btn flowly-btn--ghost flowly-btn--sm" data-projects-apply-transaction="' + item.transaction.id + '" data-projects-suggestion="' + item.suggestion.id + '">Aplicar</button></div>').join('')
+      + '<div class="kanban-column__body">'
+      +   (items.length > 0 ? items.map(renderKanbanCard).join('') : '<div class="kanban-column__empty">—</div>')
       + '</div>'
-      + '</section>'
-    : '';
+      + '</section>';
+  };
 
-  const emptyState = '<div class="flowly-dotted" style="padding:var(--flowly-space-12) var(--flowly-space-6);display:grid;place-items:center;text-align:center;min-height:280px">'
-    + '<div>'
-    +   '<h3 style="font-size:var(--flowly-text-lg);font-weight:600;color:var(--flowly-text-primary);margin-bottom:var(--flowly-space-2)">Nenhum projeto nessa visao</h3>'
-    +   '<p style="font-size:var(--flowly-text-sm);color:var(--flowly-text-secondary);margin-bottom:var(--flowly-space-4)">Crie um projeto na coluna ao lado ou mude o filtro.</p>'
-    +   '<button type="button" class="flowly-btn flowly-btn--secondary flowly-btn--sm" data-projects-filter="all">Ver todos</button>'
-    + '</div>'
+  const statsStrip = '<div class="flowly-stat-strip kanban-stats-strip">'
+    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--primary"><div class="flowly-stat-card__label">Ativos</div><div class="flowly-stat-card__value">' + activeCount + '</div></div>'
+    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (lateCount > 0 ? 'danger' : 'success') + '"><div class="flowly-stat-card__label">Atrasados</div><div class="flowly-stat-card__value">' + lateCount + '</div></div>'
+    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (deliveredUnpaidCount > 0 ? 'warning' : 'success') + '"><div class="flowly-stat-card__label">Aguardando pagamento</div><div class="flowly-stat-card__value">' + deliveredUnpaidCount + '</div></div>'
+    + '<div class="flowly-stat-card flowly-stat-card--inline"><div class="flowly-stat-card__label">Receita prevista</div><div class="flowly-stat-card__value">' + formatBRL(totalRevenue) + '</div></div>'
     + '</div>';
 
   view.innerHTML = '<div class="flowly-shell flowly-shell--wide projects-shell-v2">'
     + '<header class="flowly-page-header">'
-    +   '<div class="flowly-page-header__title"><h1>Projetos</h1><p class="flowly-page-header__subtitle">' + heroInsight + '</p></div>'
+    +   '<div class="flowly-page-header__title"><h1 class="flowly-page-title">Projetos</h1><p class="flowly-page-subtitle">' + heroInsight + '</p></div>'
     +   '<div class="flowly-page-header__actions">'
-    +     '<button type="button" class="flowly-btn flowly-btn--primary" data-projects-action="focus-new">'
+    +     '<button type="button" class="flowly-btn flowly-btn--primary" data-projects-action="open-quick-modal">'
     +       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>'
     +       '<span>Novo projeto</span>'
     +     '</button>'
     +   '</div>'
     + '</header>'
-    + '<nav class="flowly-segmented projects-filters-v2" role="tablist" style="margin-bottom:var(--flowly-space-5);flex-wrap:wrap">'
-    +   filterTabs.map((item) => '<button type="button" class="flowly-segmented__item' + (projectsFilter === item.id ? ' is-active' : '') + '" data-projects-filter="' + item.id + '">' + item.label + '<span style="opacity:0.6;margin-left:6px;font-size:var(--flowly-text-xs)">' + item.count + '</span></button>').join('')
-    + '</nav>'
-    + '<div class="projects-layout-v2">'
-    +   '<main class="projects-grid-v2">' + (filteredProjects.length > 0 ? filteredProjects.map(renderProjectCard).join('') : emptyState) + '</main>'
-    +   '<aside class="projects-aside-v2">' + sidebarStats + newProjectForm + suggestionsPanel + '</aside>'
+    + statsStrip
+    + '<div class="kanban-board" data-projects-kanban>'
+    +   PROJECTS_KANBAN_COLUMNS.map(renderKanbanColumn).join('')
     + '</div>'
     + '</div>'
     + '<div class="flowly-modal" id="projectDetailModal" role="dialog" aria-modal="true">'
@@ -212,42 +170,10 @@ function renderProjectsView() {
   if (window.lucide) lucide.createIcons();
 
   // --- Event listeners ---
-  view.querySelectorAll('[data-projects-filter]').forEach((btn) => {
-    btn.onclick = () => setProjectsFilter(btn.dataset.projectsFilter || 'all');
-  });
-
   view.querySelectorAll('[data-projects-action]').forEach((btn) => {
     btn.onclick = () => {
       const action = btn.dataset.projectsAction;
       if (action === 'open-quick-modal') openQuickProjectModal();
-      if (action === 'create-quick') createProjectQuick();
-      if (action === 'create-linked') createProjectWithLinks();
-      if (action === 'focus-new') {
-        const target = document.getElementById('projectQuickName');
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setTimeout(() => target.focus(), 300);
-        }
-      }
-    };
-  });
-
-  view.querySelectorAll('[data-projects-apply-transaction]').forEach((btn) => {
-    btn.onclick = () => {
-      const transactionId = btn.dataset.projectsApplyTransaction;
-      const suggestionId = btn.dataset.projectsSuggestion;
-      if (transactionId && suggestionId) applySuggestedTransactionProject(transactionId, suggestionId);
-    };
-  });
-  view.querySelectorAll('[data-projects-apply-task-date]').forEach((btn) => {
-    btn.onclick = () => {
-      const dateStr = btn.dataset.projectsApplyTaskDate;
-      const period = btn.dataset.projectsApplyTaskPeriod;
-      const index = Number(btn.dataset.projectsApplyTaskIndex);
-      const suggestionId = btn.dataset.projectsSuggestion;
-      if (dateStr && period && Number.isFinite(index) && suggestionId) {
-        applySuggestedTaskProject(dateStr, period, index, suggestionId);
-      }
     };
   });
 
@@ -258,12 +184,42 @@ function renderProjectsView() {
       if (pid) openProjectDetailModal(pid);
     });
   });
-  view.querySelectorAll('[data-project-card-action="open-detail"]').forEach((btn) => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const pid = btn.dataset.projectId;
-      if (pid) openProjectDetailModal(pid);
-    };
+
+  // Drag and drop
+  let draggedProjectId = null;
+  view.querySelectorAll('.kanban-card[draggable="true"]').forEach((card) => {
+    card.addEventListener('dragstart', (e) => {
+      draggedProjectId = card.dataset.projectId;
+      card.classList.add('is-dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedProjectId);
+      }
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('is-dragging');
+      draggedProjectId = null;
+      view.querySelectorAll('.kanban-column.is-drop-target').forEach((c) => c.classList.remove('is-drop-target'));
+    });
+  });
+  view.querySelectorAll('.kanban-column').forEach((col) => {
+    if (col.classList.contains('kanban-column--readonly')) return;
+    col.addEventListener('dragover', (e) => {
+      if (!draggedProjectId) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      col.classList.add('is-drop-target');
+    });
+    col.addEventListener('dragleave', (e) => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove('is-drop-target');
+    });
+    col.addEventListener('drop', (e) => {
+      e.preventDefault();
+      col.classList.remove('is-drop-target');
+      const targetCol = col.dataset.kanbanColumn;
+      const pid = draggedProjectId || (e.dataTransfer && e.dataTransfer.getData('text/plain'));
+      if (pid && targetCol) window.moveProjectToKanbanColumn(pid, targetCol);
+    });
   });
 
   view.querySelectorAll('[data-project-modal-close]').forEach((el) => {
@@ -298,11 +254,13 @@ function openProjectDetailModal(projectId) {
   content.innerHTML = '<button type="button" class="flowly-modal__close" data-project-modal-close aria-label="Fechar">'
     + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>'
     + '</button>'
-    + '<header style="margin-bottom:var(--flowly-space-5)">'
-    +   '<div style="font-size:var(--flowly-text-2xs);text-transform:uppercase;letter-spacing:0.08em;color:var(--flowly-text-tertiary);margin-bottom:var(--flowly-space-1)">Detalhes do projeto</div>'
-    +   '<h2 style="font-family:var(--flowly-font-display);font-size:var(--flowly-text-2xl);font-weight:700;color:var(--flowly-text-primary);letter-spacing:-0.02em">' + safeName + '</h2>'
+    + '<header class="flowly-modal__header">'
+    +   '<div>'
+    +     '<h2 class="flowly-modal__title">' + safeName + '</h2>'
+    +     '<p class="flowly-modal__subtitle">Detalhes do projeto</p>'
+    +   '</div>'
     + '</header>'
-    + '<div class="projects-modal-form">'
+    + '<div class="flowly-modal__body">'
     +   '<div class="projects-modal-grid">'
     +     '<label class="projects-modal-field"><span>Nome</span><input class="flowly-input" type="text" value="' + safeName + '" data-project-field="name" data-project-id="' + project.id + '"></label>'
     +     '<label class="projects-modal-field"><span>Cliente</span><input class="flowly-input" type="text" value="' + safeClient + '" placeholder="Nome do cliente" data-project-field="clientName" data-project-id="' + project.id + '"></label>'
@@ -319,13 +277,13 @@ function openProjectDetailModal(projectId) {
     +   '<label class="projects-modal-field"><span>Notas operacionais</span><textarea class="flowly-textarea" data-project-field="notes" data-project-id="' + project.id + '" placeholder="Proximo passo, observacoes...">' + notesValue + '</textarea></label>'
     +   '<label class="projects-modal-field"><span>Checklist padrao</span><textarea id="' + templateTextareaId + '" class="flowly-textarea" placeholder="Uma tarefa por linha">' + templateValue + '</textarea></label>'
     +   linkedTasksHtml
-    +   '<footer class="projects-modal-actions-v2">'
-    +     '<button type="button" class="flowly-btn flowly-btn--primary" data-project-card-action="add-task" data-project-id="' + project.id + '">+ Tarefa</button>'
-    +     '<button type="button" class="flowly-btn flowly-btn--secondary" data-project-card-action="save-template" data-project-id="' + project.id + '" data-project-template-id="' + templateTextareaId + '">Salvar checklist</button>'
-    +     (project.status !== 'archived' ? '<button type="button" class="flowly-btn flowly-btn--ghost" data-project-card-action="archive" data-project-id="' + project.id + '">Arquivar</button>' : '')
-    +     '<button type="button" class="flowly-btn flowly-btn--danger" data-project-card-action="delete" data-project-id="' + project.id + '">Remover</button>'
-    +   '</footer>'
-    + '</div>';
+    + '</div>'
+    + '<footer class="flowly-modal__footer">'
+    +   '<button type="button" class="flowly-btn flowly-btn--danger" data-project-card-action="delete" data-project-id="' + project.id + '">Remover</button>'
+    +   (project.status !== 'archived' ? '<button type="button" class="flowly-btn flowly-btn--ghost" data-project-card-action="archive" data-project-id="' + project.id + '">Arquivar</button>' : '')
+    +   '<button type="button" class="flowly-btn flowly-btn--secondary" data-project-card-action="save-template" data-project-id="' + project.id + '" data-project-template-id="' + templateTextareaId + '">Salvar checklist</button>'
+    +   '<button type="button" class="flowly-btn flowly-btn--primary" data-project-card-action="add-task" data-project-id="' + project.id + '">+ Tarefa</button>'
+    + '</footer>';
 
   content.querySelectorAll('[data-project-field]').forEach((field) => {
     field.onchange = () => {

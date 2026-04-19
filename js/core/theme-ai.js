@@ -170,6 +170,68 @@ const FLOWLY_PANEL_PRESETS = {
   }
 };
 
+const FLOWLY_COMBO_PRESETS = {
+  classico: {
+    label: 'Clássico',
+    hint: 'Equilíbrio padrão do Flowly',
+    settings: {
+      fontMain: 'system',
+      fontDisplay: 'system',
+      radiusScale: 'soft',
+      pageWidth: 'wide',
+      panelStyle: 'balanced',
+      bodyAccent: 'subtle',
+      shadowStyle: 'soft',
+      borderStyle: 'subtle'
+    }
+  },
+  compacto: {
+    label: 'Compacto',
+    hint: 'Mais denso, técnico e seco',
+    settings: {
+      fontMain: 'modern',
+      fontDisplay: 'grotesk',
+      radiusScale: 'compact',
+      pageWidth: 'compact',
+      panelStyle: 'flat',
+      bodyAccent: 'none',
+      shadowStyle: 'flat',
+      borderStyle: 'defined'
+    }
+  },
+  editorial: {
+    label: 'Editorial',
+    hint: 'Mais respiro, contraste e personalidade',
+    settings: {
+      fontMain: 'editorial',
+      fontDisplay: 'editorial',
+      radiusScale: 'rounded',
+      pageWidth: 'cinematic',
+      panelStyle: 'crisp',
+      bodyAccent: 'soft',
+      shadowStyle: 'float',
+      borderStyle: 'subtle'
+    }
+  }
+};
+
+function getFlowlyActiveComboPreset(settings = getFlowlyThemeSettings()) {
+  const normalized = normalizeFlowlyThemeSettings(settings);
+  for (const [id, combo] of Object.entries(FLOWLY_COMBO_PRESETS)) {
+    const match = Object.entries(combo.settings).every(([k, v]) => normalized[k] === v);
+    if (match) return id;
+  }
+  return '';
+}
+
+function applyFlowlyComboPreset(comboId) {
+  const combo = FLOWLY_COMBO_PRESETS[comboId];
+  if (!combo) return null;
+  const current = getFlowlyThemeSettings();
+  const next = { ...current, ...combo.settings };
+  return saveFlowlyThemeSettings(next);
+}
+
 function hexToRgbString(value, fallback) {
   const hex = String(value || fallback || '').replace('#', '').trim();
   if (![3, 6].includes(hex.length)) return fallback || '10 132 255';

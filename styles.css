@@ -1,38 +1,7 @@
-:root {
-    --bg-body: #0a0b0f;
-    --bg-card: rgba(20, 22, 28, 0.88);
-    --bg-card-hover: rgba(24, 26, 33, 0.96);
-    --bg-glass: rgba(255, 255, 255, 0.035);
-    --border-subtle: rgba(255, 255, 255, 0.07);
-    --border-active: rgba(255, 255, 255, 0.12);
-    --text-primary: #F5F5F7;
-    --text-secondary: #86868b;
-    --text-tertiary: #58585e;
-    --accent-blue: #0A84FF;
-    --accent-green: #30D158;
-    --accent-orange: #FF9F0A;
-    --accent-red: #FF453A;
-    --accent-primary-rgb: 10 132 255;
-    --accent-secondary-rgb: 255 159 10;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.12);
-    --shadow-panel: 0 10px 24px rgba(0, 0, 0, 0.12);
-    --radius-lg: 16px;
-    --radius-md: 10px;
-    --surface-panel: rgba(255, 255, 255, 0.024);
-    --surface-panel-strong: rgba(255, 255, 255, 0.03);
-    --surface-panel-elevated: rgba(255, 255, 255, 0.042);
-    --border-panel: rgba(255, 255, 255, 0.07);
-    --panel-blur: 10px;
-    --shell-max-width: 1280px;
-    --shell-max-width-narrow: 1120px;
-    --shell-max-width-wide: 1400px;
-    --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
+/* Tokens definidos em css/_tokens.css — NÃO redeclarar aqui. */
 
 body {
-    background: linear-gradient(180deg, #0a0b0f 0%, #0b0d12 52%, #090a0e 100%);
+    background: var(--flowly-bg-body);
     font-family: var(--font-main);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -385,7 +354,7 @@ body.sidebar-collapsed .sidebar-toggle {
 /* CORREÃ‡ÃƒO DA LOGO GIGANTE */
 .logo-area img {
     height: 40px !important;
-    /* ForÃ§ar altura fixa */
+    /* Forçar altura fixa */
     width: auto !important;
     object-fit: contain;
 }
@@ -767,7 +736,7 @@ body.no-week-hover .day-column:hover {
 }
 
 /* ====== TODAY VIEW ====== */
-/* Usando ID para sobrescrever o display: grid do #weekGrid padrÃ£o */
+/* Usando ID para sobrescrever o display: grid do #weekGrid padrão */
 #weekGrid.today-container,
 #weekGrid.today-container.today-focus-mode,
 #weekGrid.today-container.today-focus-mode .today-main,
@@ -800,7 +769,7 @@ body.no-week-hover .day-column:hover {
     padding-top: 6px;
 }
 
-/* Header alinhado Ã  esquerda seguindo a coluna de tarefas */
+/* Header alinhado à esquerda seguindo a coluna de tarefas */
 .today-hero {
     display: grid;
     grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
@@ -907,7 +876,7 @@ body.no-week-hover .day-column:hover {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    /* Itens bem prÃ³ximos */
+    /* Itens bem próximos */
 }
 
 /* Task Item Minimalista (Notion Style) */
@@ -932,7 +901,7 @@ body.no-week-hover .day-column:hover {
     border-radius: 6px;
     /* Cantos levemente arredondados no hover */
     padding-left: 10px;
-    /* IndentaÃ§Ã£o visual no hover */
+    /* Indentação visual no hover */
     padding-right: 10px;
     margin-left: -10px;
     /* Compensar o padding para manter alinhamento */
@@ -973,7 +942,7 @@ body.no-week-hover .day-column:hover {
 
 .today-task-list .task-item .task-label {
     font-size: 17px;
-    /* Tamanho padrÃ£o Notion */
+    /* Tamanho padrão Notion */
     color: var(--text-primary);
     line-height: 1.5;
     margin-left: 0;
@@ -1003,7 +972,7 @@ body.no-week-hover .day-column:hover {
     font-weight: 400;
 }
 
-/* EstatÃ­sticas Limpas */
+/* Estatísticas Limpas */
 .stat-section {
     margin-bottom: 32px;
 }
@@ -1135,18 +1104,54 @@ body.dragging-active .task-drop-zone {
 }
 
 .quick-task-container {
-    background: transparent;
-    border-radius: 4px;
-    padding: 0;
-    margin-bottom: 2px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 4px 8px;
+    margin-bottom: 6px;
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .quick-task-container:hover {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.quick-task-container:focus-within {
+    background: rgba(var(--ds-accent-rgb, 10, 132, 255), 0.05);
+    border: 1px solid rgba(var(--ds-accent-rgb, 10, 132, 255), 0.35);
+}
+
+.quick-task-stub {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    margin: 4px 0 6px;
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.015);
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    user-select: none;
+}
+
+.quick-task-stub:hover {
+    background: rgba(var(--ds-accent-rgb, 10, 132, 255), 0.06);
+    border-color: rgba(var(--ds-accent-rgb, 10, 132, 255), 0.28);
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.quick-task-stub__icon {
+    width: 13px;
+    height: 13px;
+    stroke-width: 2;
+    opacity: 0.8;
 }
 
 /* Floating & Menus */
@@ -1171,7 +1176,7 @@ body.dragging-active .task-drop-zone {
     transform: scale(1.08) rotate(90deg);
 }
 
-/* BotÃµes dos dias da semana no modal */
+/* Botões dos dias da semana no modal */
 .weekly-day-btn {
     flex: 1;
     padding: 10px 0;
@@ -1282,62 +1287,36 @@ body.dragging-active .task-drop-zone {
     transform: scale(1);
 }
 
-/* Color classes */
-.color-default {
-    color: #f5f5f7;
+/* Color classes — category shown via dot affordance, not text tint */
+.task-label.color-default { --task-color: transparent; }
+.task-label.color-blue    { --task-color: #0a84ff; }
+.task-label.color-green   { --task-color: #30d158; }
+.task-label.color-yellow  { --task-color: #ffd60a; }
+.task-label.color-orange  { --task-color: #ff9f0a; }
+.task-label.color-red     { --task-color: #ff453a; }
+.task-label.color-purple  { --task-color: #bf5af2; }
+
+.task-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--task-color, transparent);
+    margin-right: 6px;
+    vertical-align: middle;
+    flex-shrink: 0;
 }
 
-.color-blue {
-    color: #0a84ff;
-}
+.task-label.color-default::before { display: none; }
 
-.color-green {
-    color: #30d158;
-}
-
-.color-yellow {
-    color: #ffd60a;
-}
-
-.color-orange {
-    color: #ff9f0a;
-}
-
-.color-red {
-    color: #ff453a;
-}
-
-.color-purple {
-    color: #bf5af2;
-}
-
-.today-task-list .task-item .task-label.color-default {
-    color: #f5f5f7;
-}
-
-.today-task-list .task-item .task-label.color-blue {
-    color: #0a84ff;
-}
-
-.today-task-list .task-item .task-label.color-green {
-    color: #30d158;
-}
-
-.today-task-list .task-item .task-label.color-yellow {
-    color: #ffd60a;
-}
-
-.today-task-list .task-item .task-label.color-orange {
-    color: #ff9f0a;
-}
-
-.today-task-list .task-item .task-label.color-red {
-    color: #ff453a;
-}
-
-.today-task-list .task-item .task-label.color-purple {
-    color: #bf5af2;
-}
+/* Fallback for contexts where the variable isn't set */
+.color-blue:not(.task-label)    { color: #0a84ff; }
+.color-green:not(.task-label)   { color: #30d158; }
+.color-yellow:not(.task-label)  { color: #ffd60a; }
+.color-orange:not(.task-label)  { color: #ff9f0a; }
+.color-red:not(.task-label)     { color: #ff453a; }
+.color-purple:not(.task-label)  { color: #bf5af2; }
 
 .drag-handle {
     position: absolute;
@@ -1582,7 +1561,7 @@ body.dragging-active .task-drop-zone {
 
     .stat-section {
         min-width: 100%;
-        /* ForÃ§a largura total */
+        /* Força largura total */
     }
 }
 
@@ -1975,7 +1954,7 @@ body.dragging-active .task-drop-zone {
 }
 
 /* ====================================================
-   SAFE AREA & MOBILE LAYOUT â€” iPhone / Android
+   SAFE AREA & MOBILE LAYOUT — iPhone / Android
    ==================================================== */
 
 /* Mobile Header: respeitar Dynamic Island / notch */
@@ -1985,7 +1964,7 @@ body.dragging-active .task-drop-zone {
 
 @media (max-width: 768px) {
 
-    /* Body mobile: zera padding padrÃ£o de desktop e aplica safe-area-top */
+    /* Body mobile: zera padding padrão de desktop e aplica safe-area-top */
     body {
         padding: 0;
         padding-top: env(safe-area-inset-top);
@@ -1998,12 +1977,12 @@ body.dragging-active .task-drop-zone {
         padding-bottom: calc(80px + env(safe-area-inset-bottom));
     }
 
-    /* Ãrea de conteÃºdo principal */
+    /* Área de conteúdo principal */
     #contentArea {
         padding-bottom: calc(80px + env(safe-area-inset-bottom));
     }
 
-    /* Views internas com scroll: garantir espaÃ§o apÃ³s conteÃºdo */
+    /* Views internas com scroll: garantir espaço após conteúdo */
     #routineView,
     #analyticsView,
     #settingsView,
@@ -2023,7 +2002,7 @@ body.dragging-active .task-drop-zone {
         border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    /* BotÃµes da bottom nav: Ã­cones visÃ­veis com boa Ã¡rea de toque */
+    /* Botões da bottom nav: ícones visíveis com boa área de toque */
     nav.md\:hidden button {
         color: rgba(255, 255, 255, 0.45);
         transition: color 0.15s ease, transform 0.1s ease;
@@ -2045,7 +2024,7 @@ body.dragging-active .task-drop-zone {
         text-shadow: 0 0 14px rgba(242, 116, 5, 0.28);
     }
 
-    /* ForÃ§ar Ã­cones Lucide visÃ­veis na bottom nav */
+    /* Forçar ícones Lucide visíveis na bottom nav */
     nav.md\:hidden button i,
     nav.md\:hidden button svg {
         display: block !important;
@@ -2942,7 +2921,7 @@ body.dragging-active .task-drop-zone {
 }
 
 /* =====================================================
-   ROUTINE VIEW â€” PREMIUM REDESIGN
+   ROUTINE VIEW — PREMIUM REDESIGN
    ===================================================== */
 
 .routine-container {
@@ -3362,7 +3341,7 @@ body.dragging-active .task-drop-zone {
 }
 
 /* =====================================================
-   ANALYTICS VIEW â€” PREMIUM REDESIGN
+   ANALYTICS VIEW — PREMIUM REDESIGN
    ===================================================== */
 
 .analytics-container {
@@ -3742,7 +3721,7 @@ body.dragging-active .task-drop-zone {
 }
 
 /* =====================================================
-   ROUTINE V2 â€” STRATEGIC PRODUCTIVITY PANEL
+   ROUTINE V2 — STRATEGIC PRODUCTIVITY PANEL
    ===================================================== */
 
 .routine-view-tabs {
@@ -4297,7 +4276,7 @@ body.dragging-active .task-drop-zone {
 }
 
 /* =====================================================
-   ANALYTICS V2 â€” REAL DASHBOARD
+   ANALYTICS V2 — REAL DASHBOARD
    ===================================================== */
 
 .flowly-shell {

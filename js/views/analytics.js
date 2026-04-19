@@ -21,8 +21,8 @@ function markHabitCompleted(habitText, completed, targetDate = null) {
 window.toggleHabitToday = function (habitText, completed) {
   // Normalizar texto para evitar problemas com aspas
   const cleanText = habitText;
-  // O toggleHabitToday da interface de rotina assume "hoje", mas podemos melhorar isso se necessÃ¡rio.
-  // Por enquanto, mantÃ©m o comportamento atual de usar "hoje" SE nÃ£o passar data.
+  // O toggleHabitToday da interface de rotina assume "hoje", mas podemos melhorar isso se necessário.
+  // Por enquanto, mantém o comportamento atual de usar "hoje" SE não passar data.
   markHabitCompleted(cleanText, completed);
 
   // Re-renderizar para atualizar UI imediatamente (optimistic update)
@@ -33,7 +33,7 @@ window.toggleHabitToday = function (habitText, completed) {
 
 async function removeHabit(habitText) {
   const confirmed = await window.FlowlyDialogs.confirm(
-    `Tem certeza que deseja remover "${habitText}" dos hÃ¡bitos?\n\nIsso irÃ¡ desmarcar esta tarefa como hÃ¡bito em todas as ocorrÃªncias.`,
+    `Tem certeza que deseja remover "${habitText}" dos hábitos?\n\nIsso irá desmarcar esta tarefa como hábito em todas as ocorrências.`,
     {
       title: 'Remover hábito',
       confirmLabel: 'Remover',
@@ -53,7 +53,7 @@ async function removeHabit(habitText) {
     syncRecurringTasksToSupabase();
   }
 
-  // Desmarcar como hÃ¡bito em todas as tarefas existentes
+  // Desmarcar como hábito em todas as tarefas existentes
   Object.entries(allTasksData).forEach(([dateStr, periods]) => {
     Object.entries(periods).forEach(([period, tasks]) => {
       tasks.forEach((task) => {
@@ -64,7 +64,7 @@ async function removeHabit(habitText) {
     });
   });
 
-  // Limpar histÃ³rico do hÃ¡bito
+  // Limpar histórico do hábito
   if (habitsHistory[habitText]) {
     delete habitsHistory[habitText];
     localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
@@ -81,11 +81,11 @@ function renderHabitsView() {
     habits = getAllHabits();
   if (habits.length === 0) {
     view.innerHTML =
-      '<div class="text-center py-20"><p class="text-gray-400 text-lg">Nenhum hÃ¡bito rastreado ainda.</p><p class="text-gray-600 text-sm mt-2">Marque tasks como hÃ¡bitos no menu de contexto (botÃ£o direito).</p></div>';
+      '<div class="text-center py-20"><p class="text-gray-400 text-lg">Nenhum hábito rastreado ainda.</p><p class="text-gray-600 text-sm mt-2">Marque tasks como hábitos no menu de contexto (botão direito).</p></div>';
     return;
   }
 
-  let html = `<div class="flowly-shell flowly-shell--narrow"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Meus HÃ¡bitos</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+  let html = `<div class="flowly-shell flowly-shell--narrow"><h2 class="text-3xl font-bold mb-8 text-white flex items-center gap-3"><i data-lucide="repeat" style="width: 28px; height: 28px;"></i> Meus Hábitos</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div class="flowly-stat-card"><span class="flowly-stat-card__label">Total de Hábitos</span><span class="flowly-stat-card__value">${habits.length}</span></div>
             <div class="flowly-stat-card flowly-stat-card--success"><span class="flowly-stat-card__label">Concluídos Hoje</span><span class="flowly-stat-card__value">${habits.filter((h) => h.completedToday).length}</span></div>
             <div class="flowly-stat-card" style="--flowly-stat-card-value-color: var(--flowly-accent-info);"><span class="flowly-stat-card__label">Taxa Hoje</span><span class="flowly-stat-card__value" style="color: var(--flowly-accent-info);">${habits.length > 0 ? Math.round((habits.filter((h) => h.completedToday).length / habits.length) * 100) : 0}%</span></div></div><div class="space-y-3">`;
@@ -197,7 +197,7 @@ function renderHabitsView() {
                 
                 
                 
-                    <button type="button" data-habit-remove="${encodeURIComponent(habit.text)}" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg" title="Remover hÃ¡bito">
+                    <button type="button" data-habit-remove="${encodeURIComponent(habit.text)}" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg" title="Remover hábito">
                 
                 
                 
@@ -256,69 +256,25 @@ function renderAnalyticsView() {
   // -- Outer tab (Rotina | Analytics) ------------------------------------
   const mainTab = view.dataset.mainTab || 'analytics';
   const outerTabsHTML = `
-    <div style="display:flex;gap:6px;padding:0 0 20px">
-        <button type="button" data-analytics-main-tab="routine"
-            style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid;cursor:pointer;transition:all 0.15s;
-                
-                
-                
-                
-                
-                
-                
-                   background:${mainTab === 'routine' ? 'rgba(10,132,255,0.15)' : 'transparent'};
-                
-                
-                
-                
-                
-                
-                
-                   color:${mainTab === 'routine' ? '#0A84FF' : 'var(--text-tertiary)'};
-                
-                
-                
-                
-                
-                
-                
-                   border-color:${mainTab === 'routine' ? 'rgba(10,132,255,0.35)' : 'var(--border-subtle)'}">
-            Rotina
-        </button>
-        <button type="button" data-analytics-main-tab="analytics"
-            style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid;cursor:pointer;transition:all 0.15s;
-                
-                
-                
-                
-                
-                
-                
-                   background:${mainTab === 'analytics' ? 'rgba(10,132,255,0.15)' : 'transparent'};
-                
-                
-                
-                
-                
-                
-                
-                   color:${mainTab === 'analytics' ? '#0A84FF' : 'var(--text-tertiary)'};
-                
-                
-                
-                
-                
-                
-                
-                   border-color:${mainTab === 'analytics' ? 'rgba(10,132,255,0.35)' : 'var(--border-subtle)'}">
-            Analytics
-        </button>
+    <div class="flowly-segmented" role="tablist" aria-label="Modo">
+      <button type="button" role="tab" aria-selected="${mainTab === 'routine'}" class="flowly-segmented__item${mainTab === 'routine' ? ' is-active' : ''}" data-analytics-main-tab="routine">Rotina</button>
+      <button type="button" role="tab" aria-selected="${mainTab === 'analytics'}" class="flowly-segmented__item${mainTab === 'analytics' ? ' is-active' : ''}" data-analytics-main-tab="analytics">Analytics</button>
     </div>`;
 
   // -- Routine tab: embed renderRoutineView inside analytics -------------
   if (mainTab === 'routine') {
     const routineTab = view.dataset.routineTab || 'today';
-    const routineHtml = `<div class="flowly-shell"><div class="analytics-container-v2">${outerTabsHTML}<div id="routineEmbedded"></div></div></div>`;
+    const routineHtml = `<div class="flowly-shell flowly-shell--wide"><div class="analytics-container-v2">
+      <div class="flowly-page-header">
+        <div class="flowly-page-header-left">
+          <div class="flowly-page-kicker">Painel de análise</div>
+          <h1 class="flowly-page-title">Rotina</h1>
+          <p class="flowly-page-subtitle">Hábitos, streaks e progresso recente.</p>
+        </div>
+        <div class="flowly-page-actions">${outerTabsHTML}</div>
+      </div>
+      <div id="routineEmbedded"></div>
+    </div></div>`;
     view.innerHTML = typeof fixMojibakeText === 'function' ? fixMojibakeText(routineHtml) : routineHtml;
     view.querySelectorAll('[data-analytics-main-tab]').forEach((btn) => {
       btn.onclick = () => {
@@ -338,7 +294,7 @@ function renderAnalyticsView() {
   const MONTH_NAMES_PT = [
     'Janeiro',
     'Fevereiro',
-    'MarÃ§o',
+    'Março',
     'Abril',
     'Maio',
     'Junho',
@@ -349,7 +305,7 @@ function renderAnalyticsView() {
     'Novembro',
     'Dezembro'
   ].map((item) => (typeof fixMojibakeText === 'function' ? fixMojibakeText(item) : item));
-  const DAY_ABBR_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'].map((item) =>
+  const DAY_ABBR_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((item) =>
     typeof fixMojibakeText === 'function' ? fixMojibakeText(item) : item
   );
 
@@ -496,7 +452,7 @@ function renderAnalyticsView() {
   }
 
   // -- Last-week comparison (fair: compare only up to same day of week) --
-  const todayDayOfWeek = new Date().getDay(); // 0=Dom, 6=SÃ¡b
+  const todayDayOfWeek = new Date().getDay(); // 0=Dom, 6=Sáb
   const lastWeekDates = getWeekDates(-1);
   let lastWeekTotal = 0,
     lastWeekCompleted = 0;
@@ -575,8 +531,8 @@ function renderAnalyticsView() {
     todayPerformanceScore >= 110 ? '#30D158' : todayPerformanceScore >= 85 ? '#0A84FF' : '#FF9F0A';
   const trendClass = weeklyDeltaTasks > 0 ? 'up' : weeklyDeltaTasks < 0 ? 'down' : 'neutral';
   const trendLabel =
-    weeklyDeltaTasks > 0 ? `â†‘ +${weeklyDeltaTasks}` : weeklyDeltaTasks < 0 ? `â†“ ${weeklyDeltaTasks}` : 'â‰ˆ estÃ¡vel';
-  const trendTooltip = 'comparado Ã  mÃ©dia dos 7 dias anteriores';
+    weeklyDeltaTasks > 0 ? `â†‘ +${weeklyDeltaTasks}` : weeklyDeltaTasks < 0 ? `â†“ ${weeklyDeltaTasks}` : 'â‰ˆ estável';
+  const trendTooltip = 'comparado à média dos 7 dias anteriores';
 
   // -- Habit ranking -----------------------------------------------------
   const habitRanking = allHabitsArr
@@ -589,7 +545,7 @@ function renderAnalyticsView() {
 
   const habitRankingHTML =
     habitRanking.length === 0
-      ? `<div style="padding:20px 0;text-align:center;color:var(--text-tertiary);font-size:13px;line-height:1.6">Nenhum hÃ¡bito rastreado ainda.<br>Adicione hÃ¡bitos na visÃ£o Semana.</div>`
+      ? `<div style="padding:20px 0;text-align:center;color:var(--text-tertiary);font-size:13px;line-height:1.6">Nenhum hábito rastreado ainda.<br>Adicione hábitos na visão Semana.</div>`
       : habitRanking
           .slice(0, 8)
           .map((h, i) => {
@@ -749,9 +705,9 @@ function renderAnalyticsView() {
       const barH = d.rate > 0 ? Math.max(6, Math.round(d.rate * 0.9)) : 0;
       return `<div class="analytics-day-perf-col ${d.isToday ? 'today-col' : ''}">
             <div class="analytics-day-label">${d.name.substring(0, 3)}</div>
-            <div class="analytics-day-rate-v2" style="color:${d.color}">${d.rate > 0 ? d.rate + '%' : 'â€”'}</div>
+            <div class="analytics-day-rate-v2" style="color:${d.color}">${d.rate > 0 ? d.rate + '%' : '—'}</div>
             <div class="analytics-day-bar-wrap"><div class="analytics-day-bar-fill" style="height:${barH}%;background:${d.color};opacity:${d.total > 0 ? 1 : 0}"></div></div>
-            <div class="analytics-day-total">${d.total > 0 ? `${d.completed}/${d.total}` : 'â€“'}</div>
+            <div class="analytics-day-total">${d.total > 0 ? `${d.completed}/${d.total}` : '–'}</div>
         </div>`;
     })
     .join('');
@@ -763,21 +719,21 @@ function renderAnalyticsView() {
       color: 'green',
       icon: '?',
       title: 'Dia Perfeito!',
-      text: 'Todas as tarefas de hoje concluÃ­das. Excelente!'
+      text: 'Todas as tarefas de hoje concluídas. Excelente!'
     });
   if (currentStreak >= 3)
     insights.push({
       color: 'orange',
       icon: '??',
       title: `${currentStreak} Dias de Streak`,
-      text: 'Dias consecutivos com 100% das tarefas concluÃ­das!'
+      text: 'Dias consecutivos com 100% das tarefas concluídas!'
     });
   if (habitRate === 100 && totalHabits > 0)
     insights.push({
       color: 'purple',
       icon: '?',
-      title: 'HÃ¡bitos Perfeitos',
-      text: 'Todos os hÃ¡bitos marcados hoje. ConsistÃªncia mÃ¡xima!'
+      title: 'Hábitos Perfeitos',
+      text: 'Todos os hábitos marcados hoje. Consistência máxima!'
     });
   if (weekDiff >= 10)
     insights.push({
@@ -791,42 +747,42 @@ function renderAnalyticsView() {
       color: 'red',
       icon: '??',
       title: 'Queda de Desempenho',
-      text: `${weekDiff}% vs semana anterior. Identifique o que estÃ¡ bloqueando.`
+      text: `${weekDiff}% vs semana anterior. Identifique o que está bloqueando.`
     });
   if (bestDay && bestDay.rate >= 80)
     insights.push({
       color: 'blue',
       icon: '?',
       title: `Destaque: ${bestDay.name}`,
-      text: `${bestDay.rate}% de conclusÃ£o â€” seu melhor dia da semana!`
+      text: `${bestDay.rate}% de conclusão — seu melhor dia da semana!`
     });
   if (todayPerformanceScore >= 120)
     insights.push({
       color: 'green',
       icon: 'â†—',
-      title: 'Acima da tua mÃ©dia',
-      text: `Hoje vocÃª entregou ${todayPerformanceScore}% da tua mÃ©dia recente.`
+      title: 'Acima da tua média',
+      text: `Hoje você entregou ${todayPerformanceScore}% da tua média recente.`
     });
   if (todayPerformanceScore > 0 && todayPerformanceScore < 80)
     insights.push({
       color: 'orange',
-      icon: 'â€¢',
-      title: 'Abaixo da mÃ©dia',
-      text: `Hoje ficou em ${todayPerformanceScore}% da tua mÃ©dia recente.`
+      icon: '•',
+      title: 'Abaixo da média',
+      text: `Hoje ficou em ${todayPerformanceScore}% da tua média recente.`
     });
   if (insights.length === 0 && weekRate > 0)
     insights.push({
       color: 'blue',
       icon: '??',
       title: 'Continue Evoluindo',
-      text: `${Math.round(recent7Avg || 0)} tarefas/dia na Ãºltima semana. Cada dia conta!`
+      text: `${Math.round(recent7Avg || 0)} tarefas/dia na última semana. Cada dia conta!`
     });
   if (insights.length === 0)
     insights.push({
       color: 'blue',
       icon: '??',
       title: 'Comece Hoje',
-      text: 'Adicione tarefas e hÃ¡bitos para ver seus insights aqui.'
+      text: 'Adicione tarefas e hábitos para ver seus insights aqui.'
     });
 
   const insightsHTML = insights
@@ -877,184 +833,41 @@ function renderAnalyticsView() {
     Number.isFinite(value) ? Number(value).toFixed(1).replace('.0', '') : '0';
   view.innerHTML = `<div class="flowly-shell flowly-shell--wide"><div class="analytics-container-v2 analytics-container-v3">
 
-        <!-- Outer tabs -->
-        ${outerTabsHTML}
-
         <!-- Header -->
         <div class="analytics-header-v2 flowly-page-header">
-            <div>
-                
-                
-                
-                
-                
-                
-                
-                <h2 class="analytics-title-v2 flowly-page-title">Analytics</h2>
-                
-                
-                
-                
-                
-                
-                
+            <div class="flowly-page-header-left">
+                <div class="flowly-page-kicker">Painel de análise</div>
+                <h1 class="analytics-title-v2 flowly-page-title">Analytics</h1>
                 <p class="analytics-subtitle-v2 flowly-page-subtitle">${MONTH_NAMES_PT[nowMonth]} ${nowYear} · Semana atual</p>
+            </div>
+            <div class="flowly-page-actions">
+                ${outerTabsHTML}
             </div>
         </div>
 
         <!-- KPI Grid -->
         <div class="analytics-kpi-grid-v2">
-            <div class="analytics-kpi-v2">
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-glow" style="background:radial-gradient(circle,rgba(${todayRate >= 70 ? '48,209,88' : todayRate >= 40 ? '255,159,10' : '255,69,58'},0.18),transparent)"></div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-label"><i data-lucide="activity" style="width:12px;height:12px"></i> Performance hoje</div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-value" style="color:${todayKpiColor}">${todayPerformanceScore}%</div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-sub">${todayCompletedVolume} concluídas • média ${analyticsSafe(avgCompletedBaseline)}</div>
-                
-                
-                
-                
-                
-                
-                
-                ${todayCompletedVolume > 0 ? `<span class="analytics-kpi-v2-badge ${todayPerformanceScore >= 100 ? 'up' : 'neutral'}">${volumeDelta >= 0 ? '↑' : '↓'} ${Math.abs(volumeDelta)} vs média</span>` : ''}
+            <div class="flowly-stat-card flowly-stat-card--${todayRate >= 70 ? 'success' : todayRate >= 40 ? 'warning' : 'danger'}">
+                <div class="flowly-stat-card__label"><i data-lucide="activity" style="width:12px;height:12px;vertical-align:-2px"></i> Performance hoje</div>
+                <div class="flowly-stat-card__value">${todayPerformanceScore}%</div>
+                <div class="flowly-stat-card__hint">${todayCompletedVolume} concluídas • média ${analyticsSafe(avgCompletedBaseline)}</div>
+                ${todayCompletedVolume > 0 ? `<span class="flowly-stat-card__delta flowly-stat-card__delta--${volumeDelta >= 0 ? 'up' : 'down'}">${volumeDelta >= 0 ? '↑' : '↓'} ${Math.abs(volumeDelta)} vs média</span>` : ''}
             </div>
-            <div class="analytics-kpi-v2">
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-glow" style="background:radial-gradient(circle,rgba(${weekDiff > 0 ? '48,209,88' : weekDiff < 0 ? '255,69,58' : '10,132,255'},0.18),transparent)"></div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-label"><i data-lucide="bar-chart-3" style="width:12px;height:12px"></i> Ritmo semanal</div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-value" style="color:${weeklyDeltaTasks > 0 ? '#30D158' : weeklyDeltaTasks < 0 ? '#FF453A' : '#0A84FF'}">${weeklyPerformanceScore}%</div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-sub">${recent7Completed} concluídas nos últimos 7 dias</div>
-                
-                
-                
-                
-                
-                
-                
-                <span class="analytics-kpi-v2-badge ${trendClass}" title="${trendTooltip}">${trendLabel} vs 7 dias anteriores</span>
+            <div class="flowly-stat-card flowly-stat-card--${weeklyDeltaTasks > 0 ? 'success' : weeklyDeltaTasks < 0 ? 'danger' : 'primary'}">
+                <div class="flowly-stat-card__label"><i data-lucide="bar-chart-3" style="width:12px;height:12px;vertical-align:-2px"></i> Ritmo semanal</div>
+                <div class="flowly-stat-card__value">${weeklyPerformanceScore}%</div>
+                <div class="flowly-stat-card__hint">${recent7Completed} concluídas nos últimos 7 dias</div>
+                <span class="flowly-stat-card__delta flowly-stat-card__delta--${trendClass === 'up' ? 'up' : trendClass === 'down' ? 'down' : 'up'}" title="${trendTooltip}">${trendLabel} vs 7 dias anteriores</span>
             </div>
-            <div class="analytics-kpi-v2">
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-glow" style="background:radial-gradient(circle,rgba(191,90,242,0.18),transparent)"></div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-label"><i data-lucide="gauge" style="width:12px;height:12px"></i> Consistência</div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-value" style="color:${consistencyDays >= 15 ? '#30D158' : consistencyDays >= 8 ? '#0A84FF' : '#BF5AF2'}">${activeHistory.length > 0 ? Math.round((consistencyDays / activeHistory.length) * 100) : 0}%</div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-sub">${consistencyDays} dias na/acima da média em 30 dias</div>
+            <div class="flowly-stat-card flowly-stat-card--${consistencyDays >= 15 ? 'success' : consistencyDays >= 8 ? 'primary' : 'warning'}">
+                <div class="flowly-stat-card__label"><i data-lucide="gauge" style="width:12px;height:12px;vertical-align:-2px"></i> Consistência</div>
+                <div class="flowly-stat-card__value">${activeHistory.length > 0 ? Math.round((consistencyDays / activeHistory.length) * 100) : 0}%</div>
+                <div class="flowly-stat-card__hint">${consistencyDays} dias na/acima da média em 30 dias</div>
             </div>
-            <div class="analytics-kpi-v2">
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-glow" style="background:radial-gradient(circle,rgba(255,159,10,0.18),transparent)"></div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-label"><i data-lucide="zap" style="width:12px;height:12px"></i> Capacidade</div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-value" style="color:${bestVolumeDay && bestVolumeDay.completed >= 8 ? '#FF9F0A' : bestVolumeDay ? '#30D158' : 'var(--text-tertiary)'}">${bestVolumeDay ? bestVolumeDay.completed : 0}</div>
-                
-                
-                
-                
-                
-                
-                
-                <div class="analytics-kpi-v2-sub">${bestVolumeDay ? `melhor dia: ${bestVolumeDay.dateStr}` : 'sem histórico suficiente'}</div>
+            <div class="flowly-stat-card flowly-stat-card--${bestVolumeDay && bestVolumeDay.completed >= 8 ? 'warning' : bestVolumeDay ? 'success' : 'primary'}">
+                <div class="flowly-stat-card__label"><i data-lucide="zap" style="width:12px;height:12px;vertical-align:-2px"></i> Capacidade</div>
+                <div class="flowly-stat-card__value">${bestVolumeDay ? bestVolumeDay.completed : 0}</div>
+                <div class="flowly-stat-card__hint">${bestVolumeDay ? `melhor dia: ${bestVolumeDay.dateStr}` : 'sem histórico suficiente'}</div>
             </div>
         </div>
 
@@ -1149,7 +962,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                    <div class="analytics-chart-v2-title"><i data-lucide="pie-chart" style="width:14px;height:14px"></i> HÃ¡bitos Hoje</div>
+                    <div class="analytics-chart-v2-title"><i data-lucide="pie-chart" style="width:14px;height:14px"></i> Hábitos Hoje</div>
                 
                 
                 
@@ -1205,7 +1018,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                            <div style="font-size:10px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">hÃ¡bitos</div>
+                            <div style="font-size:10px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px">hábitos</div>
                 
                 
                 
@@ -1275,7 +1088,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div class="analytics-chart-v2-title"><i data-lucide="line-chart" style="width:14px;height:14px"></i> Volume diÃ¡rio â€” ${MONTH_NAMES_PT[nowMonth]}</div>
+                <div class="analytics-chart-v2-title"><i data-lucide="line-chart" style="width:14px;height:14px"></i> Volume diário — ${MONTH_NAMES_PT[nowMonth]}</div>
                 
                 
                 
@@ -1283,7 +1096,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <span class="analytics-chart-v2-badge">MÃ©dia ${monthAvgRate} tarefas/dia</span>
+                <span class="analytics-chart-v2-badge">Média ${monthAvgRate} tarefas/dia</span>
             </div>
             <div style="position:relative;height:180px">
                 
@@ -1315,7 +1128,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                    <div class="analytics-chart-v2-title"><i data-lucide="award" style="width:14px;height:14px"></i> Ranking de HÃ¡bitos</div>
+                    <div class="analytics-chart-v2-title"><i data-lucide="award" style="width:14px;height:14px"></i> Ranking de Hábitos</div>
                 
                 
                 
@@ -1453,7 +1266,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);margin-bottom:8px;display:flex;align-items:center;gap:5px"><i data-lucide="alert-circle" style="width:11px;height:11px;color:#FF9F0A"></i> AtenÃ§Ã£o</div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);margin-bottom:8px;display:flex;align-items:center;gap:5px"><i data-lucide="alert-circle" style="width:11px;height:11px;color:#FF9F0A"></i> Atenção</div>
                 
                 
                 
@@ -1526,7 +1339,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#FF9F0A"></div><span style="font-size:10px;color:var(--text-tertiary)">40â€“60%</span></div>
+                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#FF9F0A"></div><span style="font-size:10px;color:var(--text-tertiary)">40–60%</span></div>
                 
                 
                 
@@ -1534,7 +1347,7 @@ function renderAnalyticsView() {
                 
                 
                 
-                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#0A84FF"></div><span style="font-size:10px;color:var(--text-tertiary)">60â€“80%</span></div>
+                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:#0A84FF"></div><span style="font-size:10px;color:var(--text-tertiary)">60–80%</span></div>
                 
                 
                 
@@ -1548,7 +1361,7 @@ function renderAnalyticsView() {
 
         <!-- Smart Insights -->
         <div>
-            <div class="analytics-section-label" style="margin-bottom:10px">AnÃ¡lise EstratÃ©gica</div>
+            <div class="analytics-section-label" style="margin-bottom:10px">Análise Estratégica</div>
             <div class="analytics-insights-v2">${insightsHTML}</div>
         </div>
 
@@ -1592,7 +1405,7 @@ function renderAnalyticsView() {
           labels: weekDates.map(({ name }) => name.substring(0, 3)),
           datasets: [
             {
-              label: 'ConclusÃ£o (%)',
+              label: 'Conclusão (%)',
               data: weekChartData,
               backgroundColor: weekChartColors.map((c) => (c.startsWith('#') ? c + 'B3' : c)),
               borderColor: weekChartColors,
@@ -1647,7 +1460,7 @@ function renderAnalyticsView() {
       new Chart(hCtx, {
         type: 'doughnut',
         data: {
-          labels: ['ConcluÃ­dos', 'Pendentes'],
+          labels: ['Concluídos', 'Pendentes'],
           datasets: [
             {
               data: doughnutData,
@@ -1675,7 +1488,7 @@ function renderAnalyticsView() {
           labels: monthlyVolumeLabels,
           datasets: [
             {
-              label: 'Tarefas concluÃ­das',
+              label: 'Tarefas concluídas',
               data: monthlyVolumeSeries,
               borderColor: '#0A84FF',
               backgroundColor: 'rgba(10,132,255,0.08)',
@@ -1704,7 +1517,7 @@ function renderAnalyticsView() {
               callbacks: {
                 title: (items) => `Dia ${items[0].label}`,
                 label: (item) =>
-                  item.raw !== null ? ` ${item.raw} tarefa(s) concluÃ­da(s)` : ' Sem tarefas'
+                  item.raw !== null ? ` ${item.raw} tarefa(s) concluída(s)` : ' Sem tarefas'
               }
             }
           },

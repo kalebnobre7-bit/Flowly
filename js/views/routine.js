@@ -6,18 +6,18 @@ function renderRoutineView(embeddedEl) {
   // Preserve active tab across re-renders
   const activeTab = view.dataset.routineTab || 'today';
 
-  // Onclick strings for tab buttons â€” update correct element and re-render
+  // Onclick strings for tab buttons — update correct element and re-render
 
   // -- Constants -----------------------------------------------------------
   const today = new Date();
   const todayStr = localDateStr(today);
-  const DAY_NAMES = ['Domingo', 'Segunda', 'TerÃ§a', 'Quarta', 'Quinta', 'Sexta', 'SÃ¡bado'];
-  const DAY_ABBR = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'];
+  const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  const DAY_ABBR = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const DAY_INIT = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
   const MONTH_NAMES = [
     'Janeiro',
     'Fevereiro',
-    'MarÃ§o',
+    'Março',
     'Abril',
     'Maio',
     'Junho',
@@ -166,7 +166,7 @@ function renderRoutineView(embeddedEl) {
   const habitsHTML =
     activeRoutines.length === 0
       ? `<div style="padding:32px 0;text-align:center;color:var(--text-tertiary);font-size:13px;line-height:1.6">
-               Nenhum hÃ¡bito configurado ainda.<br>Crie tarefas recorrentes na visÃ£o <b style="color:var(--text-secondary)">Semana</b>.
+               Nenhum hábito configurado ainda.<br>Crie tarefas recorrentes na visão <b style="color:var(--text-secondary)">Semana</b>.
            </div>`
       : activeRoutines
           .map((task) => {
@@ -227,18 +227,18 @@ function renderRoutineView(embeddedEl) {
                 </div>
                 <div class="routine-habit-stats">
                     <div class="routine-habit-rate-v2" style="color:${rateColor}">${itemRate}%</div>
-                    ${runningStreak > 0 ? `<div class="routine-habit-streak-v2">?? ${runningStreak}d</div>` : `<div style="font-size:10px;color:var(--text-tertiary)">30 dias</div>`}
+                    ${runningStreak > 0 ? `<div class="routine-habit-streak-v2"><i data-lucide="flame" style="width:12px;height:12px;vertical-align:-2px"></i> ${runningStreak}d</div>` : `<div style="font-size:10px;color:var(--text-tertiary)">30 dias</div>`}
                 </div>
             </div>`;
           })
           .join('');
 
-  // -- Period breakdown (ManhÃ£/Tarde/Noite) ---------------------------------
+  // -- Period breakdown (Manhã/Tarde/Noite) ---------------------------------
   const todayAllTasks = allTasksData[todayStr] || {};
   const periods = [
-    { key: 'ManhÃ£', label: 'ManhÃ£', icon: '??', color: '#FF9F0A' },
-    { key: 'Tarde', label: 'Tarde', icon: '??', color: '#0A84FF' },
-    { key: 'Noite', label: 'Noite', icon: '??', color: '#BF5AF2' }
+    { key: 'Manhã', label: 'Manhã', icon: 'sunrise', color: '#FF9F0A' },
+    { key: 'Tarde', label: 'Tarde', icon: 'sun', color: '#0A84FF' },
+    { key: 'Noite', label: 'Noite', icon: 'moon', color: '#BF5AF2' }
   ];
   const periodHTML = periods
     .map((p) => {
@@ -247,9 +247,9 @@ function renderRoutineView(embeddedEl) {
         done = tasks.filter((t) => t.completed).length;
       const pct = tot > 0 ? Math.round((done / tot) * 100) : 0;
       return `<div class="routine-period-card">
-            <div class="routine-period-icon" style="background:${p.color}15">${p.icon}</div>
+            <div class="routine-period-icon" style="background:${p.color}15;color:${p.color}"><i data-lucide="${p.icon}" style="width:18px;height:18px"></i></div>
             <div class="routine-period-label">${p.label}</div>
-            <div class="routine-period-fraction" style="color:${p.color}">${done}<span style="font-size:13px;font-weight:400;color:var(--text-tertiary)">/${tot > 0 ? tot : 'â€“'}</span></div>
+            <div class="routine-period-fraction" style="color:${p.color}">${done}<span style="font-size:13px;font-weight:400;color:var(--text-tertiary)">/${tot > 0 ? tot : '–'}</span></div>
             <div class="routine-period-bar"><div class="routine-period-bar-fill" style="width:${pct}%;background:${p.color}"></div></div>
         </div>`;
     })
@@ -270,9 +270,9 @@ function renderRoutineView(embeddedEl) {
               : 'rgba(255,255,255,0.08)';
       return `<div class="routine-weekly-day-col ${day.isToday ? 'today' : ''}">
             <div class="routine-weekly-day-label">${day.abbr.substring(0, 3)}</div>
-            <div class="routine-weekly-rate" style="color:${barColor}">${day.rate > 0 ? day.rate + '%' : 'â€”'}</div>
+            <div class="routine-weekly-rate" style="color:${barColor}">${day.rate > 0 ? day.rate + '%' : '—'}</div>
             <div class="routine-weekly-bar"><div class="routine-weekly-bar-fill" style="height:${barH}%;background:${barColor};opacity:${day.total > 0 ? 1 : 0}"></div></div>
-            <div class="routine-weekly-tasks-count">${day.total > 0 ? `${day.completed}/${day.total}` : 'â€“'}</div>
+            <div class="routine-weekly-tasks-count">${day.total > 0 ? `${day.completed}/${day.total}` : '–'}</div>
         </div>`;
     })
     .join('');
@@ -296,13 +296,13 @@ function renderRoutineView(embeddedEl) {
   // -- Streak Badge ----------------------------------------------------------
   const streakBadge =
     currentStreak >= 7
-      ? `<span class="routine-streak-badge fire">?? ${currentStreak} dias de sequÃªncia</span>`
+      ? `<span class="routine-streak-badge fire"><i data-lucide="flame" style="width:12px;height:12px;vertical-align:-2px"></i> ${currentStreak} dias de sequência</span>`
       : currentStreak >= 3
-        ? `<span class="routine-streak-badge orange" style="background:rgba(255,159,10,0.1);border-color:rgba(255,159,10,0.25);color:#FF9F0A">? ${currentStreak} dias consecutivos</span>`
+        ? `<span class="routine-streak-badge orange" style="background:rgba(255,159,10,0.1);border-color:rgba(255,159,10,0.25);color:#FF9F0A"><i data-lucide="flame" style="width:12px;height:12px;vertical-align:-2px"></i> ${currentStreak} dias consecutivos</span>`
         : todayPercent === 100 && totalToday > 0
-          ? `<span class="routine-streak-badge green">? Dia perfeito!</span>`
+          ? `<span class="routine-streak-badge green"><i data-lucide="check-circle" style="width:12px;height:12px;vertical-align:-2px"></i> Dia perfeito!</span>`
           : weeklyRate >= 80
-            ? `<span class="routine-streak-badge blue">?? Semana excelente â€” ${weeklyRate}%</span>`
+            ? `<span class="routine-streak-badge blue"><i data-lucide="trophy" style="width:12px;height:12px;vertical-align:-2px"></i> Semana excelente — ${weeklyRate}%</span>`
             : '';
 
   // -- TAB CONTENT -----------------------------------------------------------
@@ -313,8 +313,8 @@ function renderRoutineView(embeddedEl) {
         <div class="routine-section-card">
             <div class="routine-section-header">
                 <i data-lucide="clock" style="width:14px;height:14px"></i>
-                Tarefas por PerÃ­odo
-                <span class="routine-badge">${(todayAllTasks['ManhÃ£'] || []).length + (todayAllTasks['Tarde'] || []).length + (todayAllTasks['Noite'] || []).length}</span>
+                Tarefas por Período
+                <span class="routine-badge">${(todayAllTasks['Manhã'] || []).length + (todayAllTasks['Tarde'] || []).length + (todayAllTasks['Noite'] || []).length}</span>
             </div>
             <div class="routine-period-grid">${periodHTML}</div>
         </div>
@@ -322,13 +322,13 @@ function renderRoutineView(embeddedEl) {
         <div class="routine-section-card">
             <div class="routine-section-header">
                 <i data-lucide="check-circle" style="width:14px;height:14px"></i>
-                HÃ¡bitos de Hoje
+                Hábitos de Hoje
                 <span class="routine-badge">${completedToday}/${totalToday}</span>
             </div>
             <div class="routine-habits-list">${habitsHTML}</div>
             <button type="button" data-routine-manage-habits="week" class="routine-manage-habits-btn"
                 >
-                Gerenciar HÃ¡bitos <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
+                Gerenciar Hábitos <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
             </button>
         </div>
 
@@ -338,7 +338,7 @@ function renderRoutineView(embeddedEl) {
         <div class="routine-section-card">
             <div class="routine-section-header">
                 <i data-lucide="tag" style="width:14px;height:14px"></i>
-                DistribuiÃ§Ã£o por Categoria
+                Distribuição por Categoria
             </div>
             ${catHTML}
         </div>`
@@ -349,7 +349,7 @@ function renderRoutineView(embeddedEl) {
         <div class="routine-section-card">
             <div class="routine-section-header">
                 <i data-lucide="bar-chart-2" style="width:14px;height:14px"></i>
-                ConsistÃªncia â€” Esta Semana
+                Consistência — Esta Semana
                 <span class="routine-badge">${weeklyRate}%</span>
             </div>
             <div class="routine-weekly-grid">${weeklyColsHTML}</div>
@@ -358,7 +358,7 @@ function renderRoutineView(embeddedEl) {
         <div class="routine-section-card">
             <div class="routine-section-header">
                 <i data-lucide="repeat" style="width:14px;height:14px"></i>
-                HÃ¡bitos
+                Hábitos
                 <span class="routine-badge">${activeRoutines.length}</span>
             </div>
             <div class="routine-habits-list">${habitsHTML}</div>
@@ -368,7 +368,7 @@ function renderRoutineView(embeddedEl) {
         <div class="routine-section-card">
             <div class="routine-section-header">
                 <i data-lucide="layout-grid" style="width:14px;height:14px"></i>
-                HistÃ³rico â€” 12 Semanas
+                Histórico — 12 Semanas
                 <span class="routine-badge">${monthlyRate}% (30d)</span>
             </div>
             <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;text-align:center">
@@ -378,8 +378,8 @@ function renderRoutineView(embeddedEl) {
             <div class="routine-heatmap-legend" style="margin-top:14px">
                 <div><div style="width:10px;height:10px;border-radius:3px;background:rgba(255,255,255,0.05)"></div><span>Vazio</span></div>
                 <div><div style="width:10px;height:10px;border-radius:3px;background:rgba(255,69,58,0.45)"></div><span>&lt;40%</span></div>
-                <div><div style="width:10px;height:10px;border-radius:3px;background:#FF9F0A"></div><span>40â€“70%</span></div>
-                <div><div style="width:10px;height:10px;border-radius:3px;background:rgba(48,209,88,0.55)"></div><span>70â€“99%</span></div>
+                <div><div style="width:10px;height:10px;border-radius:3px;background:#FF9F0A"></div><span>40–70%</span></div>
+                <div><div style="width:10px;height:10px;border-radius:3px;background:rgba(48,209,88,0.55)"></div><span>70–99%</span></div>
                 <div><div style="width:10px;height:10px;border-radius:3px;background:#30D158"></div><span>100%</span></div>
             </div>
         </div>
@@ -387,25 +387,27 @@ function renderRoutineView(embeddedEl) {
         <div class="routine-section-card">
             <div class="routine-section-header">
                 <i data-lucide="pie-chart" style="width:14px;height:14px"></i>
-                HÃ¡bitos por Categoria
+                Hábitos por Categoria
             </div>
-            ${catHTML.replace(/done\/total/g, '') || `<div style="padding:16px 0;text-align:center;color:var(--text-tertiary);font-size:13px">Sem hÃ¡bitos com categoria</div>`}
+            ${catHTML.replace(/done\/total/g, '') || `<div style="padding:16px 0;text-align:center;color:var(--text-tertiary);font-size:13px">Sem hábitos com categoria</div>`}
         </div>`;
   }
 
   // -- FULL HTML -------------------------------------------------------------
   view.innerHTML = `
     <div class="routine-container">
-        <div class="routine-header">
-            <div>
-                <h2 class="routine-title">Rotina</h2>
-                <p class="routine-subtitle">${DAY_NAMES[today.getDay()]}, ${today.getDate()} de ${MONTH_NAMES[today.getMonth()]}</p>
+        ${isEmbedded ? '' : `
+        <div class="flowly-page-header">
+            <div class="flowly-page-header-left">
+                <div class="flowly-page-kicker">Painel de análise</div>
+                <h1 class="flowly-page-title">Rotina</h1>
+                <p class="flowly-page-subtitle">${DAY_NAMES[today.getDay()]}, ${today.getDate()} de ${MONTH_NAMES[today.getMonth()]}</p>
             </div>
-            <div class="routine-view-tabs">
-                <button type="button" class="routine-tab-btn ${activeTab === 'today' ? 'active' : ''}" data-routine-tab="today">Hoje</button>
-                <button type="button" class="routine-tab-btn ${activeTab === 'week' ? 'active' : ''}" data-routine-tab="week">Semana</button>
-                <button type="button" class="routine-tab-btn ${activeTab === 'month' ? 'active' : ''}" data-routine-tab="month">Mensal</button>
-            </div>
+        </div>`}
+        <div class="routine-view-tabs flowly-segmented" role="tablist" aria-label="Período">
+            <button type="button" role="tab" aria-selected="${activeTab === 'today'}" class="flowly-segmented__item${activeTab === 'today' ? ' is-active' : ''}" data-routine-tab="today">Hoje</button>
+            <button type="button" role="tab" aria-selected="${activeTab === 'week'}" class="flowly-segmented__item${activeTab === 'week' ? ' is-active' : ''}" data-routine-tab="week">Semana</button>
+            <button type="button" role="tab" aria-selected="${activeTab === 'month'}" class="flowly-segmented__item${activeTab === 'month' ? ' is-active' : ''}" data-routine-tab="month">Mensal</button>
         </div>
 
         <div class="routine-score-card">
@@ -425,7 +427,7 @@ function renderRoutineView(embeddedEl) {
             <div class="routine-score-info">
                 <div class="routine-score-label">Progresso do Dia</div>
                 <div class="routine-score-count">${completedToday}<span>/${totalToday}</span></div>
-                <div class="routine-score-sub">hÃ¡bitos concluÃ­dos hoje</div>
+                <div class="routine-score-sub">hábitos concluídos hoje</div>
                 <div class="routine-progress-bar">
                     <div class="routine-progress-bar-fill" style="width:${todayPercent}%;background:${ringColor}"></div>
                 </div>
@@ -433,26 +435,26 @@ function renderRoutineView(embeddedEl) {
             </div>
         </div>
 
-        <div class="routine-metrics-strip">
-            <div class="routine-metric-pill">
-                <div class="routine-metric-pill-icon"><i data-lucide="flame" style="width:16px;height:16px;color:#FF9F0A"></i></div>
-                <div class="routine-metric-pill-val" style="color:${currentStreak >= 7 ? '#FF9F0A' : currentStreak > 0 ? '#30D158' : 'var(--text-tertiary)'}">${currentStreak}</div>
-                <div class="routine-metric-pill-lbl">Streak</div>
+        <div class="routine-metrics-strip analytics-kpi-grid-v2">
+            <div class="flowly-stat-card flowly-stat-card--${currentStreak >= 7 ? 'warning' : currentStreak > 0 ? 'success' : 'primary'}">
+                <div class="flowly-stat-card__label"><i data-lucide="flame" style="width:12px;height:12px;vertical-align:-2px"></i> Streak</div>
+                <div class="flowly-stat-card__value">${currentStreak}</div>
+                <div class="flowly-stat-card__hint">dias consecutivos</div>
             </div>
-            <div class="routine-metric-pill">
-                <div class="routine-metric-pill-icon"><i data-lucide="trending-up" style="width:16px;height:16px;color:#0A84FF"></i></div>
-                <div class="routine-metric-pill-val" style="color:${weeklyRate >= 80 ? '#30D158' : '#0A84FF'}">${weeklyRate}%</div>
-                <div class="routine-metric-pill-lbl">Semana</div>
+            <div class="flowly-stat-card flowly-stat-card--${weeklyRate >= 80 ? 'success' : 'primary'}">
+                <div class="flowly-stat-card__label"><i data-lucide="trending-up" style="width:12px;height:12px;vertical-align:-2px"></i> Semana</div>
+                <div class="flowly-stat-card__value">${weeklyRate}%</div>
+                <div class="flowly-stat-card__hint">taxa dos últimos 7 dias</div>
             </div>
-            <div class="routine-metric-pill">
-                <div class="routine-metric-pill-icon"><i data-lucide="calendar" style="width:16px;height:16px;color:#30D158"></i></div>
-                <div class="routine-metric-pill-val" style="color:${monthlyRate >= 70 ? '#30D158' : '#0A84FF'}">${monthlyRate}%</div>
-                <div class="routine-metric-pill-lbl">30 Dias</div>
+            <div class="flowly-stat-card flowly-stat-card--${monthlyRate >= 70 ? 'success' : 'primary'}">
+                <div class="flowly-stat-card__label"><i data-lucide="calendar" style="width:12px;height:12px;vertical-align:-2px"></i> 30 Dias</div>
+                <div class="flowly-stat-card__value">${monthlyRate}%</div>
+                <div class="flowly-stat-card__hint">taxa do último mês</div>
             </div>
-            <div class="routine-metric-pill">
-                <div class="routine-metric-pill-icon"><i data-lucide="trophy" style="width:16px;height:16px;color:#BF5AF2"></i></div>
-                <div class="routine-metric-pill-val" style="color:#BF5AF2">${DAY_ABBR[bestDayIdx]}</div>
-                <div class="routine-metric-pill-lbl">Melhor Dia</div>
+            <div class="flowly-stat-card flowly-stat-card--primary">
+                <div class="flowly-stat-card__label"><i data-lucide="trophy" style="width:12px;height:12px;vertical-align:-2px"></i> Melhor Dia</div>
+                <div class="flowly-stat-card__value">${DAY_ABBR[bestDayIdx]}</div>
+                <div class="flowly-stat-card__hint">mais dias perfeitos</div>
             </div>
         </div>
 
@@ -507,7 +509,7 @@ async function deleteWeeklyRecurringTask(index) {
 async function deleteEmptyTasks() {
   if (
     !(await window.FlowlyDialogs.confirm(
-      'Tem certeza que deseja excluir todas as tarefas vazias (sem texto)?\n\nEsta aÃ§Ã£o nÃ£o pode ser desfeita!'
+      'Tem certeza que deseja excluir todas as tarefas vazias (sem texto)?\n\nEsta ação não pode ser desfeita!'
     ))
   )
     return;

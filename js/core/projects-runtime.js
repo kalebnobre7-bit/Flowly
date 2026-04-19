@@ -755,8 +755,8 @@ function getProjectStatus(project, today) {
   if (project.isDraft || project.status === 'draft') return { label: 'Rascunho', cls: 'projects-badge--draft' };
   if (project.status === 'archived') return { label: 'Arquivado', cls: 'projects-badge--archived' };
   if (project.completionDate) {
-    if (project.isPaid) return { label: 'ConcluÃ­do e pago', cls: 'projects-badge--done-paid' };
-    return { label: 'ConcluÃ­do', cls: 'projects-badge--done' };
+    if (project.isPaid) return { label: 'Concluído e pago', cls: 'projects-badge--done-paid' };
+    return { label: 'Concluído', cls: 'projects-badge--done' };
   }
   if (project.deadline && project.deadline < today) return { label: 'Atrasado', cls: 'projects-badge--late' };
   return { label: 'Em andamento', cls: 'projects-badge--active' };

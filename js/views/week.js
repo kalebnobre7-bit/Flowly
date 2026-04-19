@@ -40,7 +40,7 @@ function renderWeek() {
     weekDates = getWeekDates(currentWeekOffset);
   }
 
-  // HIDRATAR A SEMANA: Garantir que as rotinas existam no banco para todos os dias visÃ­veis
+  // HIDRATAR A SEMANA: Garantir que as rotinas existam no banco para todos os dias visíveis
   weekDates.forEach(({ dateStr }) => hydrateRoutineForDate(dateStr));
 
   weekDates.forEach(({ name: day, dateStr }) => {
@@ -90,9 +90,9 @@ function renderWeek() {
       });
     });
 
-    // 2. Adicionar tarefas normais persistidas (excluindo perÃ­odo 'Rotina' se foi salvo indevidamente)
+    // 2. Adicionar tarefas normais persistidas (excluindo período 'Rotina' se foi salvo indevidamente)
     Object.entries(dayTasks).forEach(([period, tasks]) => {
-      if (period === 'Rotina') return; // Pular - rotinas sÃ£o geradas dinamicamente acima
+      if (period === 'Rotina') return; // Pular - rotinas são geradas dinamicamente acima
       if (Array.isArray(tasks)) {
         tasks.forEach((task, index) => {
           if (task && typeof task === 'object') {
@@ -120,24 +120,34 @@ function renderWeek() {
       col.appendChild(createTaskElement(day, dateStr, period, task, originalIndex));
     });
 
+    // ===== STUB VISÍVEL PARA NOVA TAREFA =====
+    const addStub = document.createElement('div');
+    addStub.className = 'quick-task-stub';
+    addStub.innerHTML = '<i data-lucide="plus" class="quick-task-stub__icon"></i><span>Adicionar tarefa</span>';
+    addStub.addEventListener('click', (e) => {
+      e.stopPropagation();
+      insertQuickTaskInput(col, dateStr, 'Tarefas', addStub);
+    });
+    col.appendChild(addStub);
+
     // ===== DROP ZONE NO FINAL PADRONIZADA =====
     // Usa createDropZone com index = allTasks.length para inserir no fim
     const endDropZone = createDropZone(day.name, dateStr, 'Tarefas', allTasks.length);
-    endDropZone.classList.add('flex-grow', 'min-h-[40px]'); // Estilo para ocupar espaÃ§o
+    endDropZone.classList.add('flex-grow', 'min-h-[40px]'); // Estilo para ocupar espaço
     endDropZone.innerText = '';
 
     // Atalho: clique na zona final abre input de nova tarefa
     endDropZone.addEventListener('click', (e) => {
       if (!document.body.classList.contains('dragging-active')) {
-        insertQuickTaskInput(col, dateStr, 'Tarefas', endDropZone);
+        insertQuickTaskInput(col, dateStr, 'Tarefas', addStub);
       }
     });
 
     col.appendChild(endDropZone);
 
-    // Adicionar Ã¡rea clicÃ¡vel para nova tarefa (estilo Notion)
+    // Adicionar área clicável para nova tarefa (estilo Notion)
     col.addEventListener('click', (e) => {
-      // SÃ³ adicionar se clicar na Ã¡rea vazia (nÃ£o em tasks ou inputs existentes)
+      // Só adicionar se clicar na área vazia (não em tasks ou inputs existentes)
       if (e.target === col || e.target.tagName === 'H2' || e.target.tagName === 'H3') {
         insertQuickTaskInput(col, dateStr, 'Tarefas', endDropZone);
       }
@@ -163,5 +173,5 @@ function renderWeek() {
   });
 }
 
-// FunÃ§Ã£o de OrdenaÃ§Ã£o Unificada (Regra: Rotina -> ConcluÃ­das -> Pendentes)
+// Função de Ordenação Unificada (Regra: Rotina -> Concluídas -> Pendentes)
 

@@ -166,6 +166,23 @@ function buildSettingsMarkup(ctx) {
     FLOWLY_SHADOW_PRESETS[themeSettings.shadowStyle] || FLOWLY_SHADOW_PRESETS.soft;
   const borderPreset =
     FLOWLY_BORDER_PRESETS[themeSettings.borderStyle] || FLOWLY_BORDER_PRESETS.subtle;
+  const activeComboId = getFlowlyActiveComboPreset(themeSettings);
+  const comboPresetHtml = `
+    <section class="settings-theme-combos">
+      <div class="settings-theme-combos__head">
+        <span>Visual completo</span>
+        <p>Aplica fonte, radii, painéis, sombras e bordas de uma vez.</p>
+      </div>
+      <div class="settings-theme-combos__grid">
+        ${Object.entries(FLOWLY_COMBO_PRESETS).map(([id, combo]) => `
+          <button type="button" class="settings-theme-combo${activeComboId === id ? ' is-active' : ''}" data-theme-combo="${id}">
+            <strong>${escapeSettingsHtml(combo.label)}</strong>
+            <span>${escapeSettingsHtml(combo.hint)}</span>
+          </button>
+        `).join('')}
+      </div>
+    </section>
+  `;
   const fontMainChoiceGrid = createThemeChoiceGroup(
     'fontMain',
     themeSettings.fontMain,
@@ -280,13 +297,38 @@ function buildSettingsMarkup(ctx) {
     `
   );
 
+  const notifGranted = notifPerm === 'granted';
+  const notifDenied = notifPerm === 'denied';
+  const notifDefault = notifPerm === 'default';
+
+  const notifGateBanner = notifDenied
+    ? `<div class="settings-notif-gate settings-notif-gate--denied">
+         <i data-lucide="shield-off" style="width:18px;height:18px;flex-shrink:0"></i>
+         <div>
+           <strong>Notificações bloqueadas</strong>
+           <span>Abra as configurações do navegador para liberar.</span>
+         </div>
+       </div>`
+    : notifDefault
+      ? `<div class="settings-notif-gate settings-notif-gate--default">
+           <i data-lucide="bell-ring" style="width:18px;height:18px;flex-shrink:0"></i>
+           <div>
+             <strong>Permissão não solicitada</strong>
+             <span>Peça acesso para começar a receber alertas.</span>
+           </div>
+           <button id="btnRequestNotifPermission" type="button" class="flowly-btn flowly-btn--primary flowly-btn--sm">Pedir permissão</button>
+         </div>`
+      : '';
+
   const notificationsSection = createSettingsSectionCard(
     'Notificações',
     'Alertas, horários e mensagens',
     'bell-ring',
     `
       <div style="display:flex;flex-direction:column;gap:0">
+        ${notifGateBanner}
         ${createSettingsRow('bell', 'Ativar notificações', 'Liga ou desliga alertas do app', createSettingsToggle('toggleNotif', notifEnabled))}
+        ${notifGranted ? `
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0">
           <label class="projects-config-field">
             <span>Manhã</span>
@@ -330,6 +372,7 @@ function buildSettingsMarkup(ctx) {
           </label>
           <p style="font-size:11px;color:var(--ds-text-muted)">Variáveis: {completed}, {total}, {pending}, {percentage}, {avgDuration}, {totalDuration}, {bestPeriod}.</p>
         </div>
+        ` : ''}
       </div>
     `
   );
@@ -369,7 +412,6 @@ function buildSettingsMarkup(ctx) {
           </select>
         </label>
         ${createSettingsRow('calendar-range', 'Fins de semana', 'Exibe sábado e domingo na semana', createSettingsToggle('toggleWeekends', showWeekends))}
-        ${createSettingsRow('vibrate', 'Feedback háptico', 'Vibração em interações suportadas', createSettingsToggle('toggleHaptics', hapticsEnabled))}
         ${createSettingsRow('sparkles', 'Animação hover semanal', 'Destaque visual ao passar o mouse', createSettingsToggle('toggleWeekHover', enableWeekHoverAnimation))}
       </div>
     `
@@ -380,6 +422,7 @@ function buildSettingsMarkup(ctx) {
     'Tema vivo, com escolhas mais previsíveis',
     'palette',
     `
+      ${comboPresetHtml}
       <div class="settings-theme-grid">
         <label class="settings-theme-field">
           <span>Cor primária</span>
@@ -670,31 +713,14 @@ function buildSettingsMarkup(ctx) {
     `
   );
 
-  const quickGuideCard = createSettingsSectionCard(
-    'Leitura rápida',
-    'Tudo agora está separado por contexto',
-    'folders',
-    `
-      <div class="settings-guide-list">
-        <div><strong>Conta</strong><span>nome, login e identidade</span></div>
-        <div><strong>Notificações</strong><span>horários, templates e permissão</span></div>
-        <div><strong>App</strong><span>semana, hover e feedback</span></div>
-        <div><strong>Personalização</strong><span>cores, fontes, largura e painéis</span></div>
-        <div><strong>IA</strong><span>provedor, modelo e endpoint da Sexta</span></div>
-        <div><strong>Operação</strong><span>prioridades e sinais</span></div>
-        <div><strong>Dados</strong><span>backup, reparo e limpeza</span></div>
-      </div>
-    `
-  );
-
   const tabPanels = {
-    conta: { main: [profileSection], side: [quickGuideCard] },
+    conta: { main: [profileSection], side: [] },
     notificacoes: { main: [notificationsSection], side: [notificationStatusCard] },
-    app: { main: [appSection], side: [quickGuideCard] },
+    app: { main: [appSection], side: [] },
     personalizacao: { main: [personalizationSection], side: [personalizationStatusCard] },
     ia: { main: [aiSection], side: [aiStatusCard, telegramStatusCard] },
-    operacao: { main: [prioritiesSection], side: [quickGuideCard] },
-    dados: { main: [dataSection], side: [syncLogSection, quickGuideCard] }
+    operacao: { main: [prioritiesSection], side: [] },
+    dados: { main: [dataSection], side: [syncLogSection] }
   };
 
   const currentTabPanels = tabPanels[settingsTab] || tabPanels.conta;
@@ -704,7 +730,7 @@ function buildSettingsMarkup(ctx) {
       <div class="flowly-page-header">
         <div class="flowly-page-header-left">
           <div class="flowly-page-kicker">Centro de ajustes</div>
-          <h2 class="flowly-page-title">Configurações</h2>
+          <h1 class="flowly-page-title">Configurações</h1>
           <p class="flowly-page-subtitle">Visual, comportamento e integrações no mesmo padrão do app.</p>
         </div>
         <div class="flowly-page-actions">
@@ -722,9 +748,9 @@ function buildSettingsMarkup(ctx) {
         </div>
       </div>
 
-      <div class="settings-panels">
+      <div class="settings-panels${currentTabPanels.side.length === 0 ? ' settings-panels--full' : ''}">
         <div class="settings-main-stack">${currentTabPanels.main.join('')}</div>
-        <aside class="settings-side-stack">${currentTabPanels.side.join('')}</aside>
+        ${currentTabPanels.side.length > 0 ? `<aside class="settings-side-stack">${currentTabPanels.side.join('')}</aside>` : ''}
       </div>
     </div>
   `;

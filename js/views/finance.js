@@ -1,12 +1,45 @@
+function financeShortDescription(desc) {
+  if (!desc) return '';
+  const clean = String(desc).replace(/\s+/g, ' ').trim();
+  // Pegar primeiro segmento antes de " - " (tipicamente nome do estabelecimento/pessoa).
+  const firstSegment = clean.split(/\s+[-\u2013\u2014\u2022]\s+/)[0];
+  const result = firstSegment && firstSegment.length > 0 ? firstSegment : clean;
+  if (result.length <= 48) return result;
+  return result.slice(0, 45).trim() + '…';
+}
+
+function financeEmptyCTA(title, description, ctaLabel, presetType) {
+  const preset = presetType ? ` data-finance-preset="${presetType}"` : '';
+  return `<div class="finance-empty-cta">
+    <div class="finance-empty-cta__icon"><i data-lucide="plus-circle"></i></div>
+    <div class="finance-empty-cta__body">
+      <strong>${title}</strong>
+      <span>${description}</span>
+    </div>
+    <button type="button" class="flowly-btn flowly-btn--primary flowly-btn--sm" data-finance-action="open-quick"${preset}>${ctaLabel}</button>
+  </div>`;
+}
+
+window.focusFinanceQuickForm = function(presetType) {
+  const form = document.querySelector('.finance-quick-card .finance-form-grid');
+  if (!form) return;
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (presetType) {
+    const typeSelect = document.getElementById('financeEntryType');
+    if (typeSelect) typeSelect.value = presetType;
+  }
+  setTimeout(() => {
+    const amount = document.getElementById('financeEntryAmount');
+    if (amount) amount.focus();
+  }, 300);
+};
+
 // renderFinanceView — redesign completo com padrão Flowly DS
 function renderFinanceView() {
   const view = document.getElementById('financeView');
   if (!view) return;
 
   const analytics = buildFinanceAnalytics();
-  const sourceHint = analytics.imports[0]
-    ? `Importado em ${new Date(analytics.imports[0].importedAt).toLocaleString('pt-BR')}`
-    : 'Sem import recente';
 
   const expenseShare = analytics.expenseTotal > 0
     ? analytics.topExpenseCategories.map((item) => ({ ...item, share: Math.round((item.amount / analytics.expenseTotal) * 100) }))
@@ -22,16 +55,24 @@ function renderFinanceView() {
 
   // Tabela de transações recentes
   const txRows = analytics.recentTransactions.length > 0
-    ? analytics.recentTransactions.slice(0, 10).map((item) => `
-        <div class="finance-tx-item">
+    ? analytics.recentTransactions.slice(0, 10).map((item, idx) => {
+        const shortDesc = financeShortDescription(item.description);
+        const hasDetail = shortDesc !== (item.description || '').trim();
+        return `
+        <div class="finance-tx-item${hasDetail ? ' has-detail' : ''}" data-tx-idx="${idx}">
           <div class="finance-tx-left">
-            <div class="finance-tx-desc">${item.description}</div>
+            <div class="finance-tx-desc">${shortDesc}</div>
             <div class="finance-tx-meta">${item.date} &bull; ${item.category}</div>
+            ${hasDetail ? `<div class="finance-tx-detail" hidden>${item.description}</div>` : ''}
           </div>
-          <div class="finance-tx-amount finance-tx-amount--${item.type}">${item.type === 'expense' ? '-' : '+'}${analytics.formatBRL(item.amount)}</div>
-        </div>`)
+          <div class="finance-tx-right">
+            <div class="finance-tx-amount finance-tx-amount--${item.type}">${item.type === 'expense' ? '-' : '+'}${analytics.formatBRL(item.amount)}</div>
+            ${hasDetail ? '<button type="button" class="finance-tx-expand" data-finance-action="toggle-tx-detail" aria-label="Mostrar detalhes" title="Detalhes"><i data-lucide="chevron-down"></i></button>' : ''}
+          </div>
+        </div>`;
+      })
     .join('')
-    : '<div class="finance-empty">Nenhuma movimentação registrada ainda.</div>';
+    : financeEmptyCTA('Sem movimentações ainda', 'Comece com o primeiro lançamento do mês — entrada ou saída.', 'Adicionar primeira transação');
 
   // Breakdown de saídas
   const expenseRows = expenseShare.length > 0
@@ -45,7 +86,7 @@ function renderFinanceView() {
           <div class="finance-breakdown-meta">${item.share}% das saídas${item.count ? ` &bull; ${item.count} lançamento(s)` : ''}</div>
         </div>`)
     .join('')
-    : '<div class="finance-empty">Sem saídas registradas ainda.</div>';
+    : financeEmptyCTA('Sem saídas', 'Lance uma saída para entender para onde o caixa está indo.', 'Lançar primeira saída', 'expense');
 
   // Breakdown de entradas
   const incomeRows = incomeShare.length > 0
@@ -59,7 +100,7 @@ function renderFinanceView() {
           <div class="finance-breakdown-meta">${item.share}% das entradas${item.count ? ` &bull; ${item.count} lançamento(s)` : ''}</div>
         </div>`)
     .join('')
-    : '<div class="finance-empty">Sem entradas registradas ainda.</div>';
+    : financeEmptyCTA('Sem entradas', 'Registre a primeira receita para mapear as origens de caixa.', 'Lançar primeira entrada', 'income');
 
   // Legend de categorias
   const legendRows = expenseShare.slice(0, 5).map((item, i) => `
@@ -86,14 +127,11 @@ function renderFinanceView() {
       <div class="flowly-page-header">
         <div class="flowly-page-header-left">
           <div class="flowly-page-kicker">Painel financeiro</div>
-          <h2 class="flowly-page-title">Finanças</h2>
+          <h1 class="flowly-page-title">Finanças</h1>
           <p class="flowly-page-subtitle">${analytics.analysisTone}</p>
-          <div class="flowly-inline-pills" style="margin-top:10px">
-            <span class="flowly-soft-pill flowly-soft-pill--accent">${analytics.monthTransactionCount} movimentações</span>
-            <span class="flowly-soft-pill">${sourceHint}</span>
-          </div>
         </div>
         <div class="flowly-page-actions">
+          <span class="flowly-soft-pill flowly-soft-pill--accent">${analytics.monthTransactionCount} movimentações</span>
           <button class="btn-primary" onclick="saveFinanceTransactionFromForm()" style="display:none" id="financeQuickSaveBtn">Salvar</button>
         </div>
       </div>
@@ -135,7 +173,7 @@ function renderFinanceView() {
             <div class="finance-chart-area">
               ${analytics.chartLabels.length > 0
                 ? '<canvas id="financeCashflowChart"></canvas>'
-                : '<span style="font-size:13px;color:var(--ds-text-muted)">Adicione transações para visualizar o gráfico.</span>'}
+                : financeEmptyCTA('Gráfico vazio', 'Adicione transações para visualizar o fluxo do mês.', 'Adicionar primeira transação')}
             </div>
           </div>
 
@@ -259,5 +297,23 @@ function renderFinanceView() {
   if (typeof fixMojibakeText === 'function') {
     view.innerHTML = fixMojibakeText(view.innerHTML);
   }
+  view.querySelectorAll('[data-finance-action="open-quick"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const preset = btn.getAttribute('data-finance-preset') || undefined;
+      window.focusFinanceQuickForm(preset);
+    });
+  });
+  view.querySelectorAll('[data-finance-action="toggle-tx-detail"]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const item = btn.closest('.finance-tx-item');
+      if (!item) return;
+      const detail = item.querySelector('.finance-tx-detail');
+      if (!detail) return;
+      const open = !detail.hasAttribute('hidden');
+      if (open) detail.setAttribute('hidden', ''); else detail.removeAttribute('hidden');
+      item.classList.toggle('is-expanded', !open);
+    });
+  });
   renderFinanceCharts(analytics);
 }
