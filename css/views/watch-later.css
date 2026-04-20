@@ -264,6 +264,139 @@
   border-color: rgba(248, 113, 113, 0.4);
 }
 
+/* ============ LINK CARDS (generic URL) ============ */
+.watch-link-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.watch-link {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.022);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.watch-link:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.watch-link.is-watched {
+  opacity: 0.55;
+}
+
+.watch-link__main {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.watch-link__icon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.watch-link__icon img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+}
+
+.watch-link__icon i,
+.watch-link__icon svg {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.55);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.watch-link__icon--fallback i,
+.watch-link__icon--fallback svg {
+  opacity: 1;
+}
+
+.watch-link__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.watch-link__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.12s;
+}
+
+.watch-link:hover .watch-link__title {
+  color: var(--ds-accent, #22c55e);
+}
+
+.watch-link__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ds-text-muted, rgba(255, 255, 255, 0.5));
+}
+
+.watch-link__host {
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.watch-link__added::before {
+  content: '·';
+  margin-right: 8px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.watch-link__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.watch-link:hover .watch-link__actions,
+.watch-link:focus-within .watch-link__actions {
+  opacity: 1;
+}
+
+/* ============ EMPTY STATE ============ */
 .watch-empty {
   margin-top: 48px;
   display: flex;

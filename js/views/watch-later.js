@@ -1,19 +1,20 @@
 (function () {
   const STORAGE_KEY = 'flowly.watchLater.v1';
 
-  function loadVideos() {
+  function loadItems() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((item) => ({ kind: item && item.kind ? item.kind : 'youtube', ...item }));
     } catch {
       return [];
     }
   }
 
-  function saveVideos(videos) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(videos));
+  function saveItems(items) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }
 
   function parseYouTubeId(input) {
@@ -35,6 +36,20 @@
     return null;
   }
 
+  function parseUrl(input) {
+    if (!input) return null;
+    const raw = String(input).trim();
+    if (!raw) return null;
+    const withScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(raw) ? raw : `https://${raw}`;
+    try {
+      const u = new URL(withScheme);
+      if (!u.hostname || !u.hostname.includes('.')) return null;
+      return u;
+    } catch {
+      return null;
+    }
+  }
+
   async function fetchOEmbed(videoId) {
     const url = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
     try {
@@ -46,60 +61,93 @@
     }
   }
 
-  async function addVideo(input) {
-    const id = parseYouTubeId(input);
-    if (!id) return { ok: false, reason: 'invalid' };
+  async function addItem(input) {
+    const ytId = parseYouTubeId(input);
+    if (ytId) return addYouTube(ytId);
 
-    const videos = loadVideos();
-    if (videos.some((v) => v.id === id)) return { ok: false, reason: 'duplicate' };
+    const url = parseUrl(input);
+    if (url) return addLink(url);
+
+    return { ok: false, reason: 'invalid' };
+  }
+
+  async function addYouTube(id) {
+    const items = loadItems();
+    if (items.some((v) => v.kind === 'youtube' && v.id === id)) {
+      return { ok: false, reason: 'duplicate' };
+    }
 
     const placeholder = {
+      kind: 'youtube',
       id,
+      url: `https://www.youtube.com/watch?v=${id}`,
       title: 'Carregando…',
       author: '',
       thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
       addedAt: new Date().toISOString(),
       watched: false
     };
-    videos.unshift(placeholder);
-    saveVideos(videos);
+    items.unshift(placeholder);
+    saveItems(items);
     renderWatchView();
 
     const meta = await fetchOEmbed(id);
+    const all = loadItems();
+    const idx = all.findIndex((v) => v.kind === 'youtube' && v.id === id);
+    if (idx === -1) return { ok: true };
     if (meta) {
-      const all = loadVideos();
-      const idx = all.findIndex((v) => v.id === id);
-      if (idx !== -1) {
-        all[idx].title = meta.title || all[idx].title;
-        all[idx].author = meta.author_name || '';
-        all[idx].thumbnail = meta.thumbnail_url || all[idx].thumbnail;
-        saveVideos(all);
-        renderWatchView();
-      }
-    } else {
-      const all = loadVideos();
-      const idx = all.findIndex((v) => v.id === id);
-      if (idx !== -1 && all[idx].title === 'Carregando…') {
-        all[idx].title = `Video ${id}`;
-        saveVideos(all);
-        renderWatchView();
-      }
+      all[idx].title = meta.title || all[idx].title;
+      all[idx].author = meta.author_name || '';
+      all[idx].thumbnail = meta.thumbnail_url || all[idx].thumbnail;
+    } else if (all[idx].title === 'Carregando…') {
+      all[idx].title = `Video ${id}`;
     }
+    saveItems(all);
+    renderWatchView();
     return { ok: true };
   }
 
-  function removeVideo(id) {
-    const videos = loadVideos().filter((v) => v.id !== id);
-    saveVideos(videos);
+  function addLink(url) {
+    const href = url.toString();
+    const items = loadItems();
+    if (items.some((v) => v.kind === 'link' && v.url === href)) {
+      return { ok: false, reason: 'duplicate' };
+    }
+
+    const host = url.hostname.replace(/^www\./, '');
+    const pathPreview = (url.pathname === '/' ? '' : url.pathname).slice(0, 80);
+    const titleGuess = pathPreview
+      ? `${host}${pathPreview}`
+      : host;
+
+    const item = {
+      kind: 'link',
+      id: `link_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+      url: href,
+      host,
+      title: titleGuess,
+      favicon: `https://icons.duckduckgo.com/ip3/${host}.ico`,
+      addedAt: new Date().toISOString(),
+      watched: false
+    };
+    items.unshift(item);
+    saveItems(items);
+    renderWatchView();
+    return { ok: true };
+  }
+
+  function removeItem(id) {
+    const items = loadItems().filter((v) => v.id !== id);
+    saveItems(items);
     renderWatchView();
   }
 
   function toggleWatched(id) {
-    const videos = loadVideos();
-    const v = videos.find((x) => x.id === id);
+    const items = loadItems();
+    const v = items.find((x) => x.id === id);
     if (!v) return;
     v.watched = !v.watched;
-    saveVideos(videos);
+    saveItems(items);
     renderWatchView();
   }
 
@@ -128,50 +176,97 @@
     }
   }
 
-  function renderWatchView() {
-    const view = document.getElementById('watchView');
-    if (!view) return;
-
-    const videos = loadVideos();
-    const pending = videos.filter((v) => !v.watched);
-    const watched = videos.filter((v) => v.watched);
-
-    const emptyState = `
-      <div class="watch-empty">
-        <div class="watch-empty__icon"><i data-lucide="play-circle"></i></div>
-        <h3>Sua lista está vazia</h3>
-        <p>Cole um link do YouTube acima para salvar vídeos e assistir depois.</p>
-      </div>`;
-
-    const videoCard = (v) => `
-      <article class="watch-card${v.watched ? ' is-watched' : ''}" data-video-id="${v.id}">
-        <a class="watch-card__thumb" href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener noreferrer">
-          <img src="${escapeHtml(v.thumbnail)}" alt="" loading="lazy" onerror="this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" />
+  function videoCard(v) {
+    return `
+      <article class="watch-card${v.watched ? ' is-watched' : ''}" data-item-id="${escapeHtml(v.id)}">
+        <a class="watch-card__thumb" href="${escapeHtml(v.url)}" target="_blank" rel="noopener noreferrer">
+          <img src="${escapeHtml(v.thumbnail)}" alt="" loading="lazy" onerror="this.src='https://i.ytimg.com/vi/${escapeHtml(v.id)}/hqdefault.jpg'" />
           <span class="watch-card__play"><i data-lucide="play"></i></span>
         </a>
         <div class="watch-card__body">
-          <a class="watch-card__title" href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener noreferrer">${escapeHtml(v.title)}</a>
+          <a class="watch-card__title" href="${escapeHtml(v.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(v.title)}</a>
           <div class="watch-card__meta">
             ${v.author ? `<span class="watch-card__author">${escapeHtml(v.author)}</span>` : ''}
             <span class="watch-card__added">${formatAddedDate(v.addedAt)}</span>
           </div>
         </div>
         <div class="watch-card__actions">
-          <button type="button" class="watch-card__action" data-watch-action="toggle" data-id="${v.id}" title="${v.watched ? 'Marcar como não assistido' : 'Marcar como assistido'}">
+          <button type="button" class="watch-card__action" data-watch-action="toggle" data-id="${escapeHtml(v.id)}" title="${v.watched ? 'Marcar como não assistido' : 'Marcar como assistido'}">
             <i data-lucide="${v.watched ? 'rotate-ccw' : 'check'}"></i>
           </button>
-          <button type="button" class="watch-card__action watch-card__action--danger" data-watch-action="remove" data-id="${v.id}" title="Remover">
+          <button type="button" class="watch-card__action watch-card__action--danger" data-watch-action="remove" data-id="${escapeHtml(v.id)}" title="Remover">
             <i data-lucide="trash-2"></i>
           </button>
         </div>
       </article>`;
+  }
+
+  function linkCard(v) {
+    return `
+      <article class="watch-link${v.watched ? ' is-watched' : ''}" data-item-id="${escapeHtml(v.id)}">
+        <a class="watch-link__main" href="${escapeHtml(v.url)}" target="_blank" rel="noopener noreferrer">
+          <span class="watch-link__icon">
+            <img src="${escapeHtml(v.favicon)}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('watch-link__icon--fallback');" />
+            <i data-lucide="link-2"></i>
+          </span>
+          <span class="watch-link__body">
+            <span class="watch-link__title">${escapeHtml(v.title || v.host)}</span>
+            <span class="watch-link__meta">
+              <span class="watch-link__host">${escapeHtml(v.host)}</span>
+              <span class="watch-link__added">${formatAddedDate(v.addedAt)}</span>
+            </span>
+          </span>
+        </a>
+        <div class="watch-link__actions">
+          <button type="button" class="watch-card__action" data-watch-action="toggle" data-id="${escapeHtml(v.id)}" title="${v.watched ? 'Marcar como não lido' : 'Marcar como lido'}">
+            <i data-lucide="${v.watched ? 'rotate-ccw' : 'check'}"></i>
+          </button>
+          <button type="button" class="watch-card__action watch-card__action--danger" data-watch-action="remove" data-id="${escapeHtml(v.id)}" title="Remover">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+      </article>`;
+  }
+
+  function renderWatchView() {
+    const view = document.getElementById('watchView');
+    if (!view) return;
+
+    const items = loadItems();
+    const videosPending = items.filter((v) => v.kind === 'youtube' && !v.watched);
+    const videosWatched = items.filter((v) => v.kind === 'youtube' && v.watched);
+    const linksPending = items.filter((v) => v.kind === 'link' && !v.watched);
+    const linksWatched = items.filter((v) => v.kind === 'link' && v.watched);
+
+    const emptyState = `
+      <div class="watch-empty">
+        <div class="watch-empty__icon"><i data-lucide="play-circle"></i></div>
+        <h3>Sua lista está vazia</h3>
+        <p>Cole um link do YouTube ou de qualquer site acima para salvar e voltar depois.</p>
+      </div>`;
+
+    const videoSection = (title, list) => `
+      <section class="watch-section">
+        <div class="watch-section__header">
+          <h2>${title} <span class="watch-section__count">${list.length}</span></h2>
+        </div>
+        <div class="watch-grid">${list.map(videoCard).join('')}</div>
+      </section>`;
+
+    const linkSection = (title, list) => `
+      <section class="watch-section">
+        <div class="watch-section__header">
+          <h2>${title} <span class="watch-section__count">${list.length}</span></h2>
+        </div>
+        <div class="watch-link-list">${list.map(linkCard).join('')}</div>
+      </section>`;
 
     view.innerHTML = `
       <div class="flowly-page watch-page">
         <header class="flowly-page-header">
           <div class="flowly-page-header__title">
             <h1>Assistir depois</h1>
-            <p class="flowly-page-header__subtitle">Sua playlist pessoal do YouTube</p>
+            <p class="flowly-page-header__subtitle">Vídeos do YouTube e links de sites pra voltar depois</p>
           </div>
         </header>
 
@@ -182,8 +277,8 @@
               type="text"
               id="watchAddInput"
               class="watch-add__input"
-              placeholder="Cole o link do YouTube aqui…"
-              aria-label="Link do YouTube"
+              placeholder="Cole um link do YouTube ou de qualquer site…"
+              aria-label="Link para salvar"
             />
           </div>
           <button type="submit" class="flowly-btn flowly-btn--primary">
@@ -194,31 +289,13 @@
         <div id="watchFeedback" class="watch-feedback" role="status" aria-live="polite"></div>
 
         ${
-          videos.length === 0
+          items.length === 0
             ? emptyState
             : `
-          <section class="watch-section">
-            <div class="watch-section__header">
-              <h2>Para assistir <span class="watch-section__count">${pending.length}</span></h2>
-            </div>
-            <div class="watch-grid">
-              ${pending.length ? pending.map(videoCard).join('') : '<p class="watch-section__empty">Tudo assistido. Bom trabalho!</p>'}
-            </div>
-          </section>
-
-          ${
-            watched.length
-              ? `
-            <section class="watch-section watch-section--watched">
-              <div class="watch-section__header">
-                <h2>Assistidos <span class="watch-section__count">${watched.length}</span></h2>
-              </div>
-              <div class="watch-grid">
-                ${watched.map(videoCard).join('')}
-              </div>
-            </section>`
-              : ''
-          }
+          ${videosPending.length ? videoSection('Vídeos', videosPending) : ''}
+          ${linksPending.length ? linkSection('Links', linksPending) : ''}
+          ${videosWatched.length ? videoSection('Vídeos assistidos', videosWatched) : ''}
+          ${linksWatched.length ? linkSection('Links lidos', linksWatched) : ''}
         `
         }
       </div>`;
@@ -246,14 +323,14 @@
         if (!input) return;
         const value = input.value.trim();
         if (!value) return;
-        const result = await addVideo(value);
+        const result = await addItem(value);
         if (result.ok) {
           input.value = '';
           showFeedback('Salvo na lista', 'success');
         } else if (result.reason === 'duplicate') {
-          showFeedback('Vídeo já está na lista', 'warn');
+          showFeedback('Esse link já está na lista', 'warn');
         } else {
-          showFeedback('Link inválido — cole uma URL do YouTube', 'error');
+          showFeedback('Link inválido — cole uma URL', 'error');
         }
       });
     }
@@ -268,7 +345,7 @@
         const action = btn.dataset.watchAction;
         const id = btn.dataset.id;
         if (!id) return;
-        if (action === 'remove') removeVideo(id);
+        if (action === 'remove') removeItem(id);
         if (action === 'toggle') toggleWatched(id);
       });
     }
