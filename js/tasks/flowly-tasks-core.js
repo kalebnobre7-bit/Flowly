@@ -101,7 +101,13 @@ function moveTaskSubtree({
   const firstSubtreeIndex = subtreeIndexes[0];
   const lastSubtreeIndex = subtreeIndexes[subtreeIndexes.length - 1];
 
-  if (movingWithinSameList && insertAt >= firstSubtreeIndex && insertAt <= lastSubtreeIndex + 1) {
+  const hasReparentIntent = Boolean(forcedParentTask) || indentIntent || outdentIntent;
+  if (
+    movingWithinSameList &&
+    !hasReparentIntent &&
+    insertAt >= firstSubtreeIndex &&
+    insertAt <= lastSubtreeIndex + 1
+  ) {
     return { moved: false, noOp: true };
   }
 

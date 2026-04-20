@@ -435,11 +435,11 @@ function createDropZone(day, dateStr, period, index) {
       dz.dataset.outdentIntent = 'false';
       dz.style.borderLeft = '2px solid rgba(255,255,255,0.2)';
       dz.style.paddingLeft = '8px';
-    } else if (offsetX < 10) {
+    } else if (offsetX < 24) {
       dz.style.marginLeft = '0px';
       dz.dataset.outdentIntent = 'true';
       dz.dataset.indentIntent = 'false';
-      dz.style.borderLeft = 'none';
+      dz.style.borderLeft = '2px solid rgba(251, 191, 36, 0.35)';
       dz.style.paddingLeft = '0px';
     } else {
       dz.style.marginLeft = '0px';
