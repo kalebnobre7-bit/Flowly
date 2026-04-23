@@ -109,36 +109,4 @@ Visão geral rápida (detalhes em `ARCHITECTURE.md`):
 | `PUSH_NOTIFICATIONS_CLOSED_APP_SETUP.md` | Setup de push notifications. |
 | `setup_supabase.sql` | Schema do Supabase. |
 
----
-
-## Roadmap
-
-**Curto prazo**
-
-- [ ] Unificação do design system (em execução — ver `ORGANIZAR-A-CASA.md`).
-- [ ] Eliminar `!important` e Tailwind arbitrário das views.
-- [ ] Corrigir versionamento do service worker.
-- [ ] Cleanup de event listeners globais.
-
-**Médio prazo**
-
-- [ ] Compilar Tailwind localmente (remover CDN runtime).
-- [ ] Testes de integração cross-tab sync.
-- [ ] Internacionalização (en-US ao lado do pt-BR).
-- [ ] App wrap mobile (Capacitor ou PWA builder).
-
-**Longo prazo**
-
-- [ ] Integrações (Google Calendar, Notion).
-- [ ] IA local / on-device para sugestões.
-- [ ] Marketplace de templates de rotina.
-
----
-
-## Licença
-
-Uso privado de Kaleb Nobre. Sem licença pública definida.
-
----
-
 **Construído com cuidado por Kaleb.**
