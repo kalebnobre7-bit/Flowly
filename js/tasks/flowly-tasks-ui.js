@@ -324,7 +324,7 @@ function createTaskElement(day, dateStr, period, task, index) {
       timeSpan.className = 'task-time';
       timeSpan.textContent = ' · ' + formatTaskTime(timeSource);
       timeSpan.style.cssText =
-        'font-size:11px;color:var(--text-tertiary);margin-left:6px;font-weight:normal;text-decoration:none;opacity:0.6;white-space:nowrap;';
+        'font-size:11px;color:var(--flowly-text-tertiary, var(--text-tertiary));margin-left:6px;font-weight:normal;text-decoration:none;opacity:0.6;white-space:nowrap;';
       label.appendChild(timeSpan);
     }
   }
