@@ -242,7 +242,7 @@ function createTaskElement(day, dateStr, period, task, index) {
 
   if (task.text.trim() === '') {
     label.textContent = '';
-    label.style.color = '#666';
+    label.style.color = 'var(--flowly-text-tertiary)';
     label.setAttribute('data-placeholder', 'Clique para editar...');
     label.style.position = 'relative';
   } else {
