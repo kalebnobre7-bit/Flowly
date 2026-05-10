@@ -264,7 +264,7 @@
         return;
       }
 
-      const localTasksData = JSON.parse(localStorage.getItem('allTasksData') || '{}');
+      const localTasksData = safeJSONParse(localStorage.getItem('allTasksData'), {});
       const inserts = [];
 
       Object.entries(localTasksData).forEach(function ([dateStr, periods]) {
@@ -406,7 +406,7 @@
 
       const localSnapshot = (function () {
         try {
-          return JSON.parse(localStorage.getItem('allTasksData') || 'null');
+          return safeJSONParse(localStorage.getItem('allTasksData'), null);
         } catch (e) {
           return null;
         }

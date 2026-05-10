@@ -368,7 +368,7 @@ function bindSettingsInteractions() {
         return;
       }
 
-      const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+      const cur = safeJSONParse(localStorage.getItem('flowly_notif_settings'), {});
       const currentEnabled = cur.enabled === true;
       const nextEnabled = !currentEnabled;
 
@@ -447,7 +447,7 @@ function bindSettingsInteractions() {
   }
 
   const saveNotifField = async (id, value) => {
-    const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+    const cur = safeJSONParse(localStorage.getItem('flowly_notif_settings'), {});
     const valueById = {
       inputMorningTime: ['morningTime', value],
       inputMiddayTime: ['middayTime', value],
@@ -492,7 +492,7 @@ function bindSettingsInteractions() {
     const el = document.getElementById(id);
     if (!el) return;
     el.onclick = async function () {
-      const cur = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+      const cur = safeJSONParse(localStorage.getItem('flowly_notif_settings'), {});
       cur[fieldName] = !(cur[fieldName] !== false);
       localStorage.setItem('flowly_notif_settings', JSON.stringify(cur));
       await saveNotifSettingsToSupabase();
@@ -530,7 +530,7 @@ function bindSettingsInteractions() {
   const weekSelect = document.getElementById('selectWeekStart');
   if (weekSelect) {
     weekSelect.onchange = function () {
-      const cur = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
+      const cur = safeJSONParse(localStorage.getItem('flowly_view_settings'), {});
       cur.weekStart = this.value;
       localStorage.setItem('flowly_view_settings', JSON.stringify(cur));
       if (currentView === 'week') renderView();
@@ -540,7 +540,7 @@ function bindSettingsInteractions() {
   const toggleW = document.getElementById('toggleWeekends');
   if (toggleW) {
     toggleW.onclick = function () {
-      const cur = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
+      const cur = safeJSONParse(localStorage.getItem('flowly_view_settings'), {});
       cur.showWeekends = !(cur.showWeekends !== false);
       localStorage.setItem('flowly_view_settings', JSON.stringify(cur));
       renderSettingsView();
@@ -551,7 +551,7 @@ function bindSettingsInteractions() {
   const toggleH = document.getElementById('toggleHaptics');
   if (toggleH) {
     toggleH.onclick = function () {
-      const cur = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
+      const cur = safeJSONParse(localStorage.getItem('flowly_view_settings'), {});
       cur.haptics = !(cur.haptics !== false);
       localStorage.setItem('flowly_view_settings', JSON.stringify(cur));
       renderSettingsView();

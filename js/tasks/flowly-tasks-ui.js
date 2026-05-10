@@ -277,7 +277,7 @@ function createTaskElement(day, dateStr, period, task, index) {
     targetTask.completed = e.target.checked;
     if (!targetTask.createdAt) targetTask.createdAt = new Date().toISOString();
     if (targetTask.completed && navigator.vibrate) {
-      const vs = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
+      const vs = safeJSONParse(localStorage.getItem('flowly_view_settings'), {});
       if (vs.haptics !== false) navigator.vibrate(15);
     }
 

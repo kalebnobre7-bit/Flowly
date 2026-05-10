@@ -2,7 +2,7 @@ const FLOWLY_SYNC_LOG_KEY = 'flowly_sync_log';
 
 function getRecentSyncEvents() {
   try {
-    const parsed = JSON.parse(localStorage.getItem(FLOWLY_SYNC_LOG_KEY) || '[]');
+    const parsed = safeJSONParse(localStorage.getItem(FLOWLY_SYNC_LOG_KEY), []);
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     return [];
@@ -34,7 +34,7 @@ function renderSyncStatus() {
 
   let suffix = '';
   try {
-    const pendingDeletes = JSON.parse(localStorage.getItem('flowlyPendingTaskDeletes') || '[]');
+    const pendingDeletes = safeJSONParse(localStorage.getItem('flowlyPendingTaskDeletes'), []);
     const pendingCount = Array.isArray(pendingDeletes) ? pendingDeletes.length : 0;
     if (pendingCount > 0 && syncStatus.state !== 'syncing') {
       suffix = ` · ${pendingCount} exclus${pendingCount === 1 ? 'ao' : 'oes'} pendente${pendingCount === 1 ? '' : 's'}`;
