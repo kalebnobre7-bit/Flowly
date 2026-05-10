@@ -557,46 +557,61 @@ window.openQuickProjectModal = function () {
 
   const overlay = document.createElement('div');
   overlay.id = 'projectsQuickModal';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+  overlay.className = 'flowly-quick-modal-overlay';
+  overlay.style.cssText =
+    'position:fixed;inset:0;background:rgba(0,0,0,0.72);' +
+    'z-index:var(--flowly-z-modal,1000);' +
+    'display:flex;align-items:center;justify-content:center;padding:20px;' +
+    'backdrop-filter:blur(var(--flowly-blur-subtle,8px));' +
+    '-webkit-backdrop-filter:blur(var(--flowly-blur-subtle,8px));';
+
+  const labelStyle =
+    'display:block;font-size:11px;text-transform:uppercase;' +
+    'letter-spacing:var(--flowly-letter-wider,0.08em);' +
+    'color:var(--flowly-text-tertiary);' +
+    'margin-bottom:6px;font-weight:var(--flowly-weight-bold,700);' +
+    'font-family:var(--flowly-font-mono,inherit);';
+
+  const inputStyle = 'width:100%;box-sizing:border-box';
 
   overlay.innerHTML = `
-    <div style="background:#12121c;border:1px solid rgba(255,255,255,0.1);border-radius:28px;padding:36px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:20px;box-shadow:0 32px 80px rgba(0,0,0,0.6);">
+    <div style="background:var(--flowly-bg-elevated);border:1px solid var(--flowly-border-strong);border-radius:var(--flowly-radius-2xl,28px);padding:36px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:var(--flowly-space-5,20px);box-shadow:var(--flowly-shadow-xl,0 32px 64px rgba(0,0,0,0.55));">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
-          <h2 style="margin:0;font-size:20px;font-weight:800;color:#fff">Novo projeto</h2>
-          <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.4)">Cria em 3 segundos.</p>
+          <h2 style="margin:0;font-size:20px;font-weight:var(--flowly-weight-black,800);color:var(--flowly-text-primary)">Novo projeto</h2>
+          <p style="margin:4px 0 0;font-size:13px;color:var(--flowly-text-tertiary)">Cria em 3 segundos.</p>
         </div>
-        <button type="button" data-projects-quick-close style="background:rgba(255,255,255,0.06);border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;color:rgba(255,255,255,0.6);font-size:18px;display:flex;align-items:center;justify-content:center">x</button>
+        <button type="button" data-projects-quick-close aria-label="Fechar modal" style="background:var(--flowly-bg-glass);border:none;border-radius:var(--flowly-radius-md,12px);width:36px;height:36px;cursor:pointer;color:var(--flowly-text-secondary);font-size:18px;display:flex;align-items:center;justify-content:center">×</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:var(--flowly-space-3,12px)">
         <div>
-          <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Nome do projeto *</label>
-          <input id="qpmName" class="finance-input" type="text" placeholder="Ex: Landing Page - Cliente X" autofocus style="width:100%;box-sizing:border-box">
+          <label style="${labelStyle}">Nome do projeto *</label>
+          <input id="qpmName" class="finance-input" type="text" placeholder="Ex: Landing Page - Cliente X" autofocus style="${inputStyle}">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--flowly-space-3,12px)">
           <div>
-            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Cliente</label>
-            <input id="qpmClient" class="finance-input" type="text" placeholder="Nome do cliente" style="width:100%;box-sizing:border-box">
+            <label style="${labelStyle}">Cliente</label>
+            <input id="qpmClient" class="finance-input" type="text" placeholder="Nome do cliente" style="${inputStyle}">
           </div>
           <div>
-            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Tipo</label>
-            <input id="qpmType" class="finance-input" type="text" placeholder="LP, Loja, etc" style="width:100%;box-sizing:border-box">
+            <label style="${labelStyle}">Tipo</label>
+            <input id="qpmType" class="finance-input" type="text" placeholder="LP, Loja, etc" style="${inputStyle}">
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--flowly-space-3,12px)">
           <div>
-            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Valor (R$)</label>
-            <input id="qpmValue" class="finance-input" type="number" min="0" step="0.01" placeholder="650,00" style="width:100%;box-sizing:border-box">
+            <label style="${labelStyle}">Valor (R$)</label>
+            <input id="qpmValue" class="finance-input" type="number" min="0" step="0.01" placeholder="650,00" style="${inputStyle}">
           </div>
           <div>
-            <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#bfdbfe;margin-bottom:6px;font-weight:700">Deadline</label>
-            <input id="qpmDeadline" class="finance-input" type="date" style="width:100%;box-sizing:border-box">
+            <label style="${labelStyle}">Deadline</label>
+            <input id="qpmDeadline" class="finance-input" type="date" style="${inputStyle}">
           </div>
         </div>
       </div>
-      <div style="display:flex;gap:12px;justify-content:flex-end">
-        <button type="button" data-projects-quick-close class="btn-secondary" style="width:auto;padding:13px 20px;border-radius:16px">Cancelar</button>
-        <button type="button" id="btnProjectsQuickCreate" class="btn-primary" style="width:auto;padding:13px 20px;border-radius:16px;background:#4D6BFE">Criar projeto</button>
+      <div style="display:flex;gap:var(--flowly-space-3,12px);justify-content:flex-end">
+        <button type="button" data-projects-quick-close class="btn-secondary" style="width:auto;padding:13px 20px;border-radius:var(--flowly-radius-lg,16px)">Cancelar</button>
+        <button type="button" id="btnProjectsQuickCreate" class="btn-primary" style="width:auto;padding:13px 20px;border-radius:var(--flowly-radius-lg,16px)">Criar projeto</button>
       </div>
     </div>`;
 

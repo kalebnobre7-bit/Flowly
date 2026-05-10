@@ -132,7 +132,7 @@
       }
 
       navigator.serviceWorker
-        .register('./service-worker.js?v=16', { updateViaCache: 'none' })
+        .register('./service-worker.js?v=17', { updateViaCache: 'none' })
         .then((registration) => {
           debugLog('Service Worker registrado:', registration);
           serviceWorkerRegistration = registration;

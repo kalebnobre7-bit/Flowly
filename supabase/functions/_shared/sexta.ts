@@ -218,13 +218,30 @@ type AgentRunInput = {
   maxSteps?: number;
 };
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-telegram-bot-api-secret-token',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Content-Type': 'application/json'
-};
+// Allowlist de origens permitidas. Definida via env FLOWLY_ALLOWED_ORIGINS
+// (lista separada por vírgula). Default: produção GitHub Pages.
+const ALLOWED_ORIGINS = (Deno.env.get('FLOWLY_ALLOWED_ORIGINS')
+  || 'https://kalebnobre7-bit.github.io')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+function pickAllowedOrigin(req?: Request): string {
+  const origin = req?.headers.get('Origin') || '';
+  if (origin && ALLOWED_ORIGINS.includes(origin)) return origin;
+  return ALLOWED_ORIGINS[0] || '';
+}
+
+function buildCorsHeaders(req?: Request): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': pickAllowedOrigin(req),
+    'Access-Control-Allow-Headers':
+      'authorization, x-client-info, apikey, content-type, x-telegram-bot-api-secret-token',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    Vary: 'Origin',
+    'Content-Type': 'application/json'
+  };
+}
 
 const DEFAULT_SYSTEM_PROMPT =
   'Voce e a Sexta, assistente operacional do Flowly. Responda em portugues do Brasil, com objetividade, prioridade, risco e proximo passo.';
@@ -251,16 +268,16 @@ const TOOL_DEFINITIONS = [
   { name: 'save_capability_note', description: 'Salva uma proposta de melhoria ou funcionalidade da Sexta.', input: { title: 'titulo', description: 'descricao', status: 'proposed|approved|done' } }
 ];
 
-export function jsonResponse(payload: Record<string, unknown>, status = 200) {
+export function jsonResponse(payload: Record<string, unknown>, status = 200, req?: Request) {
   return new Response(JSON.stringify(payload), {
     status,
-    headers: CORS_HEADERS
+    headers: buildCorsHeaders(req)
   });
 }
 
 export function handleCors(req: Request) {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS });
+    return new Response('ok', { headers: buildCorsHeaders(req) });
   }
   return null;
 }

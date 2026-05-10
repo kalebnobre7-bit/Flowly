@@ -44,7 +44,7 @@
     <!-- 3. Módulos novos — carregados DEPOIS do legado para ganhar especificidade -->
     <link rel="stylesheet" href="css/_reset.css?v=1">
     <link rel="stylesheet" href="css/_shell.css?v=1">
-    <link rel="stylesheet" href="css/_components.css?v=6">
+    <link rel="stylesheet" href="css/_components.css?v=7">
     <link rel="stylesheet" href="css/_animations.css?v=1">
     <link rel="stylesheet" href="css/_responsive.css?v=1">
     <!-- CSS especificos de view (redesign 2026) -->
@@ -58,7 +58,7 @@
         <aside id="appSidebar" class="app-sidebar hidden-mobile">
             <div class="sidebar-top">
                 <button id="sidebarToggle" class="sidebar-toggle utility-btn" type="button" aria-label="Recolher barra lateral">
-                    <i data-lucide="panel-left-close" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="panel-left-close" class="lucide-md" aria-hidden="true"></i>
                 </button>
                 <div class="sidebar-brand">
                     <div class="sidebar-brand-mark">
@@ -73,39 +73,39 @@
 
             <nav class="sidebar-nav">
                 <button id="btnToday" class="sidebar-nav-btn active" data-flowly-view="today">
-                    <i data-lucide="flame" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="flame" class="lucide-md" aria-hidden="true"></i>
                     <span>Hoje</span>
                 </button>
                 <button id="btnWeek" class="sidebar-nav-btn" data-flowly-view="week">
-                    <i data-lucide="calendar" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="calendar" class="lucide-md" aria-hidden="true"></i>
                     <span>Semana</span>
                 </button>
                 <button id="btnMonth" class="sidebar-nav-btn" data-flowly-view="month">
-                    <i data-lucide="calendar-days" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="calendar-days" class="lucide-md" aria-hidden="true"></i>
                     <span>Mês</span>
                 </button>
                 <button id="btnAnalytics" class="sidebar-nav-btn" data-flowly-view="analytics">
-                    <i data-lucide="bar-chart-3" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="bar-chart-3" class="lucide-md" aria-hidden="true"></i>
                     <span>Analytics</span>
                 </button>
                 <button id="btnFinance" class="sidebar-nav-btn" data-flowly-view="finance">
-                    <i data-lucide="wallet-minimal" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="wallet-minimal" class="lucide-md" aria-hidden="true"></i>
                     <span>Finanças</span>
                 </button>
                 <button id="btnProjects" class="sidebar-nav-btn" data-flowly-view="projects">
-                    <i data-lucide="briefcase" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="briefcase" class="lucide-md" aria-hidden="true"></i>
                     <span>Projetos</span>
                 </button>
                 <button id="btnGoals" class="sidebar-nav-btn" data-flowly-view="goals">
-                    <i data-lucide="target" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="target" class="lucide-md" aria-hidden="true"></i>
                     <span>Metas</span>
                 </button>
                 <button id="btnWatch" class="sidebar-nav-btn" data-flowly-view="watch">
-                    <i data-lucide="play-circle" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="play-circle" class="lucide-md" aria-hidden="true"></i>
                     <span>Assistir</span>
                 </button>
                 <button id="btnSexta" class="sidebar-nav-btn" data-flowly-view="sexta">
-                    <i data-lucide="wand-2" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="wand-2" class="lucide-md" aria-hidden="true"></i>
                     <span>Sexta</span>
                 </button>
             </nav>
@@ -114,7 +114,7 @@
 
             <div class="sidebar-footer">
                 <button id="btnSettings" class="sidebar-nav-btn sidebar-nav-btn--ghost" data-flowly-view="settings">
-                    <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="settings" class="lucide-md" aria-hidden="true"></i>
                     <span>Ajustes</span>
                 </button>
             </div>
@@ -128,11 +128,11 @@
                 <p class="flowly-page-header__subtitle" id="weekLabel">Semana Atual</p>
             </div>
             <div class="flowly-page-header__actions">
-                <button id="btnPrevWeek" class="flowly-btn flowly-btn--ghost flowly-btn--icon flowly-btn--sm" data-week-nav="-1" title="Semana anterior"><i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i></button>
+                <button id="btnPrevWeek" class="flowly-btn flowly-btn--ghost flowly-btn--icon flowly-btn--sm" data-week-nav="-1" title="Semana anterior"><i data-lucide="chevron-left" class="lucide-sm" aria-hidden="true"></i></button>
                 <button id="btnCurrentWeek" class="flowly-btn flowly-btn--ghost flowly-btn--sm" data-week-nav="current">Semana Atual</button>
-                <button id="btnNextWeek" class="flowly-btn flowly-btn--ghost flowly-btn--icon flowly-btn--sm" data-week-nav="1" title="Próxima semana"><i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i></button>
+                <button id="btnNextWeek" class="flowly-btn flowly-btn--ghost flowly-btn--icon flowly-btn--sm" data-week-nav="1" title="Próxima semana"><i data-lucide="chevron-right" class="lucide-sm" aria-hidden="true"></i></button>
                 <button id="btnSmartWeekToggle" class="flowly-btn flowly-btn--ghost flowly-btn--sm" title="Alternar foco de 5 dias úteis" aria-label="Foco de 5 dias" onclick="toggleSmartWeek()">
-                    <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+                    <i data-lucide="zap" class="lucide-sm" aria-hidden="true"></i>
                     <span>Foco 5 dias</span>
                 </button>
             </div>
@@ -160,25 +160,25 @@
     <nav
         class="md:hidden fixed bottom-0 left-0 right-0 z-40 flowly-bottom-nav pb-[env(safe-area-inset-bottom)]">
         <div class="flex justify-around items-center h-16 px-2">
-            <button id="btnMobileWeek" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="week" aria-label="Semana">
+            <button id="btnMobileWeek" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="week" aria-label="Semana">
                 <i data-lucide="calendar" class="w-6 h-6" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileAnalytics" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="analytics" aria-label="Analytics">
+            <button id="btnMobileAnalytics" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="analytics" aria-label="Analytics">
                 <i data-lucide="bar-chart-2" class="w-6 h-6" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileFinance" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="finance" aria-label="Finanças">
+            <button id="btnMobileFinance" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="finance" aria-label="Finanças">
                 <i data-lucide="wallet" class="w-6 h-6" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileProjects" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="projects" aria-label="Projetos">
+            <button id="btnMobileProjects" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="projects" aria-label="Projetos">
                 <i data-lucide="briefcase-business" class="w-6 h-6" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileToday" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="today" aria-label="Hoje">
+            <button id="btnMobileToday" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="today" aria-label="Hoje">
                 <i data-lucide="sun" class="w-6 h-6" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileSexta" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="sexta" aria-label="Sexta (assistente)">
+            <button id="btnMobileSexta" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="sexta" aria-label="Sexta (assistente)">
                 <i data-lucide="sparkles" class="w-6 h-6" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileSettings" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12 text-gray-500 transition-colors" data-flowly-view="settings" aria-label="Ajustes">
+            <button id="btnMobileSettings" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="settings" aria-label="Ajustes">
                 <i data-lucide="settings-2" class="w-6 h-6" aria-hidden="true"></i>
             </button>
         </div>
@@ -191,13 +191,13 @@
     <div id="quickAddMenu" class="context-menu"
         style="position: fixed; bottom: 100px; right: 32px; min-width: 200px; flex-direction: column; gap: 4px; display: none;">
         <div class="quick-add-option p-2 rounded cursor-pointer text-sm flex items-center gap-2"
-            data-type="routine"><i data-lucide="repeat" style="width: 16px; height: 16px;"></i> Rotina Diaria
+            data-type="routine"><i data-lucide="repeat" class="lucide-sm" aria-hidden="true"></i> Rotina Diaria
         </div>
         <div class="quick-add-option p-2 rounded cursor-pointer text-sm flex items-center gap-2"
-            data-type="weekly"><i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Tarefa Semanal
+            data-type="weekly"><i data-lucide="calendar" class="lucide-sm" aria-hidden="true"></i> Tarefa Semanal
         </div>
         <div class="quick-add-option p-2 rounded cursor-pointer text-sm flex items-center gap-2"
-            data-type="custom"><i data-lucide="plus" style="width: 16px; height: 16px;"></i> Tarefa Avulsa
+            data-type="custom"><i data-lucide="plus" class="lucide-sm" aria-hidden="true"></i> Tarefa Avulsa
         </div>
     </div>
 
@@ -227,25 +227,20 @@
             </div>
 
             <button id="btnCloseAuthModal" data-auth-modal="close"
-                class="absolute top-4 right-4 p-2 text-gray-500 hover:text-white"><i data-lucide="x"
+                class="absolute top-4 right-4 p-2 flowly-icon-close"><i data-lucide="x"
                     class="w-5 h-5"></i></button>
         </div>
     </div>
 
     <!-- Edit Context Menu (Restored) -->
-    <div id="editToolbar" class="context-menu">
-        <button class="toolbar-btn" data-action="bold"><i data-lucide="bold"
-                style="width: 16px; height: 16px;"></i></button>
-        <button class="toolbar-btn" data-action="italic"><i data-lucide="italic"
-                style="width: 16px; height: 16px;"></i></button>
-        <div style="width: 1px; background: #333; margin: 0 4px;"></div>
-        <button class="toolbar-btn" data-action="color"><i data-lucide="palette"
-                style="width: 16px; height: 16px;"></i></button>
-        <button class="toolbar-btn" data-action="habit"><i data-lucide="repeat"
-                style="width: 16px; height: 16px;"></i></button>
-        <div style="width: 1px; background: #333; margin: 0 4px;"></div>
-        <button class="toolbar-btn" data-action="delete" style="color: var(--accent-red)"><i data-lucide="trash-2"
-                style="width: 16px; height: 16px;"></i></button>
+    <div id="editToolbar" class="context-menu" role="toolbar" aria-label="Ações de edição de tarefa">
+        <button class="toolbar-btn" data-action="bold" aria-label="Negrito"><i data-lucide="bold" class="lucide-sm" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="italic" aria-label="Itálico"><i data-lucide="italic" class="lucide-sm" aria-hidden="true"></i></button>
+        <div class="toolbar-divider" aria-hidden="true"></div>
+        <button class="toolbar-btn" data-action="color" aria-label="Cor"><i data-lucide="palette" class="lucide-sm" aria-hidden="true"></i></button>
+        <button class="toolbar-btn" data-action="habit" aria-label="Hábito"><i data-lucide="repeat" class="lucide-sm" aria-hidden="true"></i></button>
+        <div class="toolbar-divider" aria-hidden="true"></div>
+        <button class="toolbar-btn toolbar-btn--danger" data-action="delete" aria-label="Excluir"><i data-lucide="trash-2" class="lucide-sm" aria-hidden="true"></i></button>
     </div>
 
     <!-- Color Menu -->
@@ -279,7 +274,7 @@
     <script src="js/core/task-timers.js?v=1" defer></script>
     <script src="js/core/task-metrics.js?v=1" defer></script>
     <script src="js/core/finance-runtime.js?v=1" defer></script>
-    <script src="js/core/projects-runtime.js?v=1" defer></script>
+    <script src="js/core/projects-runtime.js?v=2" defer></script>
     <script src="js/core/service-bootstrap.js?v=1" defer></script>
     <script src="js/views/dispatcher.js?v=3" defer></script>
     <script src="js/components/task-actions.js?v=1" defer></script>
@@ -287,7 +282,7 @@
     <script src="js/core/task-normalizer-runtime.js?v=1" defer></script>
     <script src="js/core/auth-session.js?v=1" defer></script>
     <script src="js/core/auth-runtime.js?v=1" defer></script>
-    <script src="js/core/pwa.js?v=3" defer></script>
+    <script src="js/core/pwa.js?v=4" defer></script>
     <script src="js/core/app-runtime.js?v=1" defer></script>
     <script src="js/views/sexta-controller.js?v=1" defer></script>
     <script src="js/views/routine.js?v=1" defer></script>

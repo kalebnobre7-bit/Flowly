@@ -231,7 +231,9 @@ async function fetchDailyStats(
     .eq('day', dateKey);
 
   if (error) {
-    throw new Error(`Tasks query failed for ${userId}: ${error.message}`);
+    // Não vaza userId em mensagens de erro (PII em logs).
+    console.error('[scheduled-push] Tasks query failed', { userId, error: error.message });
+    throw new Error(`Tasks query failed: ${error.message}`);
   }
 
   const rows = (data || []) as TaskRow[];

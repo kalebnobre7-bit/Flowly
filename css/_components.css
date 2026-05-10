@@ -6,6 +6,46 @@
    ============================================================= */
 
 /* =============================================================
+   0. ÍCONES — utilitários de tamanho para Lucide
+   Use no lugar de style="width: 18px; height: 18px;"
+   ============================================================= */
+.lucide-xs { width: 14px; height: 14px; }
+.lucide-sm { width: 16px; height: 16px; }
+.lucide-md { width: 18px; height: 18px; }
+.lucide-lg { width: 20px; height: 20px; }
+.lucide-xl { width: 24px; height: 24px; }
+
+/* =============================================================
+   0.1. TOOLBAR — divider e modificadores de toolbar-btn
+   ============================================================= */
+.toolbar-divider {
+    width: 1px;
+    background: var(--flowly-border-muted);
+    margin: 0 4px;
+    align-self: stretch;
+}
+
+.toolbar-btn--danger {
+    color: var(--flowly-accent-danger);
+}
+
+.toolbar-btn--danger:hover {
+    background: rgba(var(--flowly-accent-danger-rgb), 0.12);
+}
+
+/* =============================================================
+   0.2. ÍCONE FECHAR — botão close (X) padrão de modais
+   ============================================================= */
+.flowly-icon-close {
+    color: var(--flowly-text-tertiary);
+    transition: color var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.flowly-icon-close:hover {
+    color: var(--flowly-text-primary);
+}
+
+/* =============================================================
    1. FLOWLY-PANEL — painel padrão (base de qualquer card)
    ============================================================= */
 .flowly-panel {
