@@ -42,6 +42,7 @@ type DailyStats = {
   totalDurationMs: number;
   bestPeriod: string | null;
 };
+type SupabaseAdminClient = ReturnType<typeof createClient<any, 'public', any>>;
 
 const DEFAULT_TIMES: Record<TimedSlotName, string> = {
   morning: '08:30',
@@ -66,6 +67,24 @@ function getEnv(name: string): string {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`Missing env: ${name}`);
   return value;
+}
+
+function jsonResponse(payload: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+function getBearerToken(req: Request): string {
+  const header = req.headers.get('authorization') || '';
+  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
+  return match ? match[1].trim() : '';
+}
+
+function isAuthorizedCronRequest(req: Request): boolean {
+  const expectedSecret = getEnv('FLOWLY_CRON_SECRET');
+  return getBearerToken(req) === expectedSecret;
 }
 
 function parseBodySafe(text: string): Record<string, unknown> {
@@ -201,7 +220,7 @@ function getInactivityThreshold(setting: UserSetting): number {
 }
 
 async function fetchDailyStats(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: SupabaseAdminClient,
   userId: string,
   dateKey: string
 ): Promise<DailyStats> {
@@ -254,7 +273,7 @@ async function fetchDailyStats(
 }
 
 async function fetchLatestActivityTimestamp(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: SupabaseAdminClient,
   userId: string,
   dateKey: string
 ): Promise<number | null> {
@@ -313,7 +332,7 @@ function shouldSendInactivity(
 }
 
 async function alreadySent(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: SupabaseAdminClient,
   userId: string,
   localDate: string,
   slot: SlotName
@@ -334,7 +353,7 @@ async function alreadySent(
 }
 
 async function markSent(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: SupabaseAdminClient,
   userId: string,
   localDate: string,
   slot: SlotName,
@@ -354,7 +373,7 @@ async function markSent(
 }
 
 async function sendToUserSubscriptions(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: SupabaseAdminClient,
   userId: string,
   payload: Record<string, unknown>
 ): Promise<{ sent: number; removed: number }> {
@@ -395,6 +414,14 @@ async function sendToUserSubscriptions(
 
 Deno.serve(async (req) => {
   try {
+    if (req.method !== 'POST') {
+      return jsonResponse({ ok: false, error: 'Method not allowed.' }, 405);
+    }
+
+    if (!isAuthorizedCronRequest(req)) {
+      return jsonResponse({ ok: false, error: 'Unauthorized.' }, 401);
+    }
+
     const bodyText = await req.text();
     const body = parseBodySafe(bodyText);
 
@@ -512,8 +539,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
+    return jsonResponse(
+      {
         ok: true,
         users_scanned: settings.length,
         users_processed: usersProcessed,
@@ -521,19 +548,10 @@ Deno.serve(async (req) => {
         subscriptions_removed: subscriptionsRemoved,
         slots: requestedSlots,
         window_minutes: WINDOW_MINUTES
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      },
+      200
     );
   } catch (error) {
-    return new Response(
-      JSON.stringify({ ok: false, error: (error as Error).message || 'Unknown error' }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
+    return jsonResponse({ ok: false, error: (error as Error).message || 'Unknown error' }, 500);
   }
 });

@@ -16,7 +16,7 @@ Este setup envia notificacoes mesmo com o app fechado, via Supabase Edge Functio
 
 Obs: horarios respeitam o `timezone` salvo em `user_settings`.
 
-## 1) Definir secrets da function
+## 1) Definir secrets da function e do Cron
 
 No terminal:
 
@@ -33,6 +33,16 @@ A function tambem usa secrets padrao do Supabase:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
+O job do Supabase Cron tambem precisa enviar o mesmo segredo no header
+`Authorization`. Como o Cron roda dentro do Postgres, salve o mesmo valor no
+Supabase Vault:
+
+```sql
+select vault.create_secret('SUA_CHAVE_FORTE', 'flowly_cron_secret');
+```
+
+Use exatamente o mesmo valor definido em `FLOWLY_CRON_SECRET`.
+
 ## 2) Deploy da function
 
 ```bash
@@ -47,7 +57,10 @@ Execute no SQL Editor do Supabase:
 
 ## 4) Criar job CRON (a cada 10 min)
 
-No SQL Editor, substitua placeholders e execute:
+No SQL Editor, execute a migration
+`supabase/migrations/20260510190000_secure_scheduled_push_runner.sql` ou use
+o SQL abaixo. O segredo e lido do Vault, entao ele nao fica gravado no codigo
+do job:
 
 ```sql
 select cron.schedule(
@@ -56,15 +69,26 @@ select cron.schedule(
   $$
   select
     net.http_post(
-      url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-scheduled-push',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer <FLOWLY_CRON_SECRET>'
-      ),
-      body := '{}'::jsonb
-    );
+        url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-scheduled-push',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || (
+            select decrypted_secret
+            from vault.decrypted_secrets
+            where name = 'flowly_cron_secret'
+            limit 1
+          )
+        ),
+        body := '{}'::jsonb
+      );
   $$
 );
+```
+
+Se o job antigo ja existir, rode primeiro:
+
+```sql
+select cron.unschedule('flowly-scheduled-push-runner');
 ```
 
 ## 5) Teste rapido
