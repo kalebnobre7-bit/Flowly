@@ -1,4 +1,4 @@
-﻿const ACTIVE_STATIC_CACHE = 'flowly-static-v15';
+﻿const ACTIVE_STATIC_CACHE = 'flowly-static-v16';
 
 const APP_SCOPE_URL = new URL(self.registration.scope);
 const APP_SCOPE_PATH = APP_SCOPE_URL.pathname.endsWith('/')
@@ -23,6 +23,12 @@ const STATIC_ASSETS = [
   scopedPath('lightning.svg'),
   scopedPath('styles.css'),
   scopedPath('bento-theme.css'),
+  scopedPath('css/_tokens.css'),
+  scopedPath('css/_reset.css'),
+  scopedPath('css/_shell.css'),
+  scopedPath('css/_components.css'),
+  scopedPath('css/_animations.css'),
+  scopedPath('css/_responsive.css'),
   scopedPath('js/app.js')
 ];
 

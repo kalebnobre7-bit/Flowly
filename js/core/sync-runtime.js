@@ -137,6 +137,9 @@ async function syncUnsyncedTasksToSupabase() {
         error: err && err.message ? err.message : String(err || '')
       });
     }
+    if (typeof setSyncStatus === 'function') {
+      setSyncStatus('error', 'Erro ao sincronizar. Tentará novamente.');
+    }
   } finally {
     _unsyncedSyncInFlight = false;
   }

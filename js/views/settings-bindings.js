@@ -64,10 +64,10 @@ function bindSettingsInteractions() {
   };
 
   document.querySelectorAll('[data-settings-tab]').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       localStorage.setItem(FLOWLY_SETTINGS_TAB_KEY, btn.dataset.settingsTab || 'conta');
       renderSettingsView();
-    });
+    };
   });
 
   const bindThemeField = (id, updater) => {
@@ -117,7 +117,7 @@ function bindSettingsInteractions() {
   }));
 
   document.querySelectorAll('[data-theme-setting][data-theme-value]').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       const fieldName = btn.dataset.themeSetting || '';
       const value = btn.dataset.themeValue || '';
       const updater = themeSettingUpdaters[fieldName];
@@ -125,15 +125,15 @@ function bindSettingsInteractions() {
       const current = getFlowlyThemeSettings();
       const next = saveFlowlyThemeSettings(updater(current, value));
       refreshThemeUi(next);
-    });
+    };
   });
 
   document.querySelectorAll('[data-theme-combo]').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       const comboId = btn.dataset.themeCombo || '';
       const next = applyFlowlyComboPreset(comboId);
       if (next && typeof renderView === 'function') renderView();
-    });
+    };
   });
 
   const resetThemeBtn = document.getElementById('btnResetThemeSettings');
