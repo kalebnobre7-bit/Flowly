@@ -5,27 +5,49 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Flowly</title>
-    <meta name="theme-color" content="#1c1c1e">
+    <title>Flowly — Sistema operacional pessoal de produtividade</title>
+    <meta name="description" content="Tarefas, hábitos, finanças, projetos e analytics num só lugar. Com IA conversacional integrada e sync em nuvem.">
+    <meta name="theme-color" content="#08090e">
+    <meta name="color-scheme" content="dark">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Flowly">
+    <meta name="format-detection" content="telephone=no">
+    <!-- Open Graph / social sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Flowly — Sistema operacional pessoal de produtividade">
+    <meta property="og:description" content="Tarefas, hábitos, finanças, projetos e analytics num só lugar.">
+    <meta property="og:image" content="logo_flowly.png">
+    <meta property="og:locale" content="pt_BR">
+    <meta name="twitter:card" content="summary">
     <link rel="apple-touch-icon" href="lightning.svg">
-    <link rel="manifest" href="manifest.json?v=5">
+    <link rel="manifest" href="manifest.json?v=6">
     <link rel="icon" type="image/svg+xml" href="lightning.svg">
 
-    <!-- ... scripts ... -->
+    <!-- Boot error reporter: detecta tela preta no mobile, loga contexto rico para debug. -->
     <script>
-        window.onerror = function (msg, url, line, col, error) {
-            // Se der erro critico, alertar (ajuda a debugar telas pretas no mobile)
-            // Mas apenas se o app container estiver vazio apos carregamento
-            setTimeout(() => {
-                if (document.getElementById('weekGrid').innerHTML === '' && document.getElementById('todayView').innerHTML === '') {
-                    console.error("Critical Error:", msg);
-                    // alert("Erro ao carregar app: " + msg); // Opcional, remove se atrapalhar
+        window.addEventListener('error', function (event) {
+            // Aguarda 2s para garantir que o app teve chance de renderizar antes de classificar como falha crítica.
+            setTimeout(function () {
+                var weekGrid = document.getElementById('weekGrid');
+                var todayView = document.getElementById('todayView');
+                var weekEmpty = !weekGrid || weekGrid.innerHTML === '';
+                var todayEmpty = !todayView || todayView.innerHTML === '';
+                if (weekEmpty && todayEmpty) {
+                    console.error('[Flowly:boot] Falha crítica de inicialização:', {
+                        message: event && event.message,
+                        source: event && event.filename,
+                        line: event && event.lineno,
+                        col: event && event.colno,
+                        userAgent: navigator.userAgent
+                    });
                 }
             }, 2000);
-        };
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+            console.error('[Flowly:unhandledrejection]', event && event.reason);
+        });
     </script>
 
     <script src="https://cdn.tailwindcss.com" defer></script>
@@ -202,33 +224,37 @@
     </div>
 
     <!-- Modals (Restored original Auth structure for app.js compatibility) -->
-    <div id="authModal" class="modal-overlay" style="z-index: 9999;">
+    <div id="authModal" class="modal-overlay" style="z-index: 9999;" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
         <div class="modal-content" style="max-width: 400px;" id="authBox">
-            <h2 class="text-xl font-bold mb-4 text-center">Login / Cadastro</h2>
-            <div id="authMessage"></div>
+            <h2 class="text-xl font-bold mb-4 text-center" id="authModalTitle">Login / Cadastro</h2>
+            <div id="authMessage" role="status" aria-live="polite"></div>
 
             <div id="authLogin">
-                <input type="email" id="loginEmail" class="task-input mb-3" placeholder="Email">
-                <input type="password" id="loginPassword" class="task-input mb-3" placeholder="Senha">
+                <label class="sr-only" for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" class="task-input mb-3" placeholder="Email" autocomplete="email">
+                <label class="sr-only" for="loginPassword">Senha</label>
+                <input type="password" id="loginPassword" class="task-input mb-3" placeholder="Senha" autocomplete="current-password">
                 <label class="mb-4 flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
                     <input type="checkbox" id="keepLoggedIn" checked class="h-4 w-4 rounded border-white/20 bg-white/5">
                     <span>Manter conectado neste dispositivo</span>
                 </label>
-                <button id="btnLogin" class="btn-primary mb-3">Entrar</button>
-                <button id="btnShowSignup" class="btn-secondary">Criar conta</button>
+                <button id="btnLogin" class="btn-primary mb-3" type="button">Entrar</button>
+                <button id="btnShowSignup" class="btn-secondary" type="button">Criar conta</button>
             </div>
 
             <div id="authSignup" style="display:none;">
-                <input type="email" id="signupEmail" class="task-input mb-3" placeholder="Email">
+                <label class="sr-only" for="signupEmail">Email</label>
+                <input type="email" id="signupEmail" class="task-input mb-3" placeholder="Email" autocomplete="email">
+                <label class="sr-only" for="signupPassword">Senha (mínimo 6 caracteres)</label>
                 <input type="password" id="signupPassword" class="task-input mb-4"
-                    placeholder="Senha (min. 6 caracteres)">
-                <button id="btnSignup" class="btn-primary mb-3">Cadastrar</button>
-                <button id="btnShowLogin" class="btn-secondary">Voltar</button>
+                    placeholder="Senha (min. 6 caracteres)" autocomplete="new-password" minlength="6">
+                <button id="btnSignup" class="btn-primary mb-3" type="button">Cadastrar</button>
+                <button id="btnShowLogin" class="btn-secondary" type="button">Voltar</button>
             </div>
 
-            <button id="btnCloseAuthModal" data-auth-modal="close"
-                class="absolute top-4 right-4 p-2 flowly-icon-close"><i data-lucide="x"
-                    class="w-5 h-5"></i></button>
+            <button id="btnCloseAuthModal" data-auth-modal="close" aria-label="Fechar"
+                class="absolute top-4 right-4 p-2 flowly-icon-close" type="button"><i data-lucide="x"
+                    class="w-5 h-5" aria-hidden="true"></i></button>
         </div>
     </div>
 
@@ -289,7 +315,7 @@
     <script src="js/app.js?v=15" defer></script>
     <script src="js/core/progress-notifications.js?v=1" defer></script>
     <script src="js/tasks/flowly-tasks-core.js?v=1" defer></script>
-    <script src="js/tasks/task-expansion-runtime.js?v=8" defer></script>
+    <script src="js/tasks/task-expansion-runtime.js?v=9" defer></script>
     <script src="js/tasks/flowly-tasks-ui.js?v=2" defer></script>
     <script src="js/views/analytics.js?v=1" defer></script>
     <script src="js/views/finance.js?v=1" defer></script>
