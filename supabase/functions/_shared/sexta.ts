@@ -98,6 +98,24 @@ type SextaCapabilityRow = {
   updated_at: string | null;
 };
 
+type SextaAutonomySignalRow = {
+  id: string;
+  user_id: string;
+  signal_key: string | null;
+  kind: string | null;
+  urgency: string | null;
+  title: string | null;
+  body: string | null;
+  recommendation: string | null;
+  evidence: unknown;
+  status: string | null;
+  last_evaluated_at: string | null;
+  last_sent_at: string | null;
+  last_channel: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
 export type SextaProfile = {
   memoryNotes?: string;
   operatorRules?: string;
@@ -144,6 +162,36 @@ export type SextaCapability = {
   source?: string;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type SextaAutonomySignal = {
+  id?: string;
+  key?: string;
+  kind?: string;
+  urgency?: string;
+  title: string;
+  body?: string;
+  recommendation?: string;
+  evidence?: string[];
+  status?: string;
+  lastEvaluatedAt?: string;
+  lastSentAt?: string;
+  lastChannel?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type SextaAutonomySummary = {
+  enabled: boolean;
+  mode: string;
+  status: string;
+  focus: string;
+  summary: string;
+  nextAction: string;
+  signalCount: number;
+  highPriorityCount: number;
+  lastReviewAt?: string;
+  preferredChannel?: string;
 };
 
 type ChatMessage = {
@@ -341,6 +389,25 @@ function serializeCapabilityRow(row: SextaCapabilityRow): SextaCapability {
   };
 }
 
+function serializeAutonomySignalRow(row: SextaAutonomySignalRow): SextaAutonomySignal {
+  return {
+    id: row.id,
+    key: safeString(row.signal_key),
+    kind: safeString(row.kind) || 'general',
+    urgency: safeString(row.urgency) || 'medium',
+    title: safeString(row.title),
+    body: safeString(row.body),
+    recommendation: safeString(row.recommendation),
+    evidence: Array.isArray(row.evidence) ? row.evidence.map((item) => safeString(item)).filter(Boolean) : [],
+    status: safeString(row.status) || 'active',
+    lastEvaluatedAt: safeString(row.last_evaluated_at),
+    lastSentAt: safeString(row.last_sent_at),
+    lastChannel: safeString(row.last_channel),
+    createdAt: safeString(row.created_at) || new Date().toISOString(),
+    updatedAt: safeString(row.updated_at) || safeString(row.created_at) || new Date().toISOString()
+  };
+}
+
 export function mergeSextaProfiles(
   serverProfile: SextaProfile | null = null,
   clientProfile: SextaProfile | null = null
@@ -455,7 +522,7 @@ export async function loadSextaAgentState(
   supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
   userId: string
 ) {
-  const [profileResult, memoriesResult, goalsResult, episodesResult, capabilitiesResult] = await Promise.all([
+  const [profileResult, memoriesResult, goalsResult, episodesResult, capabilitiesResult, signalsResult] = await Promise.all([
     supabaseAdmin
       .from('sexta_profiles')
       .select('user_id, memory_notes, operator_rules, command_style, autonomy_mode')
@@ -484,7 +551,13 @@ export async function loadSextaAgentState(
       .select('id, user_id, title, description, status, source, created_at, updated_at')
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
-      .limit(16)
+      .limit(16),
+    supabaseAdmin
+      .from('sexta_autonomy_signals')
+      .select('id, user_id, signal_key, kind, urgency, title, body, recommendation, evidence, status, last_evaluated_at, last_sent_at, last_channel, created_at, updated_at')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(20)
   ]);
 
   if (profileResult.error && !isTableMissingError(profileResult.error)) {
@@ -502,9 +575,17 @@ export async function loadSextaAgentState(
   if (capabilitiesResult.error && !isTableMissingError(capabilitiesResult.error)) {
     throw new Error(`Sexta capabilities query failed: ${capabilitiesResult.error.message}`);
   }
+  if (signalsResult.error && !isTableMissingError(signalsResult.error)) {
+    throw new Error(`Sexta autonomy signals query failed: ${signalsResult.error.message}`);
+  }
+
+  const profile = serializeProfileRow((profileResult.data || null) as SextaProfileRow | null);
+  const signals = ((signalsResult.data || []) as SextaAutonomySignalRow[])
+    .map(serializeAutonomySignalRow)
+    .filter((item) => item.title);
 
   return {
-    profile: serializeProfileRow((profileResult.data || null) as SextaProfileRow | null),
+    profile,
     memories: ((memoriesResult.data || []) as SextaMemoryRow[])
       .map(serializeMemoryRow)
       .filter((item) => item.text),
@@ -514,7 +595,9 @@ export async function loadSextaAgentState(
       .filter((item) => item.summary || item.userMessage || item.assistantReply),
     capabilities: ((capabilitiesResult.data || []) as SextaCapabilityRow[])
       .map(serializeCapabilityRow)
-      .filter((item) => item.title)
+      .filter((item) => item.title),
+    signals,
+    autonomy: summarizeSextaAutonomy(profile, signals)
   };
 }
 
@@ -730,6 +813,148 @@ export async function saveSextaCapability(
   return insertResult.data ? serializeCapabilityRow(insertResult.data as SextaCapabilityRow) : null;
 }
 
+function normalizeAutonomySignal(signal: Partial<SextaAutonomySignal> | null = null): SextaAutonomySignal {
+  return {
+    id: safeString(signal?.id),
+    key: safeString(signal?.key),
+    kind: safeString(signal?.kind) || 'general',
+    urgency: safeString(signal?.urgency) || 'medium',
+    title: safeString(signal?.title),
+    body: safeString(signal?.body),
+    recommendation: safeString(signal?.recommendation),
+    evidence: Array.isArray(signal?.evidence) ? signal?.evidence.map((item) => safeString(item)).filter(Boolean) : [],
+    status: safeString(signal?.status) || 'active',
+    lastEvaluatedAt: safeString(signal?.lastEvaluatedAt),
+    lastSentAt: safeString(signal?.lastSentAt),
+    lastChannel: safeString(signal?.lastChannel),
+    createdAt: safeString(signal?.createdAt),
+    updatedAt: safeString(signal?.updatedAt)
+  };
+}
+
+export function summarizeSextaAutonomy(
+  profile: SextaProfile | null = null,
+  signals: SextaAutonomySignal[] = []
+): SextaAutonomySummary {
+  const safeProfile = normalizeSextaProfile(profile || {});
+  const activeSignals = Array.isArray(signals)
+    ? signals.filter((item) => safeLower(item.status) !== 'resolved')
+    : [];
+  const topSignal = activeSignals[0] || null;
+  const lastReviewAt = activeSignals
+    .map((item) => safeString(item.lastEvaluatedAt) || safeString(item.updatedAt))
+    .filter(Boolean)
+    .sort()
+    .slice(-1)[0] || '';
+  const highPriorityCount = activeSignals.filter((item) => safeLower(item.urgency) === 'high').length;
+  const enabled = Boolean(safeProfile.autonomyMode || activeSignals.length > 0);
+
+  return {
+    enabled,
+    mode: safeProfile.autonomyMode || 'assistido',
+    status: topSignal ? (safeLower(topSignal.urgency) === 'high' ? 'acao agora' : 'monitorando') : 'fluxo estavel',
+    focus: topSignal?.title || 'Sem sinal critico agora',
+    summary: topSignal?.body || 'A Sexta ainda nao encontrou um gargalo forte o suficiente para intervir.',
+    nextAction: topSignal?.recommendation || 'Segue o chat normal ou roda uma leitura manual para atualizar o quadro.',
+    signalCount: activeSignals.length,
+    highPriorityCount,
+    lastReviewAt,
+    preferredChannel: topSignal?.lastChannel || ''
+  };
+}
+
+export async function upsertSextaAutonomySignal(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+  signal: Partial<SextaAutonomySignal>
+) {
+  const normalized = normalizeAutonomySignal(signal);
+  const title = safeString(normalized.title);
+  const key = safeString(normalized.key) || normalizeTextMatch(title).replace(/[^a-z0-9]+/g, '-');
+  if (!title || !key) return null;
+
+  const payload = {
+    id: normalized.id || createRuntimeId('signal'),
+    user_id: userId,
+    signal_key: key,
+    kind: normalized.kind || 'general',
+    urgency: normalized.urgency || 'medium',
+    title,
+    body: normalized.body || '',
+    recommendation: normalized.recommendation || '',
+    evidence: Array.isArray(normalized.evidence) ? normalized.evidence : [],
+    status: normalized.status || 'active',
+    last_evaluated_at: new Date().toISOString(),
+    last_sent_at: normalized.lastSentAt || null,
+    last_channel: normalized.lastChannel || null,
+    updated_at: new Date().toISOString()
+  };
+
+  const result = await supabaseAdmin
+    .from('sexta_autonomy_signals')
+    .upsert([payload], { onConflict: 'user_id,signal_key' })
+    .select('id, user_id, signal_key, kind, urgency, title, body, recommendation, evidence, status, last_evaluated_at, last_sent_at, last_channel, created_at, updated_at')
+    .single();
+
+  if (result.error && !isTableMissingError(result.error)) {
+    throw new Error(`Sexta autonomy signal write failed: ${result.error.message}`);
+  }
+
+  return result.data ? serializeAutonomySignalRow(result.data as SextaAutonomySignalRow) : null;
+}
+
+async function resolveStaleAutonomySignals(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+  keepKeys: string[]
+) {
+  const safeKeys = keepKeys.filter(Boolean);
+  const result = await supabaseAdmin
+    .from('sexta_autonomy_signals')
+    .select('id, signal_key, status')
+    .eq('user_id', userId)
+    .neq('status', 'resolved');
+
+  if (result.error && !isTableMissingError(result.error)) {
+    throw new Error(`Sexta autonomy signal lookup failed: ${result.error.message}`);
+  }
+
+  const staleIds = ((result.data || []) as Array<{ id: string; signal_key: string | null }>)
+    .filter((item) => !safeKeys.includes(safeString(item.signal_key)))
+    .map((item) => item.id)
+    .filter(Boolean);
+
+  if (staleIds.length <= 0) return;
+
+  const updateResult = await supabaseAdmin
+    .from('sexta_autonomy_signals')
+    .update({ status: 'resolved', updated_at: new Date().toISOString() })
+    .in('id', staleIds);
+
+  if (updateResult.error && !isTableMissingError(updateResult.error)) {
+    throw new Error(`Sexta autonomy signal resolve failed: ${updateResult.error.message}`);
+  }
+}
+
+export async function markSextaAutonomySignalSent(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
+  signalId: string,
+  channel: string
+) {
+  const result = await supabaseAdmin
+    .from('sexta_autonomy_signals')
+    .update({
+      last_sent_at: new Date().toISOString(),
+      last_channel: safeString(channel) || 'unknown',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', signalId);
+
+  if (result.error && !isTableMissingError(result.error)) {
+    throw new Error(`Sexta autonomy signal delivery mark failed: ${result.error.message}`);
+  }
+}
+
 export async function saveSextaEpisode(
   supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
   userId: string,
@@ -796,7 +1021,9 @@ export async function buildSextaContextSummary(
     memories: mergeSextaMemories([], memories),
     goals: [],
     episodes: [],
-    capabilities: []
+    capabilities: [],
+    signals: [],
+    autonomy: summarizeSextaAutonomy(profile || {}, [])
   }));
   const timezone = await getUserTimezone(supabaseAdmin, userId);
   const todayDate = getNowInTimezone(timezone).dateKey;
@@ -936,6 +1163,20 @@ export async function buildSextaContextSummary(
         description: safeString(item.description)
       }))
     : [];
+  const autonomySignals = Array.isArray(agentState.signals)
+    ? agentState.signals
+        .filter((item) => safeLower(item.status) !== 'resolved')
+        .slice(0, 6)
+        .map((item) => ({
+          key: safeString(item.key),
+          kind: safeString(item.kind) || 'general',
+          urgency: safeString(item.urgency) || 'medium',
+          title: safeString(item.title),
+          body: safeString(item.body),
+          recommendation: safeString(item.recommendation),
+          lastSentAt: safeString(item.lastSentAt)
+        }))
+    : [];
 
   return {
     date: todayDate,
@@ -988,9 +1229,185 @@ export async function buildSextaContextSummary(
     })),
     recentEpisodes,
     capabilityBacklog,
+    autonomySignals,
     memories: mergeSextaMemories([], memories).slice(-10).map((item) => item.text),
     profile: normalizeSextaProfile(profile || {})
   };
+}
+
+function buildAutonomySignalKey(kind: string, seed: string) {
+  const normalized = normalizeTextMatch(seed).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return `${safeLower(kind) || 'general'}:${normalized || 'item'}`;
+}
+
+function deriveAutonomySignals(contextSummary: Record<string, unknown>, profile: SextaProfile | null = null) {
+  const signals: SextaAutonomySignal[] = [];
+  const topPending = Array.isArray(contextSummary.topPending)
+    ? (contextSummary.topPending as Array<Record<string, unknown>>)
+    : [];
+  const lateProjects = Array.isArray(contextSummary.lateProjects)
+    ? (contextSummary.lateProjects as Array<Record<string, unknown>>)
+    : [];
+  const upcomingTasks = Array.isArray(contextSummary.upcomingTasks)
+    ? (contextSummary.upcomingTasks as Array<Record<string, unknown>>)
+    : [];
+  const finance = contextSummary.finance && typeof contextSummary.finance === 'object'
+    ? (contextSummary.finance as Record<string, unknown>)
+    : {};
+  const profileSummary = buildProfileSummary(profile);
+  const pendingCount = Number(contextSummary.pendingCount || 0);
+  const moneyCount = Number(contextSummary.moneyCount || 0);
+  const followupCount = Number(contextSummary.followupCount || 0);
+  const progressPct = Number(finance.progressPct || 0);
+  const balance = Number(finance.balance || 0);
+  const dayOfMonth = Number(String(contextSummary.date || '').slice(-2) || 0);
+  const topMoneyTask =
+    topPending.find((item) => safeLower(item.priority) === 'money') ||
+    topPending.find((item) => /cobrar|pagamento|receber|orcamento|pix|proposta/i.test(safeString(item.text))) ||
+    null;
+  const topFollowupTask =
+    topPending.find((item) => /follow|cobrar|cliente|whats|proposta|responder/i.test(safeString(item.text))) ||
+    null;
+
+  if (topMoneyTask || (moneyCount > 0 && progressPct < 65)) {
+    const taskText = safeString(topMoneyTask?.text) || 'Fechar a tarefa que puxa caixa agora';
+    signals.push({
+      key: buildAutonomySignalKey('cash', taskText),
+      kind: 'cash',
+      urgency: 'high',
+      title: 'Caixa pedindo acao agora',
+      body:
+        moneyCount > 0
+          ? `Existem ${moneyCount} frente(s) ligadas a receita. A mais forte agora parece ser "${taskText}".`
+          : `O progresso de caixa do mes esta em ${progressPct}%. Vale abrir uma frente direta de receita agora.`,
+      recommendation: `Ataca "${taskText}" antes de abrir outra frente.`,
+      evidence: [taskText, `saldo:${balance}`, `meta:${progressPct}%`, profileSummary].filter(Boolean),
+      status: 'active'
+    });
+  }
+
+  if (topFollowupTask || followupCount > 0) {
+    const taskText = safeString(topFollowupTask?.text) || 'Resolver follow-up aberto com cliente';
+    signals.push({
+      key: buildAutonomySignalKey('followup', taskText),
+      kind: 'followup',
+      urgency: followupCount >= 2 ? 'high' : 'medium',
+      title: 'Cliente aguardando retorno',
+      body: `Ha ${followupCount || 1} follow-up(s) aberto(s). O primeiro da fila e "${taskText}".`,
+      recommendation: `Fecha "${taskText}" antes de reorganizar o resto do dia.`,
+      evidence: [taskText, `followups:${followupCount}`],
+      status: 'active'
+    });
+  }
+
+  if (lateProjects.length > 0) {
+    const projectName = safeString(lateProjects[0]?.name) || 'Projeto atrasado';
+    const deadline = safeString(lateProjects[0]?.deadline) || 'sem prazo';
+    signals.push({
+      key: buildAutonomySignalKey('project_risk', `${projectName}-${deadline}`),
+      kind: 'project_risk',
+      urgency: 'high',
+      title: 'Projeto em risco de prazo',
+      body: `Existem ${lateProjects.length} projeto(s) atrasado(s). O mais sensivel agora e "${projectName}" com prazo ${deadline}.`,
+      recommendation: `Revisa proximo passo, bloqueio e responsavel do projeto "${projectName}" ainda hoje.`,
+      evidence: [projectName, deadline, `lateProjects:${lateProjects.length}`],
+      status: 'active'
+    });
+  }
+
+  if (pendingCount >= 7) {
+    signals.push({
+      key: buildAutonomySignalKey('overload', `pending-${pendingCount}`),
+      kind: 'overload',
+      urgency: pendingCount >= 10 ? 'high' : 'medium',
+      title: 'Frente demais aberta ao mesmo tempo',
+      body: `Voce esta com ${pendingCount} pendencias abertas hoje. Isso aumenta troca de contexto e derruba execucao.`,
+      recommendation: 'Corta a fila para 3 frentes: uma de caixa, uma de entrega e uma administrativa.',
+      evidence: [`pending:${pendingCount}`],
+      status: 'active'
+    });
+  }
+
+  if (pendingCount === 0 && upcomingTasks.length > 0) {
+    const nextTask = safeString(upcomingTasks[0]?.text) || 'Definir proximo bloco';
+    signals.push({
+      key: buildAutonomySignalKey('planning', nextTask),
+      kind: 'planning',
+      urgency: 'low',
+      title: 'Janela limpa para planejar',
+      body: `O dia esta limpo e ja existe fila futura. O proximo passo mais util agora parece ser "${nextTask}".`,
+      recommendation: `Antecipar "${nextTask}" ou definir as 3 prioridades do proximo bloco.`,
+      evidence: [nextTask, `upcoming:${upcomingTasks.length}`],
+      status: 'active'
+    });
+  }
+
+  if (dayOfMonth >= 20 && progressPct < 45 && moneyCount === 0) {
+    signals.push({
+      key: buildAutonomySignalKey('cash_gap', `${dayOfMonth}-${progressPct}`),
+      kind: 'cash_gap',
+      urgency: 'medium',
+      title: 'Meta financeira abaixo do ritmo',
+      body: `Ja estamos no dia ${dayOfMonth} e o progresso de caixa do mes esta em ${progressPct}%.`,
+      recommendation: 'Abrir uma tarefa de cobranca, proposta ou follow-up comercial agora.',
+      evidence: [`day:${dayOfMonth}`, `goal:${progressPct}`],
+      status: 'active'
+    });
+  }
+
+  const severity = { high: 3, medium: 2, low: 1 } as Record<string, number>;
+  return signals
+    .sort((a, b) => (severity[safeLower(b.urgency)] || 0) - (severity[safeLower(a.urgency)] || 0))
+    .slice(0, 6);
+}
+
+export async function evaluateSextaAutonomy(input: {
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>;
+  userId: string;
+  profile?: SextaProfile | null;
+  memories?: SextaMemory[];
+  contextSummary?: Record<string, unknown> | null;
+}) {
+  const currentState = await loadSextaAgentState(input.supabaseAdmin, input.userId);
+  const profile = normalizeSextaProfile(input.profile || currentState.profile || {});
+  const memories = Array.isArray(input.memories) && input.memories.length > 0 ? input.memories : currentState.memories;
+  const contextSummary =
+    input.contextSummary && typeof input.contextSummary === 'object'
+      ? input.contextSummary
+      : await buildSextaContextSummary(input.supabaseAdmin, input.userId, profile, memories);
+  const signals = deriveAutonomySignals(contextSummary, profile);
+  const keepKeys = signals.map((item) => safeString(item.key)).filter(Boolean);
+
+  for (const signal of signals) {
+    await upsertSextaAutonomySignal(input.supabaseAdmin, input.userId, signal);
+  }
+  await resolveStaleAutonomySignals(input.supabaseAdmin, input.userId, keepKeys);
+
+  const latestState = await loadSextaAgentState(input.supabaseAdmin, input.userId);
+  return {
+    state: latestState,
+    autonomy: latestState.autonomy,
+    signals: latestState.signals
+  };
+}
+
+export function shouldDispatchAutonomySignal(signal: SextaAutonomySignal, now = Date.now()) {
+  const lastSent = signal.lastSentAt ? new Date(signal.lastSentAt).getTime() : 0;
+  const hoursSinceLastSend = lastSent > 0 ? (now - lastSent) / (60 * 60 * 1000) : Infinity;
+  const urgency = safeLower(signal.urgency);
+  const minHours = urgency === 'high' ? 4 : urgency === 'medium' ? 10 : 18;
+  return !Number.isFinite(lastSent) || hoursSinceLastSend >= minHours;
+}
+
+export function buildAutonomyDispatchText(signal: SextaAutonomySignal) {
+  return [
+    'Sexta | leitura proativa',
+    safeString(signal.title),
+    safeString(signal.body),
+    safeString(signal.recommendation) ? `Proximo passo: ${safeString(signal.recommendation)}` : ''
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function buildProfileSummary(profile: SextaProfile | null = null) {
@@ -1255,7 +1672,9 @@ async function executeSextaTool(input: {
       goals: detail === 'full' ? state.goals.slice(0, 12) : state.goals.slice(0, 5),
       episodes: detail === 'full' ? state.episodes.slice(0, 8) : state.episodes.slice(0, 4),
       capabilities:
-        detail === 'full' ? state.capabilities.slice(0, 12) : state.capabilities.slice(0, 5)
+        detail === 'full' ? state.capabilities.slice(0, 12) : state.capabilities.slice(0, 5),
+      signals: detail === 'full' ? (state.signals || []).slice(0, 10) : (state.signals || []).slice(0, 4),
+      autonomy: state.autonomy || summarizeSextaAutonomy(state.profile, state.signals || [])
     };
   }
 

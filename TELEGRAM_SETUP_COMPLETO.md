@@ -1,5 +1,11 @@
 ﻿# ðŸ¤– SETUP COMPLETO: Telegram Bot + IA Gemini
 
+> **Documento legado.** A function `send-telegram-notifications` foi removida em
+> maio de 2026 porque duplicava o fluxo atual e ficava exposta sem autenticacao
+> propria. Para Telegram, use apenas `telegram-bot` + `telegram-link`. Para
+> notificacoes agendadas, use `send-scheduled-push` ou `sexta-autonomy-run`, ambas
+> protegidas por `FLOWLY_CRON_SECRET`.
+
 ## âœ… InformaÃ§Ãµes Configuradas:
 
 - **Bot Token:** `<TELEGRAM_BOT_TOKEN>`
