@@ -41,7 +41,7 @@
       const currentUser = getCurrentUser();
       if (!currentUser) return;
 
-      const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+      const notifSettings = safeJSONParse(localStorage.getItem('flowly_notif_settings'), {});
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       try {
@@ -132,7 +132,7 @@
       }
 
       navigator.serviceWorker
-        .register('./service-worker.js?v=14', { updateViaCache: 'none' })
+        .register('./service-worker.js?v=17', { updateViaCache: 'none' })
         .then((registration) => {
           debugLog('Service Worker registrado:', registration);
           serviceWorkerRegistration = registration;
@@ -247,13 +247,13 @@
       if (!('Notification' in window)) return false;
       if (!window.isSecureContext) return false;
       if (Notification.permission !== 'granted') return false;
-      const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+      const notifSettings = safeJSONParse(localStorage.getItem('flowly_notif_settings'), {});
       return notifSettings.enabled === true;
     }
 
     function getSmartSentRegistry() {
       try {
-        return JSON.parse(localStorage.getItem('flowly_smart_notif_sent') || '{}');
+        return safeJSONParse(localStorage.getItem('flowly_smart_notif_sent'), {});
       } catch (e) {
         return {};
       }

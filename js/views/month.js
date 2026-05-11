@@ -46,7 +46,7 @@ function mcEscape(s) {
 }
 
 function getMonthEvents() {
-  try { return JSON.parse(localStorage.getItem('flowly_month_events') || '{}'); }
+  try { return safeJSONParse(localStorage.getItem('flowly_month_events'), {}); }
   catch { return {}; }
 }
 
@@ -68,7 +68,7 @@ function getIsoWeek(date) {
 function getMonthFinanceSummary(year, month) {
   try {
     const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
-    const allData = JSON.parse(localStorage.getItem('flowly_finance_data') || '{}');
+    const allData = safeJSONParse(localStorage.getItem('flowly_finance_data'), {});
     let income = 0, expense = 0;
     Object.entries(allData).forEach(([d, e]) => {
       if (!d.startsWith(prefix)) return;

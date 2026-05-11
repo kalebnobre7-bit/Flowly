@@ -16,7 +16,7 @@
 
   function getProgressNotificationState() {
     try {
-      return JSON.parse(localStorage.getItem('flowly_progress_notif_state') || '{}');
+      return safeJSONParse(localStorage.getItem('flowly_progress_notif_state'), {});
     } catch (e) {
       return {};
     }
@@ -30,7 +30,7 @@
     if (!flowlyPwa) return;
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
-    const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
+    const notifSettings = safeJSONParse(localStorage.getItem('flowly_notif_settings'), {});
     if (notifSettings.enabled !== true) return;
     if (notifSettings.progressEnabled === false) return;
 

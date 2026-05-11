@@ -9,7 +9,10 @@ window.toggleTaskExpansion = function (task, el) {
     exp.style.maxHeight = '0px';
     exp.style.marginTop = '0px';
     exp.style.marginBottom = '0px';
-    setTimeout(() => exp.remove(), 200);
+    setTimeout(() => {
+      // Guarda contra re-render: se o elemento já saiu do DOM, .remove() é no-op.
+      if (exp.isConnected) exp.remove();
+    }, 200);
   });
 
   if (isExpanded) return;

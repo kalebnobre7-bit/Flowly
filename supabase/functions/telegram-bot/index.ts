@@ -156,7 +156,12 @@ Deno.serve(async (req) => {
   try {
     const expectedSecret = Deno.env.get('FLOWLY_TELEGRAM_WEBHOOK_SECRET') || '';
     const receivedSecret = req.headers.get('x-telegram-bot-api-secret-token') || '';
-    if (expectedSecret && expectedSecret !== receivedSecret) {
+    if (!expectedSecret) {
+      // Misconfiguração: nunca aceitamos webhook sem secret. Falha fechada.
+      console.error('[telegram-bot] FLOWLY_TELEGRAM_WEBHOOK_SECRET não configurado.');
+      return jsonResponse({ ok: false, error: 'Webhook secret not configured.' }, 500);
+    }
+    if (expectedSecret !== receivedSecret) {
       return jsonResponse({ ok: false, error: 'Invalid webhook secret.' }, 401);
     }
 

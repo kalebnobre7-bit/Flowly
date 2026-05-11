@@ -4,8 +4,8 @@ function renderSettingsView() {
   const view = document.getElementById('settingsView');
   if (!view) return;
 
-  const notifSettings = JSON.parse(localStorage.getItem('flowly_notif_settings') || '{}');
-  const viewSettings = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
+  const notifSettings = safeJSONParse(localStorage.getItem('flowly_notif_settings'), {});
+  const viewSettings = safeJSONParse(localStorage.getItem('flowly_view_settings'), {});
 
   const settingsContext = {
     notifEnabled: notifSettings.enabled === true,

@@ -201,6 +201,16 @@
         await loadDataFromSupabase();
         if (typeof renderView === 'function') renderView();
         if (typeof renderRoutineView === 'function') renderRoutineView();
+      } catch (err) {
+        console.error('[Realtime] Falha ao recarregar dados do Supabase:', err);
+        if (typeof recordSyncEvent === 'function') {
+          recordSyncEvent('error', 'Falha ao recarregar dados em tempo real', {
+            error: err && err.message ? err.message : String(err || '')
+          });
+        }
+        if (typeof setSyncStatus === 'function') {
+          setSyncStatus('error', 'Erro ao recarregar dados. Tentará novamente.');
+        }
       } finally {
         rtReloadInFlight = false;
         if (rtReloadQueued) {
@@ -254,7 +264,7 @@
         return;
       }
 
-      const localTasksData = JSON.parse(localStorage.getItem('allTasksData') || '{}');
+      const localTasksData = safeJSONParse(localStorage.getItem('allTasksData'), {});
       const inserts = [];
 
       Object.entries(localTasksData).forEach(function ([dateStr, periods]) {
@@ -396,7 +406,7 @@
 
       const localSnapshot = (function () {
         try {
-          return JSON.parse(localStorage.getItem('allTasksData') || 'null');
+          return safeJSONParse(localStorage.getItem('allTasksData'), null);
         } catch (e) {
           return null;
         }

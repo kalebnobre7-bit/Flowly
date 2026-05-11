@@ -3,15 +3,16 @@
     const msgEl = document.getElementById('authMessage');
     if (!msgEl) return;
 
+    const tokenRgb =
+      type === 'error' ? 'var(--flowly-accent-danger-rgb)' : 'var(--flowly-accent-success-rgb)';
+    const tokenColor =
+      type === 'error' ? 'var(--flowly-accent-danger)' : 'var(--flowly-accent-success)';
+
     msgEl.textContent = message;
     msgEl.style.display = 'block';
-    msgEl.style.background =
-      type === 'error' ? 'rgba(255, 69, 58, 0.15)' : 'rgba(48, 209, 88, 0.15)';
-    msgEl.style.color = type === 'error' ? '#FF453A' : '#30D158';
-    msgEl.style.border =
-      type === 'error'
-        ? '1px solid rgba(255, 69, 58, 0.3)'
-        : '1px solid rgba(48, 209, 88, 0.3)';
+    msgEl.style.background = `rgba(${tokenRgb}, 0.15)`;
+    msgEl.style.color = tokenColor;
+    msgEl.style.border = `1px solid rgba(${tokenRgb}, 0.3)`;
 
     setTimeout(function () {
       msgEl.style.display = 'none';

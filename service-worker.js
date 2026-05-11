@@ -1,4 +1,4 @@
-﻿const ACTIVE_STATIC_CACHE = 'flowly-static-v15';
+﻿const ACTIVE_STATIC_CACHE = 'flowly-static-v17';
 
 const APP_SCOPE_URL = new URL(self.registration.scope);
 const APP_SCOPE_PATH = APP_SCOPE_URL.pathname.endsWith('/')
@@ -14,6 +14,8 @@ function scopedUrl(path = '') {
   return new URL(path, APP_SCOPE_URL).toString();
 }
 
+// Apenas o shell crítico no precache.
+// CSS/JS adicionais são cacheados sob demanda via network-first abaixo.
 const STATIC_ASSETS = [
   APP_SCOPE_PATH,
   INDEX_URL,
@@ -21,8 +23,10 @@ const STATIC_ASSETS = [
   scopedPath('logo_flowly.png'),
   scopedPath('favicon.svg'),
   scopedPath('lightning.svg'),
-  scopedPath('styles.css'),
-  scopedPath('bento-theme.css'),
+  scopedPath('css/_tokens.css'),
+  scopedPath('css/_reset.css'),
+  scopedPath('css/_shell.css'),
+  scopedPath('css/_components.css'),
   scopedPath('js/app.js')
 ];
 
@@ -48,7 +52,17 @@ function isApiRequest(url) {
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(ACTIVE_STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS)));
+  event.waitUntil(
+    caches.open(ACTIVE_STATIC_CACHE).then((cache) =>
+      // Precache resiliente: se um asset falhar (404, rede), ele é ignorado
+      // sem abortar a instalação inteira do SW.
+      Promise.allSettled(
+        STATIC_ASSETS.map((asset) =>
+          cache.add(new Request(asset, { cache: 'reload' })).catch(() => null)
+        )
+      )
+    )
+  );
   self.skipWaiting();
 });
 

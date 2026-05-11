@@ -242,7 +242,7 @@ function createTaskElement(day, dateStr, period, task, index) {
 
   if (task.text.trim() === '') {
     label.textContent = '';
-    label.style.color = '#666';
+    label.style.color = 'var(--flowly-text-tertiary)';
     label.setAttribute('data-placeholder', 'Clique para editar...');
     label.style.position = 'relative';
   } else {
@@ -277,7 +277,7 @@ function createTaskElement(day, dateStr, period, task, index) {
     targetTask.completed = e.target.checked;
     if (!targetTask.createdAt) targetTask.createdAt = new Date().toISOString();
     if (targetTask.completed && navigator.vibrate) {
-      const vs = JSON.parse(localStorage.getItem('flowly_view_settings') || '{}');
+      const vs = safeJSONParse(localStorage.getItem('flowly_view_settings'), {});
       if (vs.haptics !== false) navigator.vibrate(15);
     }
 
@@ -324,7 +324,7 @@ function createTaskElement(day, dateStr, period, task, index) {
       timeSpan.className = 'task-time';
       timeSpan.textContent = ' · ' + formatTaskTime(timeSource);
       timeSpan.style.cssText =
-        'font-size:11px;color:var(--text-tertiary);margin-left:6px;font-weight:normal;text-decoration:none;opacity:0.6;white-space:nowrap;';
+        'font-size:11px;color:var(--flowly-text-tertiary, var(--text-tertiary));margin-left:6px;font-weight:normal;text-decoration:none;opacity:0.6;white-space:nowrap;';
       label.appendChild(timeSpan);
     }
   }

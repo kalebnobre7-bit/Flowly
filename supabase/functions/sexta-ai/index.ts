@@ -61,8 +61,16 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, error: 'Usuario nao autenticado.' }, 401);
     }
 
-    const body = await req.json().catch(() => ({}));
-    const action = String(body?.action || 'chat').trim().toLowerCase() || 'chat';
+    let body: Record<string, unknown> = {};
+    try {
+      const parsed = await req.json();
+      if (parsed && typeof parsed === 'object') body = parsed as Record<string, unknown>;
+    } catch (_err) {
+      // Body inválido. GET / sem body cai aqui — segue como action default.
+    }
+    const action = String((body as { action?: unknown })?.action || 'chat')
+      .trim()
+      .toLowerCase() || 'chat';
     const supabaseAdmin = createSupabaseAdminClient();
 
     if (action === 'state') {

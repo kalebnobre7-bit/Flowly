@@ -36,7 +36,7 @@
       return {
         view: 'cards',
         sort: 'manual',
-        ...JSON.parse(localStorage.getItem(UI_KEY) || '{}')
+        ...safeJSONParse(localStorage.getItem(UI_KEY), {})
       };
     } catch {
       return { view: 'cards', sort: 'manual' };
@@ -56,7 +56,7 @@
       }
     } catch {}
     try {
-      const v1 = JSON.parse(localStorage.getItem(V1_KEY) || '[]');
+      const v1 = safeJSONParse(localStorage.getItem(V1_KEY), []);
       if (Array.isArray(v1) && v1.length) {
         const migrated = v1.map((g, i) => normalize({ ...g, order: i }));
         save(migrated);
