@@ -66,7 +66,7 @@ Todos os `css/views/` existem e carregam no `index.html`. Todos os 4 legacy file
 - `bento-theme.css` — tokens e overrides cobertos pelos módulos
 - `styles.css` — task system + today BEM + modal migrados para `_components.css` + `css/views/today.css`
 
-**Arquivos legacy ainda existem no disco** (não deletados ainda — podem ser deletados quando QA completo).
+**Arquivos legacy deletados do disco.** Git history preserva para rollback se necessário.
 
 ### Regra de migração (para cada legacy file restante)
 
@@ -89,17 +89,23 @@ Todos os `css/views/` existem e carregam no `index.html`. Todos os 4 legacy file
 
 ## Fase 4 — Bugs
 
-### P0 — já resolvidos
+### P0 — resolvidos
 
-- [x] SW versões descasadas (`ACTIVE_STATIC_CACHE` agora único)
-- [x] Race condition cross-tab (`crossTabRefreshTimer` com debounce 80ms)
-- [x] `allTasksData[dateStr][period]` — já protegido: `|| {}` no today.js:54, guards duplos em month.js:209-210
+- [x] SW versões descasadas
+- [x] Race condition cross-tab (debounce 80ms)
+- [x] `allTasksData[dateStr][period]` — guards no today.js + month.js
 
-### P1 — pendentes
+### P1 — resolvidos
 
-- [ ] `sync-runtime.js`: `ensureCurrentUserForSync()` falha silenciosamente (não notifica usuário)
-- [ ] `manifest.json` sem screenshots (`screenshots: []`)
-- [ ] Queries `?v=N` inconsistentes em `index.html` (mix de v1, v5, v15, v27)
+- [x] `sync-runtime.js`: `ensureCurrentUserForSync` agora exibe `setSyncStatus('error')` em falhas de sessão
+- [x] `manifest.json`: campo `screenshots[]` adicionado
+- [x] `?v=N` — não aplicável: index.html usa apenas módulos novos com versões consistentes
+
+### P2 — resolvidos (já estavam no código)
+
+- [x] `sendTestNotification()` — já tem fallback para `permission` e `unsupported`
+- [x] Sexta modo local — já exibe mensagem explicativa ao usuário
+- [x] manifest.json paths — todos consistentes (`logo_flowly.png`)
 
 ---
 
