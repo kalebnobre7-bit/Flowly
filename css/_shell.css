@@ -523,6 +523,28 @@ body.sidebar-pinned .app-sidebar .sidebar-nav-group.is-expanded .sidebar-nav-chi
 }
 
 /* ----------------------------------------------------------------
+   WEEK VIEW — full width, sem padding lateral do app-main
+   :has() suportado Chrome 105+, Safari 15.4+, Firefox 121+
+----------------------------------------------------------------- */
+.app-main:has(.week-grid) {
+    padding-inline: 0;
+    padding-top: 0;
+}
+
+/* #weekNav ganha seu próprio padding horizontal */
+#weekNav:not(.hidden) {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    margin-bottom: 0;
+}
+
+/* Garante que o weekNav dentro do app-main sem padding fique ok */
+#weekNav.flowly-page-header {
+    margin-bottom: 0;
+    padding-bottom: 14px;
+}
+
+/* ----------------------------------------------------------------
    CONTENT AREA
 ----------------------------------------------------------------- */
 #contentArea { width: 100%; }

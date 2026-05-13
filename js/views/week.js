@@ -7,7 +7,7 @@ window.toggleSmartWeek = function() {
 
 function renderWeek() {
   const grid = document.getElementById('weekGrid');
-  grid.className = '';
+  grid.className = 'week-grid';
   grid.style.cssText = '';
   grid.innerHTML = '';
 
@@ -64,15 +64,14 @@ function renderWeek() {
     if (isPast) col.classList.add('past-day');
     if (dateStr > todayStr) col.classList.add('future-day');
 
-    const header = document.createElement('h2');
+    const header = document.createElement('div');
     const dayNum = dateStr.split('-')[2].replace(/^0/, '');
+    const dayAbbr = day.substring(0, 3).toUpperCase();
 
-    // Transformando header numa "strip col" emulado, evitando títulos soltos de uma palavra.
-    header.className = `today-strip-col px-3 py-4 mb-2 border-b border-white/5`;
-    header.innerHTML = `
-      <span class="today-strip-label ${isToday ? 'text-accent-primary' : ''}">${day}</span>
-      <span class="today-strip-value ${isToday ? 'text-accent-primary' : ''}" style="font-size: 20px;">${dayNum}</span>
-    `;
+    header.className = 'day-col-header';
+    header.innerHTML =
+      '<span class="day-col-name">' + dayAbbr + '</span>' +
+      '<span class="day-col-num">' + dayNum + '</span>';
     col.appendChild(header);
 
     // Flatten all tasks

@@ -1,206 +1,215 @@
 /* =============================================================
    FLOWLY — WEEK VIEW
-   Consolidação de styles.css + bento-theme.css + flowly-design-system.css.
+   Grid de 7 dias, full-width. Zero Tailwind.
    Depende de: _tokens.css, _components.css
    ============================================================= */
 
-/* ---- WEEK GRID ---- */
-#weekGrid:not(.hidden) {
+/* ---- WEEK GRID (container principal) ---- */
+.week-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0;
     width: 100%;
-    max-width: var(--flowly-shell-max-wide);
-    margin: 0 auto;
+    min-height: calc(100vh - 120px);
+    min-height: calc(100dvh - 120px);
+}
+
+/* Smart week: 5 colunas */
+.week-grid.smart-week-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 /* ---- DAY COLUMN ---- */
 .day-column {
-    background: transparent;
-    border: 1px solid transparent;
-    border-right: 1px solid rgba(255, 255, 255, 0.035);
-    border-radius: 0;
-    min-height: calc(100vh - 180px);
-    padding: 0 12px;
-    min-width: 0;
-    transition: background 0.18s ease;
-    position: relative;
     display: flex;
     flex-direction: column;
-    box-shadow: none;
-}
-
-.day-column:last-child { border-right: none; }
-
-.day-column:hover {
-    background: rgba(255, 255, 255, 0.016);
-    transform: none;
-    box-shadow: none;
-}
-
-body.no-week-hover .day-column {
-    transition: none;
-    transform: none;
-    box-shadow: none;
-}
-
-body.no-week-hover .day-column:hover {
-    background: rgba(255, 255, 255, 0.015);
-    border-color: rgba(255, 255, 255, 0.06);
-}
-
-/* ---- DAY HEADER ---- */
-.day-column > h2 {
-    font-family: var(--flowly-font-main);
-    font-weight: 800;
-    font-size: 10px;
-    color: var(--flowly-text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    margin-bottom: 12px;
-    padding: 12px 0 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.day-column > h2.text-blue-400 {
-    color: rgb(var(--flowly-accent-primary-rgb));
-    text-shadow: 0 0 14px rgba(var(--flowly-accent-primary-rgb), 0.22);
-    font-weight: 800;
-}
-
-/* ---- TODAY ACTIVE ---- */
-.day-column.today-active {
-    background: linear-gradient(
-        180deg,
-        rgba(var(--flowly-accent-primary-rgb), 0.05) 0%,
-        rgba(var(--flowly-accent-primary-rgb), 0.01) 100%
-    );
-    border-top: 2px solid rgb(var(--flowly-accent-primary-rgb));
-    border-bottom: 1px solid rgba(var(--flowly-accent-primary-rgb), 0.18);
+    min-width: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.045);
     position: relative;
+    transition: background 140ms ease;
+}
+
+.day-column:last-child {
+    border-right: none;
+}
+
+/* Hover sutil na coluna */
+.day-column:hover {
+    background: rgba(255, 255, 255, 0.012);
+}
+
+body.no-week-hover .day-column,
+body.no-week-hover .day-column:hover {
+    transition: none;
+    background: transparent;
+}
+
+/* Hoje: destaque com borda no topo */
+.day-column.today-active {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.03);
+}
+
+.day-column.today-active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--flowly-accent-primary);
+    border-radius: 0 0 2px 2px;
+}
+
+/* Dias passados: ligeiramente mais escuros */
+.day-column.past-day {
+    opacity: 0.72;
+}
+
+/* ---- DAY HEADER (sticky, sem Tailwind) ---- */
+.day-col-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 14px 12px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    position: sticky;
+    top: 0;
+    background: var(--flowly-bg-body);
     z-index: 4;
+    flex-shrink: 0;
 }
 
-.day-column.today-active > h2 {
-    color: rgb(var(--flowly-accent-primary-rgb));
+.day-column.today-active .day-col-header {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.04);
 }
 
-/* ---- DRAG OVER ---- */
-.day-column.drag-over {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.05);
+.day-col-name {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.32);
+    line-height: 1;
 }
 
-/* ---- PERIOD / SECTION LABELS ---- */
+.day-col-num {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1;
+    font-family: var(--flowly-font-display);
+}
+
+.day-column.today-active .day-col-name {
+    color: var(--flowly-accent-primary);
+}
+
+.day-column.today-active .day-col-num {
+    color: var(--flowly-accent-primary);
+}
+
+.day-column.past-day .day-col-name,
+.day-column.past-day .day-col-num {
+    color: rgba(255, 255, 255, 0.28);
+}
+
+/* ---- PERIOD LABELS ---- */
 .period-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px 4px;
     font-size: 9px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--flowly-text-tertiary);
-    padding: 8px 0 4px;
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    color: rgba(255, 255, 255, 0.25);
+}
+
+/* ---- TASK ITEMS na semana ---- */
+.day-column .task-item {
+    padding: 5px 10px;
+    margin: 0 4px 1px;
+    border-radius: 5px;
+}
+
+.day-column .task-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.day-column .task-item .task-label {
+    font-size: 12.5px;
+    line-height: 1.4;
 }
 
 /* ---- DROP ZONE ---- */
 .drop-zone {
-    margin-top: auto;
-    height: 32px;
-    border-radius: 4px;
+    flex: 1;
+    min-height: 32px;
+    margin: 4px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--flowly-text-tertiary);
-    font-size: 18px;
-    font-weight: 300;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 16px;
     cursor: pointer;
-    transition: all 0.15s;
-    opacity: 0;
+    transition: background 120ms, color 120ms, border-color 120ms;
+    border: 1px dashed transparent;
 }
 
-.day-column:hover .drop-zone { opacity: 0.4; }
+.day-column:hover .drop-zone {
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
 .drop-zone:hover {
     background: rgba(255, 255, 255, 0.03);
-    color: var(--flowly-text-secondary);
-    opacity: 1;
+    color: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .drop-zone.active {
     background: rgba(var(--flowly-accent-primary-rgb), 0.06);
-    border: 1.5px dashed rgba(var(--flowly-accent-primary-rgb), 0.4);
-    opacity: 1;
-}
-
-/* ---- TASK ITEMS in week context ---- */
-.day-column:hover .task-item              { padding-left: 12px; padding-right: 12px; }
-.day-column:hover .task-item--project-mirror { padding-left: 10px; padding-right: 10px; }
-.day-column:hover .task-item--project-anchor { padding-left: 12px; padding-right: 12px; }
-
-/* ---- WEEK HEADER / NAV BAR ---- */
-.week-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
-}
-
-.week-nav-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px; height: 30px;
-    border-radius: var(--flowly-radius-sm);
-    border: 1px solid var(--flowly-border-muted);
-    background: transparent;
-    color: var(--flowly-text-secondary);
-    cursor: pointer;
-    transition: background var(--flowly-transition), color var(--flowly-transition);
-}
-.week-nav-btn:hover {
-    background: var(--flowly-bg-glass-strong);
-    color: var(--flowly-text-primary);
-}
-
-/* Smart week toggle */
-.smart-week-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: var(--flowly-radius-md);
-    border: 1px solid var(--flowly-border-muted);
-    background: transparent;
-    color: var(--flowly-text-secondary);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--flowly-transition);
-}
-.smart-week-btn:hover {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.08);
-    border-color: rgba(var(--flowly-accent-primary-rgb), 0.2);
-    color: rgb(var(--flowly-accent-primary-rgb));
-}
-.smart-week-btn.is-active {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.14);
     border-color: rgba(var(--flowly-accent-primary-rgb), 0.3);
-    color: rgb(var(--flowly-accent-primary-rgb));
+    color: var(--flowly-accent-primary);
+}
+
+/* ---- QUICK ADD STUB ---- */
+.quick-task-stub {
+    margin: 4px 8px 8px;
+}
+
+/* ---- IS-TODAY accent no active dot ---- */
+.is-today-accent {
+    color: var(--flowly-accent-primary);
+}
+
+/* ---- SMART WEEK TOGGLE ---- */
+.is-smart-week-active {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.14);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.28);
+    color: var(--flowly-accent-primary);
 }
 
 /* ---- RESPONSIVE ---- */
 @media (max-width: 768px) {
-    #weekGrid:not(.hidden) {
-        grid-template-columns: 1fr;
+    .week-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        min-height: auto;
     }
-    .day-column {
-        min-height: unset;
-        border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.04);
-        padding: 0 0 12px;
+
+    .day-col-num  { font-size: 18px; }
+    .day-col-name { font-size: 8px; }
+
+    .day-column .task-item .task-label { font-size: 11.5px; }
+}
+
+@media (max-width: 480px) {
+    .week-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .day-column:last-child { border-bottom: none; }
 }
