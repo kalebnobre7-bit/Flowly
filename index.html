@@ -57,19 +57,19 @@
     <script src="js/flowly-utils.js?v=1" defer></script>
     <script src="js/flowly-state.js?v=1" defer></script>
     <!-- 1. Tokens — fonte única de variáveis --flowly-* (carregado primeiro) -->
-    <link rel="stylesheet" href="css/_tokens.css?v=2">
+    <link rel="stylesheet" href="css/_tokens.css?v=3">
     <!-- legacy removido -->
     <!-- 3. Módulos novos — carregados DEPOIS do legado para ganhar especificidade -->
     <link rel="stylesheet" href="css/_reset.css?v=1">
-    <link rel="stylesheet" href="css/_shell.css?v=1">
+    <link rel="stylesheet" href="css/_shell.css?v=5">
     <link rel="stylesheet" href="css/_components.css?v=9">
     <link rel="stylesheet" href="css/_animations.css?v=1">
-    <link rel="stylesheet" href="css/_responsive.css?v=1">
+    <link rel="stylesheet" href="css/_responsive.css?v=2">
     <!-- CSS específicos de view -->
     <link rel="stylesheet" href="css/views/projects.css?v=2">
     <link rel="stylesheet" href="css/views/watch-later.css?v=2">
     <link rel="stylesheet" href="css/views/goals.css?v=2">
-    <link rel="stylesheet" href="css/views/today.css?v=1">
+    <link rel="stylesheet" href="css/views/today.css?v=3">
     <link rel="stylesheet" href="css/views/week.css?v=1">
     <link rel="stylesheet" href="css/views/analytics.css?v=1">
     <link rel="stylesheet" href="css/views/finance.css?v=1">
@@ -83,17 +83,19 @@
     <div class="app-shell">
         <aside id="appSidebar" class="app-sidebar hidden-mobile">
             <div class="sidebar-top">
-                <button id="sidebarToggle" class="sidebar-toggle utility-btn" type="button" aria-label="Recolher barra lateral">
-                    <i data-lucide="panel-left-close" class="lucide-md" aria-hidden="true"></i>
-                </button>
-                <div class="sidebar-brand">
-                    <div class="sidebar-brand-mark">
-                        <img src="lightning.svg" alt="Flowly">
+                <div class="sidebar-header-row">
+                    <div class="sidebar-brand">
+                        <div class="sidebar-brand-mark">
+                            <img src="lightning.svg" alt="Flowly">
+                        </div>
+                        <div class="sidebar-brand-copy">
+                            <strong>Flowly</strong>
+                            <span>Sistema operacional</span>
+                        </div>
                     </div>
-                    <div class="sidebar-brand-copy">
-                        <strong>Flowly</strong>
-                        <span>Sistema operacional</span>
-                    </div>
+                    <button id="sidebarToggle" class="sidebar-toggle utility-btn" type="button" aria-label="Fixar barra lateral">
+                        <i data-lucide="pin" class="lucide-md" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
 

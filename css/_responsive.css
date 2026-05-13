@@ -17,6 +17,12 @@
 @media (min-width: 1024px) {
     .app-main {
         padding: var(--flowly-space-7) var(--flowly-space-8);
+        /* sidebar fixed de 56px — padding-left compensa */
+        padding-left: calc(var(--flowly-sidebar-icon-width) + var(--flowly-space-8));
+    }
+
+    body.sidebar-pinned .app-main {
+        padding-left: calc(var(--flowly-sidebar-width) + var(--flowly-space-8));
     }
 
     .flowly-page-header__title h1 {
@@ -27,19 +33,15 @@
 /* --- Desktop wide (acima de 1400px) --- */
 @media (min-width: 1400px) {
     .app-main {
-        max-width: var(--flowly-shell-max-wide);
+        max-width: calc(var(--flowly-shell-max-wide) + var(--flowly-sidebar-icon-width));
     }
 }
 
 /* --- Tablet (até 1024px) --- */
 @media (max-width: 1024px) {
-    .app-shell {
-        grid-template-columns: var(--flowly-sidebar-width-collapsed) minmax(0, 1fr);
-    }
-
-    body:not(.sidebar-expanded-mobile) .sidebar-brand-copy,
-    body:not(.sidebar-expanded-mobile) .sidebar-nav-btn span {
-        display: none;
+    /* sidebar fixed: app-shell é só block agora */
+    .app-main {
+        padding-left: calc(var(--flowly-sidebar-icon-width) + var(--flowly-space-4));
     }
 }
 

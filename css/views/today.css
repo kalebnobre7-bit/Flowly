@@ -435,6 +435,108 @@ body.dragging-active .today-end-dropzone { height: 16px; min-height: 16px; }
 
 .today-quick-add i { width: 14px; height: 14px; }
 
+/* ---- INSIGHT CARDS (sidebar direita do Today) ---- */
+.today-insight-card {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.today-insight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.today-insight-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.today-insight-list > div:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.today-insight-list span {
+  font-size: 11px;
+  color: rgba(255,255,255,0.48);
+  font-weight: 500;
+}
+
+.today-insight-list strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.88);
+  font-family: var(--flowly-font-display);
+  letter-spacing: -0.02em;
+}
+
+/* ---- WEEK CHART (vertical bars, sidebar direita do Today) ---- */
+.today-week-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 56px;
+}
+
+.today-week-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.today-week-bar-col.is-today .today-week-bar-fill {
+  filter: brightness(1.15);
+}
+
+.today-week-bar-col.is-today span {
+  color: var(--flowly-accent-primary);
+  font-weight: 700;
+}
+
+.today-week-bar-shell {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(255,255,255,0.04);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.today-week-bar-fill {
+  width: 100%;
+  border-radius: 0;
+  min-height: 3px;
+  transition: height 0.4s var(--flowly-ease-out);
+}
+
+.today-week-bar-col span {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.36);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.today-insight-footnote {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
 /* ---- RESPONSIVE ---- */
 @media (max-width: 880px) {
   .today-hero {

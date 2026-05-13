@@ -1,135 +1,214 @@
 /* =============================================================
    FLOWLY — APP SHELL
-   Sidebar desktop, mobile bottom nav, app-main, grid principal.
+   Sidebar Notion-style: ícone por default, expande no hover,
+   pino (clique) para travar aberta.
    Depende de: _tokens.css, _reset.css
    ============================================================= */
 
-/* --- Grid principal do app --- */
+/* ----------------------------------------------------------------
+   GRID PRINCIPAL
+   Sidebar é position: fixed — não ocupa espaço no grid.
+   App-main tem padding-left que corresponde à largura da sidebar.
+   On pin: padding-left aumenta para a largura completa.
+----------------------------------------------------------------- */
 .app-shell {
-    display: grid;
-    grid-template-columns: var(--flowly-sidebar-width) minmax(0, 1fr);
+    display: block;
     min-height: 100vh;
     min-height: 100dvh;
 }
 
-body.sidebar-collapsed .app-shell {
-    grid-template-columns: var(--flowly-sidebar-width-collapsed) minmax(0, 1fr);
-}
-
-/* --- Main content area --- */
+/* ----------------------------------------------------------------
+   APP MAIN
+   Padding-left = icon width por default.
+   Quando pinned: transita para sidebar-width.
+----------------------------------------------------------------- */
 .app-main {
     min-width: 0;
-    padding: var(--flowly-space-6) clamp(var(--flowly-space-3), 2vw, var(--flowly-space-8));
-    max-width: var(--flowly-shell-max);
+    padding: var(--flowly-space-6) clamp(var(--flowly-space-4), 2.5vw, var(--flowly-space-8));
+    padding-left: calc(var(--flowly-sidebar-icon-width) + clamp(var(--flowly-space-4), 2.5vw, var(--flowly-space-8)));
+    max-width: calc(var(--flowly-shell-max) + var(--flowly-sidebar-icon-width));
     width: 100%;
-    margin: 0 auto;
+    transition: padding-left 0.24s var(--flowly-ease-out);
 }
 
-/* --- Sidebar desktop --- */
+body.sidebar-pinned .app-main {
+    padding-left: calc(var(--flowly-sidebar-width) + clamp(var(--flowly-space-4), 2.5vw, var(--flowly-space-8)));
+}
+
+/* ----------------------------------------------------------------
+   SIDEBAR DESKTOP
+   - Padrão: 56px (só ícones)
+   - Hover: expande para 216px e sobrepõe o conteúdo (overlay)
+   - Pinned (body.sidebar-pinned): expande e empurra o layout
+----------------------------------------------------------------- */
 .app-sidebar {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--flowly-space-5);
     height: 100vh;
     height: 100dvh;
-    padding: var(--flowly-space-6) var(--flowly-space-3) var(--flowly-space-4);
-    background: var(--flowly-bg-sidebar);
+    width: var(--flowly-sidebar-icon-width);
+    overflow: hidden;
+    background: rgba(10, 11, 15, 0.98);
     border-right: 1px solid var(--flowly-border-muted);
     backdrop-filter: blur(var(--flowly-blur-panel));
     -webkit-backdrop-filter: blur(var(--flowly-blur-panel));
-    z-index: var(--flowly-z-sticky);
+    z-index: var(--flowly-z-sidebar);
+    transition: width 0.22s var(--flowly-ease-out),
+                box-shadow 0.22s var(--flowly-ease-out),
+                border-color 0.22s;
 }
 
-body.sidebar-collapsed .app-sidebar {
-    padding-inline: var(--flowly-space-2);
+/* Hover: expande com sombra, conteúdo não se move */
+.app-sidebar:hover {
+    width: var(--flowly-sidebar-width);
+    background: rgba(10, 11, 15, 1);
+    box-shadow: 8px 0 40px rgba(0, 0, 0, 0.55), 1px 0 0 rgba(255,255,255,0.06);
+    border-right-color: var(--flowly-border-subtle);
 }
 
+/* Pinned: expande sem sombra (layout já ajustou via padding-left) */
+body.sidebar-pinned .app-sidebar {
+    width: var(--flowly-sidebar-width);
+    box-shadow: none;
+}
+
+/* ----------------------------------------------------------------
+   SIDEBAR TOPO: brand + toggle
+----------------------------------------------------------------- */
 .sidebar-top {
     display: flex;
     flex-direction: column;
-    gap: var(--flowly-space-5);
-    margin-bottom: var(--flowly-space-2);
+    gap: var(--flowly-space-1);
+    padding: var(--flowly-space-4) var(--flowly-space-2) var(--flowly-space-2);
+    flex-shrink: 0;
 }
 
-.sidebar-toggle {
-    align-self: flex-end;
+.sidebar-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: var(--flowly-sidebar-width);
+    padding: 0 var(--flowly-space-1);
+    min-height: 36px;
 }
 
+/* Brand */
 .sidebar-brand {
     display: flex;
     align-items: center;
     gap: var(--flowly-space-3);
+    overflow: hidden;
+    flex: 1;
+    min-width: 0;
+    padding: var(--flowly-space-1);
+    border-radius: var(--flowly-radius-md);
+    transition: background var(--flowly-duration-fast);
+}
+
+.sidebar-brand:hover {
+    background: var(--flowly-bg-glass);
 }
 
 .sidebar-brand-mark {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: grid;
     place-items: center;
     border-radius: var(--flowly-radius-sm);
-    background: rgba(var(--flowly-accent-primary-rgb), 0.1);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.14);
+    border: 1px solid rgba(var(--flowly-accent-primary-rgb), 0.22);
     flex-shrink: 0;
 }
 
+.sidebar-brand-mark svg,
 .sidebar-brand-mark img {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
 }
 
 .sidebar-brand-copy {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
     overflow: hidden;
-    white-space: nowrap;
+    /* Transição de opacidade para entrada suave */
+    opacity: 0;
+    max-width: 0;
+    transition: opacity 0.14s ease 0.06s,
+                max-width 0.22s var(--flowly-ease-out);
+}
+
+.app-sidebar:hover .sidebar-brand-copy,
+body.sidebar-pinned .app-sidebar .sidebar-brand-copy {
+    opacity: 1;
+    max-width: 160px;
 }
 
 .sidebar-brand-copy strong {
-    font-size: var(--flowly-text-base);
-    font-weight: var(--flowly-weight-semibold);
-    letter-spacing: var(--flowly-letter-snug);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     color: var(--flowly-text-primary);
+    white-space: nowrap;
 }
 
 .sidebar-brand-copy span {
-    font-size: var(--flowly-text-xs);
+    font-size: 9px;
     color: var(--flowly-text-tertiary);
     font-family: var(--flowly-font-mono);
-    letter-spacing: var(--flowly-letter-wide);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
-body.sidebar-collapsed .sidebar-brand-copy {
-    display: none;
+/* Toggle (pin) button — só visível quando sidebar expandida */
+.sidebar-toggle {
+    flex-shrink: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.14s ease 0.06s;
 }
 
-/* --- Sidebar navigation --- */
+.app-sidebar:hover .sidebar-toggle,
+body.sidebar-pinned .app-sidebar .sidebar-toggle {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ----------------------------------------------------------------
+   SIDEBAR NAVEGAÇÃO
+----------------------------------------------------------------- */
 .sidebar-nav {
     display: flex;
     flex-direction: column;
-    gap: var(--flowly-space-1);
+    gap: 2px;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: var(--flowly-space-2) 0;
+    overflow-x: hidden;
+    padding: var(--flowly-space-2) var(--flowly-space-2);
+    scrollbar-width: none;
 }
+
+.sidebar-nav::-webkit-scrollbar { display: none; }
 
 .sidebar-nav-btn {
     display: flex;
     align-items: center;
     gap: var(--flowly-space-3);
-    padding: var(--flowly-space-3) var(--flowly-space-3);
+    padding: 9px var(--flowly-space-2);
     border-radius: var(--flowly-radius-md);
     color: var(--flowly-text-secondary);
-    font-size: var(--flowly-text-sm);
-    font-weight: var(--flowly-weight-medium);
-    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
-                color var(--flowly-duration-fast) var(--flowly-ease-out);
-    min-height: 40px;
-    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 120ms ease, color 120ms ease;
+    min-height: 36px;
     width: 100%;
+    white-space: nowrap;
+    position: relative;
 }
 
 .sidebar-nav-btn:hover {
@@ -138,54 +217,83 @@ body.sidebar-collapsed .sidebar-brand-copy {
 }
 
 .sidebar-nav-btn.active {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.12);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.1);
     color: var(--flowly-text-primary);
-    font-weight: var(--flowly-weight-semibold);
+    font-weight: 600;
+}
+
+/* Dot indicador no active quando icon-only */
+.sidebar-nav-btn.active::before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 16px;
+    border-radius: 0 2px 2px 0;
+    background: var(--flowly-accent-primary);
+    opacity: 0;
+    transition: opacity 0.22s;
+}
+
+/* Mostra dot só quando icon-only (não expandida) */
+body:not(.sidebar-pinned) .app-sidebar:not(:hover) .sidebar-nav-btn.active::before {
+    opacity: 1;
 }
 
 .sidebar-nav-btn i {
     flex-shrink: 0;
+    width: 16px;
+    height: 16px;
 }
 
 .sidebar-nav-btn span {
     flex: 1;
     overflow: hidden;
-    white-space: nowrap;
     text-overflow: ellipsis;
+    /* Entrada suave */
+    opacity: 0;
+    max-width: 0;
+    transition: opacity 0.14s ease 0.04s,
+                max-width 0.22s var(--flowly-ease-out);
 }
 
-body.sidebar-collapsed .sidebar-nav-btn {
-    justify-content: center;
-    padding: var(--flowly-space-3);
-}
-
-body.sidebar-collapsed .sidebar-nav-btn span {
-    display: none;
+.app-sidebar:hover .sidebar-nav-btn span,
+body.sidebar-pinned .app-sidebar .sidebar-nav-btn span {
+    opacity: 1;
+    max-width: 180px;
 }
 
 .sidebar-nav-btn--ghost {
-    opacity: 0.72;
+    opacity: 0.6;
 }
 
+/* ----------------------------------------------------------------
+   SIDEBAR FOOTER
+----------------------------------------------------------------- */
 .sidebar-footer {
     display: flex;
     flex-direction: column;
-    gap: var(--flowly-space-2);
-    padding-top: var(--flowly-space-3);
+    gap: var(--flowly-space-1);
+    padding: var(--flowly-space-2) var(--flowly-space-2) var(--flowly-space-4);
     border-top: 1px solid var(--flowly-border-muted);
+    flex-shrink: 0;
 }
 
-/* --- Utility button (sidebar toggle, week nav arrows, etc.) --- */
+/* ----------------------------------------------------------------
+   UTILITY BUTTON (toggle sidebar, semana nav, etc.)
+----------------------------------------------------------------- */
 .utility-btn {
     display: inline-grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: var(--flowly-radius-md);
     background: transparent;
-    color: var(--flowly-text-secondary);
-    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
-                color var(--flowly-duration-fast) var(--flowly-ease-out);
+    color: var(--flowly-text-tertiary);
+    transition: background 120ms ease, color 120ms ease;
+    flex-shrink: 0;
 }
 
 .utility-btn:hover {
@@ -193,22 +301,26 @@ body.sidebar-collapsed .sidebar-nav-btn span {
     color: var(--flowly-text-primary);
 }
 
-/* --- Mobile bottom navigation --- */
-.hidden-mobile {
-    display: block;
-}
+/* ----------------------------------------------------------------
+   MOBILE BOTTOM NAV
+----------------------------------------------------------------- */
+.hidden-mobile { display: block; }
 
 @media (max-width: 768px) {
-    .hidden-mobile {
-        display: none;
-    }
+    .hidden-mobile { display: none; }
 
     .app-shell {
         display: block;
+        transition: none;
     }
 
     .app-main {
-        padding: var(--flowly-space-4) var(--flowly-space-3) calc(var(--flowly-mobile-nav-height) + var(--flowly-space-7));
+        padding: var(--flowly-space-4) var(--flowly-space-3)
+                 calc(var(--flowly-mobile-nav-height) + var(--flowly-space-7));
+    }
+
+    .app-sidebar {
+        display: none;
     }
 }
 
@@ -228,12 +340,14 @@ body.sidebar-collapsed .sidebar-nav-btn span {
     color: var(--flowly-text-primary);
 }
 
-/* --- Content area (views) --- */
-#contentArea {
-    width: 100%;
-}
+/* ----------------------------------------------------------------
+   CONTENT AREA
+----------------------------------------------------------------- */
+#contentArea { width: 100%; }
 
-/* --- Today dashboard strip (navegação de semana/mês) --- */
+/* ----------------------------------------------------------------
+   TODAY STRIP
+----------------------------------------------------------------- */
 .today-dashboard-strip {
     display: flex;
     align-items: center;

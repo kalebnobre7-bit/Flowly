@@ -270,25 +270,26 @@
 
   function bindShellUi() {
     const sidebarToggle = document.getElementById('sidebarToggle');
-    const collapsed = localStorage.getItem('flowly_sidebar_collapsed') === 'true';
-    if (collapsed) document.body.classList.add('sidebar-collapsed');
+    const pinned = localStorage.getItem('flowly_sidebar_pinned') === 'true';
+    if (pinned) document.body.classList.add('sidebar-pinned');
+
+    function updateToggleIcon() {
+      const icon = sidebarToggle && sidebarToggle.querySelector('i');
+      if (!icon) return;
+      const isPinned = document.body.classList.contains('sidebar-pinned');
+      icon.setAttribute('data-lucide', isPinned ? 'pin-off' : 'pin');
+      sidebarToggle.setAttribute('aria-label', isPinned ? 'Desafixar barra lateral' : 'Fixar barra lateral');
+      if (window.lucide) lucide.createIcons();
+    }
 
     if (sidebarToggle) {
       sidebarToggle.onclick = function () {
-        const next = !document.body.classList.contains('sidebar-collapsed');
-        document.body.classList.toggle('sidebar-collapsed', next);
-        localStorage.setItem('flowly_sidebar_collapsed', String(next));
-        const icon = sidebarToggle.querySelector('i');
-        if (icon) {
-          icon.setAttribute('data-lucide', next ? 'panel-left-open' : 'panel-left-close');
-        }
-        if (window.lucide) lucide.createIcons();
+        const next = !document.body.classList.contains('sidebar-pinned');
+        document.body.classList.toggle('sidebar-pinned', next);
+        localStorage.setItem('flowly_sidebar_pinned', String(next));
+        updateToggleIcon();
       };
-
-      const icon = sidebarToggle.querySelector('i');
-      if (icon) {
-        icon.setAttribute('data-lucide', collapsed ? 'panel-left-open' : 'panel-left-close');
-      }
+      updateToggleIcon();
     }
 
     document.querySelectorAll('.priority-btn').forEach((btn) => {
