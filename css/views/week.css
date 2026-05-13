@@ -7,16 +7,21 @@
 /* ---- WEEK GRID (container principal) ---- */
 .week-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0;
+    grid-template-columns: repeat(7, minmax(178px, 1fr));
+    gap: 10px;
     width: 100%;
-    min-height: calc(100vh - 120px);
-    min-height: calc(100dvh - 120px);
+    min-height: calc(100vh - 132px);
+    min-height: calc(100dvh - 132px);
+    padding: 16px 24px 28px;
+    overflow-x: auto;
+    align-items: stretch;
+    scroll-snap-type: x proximity;
+    scrollbar-gutter: stable;
 }
 
 /* Smart week: 5 colunas */
 .week-grid.smart-week-5 {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(204px, 1fr));
 }
 
 /* ---- DAY COLUMN ---- */
@@ -24,18 +29,20 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    border-right: 1px solid rgba(255, 255, 255, 0.045);
+    min-height: 420px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.018);
+    overflow: hidden;
     position: relative;
-    transition: background 140ms ease;
-}
-
-.day-column:last-child {
-    border-right: none;
+    scroll-snap-align: start;
+    transition: background 140ms ease, border-color 140ms ease;
 }
 
 /* Hover sutil na coluna */
 .day-column:hover {
-    background: rgba(255, 255, 255, 0.012);
+    background: rgba(255, 255, 255, 0.026);
+    border-color: rgba(255, 255, 255, 0.085);
 }
 
 body.no-week-hover .day-column,
@@ -46,7 +53,8 @@ body.no-week-hover .day-column:hover {
 
 /* Hoje: destaque com borda no topo */
 .day-column.today-active {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.03);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.045);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.2);
 }
 
 .day-column.today-active::before {
@@ -66,14 +74,13 @@ body.no-week-hover .day-column:hover {
 /* ---- DAY HEADER (sticky, sem Tailwind) ---- */
 .day-col-header {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    padding: 14px 12px 10px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 14px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    position: sticky;
-    top: 0;
-    background: var(--flowly-bg-body);
+    position: static;
+    background: rgba(8, 9, 14, 0.42);
     z-index: 4;
     flex-shrink: 0;
 }
@@ -83,7 +90,7 @@ body.no-week-hover .day-column:hover {
 }
 
 .day-col-name {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -92,7 +99,7 @@ body.no-week-hover .day-column:hover {
 }
 
 .day-col-num {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
     letter-spacing: -0.04em;
     color: rgba(255, 255, 255, 0.65);
@@ -128,17 +135,13 @@ body.no-week-hover .day-column:hover {
 
 /* ---- TASK ITEMS na semana ---- */
 .day-column .task-item {
-    padding: 5px 10px;
-    margin: 0 4px 1px;
-    border-radius: 5px;
+    padding: 7px 10px;
+    margin: 4px 8px 2px;
+    border-radius: 8px;
 }
 
 .day-column .task-item:hover {
     background: rgba(255, 255, 255, 0.04);
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-left: 4px;
-    margin-right: 4px;
 }
 
 .day-column .task-item .task-label {
@@ -148,8 +151,7 @@ body.no-week-hover .day-column:hover {
 
 /* ---- DROP ZONE ---- */
 .drop-zone {
-    flex: 1;
-    min-height: 32px;
+    min-height: 8px;
     margin: 4px;
     border-radius: 6px;
     display: flex;
@@ -160,6 +162,28 @@ body.no-week-hover .day-column:hover {
     cursor: pointer;
     transition: background 120ms, color 120ms, border-color 120ms;
     border: 1px dashed transparent;
+}
+
+.task-drop-zone.week-end-dropzone {
+    flex: 1 1 auto;
+    min-height: 92px;
+    margin: 4px 8px 10px;
+    border: 1px dashed transparent;
+    border-radius: 12px;
+    background: transparent;
+    transition: background 140ms ease, border-color 140ms ease, min-height 140ms ease;
+}
+
+.day-column:hover .task-drop-zone.week-end-dropzone {
+    border-color: rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.012);
+}
+
+.task-drop-zone.week-end-dropzone.show,
+.task-drop-zone.week-end-dropzone:hover {
+    min-height: 112px;
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.32);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.055);
 }
 
 .day-column:hover .drop-zone {
@@ -180,7 +204,8 @@ body.no-week-hover .day-column:hover {
 
 /* ---- QUICK ADD STUB ---- */
 .quick-task-stub {
-    margin: 4px 8px 8px;
+    margin: 8px;
+    flex-shrink: 0;
 }
 
 /* ---- IS-TODAY accent no active dot ---- */
@@ -198,8 +223,14 @@ body.no-week-hover .day-column:hover {
 /* ---- RESPONSIVE ---- */
 @media (max-width: 768px) {
     .week-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        min-height: auto;
+        grid-template-columns: repeat(7, minmax(172px, 76vw));
+        min-height: calc(100dvh - 150px);
+        padding: 12px 12px 24px;
+        gap: 8px;
+    }
+
+    .week-grid.smart-week-5 {
+        grid-template-columns: repeat(5, minmax(172px, 76vw));
     }
 
     .day-col-num  { font-size: 18px; }
@@ -210,6 +241,10 @@ body.no-week-hover .day-column:hover {
 
 @media (max-width: 480px) {
     .week-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(7, minmax(168px, 82vw));
+    }
+
+    .week-grid.smart-week-5 {
+        grid-template-columns: repeat(5, minmax(168px, 82vw));
     }
 }

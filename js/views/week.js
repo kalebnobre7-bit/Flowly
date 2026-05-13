@@ -12,6 +12,7 @@ function renderWeek() {
   grid.innerHTML = '';
 
   const isSmartWeek = localStorage.getItem('flowly_smart_week') === 'true';
+  grid.classList.toggle('smart-week-5', isSmartWeek);
 
   // Atualizar label da semana e botão de toggle
   const smartBtn = document.getElementById('btnSmartWeekToggle');
@@ -131,8 +132,8 @@ function renderWeek() {
 
     // ===== DROP ZONE NO FINAL PADRONIZADA =====
     // Usa createDropZone com index = allTasks.length para inserir no fim
-    const endDropZone = createDropZone(day.name, dateStr, 'Tarefas', allTasks.length);
-    endDropZone.classList.add('flex-grow', 'min-h-[40px]'); // Estilo para ocupar espaço
+    const endDropZone = createDropZone(day, dateStr, 'Tarefas', allTasks.length);
+    endDropZone.classList.add('week-end-dropzone');
     endDropZone.innerText = '';
 
     // Atalho: clique na zona final abre input de nova tarefa
@@ -154,22 +155,7 @@ function renderWeek() {
 
     grid.appendChild(col);
   });
-
-  // --- Dynamic Column Hover Resizing ---
-  const columns = grid.querySelectorAll('.day-column');
-  grid.style.gridTemplateColumns = `repeat(${columns.length}, 1fr)`;
-  columns.forEach((col, index) => {
-    col.addEventListener('mouseenter', () => {
-      // Use 0.9fr for others, 1.6fr for hovered
-      const tmpl = Array(columns.length).fill('0.9fr');
-      tmpl[index] = '1.6fr';
-      grid.style.gridTemplateColumns = tmpl.join(' ');
-    });
-
-    col.addEventListener('mouseleave', () => {
-      grid.style.gridTemplateColumns = `repeat(${columns.length}, 1fr)`;
-    });
-  });
+  if (window.lucide) lucide.createIcons();
 }
 
 // Função de Ordenação Unificada (Regra: Rotina -> Concluídas -> Pendentes)
