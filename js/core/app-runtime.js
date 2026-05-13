@@ -10,6 +10,11 @@ function initFlowlyAppRuntime() {
   renderSyncStatus();
   initAuthRuntime();
 
+  // Popula sub-navegação do sidebar com dados reais
+  if (typeof populateSidebarSubNav === 'function') {
+    populateSidebarSubNav();
+  }
+
   window.addEventListener('online', () => {
     setSyncStatus('syncing', 'Conexao restabelecida. Sincronizando...');
     scheduleUnsyncedTasksSync(300);

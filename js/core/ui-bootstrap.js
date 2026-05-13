@@ -292,6 +292,32 @@
       updateToggleIcon();
     }
 
+    // --- Sub-nav toggles (Notion-style) ---
+    document.querySelectorAll('.sidebar-nav-toggle').forEach(function (toggle) {
+      toggle.onclick = function (e) {
+        e.stopPropagation();
+        const groupId = toggle.dataset.group;
+        const group = groupId ? document.getElementById(groupId) : null;
+        if (!group) return;
+        const wasExpanded = group.classList.contains('is-expanded');
+        group.classList.toggle('is-expanded', !wasExpanded);
+        // persiste estado por grupo
+        try {
+          const key = 'flowly_sidebar_group_' + groupId;
+          localStorage.setItem(key, String(!wasExpanded));
+        } catch (_) {}
+        if (window.lucide) lucide.createIcons();
+      };
+    });
+
+    // Restaura estado expandido dos grupos
+    document.querySelectorAll('.sidebar-nav-group[id]').forEach(function (group) {
+      const key = 'flowly_sidebar_group_' + group.id;
+      if (localStorage.getItem(key) === 'true') {
+        group.classList.add('is-expanded');
+      }
+    });
+
     document.querySelectorAll('.priority-btn').forEach((btn) => {
       btn.onclick = function () {
         document.querySelectorAll('.priority-btn').forEach((item) => item.classList.remove('active'));
@@ -338,6 +364,69 @@
       }
     });
   }
+
+  // --- Popula sub-itens do sidebar com dados reais ---
+  function populateSidebarSubNav() {
+    // Projetos
+    (function () {
+      const inner = document.querySelector('#subProjects .sidebar-nav-children__inner');
+      const toggle = document.querySelector('[data-group="navGroupProjects"]');
+      if (!inner) return;
+      const projects =
+        typeof projectsState !== 'undefined' && projectsState && Array.isArray(projectsState.projects)
+          ? projectsState.projects.filter(function (p) { return p && !p.isDraft && p.status !== 'draft'; })
+          : [];
+      if (projects.length === 0) {
+        if (toggle) toggle.style.display = 'none';
+        return;
+      }
+      if (toggle) toggle.style.display = '';
+      inner.innerHTML = projects.slice(0, 10).map(function (p) {
+        const name = String(p.name || 'Projeto sem nome');
+        const safe = name.replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+        const tasks = typeof p.taskCount === 'number' ? p.taskCount : '';
+        return '<button class="sidebar-nav-sub" data-flowly-view="projects" data-project-id="' +
+          encodeURIComponent(p.id || '') + '" title="' + safe + '">' +
+          '<span style="overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1">' + safe + '</span>' +
+          (tasks ? '<span class="sidebar-nav-sub__badge">' + tasks + '</span>' : '') +
+          '</button>';
+      }).join('');
+    })();
+
+    // Metas (goals)
+    (function () {
+      const inner = document.querySelector('#subGoals .sidebar-nav-children__inner');
+      const toggle = document.querySelector('[data-group="navGroupGoals"]');
+      if (!inner) return;
+      // goals são armazenadas em allGoalsState ou similar — tenta ler do localStorage
+      let goals = [];
+      try {
+        const raw = localStorage.getItem('flowlyGoalsState');
+        const parsed = raw ? JSON.parse(raw) : null;
+        goals = (parsed && Array.isArray(parsed.goals)) ? parsed.goals : [];
+      } catch (_) {}
+      if (goals.length === 0) {
+        if (toggle) toggle.style.display = 'none';
+        return;
+      }
+      if (toggle) toggle.style.display = '';
+      inner.innerHTML = goals.slice(0, 8).map(function (g) {
+        const name = String(g.title || g.name || 'Meta');
+        const safe = name.replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+        return '<button class="sidebar-nav-sub" data-flowly-view="goals" title="' + safe + '">' +
+          '<span style="overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1">' + safe + '</span>' +
+          '</button>';
+      }).join('');
+    })();
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  window.populateSidebarSubNav = populateSidebarSubNav;
 
   window.setView = setView;
   window.renderView = renderView;

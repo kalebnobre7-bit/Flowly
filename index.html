@@ -61,7 +61,7 @@
     <!-- legacy removido -->
     <!-- 3. Módulos novos — carregados DEPOIS do legado para ganhar especificidade -->
     <link rel="stylesheet" href="css/_reset.css?v=1">
-    <link rel="stylesheet" href="css/_shell.css?v=7">
+    <link rel="stylesheet" href="css/_shell.css?v=8">
     <link rel="stylesheet" href="css/_components.css?v=10">
     <link rel="stylesheet" href="css/_animations.css?v=1">
     <link rel="stylesheet" href="css/_responsive.css?v=3">
@@ -90,7 +90,6 @@
                         </div>
                         <div class="sidebar-brand-copy">
                             <strong>Flowly</strong>
-                            <span>Sistema operacional</span>
                         </div>
                     </div>
                     <button id="sidebarToggle" class="sidebar-toggle utility-btn" type="button" aria-label="Fixar barra lateral">
@@ -100,6 +99,7 @@
             </div>
 
             <nav class="sidebar-nav">
+                <!-- Itens simples -->
                 <button id="btnToday" class="sidebar-nav-btn active" data-flowly-view="today">
                     <i data-lucide="flame" class="lucide-md" aria-hidden="true"></i>
                     <span>Hoje</span>
@@ -120,14 +120,35 @@
                     <i data-lucide="wallet-minimal" class="lucide-md" aria-hidden="true"></i>
                     <span>Finanças</span>
                 </button>
-                <button id="btnProjects" class="sidebar-nav-btn" data-flowly-view="projects">
-                    <i data-lucide="briefcase" class="lucide-md" aria-hidden="true"></i>
-                    <span>Projetos</span>
-                </button>
-                <button id="btnGoals" class="sidebar-nav-btn" data-flowly-view="goals">
-                    <i data-lucide="target" class="lucide-md" aria-hidden="true"></i>
-                    <span>Metas</span>
-                </button>
+
+                <!-- Projetos com sub-páginas -->
+                <div class="sidebar-nav-group" id="navGroupProjects">
+                    <div class="sidebar-nav-item">
+                        <button id="btnProjects" class="sidebar-nav-btn" data-flowly-view="projects">
+                            <i data-lucide="briefcase" class="lucide-md" aria-hidden="true"></i>
+                            <span>Projetos</span>
+                        </button>
+                        <button class="sidebar-nav-toggle" data-group="navGroupProjects" aria-label="Expandir Projetos" tabindex="-1">
+                            <i data-lucide="chevron-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <ul class="sidebar-nav-children" id="subProjects"><li class="sidebar-nav-children__inner"></li></ul>
+                </div>
+
+                <!-- Metas com sub-páginas -->
+                <div class="sidebar-nav-group" id="navGroupGoals">
+                    <div class="sidebar-nav-item">
+                        <button id="btnGoals" class="sidebar-nav-btn" data-flowly-view="goals">
+                            <i data-lucide="target" class="lucide-md" aria-hidden="true"></i>
+                            <span>Metas</span>
+                        </button>
+                        <button class="sidebar-nav-toggle" data-group="navGroupGoals" aria-label="Expandir Metas" tabindex="-1">
+                            <i data-lucide="chevron-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <ul class="sidebar-nav-children" id="subGoals"><li class="sidebar-nav-children__inner"></li></ul>
+                </div>
+
                 <button id="btnWatch" class="sidebar-nav-btn" data-flowly-view="watch">
                     <i data-lucide="play-circle" class="lucide-md" aria-hidden="true"></i>
                     <span>Assistir</span>
