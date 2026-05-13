@@ -198,14 +198,16 @@ body.sidebar-pinned .app-sidebar .sidebar-toggle {
 .sidebar-nav-btn {
     display: flex;
     align-items: center;
-    gap: var(--flowly-space-3);
-    padding: 9px var(--flowly-space-2);
+    /* Icon-only default: centralizado na sidebar de 56px */
+    justify-content: center;
+    gap: 0;
+    padding: 8px 6px;
     border-radius: var(--flowly-radius-md);
     color: var(--flowly-text-secondary);
     font-size: 13px;
     font-weight: 500;
     transition: background 120ms ease, color 120ms ease;
-    min-height: 36px;
+    min-height: 38px;
     width: 100%;
     white-space: nowrap;
     position: relative;
@@ -244,8 +246,8 @@ body:not(.sidebar-pinned) .app-sidebar:not(:hover) .sidebar-nav-btn.active::befo
 
 .sidebar-nav-btn i {
     flex-shrink: 0;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
 }
 
 .sidebar-nav-btn span {
@@ -257,6 +259,14 @@ body:not(.sidebar-pinned) .app-sidebar:not(:hover) .sidebar-nav-btn.active::befo
     max-width: 0;
     transition: opacity 0.14s ease 0.04s,
                 max-width 0.22s var(--flowly-ease-out);
+}
+
+/* Expanded: alinha à esquerda com gap e padding */
+.app-sidebar:hover .sidebar-nav-btn,
+body.sidebar-pinned .app-sidebar .sidebar-nav-btn {
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
 }
 
 .app-sidebar:hover .sidebar-nav-btn span,

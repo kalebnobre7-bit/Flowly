@@ -8,13 +8,12 @@
 #weekGrid.today-container,
 #todayView.today-container {
   width: 100%;
-  max-width: 1220px;
+  max-width: 1160px;
   margin: 0 auto;
-  padding: 28px 22px 120px;
+  padding: 24px 20px 48px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  min-height: calc(100vh - 48px);
+  gap: 20px;
 }
 
 #weekGrid.today-container.today-focus-mode,
@@ -107,8 +106,8 @@
 /* ---- WORKSPACE (task panel + sidebar) ---- */
 .today-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.54fr) minmax(240px, 0.42fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 288px;
+  gap: 20px;
   align-items: start;
 }
 
@@ -248,12 +247,16 @@ body:not(.dragging-active) .today-end-dropzone:hover::after { opacity: 1; }
 body:not(.dragging-active) .today-end-dropzone:hover::after { color: rgba(248,250,252,0.72); }
 body.dragging-active .today-end-dropzone { height: 16px; min-height: 16px; }
 
-/* ---- HERO (grid with left + right) ---- */
+/* ---- HERO (painel com grid: left + right) ---- */
 .today-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 420px);
+  gap: 0;
   align-items: stretch;
+  background: rgba(255, 255, 255, 0.028);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  overflow: hidden;
 }
 
 .today-hero__left {
@@ -262,6 +265,8 @@ body.dragging-active .today-end-dropzone { height: 16px; min-height: 16px; }
   justify-content: center;
   gap: 10px;
   min-width: 0;
+  padding: 28px 28px 28px 28px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .today-hero__eyebrow {
@@ -301,9 +306,12 @@ body.dragging-active .today-end-dropzone { height: 16px; min-height: 16px; }
 }
 
 .today-hero__right {
-  display: flex; align-items: center;
-  gap: 22px; min-width: 0;
-  justify-content: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 24px 20px;
+  background: rgba(255, 255, 255, 0.015);
 }
 
 /* ---- COMPLETION RING ---- */
@@ -546,40 +554,45 @@ body.dragging-active .today-end-dropzone { height: 16px; min-height: 16px; }
   }
 }
 
-/* < 880px: hero stacked */
+/* < 880px: hero colapsa para coluna única */
 @media (max-width: 880px) {
   .today-hero {
     grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 0;
   }
-  .today-hero__right { justify-content: flex-start; }
+  /* border-right vira border-bottom quando empilhado */
+  .today-hero__left {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 22px 22px 18px;
+  }
+  .today-hero__right {
+    padding: 18px 22px 22px;
+  }
 }
 
 /* Mobile ≤ 768px */
 @media (max-width: 768px) {
-  /* container principal */
   #weekGrid.today-container,
   #todayView.today-container {
-    padding: 0 0 40px;
-    gap: 16px;
-    min-height: auto;
+    padding: 0 0 32px;
+    gap: 14px;
   }
 
   .today-workspace { grid-template-columns: 1fr; }
 
-  /* hero ring menor no mobile */
-  .today-hero__ring { width: 96px; height: 96px; }
-  .today-ring-pct   { font-size: 22px; }
+  /* hero padding ajustado para mobile */
+  .today-hero__left  { padding: 18px 16px 14px; }
+  .today-hero__right { padding: 14px 16px 18px; flex-wrap: wrap; }
 
-  /* next action card full-width */
+  /* ring menor no mobile */
+  .today-hero__ring  { width: 88px; height: 88px; }
+  .today-ring-pct    { font-size: 20px; }
+
+  /* next action card */
   .today-next-action { padding: 12px 14px; }
 
-  /* task list ocupa todo espaço */
+  /* task list */
   .today-task-list--dashboard .task-item .task-label { font-size: 15px; }
-
-  /* insight cards lado a lado */
-  .today-workspace > article.today-insight-card { width: 100%; }
 
   /* dashboard grid */
   .today-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
