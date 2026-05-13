@@ -7,44 +7,44 @@
 
 /* ----------------------------------------------------------------
    GRID PRINCIPAL
-   Sidebar é position: fixed — não ocupa espaço no grid.
-   App-main tem padding-left que corresponde à largura da sidebar.
-   On pin: padding-left aumenta para a largura completa.
+   Sidebar ocupa uma coluna fixa. Conteúdo ocupa o resto.
+   Hover da sidebar expande visualmente sem mover o layout
+   (a sidebar transborda a coluna com z-index acima do conteúdo).
+   Pin: alarga a coluna da sidebar via transition.
 ----------------------------------------------------------------- */
 .app-shell {
-    display: block;
+    display: grid;
+    grid-template-columns: var(--flowly-sidebar-icon-width) minmax(0, 1fr);
     min-height: 100vh;
     min-height: 100dvh;
+    transition: grid-template-columns 0.24s var(--flowly-ease-out);
+}
+
+body.sidebar-pinned .app-shell {
+    grid-template-columns: var(--flowly-sidebar-width) minmax(0, 1fr);
 }
 
 /* ----------------------------------------------------------------
    APP MAIN
-   Padding-left = icon width por default.
-   Quando pinned: transita para sidebar-width.
+   Padding simétrico — sem compensação de sidebar.
+   O grid cuida do espaço. Centrar fica por conta de cada view
+   via max-width + margin: 0 auto.
 ----------------------------------------------------------------- */
 .app-main {
     min-width: 0;
     padding: var(--flowly-space-6) clamp(var(--flowly-space-4), 2.5vw, var(--flowly-space-8));
-    padding-left: calc(var(--flowly-sidebar-icon-width) + clamp(var(--flowly-space-4), 2.5vw, var(--flowly-space-8)));
-    max-width: calc(var(--flowly-shell-max) + var(--flowly-sidebar-icon-width));
-    width: 100%;
-    transition: padding-left 0.24s var(--flowly-ease-out);
-}
-
-body.sidebar-pinned .app-main {
-    padding-left: calc(var(--flowly-sidebar-width) + clamp(var(--flowly-space-4), 2.5vw, var(--flowly-space-8)));
 }
 
 /* ----------------------------------------------------------------
    SIDEBAR DESKTOP
-   - Padrão: 56px (só ícones)
-   - Hover: expande para 216px e sobrepõe o conteúdo (overlay)
-   - Pinned (body.sidebar-pinned): expande e empurra o layout
+   - position: sticky — fica no grid, cola no topo no scroll
+   - Padrão: 56px (só ícones, coluna do grid = 56px)
+   - Hover: expande para 216px, transborda a coluna como overlay
+   - Pinned: coluna do grid vira 216px — sidebar não transborda
 ----------------------------------------------------------------- */
 .app-sidebar {
-    position: fixed;
+    position: sticky;
     top: 0;
-    left: 0;
     display: flex;
     flex-direction: column;
     height: 100vh;

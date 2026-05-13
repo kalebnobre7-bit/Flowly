@@ -17,12 +17,6 @@
 @media (min-width: 1024px) {
     .app-main {
         padding: var(--flowly-space-7) var(--flowly-space-8);
-        /* sidebar fixed de 56px — padding-left compensa */
-        padding-left: calc(var(--flowly-sidebar-icon-width) + var(--flowly-space-8));
-    }
-
-    body.sidebar-pinned .app-main {
-        padding-left: calc(var(--flowly-sidebar-width) + var(--flowly-space-8));
     }
 
     .flowly-page-header__title h1 {
@@ -33,28 +27,26 @@
 /* --- Desktop wide (acima de 1400px) --- */
 @media (min-width: 1400px) {
     .app-main {
-        max-width: calc(var(--flowly-shell-max-wide) + var(--flowly-sidebar-icon-width));
+        padding-left: var(--flowly-space-10, 48px);
+        padding-right: var(--flowly-space-10, 48px);
     }
 }
 
 /* --- Tablet (até 1024px) --- */
 @media (max-width: 1024px) {
-    /* sidebar fixed: app-shell é só block agora */
     .app-main {
-        padding-left: calc(var(--flowly-sidebar-icon-width) + var(--flowly-space-4));
+        padding: var(--flowly-space-5) var(--flowly-space-5);
     }
 }
 
 /* --- Mobile (até 768px) --- */
 @media (max-width: 768px) {
     .app-shell {
-        display: block;
+        display: block; /* sem grid — sidebar oculto */
     }
 
     .app-main {
-        /* padding-left explícito: não herda o calc(sidebar+...) do desktop */
         padding: var(--flowly-space-4) var(--flowly-space-3);
-        padding-left: var(--flowly-space-3);
         padding-bottom: calc(var(--flowly-mobile-nav-height) + var(--flowly-space-5));
         max-width: 100%;
     }

@@ -1588,8 +1588,12 @@ input[type="checkbox"]:focus {
     padding: 28px 32px 48px;
     min-height: 100%;
     width: 100%;
+    max-width: var(--flowly-shell-max);
+    margin: 0 auto;
 }
-.flowly-shell--wide { max-width: 100%; }
+.flowly-shell--wide {
+    max-width: var(--flowly-shell-max-wide);
+}
 
 @media (max-width: 768px) {
     .flowly-shell { padding: 16px 16px 40px; }
