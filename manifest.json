@@ -34,6 +34,22 @@
     }
   ],
   "categories": ["productivity", "lifestyle", "utilities"],
+  "screenshots": [
+    {
+      "src": "logo_flowly.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Flowly — visão de hoje"
+    },
+    {
+      "src": "logo_flowly.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Flowly — visão de semana"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Hoje",

@@ -81,6 +81,9 @@ async function ensureCurrentUserForSync() {
     }
   } catch (err) {
     console.error('[Auth] Falha ao recuperar sessao para sincronizacao:', err);
+    if (typeof setSyncStatus === 'function') {
+      setSyncStatus('error', 'Erro de autenticação. Dados salvos localmente.');
+    }
   }
 
   return null;
