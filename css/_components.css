@@ -1248,13 +1248,31 @@ input[type="checkbox"]:focus {
 }
 
 /* =============================================================
-   FLOWLY-BOTTOM-NAV — barra mobile fixa (substitui bg-[#1c1c1e]/95)
+   FLOWLY-BOTTOM-NAV — barra mobile fixa
+   Zero dependência de Tailwind. Visível só em ≤768px (via _shell.css).
    ============================================================= */
 .flowly-bottom-nav {
-    background: rgba(14, 15, 20, 0.95);
+    /* Visibilidade controlada por _shell.css (display: none no desktop) */
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--flowly-z-overlay);
+    background: rgba(10, 11, 15, 0.96);
     backdrop-filter: blur(var(--flowly-blur-modal));
     -webkit-backdrop-filter: blur(var(--flowly-blur-modal));
     border-top: 1px solid var(--flowly-border-subtle);
+    /* Respeita notch/home indicator no iOS */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.flowly-bottom-nav__inner {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: var(--flowly-mobile-nav-height);
+    padding: 0 var(--flowly-space-2);
 }
 
 /* =============================================================

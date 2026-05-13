@@ -306,6 +306,7 @@ body.sidebar-pinned .app-sidebar .sidebar-nav-btn span {
 ----------------------------------------------------------------- */
 .hidden-mobile { display: block; }
 
+/* Mostra nav mobile, esconde sidebar, ajusta padding */
 @media (max-width: 768px) {
     .hidden-mobile { display: none; }
 
@@ -314,30 +315,52 @@ body.sidebar-pinned .app-sidebar .sidebar-nav-btn span {
         transition: none;
     }
 
-    .app-main {
-        padding: var(--flowly-space-4) var(--flowly-space-3)
-                 calc(var(--flowly-mobile-nav-height) + var(--flowly-space-7));
+    .app-sidebar {
+        display: none !important;
     }
 
-    .app-sidebar {
-        display: none;
+    .app-main {
+        padding: var(--flowly-space-4) var(--flowly-space-3);
+        padding-left: var(--flowly-space-3);
+        padding-bottom: calc(var(--flowly-mobile-nav-height) + var(--flowly-space-5));
+        max-width: 100%;
+    }
+
+    /* Exibe a bottom nav (por padrão fica display:none em _components.css) */
+    .flowly-bottom-nav {
+        display: block;
     }
 }
 
+/* Botões da bottom nav */
 .mobile-nav-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    flex: 1;
+    min-height: 48px;
     color: var(--flowly-text-tertiary);
     transition: color var(--flowly-duration-fast) var(--flowly-ease-out);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.mobile-nav-btn i {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
 }
 
 .mobile-nav-btn:hover,
 .mobile-nav-btn.active {
-    color: var(--flowly-text-primary);
+    color: var(--flowly-accent-primary);
+}
+
+.mobile-nav-btn.active i {
+    filter: drop-shadow(0 0 6px rgba(var(--flowly-accent-primary-rgb), 0.4));
 }
 
 /* ----------------------------------------------------------------

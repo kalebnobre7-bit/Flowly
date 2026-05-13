@@ -61,15 +61,15 @@
     <!-- legacy removido -->
     <!-- 3. Módulos novos — carregados DEPOIS do legado para ganhar especificidade -->
     <link rel="stylesheet" href="css/_reset.css?v=1">
-    <link rel="stylesheet" href="css/_shell.css?v=5">
-    <link rel="stylesheet" href="css/_components.css?v=9">
+    <link rel="stylesheet" href="css/_shell.css?v=6">
+    <link rel="stylesheet" href="css/_components.css?v=10">
     <link rel="stylesheet" href="css/_animations.css?v=1">
-    <link rel="stylesheet" href="css/_responsive.css?v=2">
+    <link rel="stylesheet" href="css/_responsive.css?v=3">
     <!-- CSS específicos de view -->
     <link rel="stylesheet" href="css/views/projects.css?v=2">
     <link rel="stylesheet" href="css/views/watch-later.css?v=2">
     <link rel="stylesheet" href="css/views/goals.css?v=2">
-    <link rel="stylesheet" href="css/views/today.css?v=3">
+    <link rel="stylesheet" href="css/views/today.css?v=4">
     <link rel="stylesheet" href="css/views/week.css?v=1">
     <link rel="stylesheet" href="css/views/analytics.css?v=2">
     <link rel="stylesheet" href="css/views/finance.css?v=1">
@@ -184,30 +184,26 @@
         </main>
     </div>
 
-    <!-- Mobile Bottom Navigation (New Feature - Kept) -->
-    <nav
-        class="md:hidden fixed bottom-0 left-0 right-0 z-40 flowly-bottom-nav pb-[env(safe-area-inset-bottom)]">
-        <div class="flex justify-around items-center h-16 px-2">
-            <button id="btnMobileWeek" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="week" aria-label="Semana">
-                <i data-lucide="calendar" class="w-6 h-6" aria-hidden="true"></i>
+    <!-- Mobile Bottom Navigation -->
+    <nav id="mobileNav" class="flowly-bottom-nav" aria-label="Navegação mobile">
+        <div class="flowly-bottom-nav__inner">
+            <button class="mobile-nav-btn" data-flowly-view="today" aria-label="Hoje">
+                <i data-lucide="flame" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileAnalytics" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="analytics" aria-label="Analytics">
-                <i data-lucide="bar-chart-2" class="w-6 h-6" aria-hidden="true"></i>
+            <button class="mobile-nav-btn" data-flowly-view="week" aria-label="Semana">
+                <i data-lucide="calendar" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileFinance" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="finance" aria-label="Finanças">
-                <i data-lucide="wallet" class="w-6 h-6" aria-hidden="true"></i>
+            <button class="mobile-nav-btn" data-flowly-view="analytics" aria-label="Analytics">
+                <i data-lucide="bar-chart-3" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileProjects" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="projects" aria-label="Projetos">
-                <i data-lucide="briefcase-business" class="w-6 h-6" aria-hidden="true"></i>
+            <button class="mobile-nav-btn" data-flowly-view="finance" aria-label="Finanças">
+                <i data-lucide="wallet-minimal" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileToday" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="today" aria-label="Hoje">
-                <i data-lucide="sun" class="w-6 h-6" aria-hidden="true"></i>
+            <button class="mobile-nav-btn" data-flowly-view="sexta" aria-label="Sexta">
+                <i data-lucide="wand-2" aria-hidden="true"></i>
             </button>
-            <button id="btnMobileSexta" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="sexta" aria-label="Sexta (assistente)">
-                <i data-lucide="sparkles" class="w-6 h-6" aria-hidden="true"></i>
-            </button>
-            <button id="btnMobileSettings" class="mobile-nav-btn flex flex-col items-center justify-center w-12 h-12" data-flowly-view="settings" aria-label="Ajustes">
-                <i data-lucide="settings-2" class="w-6 h-6" aria-hidden="true"></i>
+            <button class="mobile-nav-btn" data-flowly-view="settings" aria-label="Ajustes">
+                <i data-lucide="settings" aria-hidden="true"></i>
             </button>
         </div>
     </nav>

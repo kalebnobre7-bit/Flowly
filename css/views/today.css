@@ -538,24 +538,60 @@ body.dragging-active .today-end-dropzone { height: 16px; min-height: 16px; }
 }
 
 /* ---- RESPONSIVE ---- */
+
+/* Tablet + small desktop: workspace colapsa para single-col */
+@media (max-width: 1024px) {
+  .today-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* < 880px: hero stacked */
 @media (max-width: 880px) {
   .today-hero {
     grid-template-columns: 1fr;
-    gap: 20px; padding: 22px 20px;
+    gap: 16px;
+    padding: 0;
   }
   .today-hero__right { justify-content: flex-start; }
 }
 
+/* Mobile ≤ 768px */
 @media (max-width: 768px) {
+  /* container principal */
+  #weekGrid.today-container,
+  #todayView.today-container {
+    padding: 0 0 40px;
+    gap: 16px;
+    min-height: auto;
+  }
+
   .today-workspace { grid-template-columns: 1fr; }
+
+  /* hero ring menor no mobile */
+  .today-hero__ring { width: 96px; height: 96px; }
+  .today-ring-pct   { font-size: 22px; }
+
+  /* next action card full-width */
+  .today-next-action { padding: 12px 14px; }
+
+  /* task list ocupa todo espaço */
+  .today-task-list--dashboard .task-item .task-label { font-size: 15px; }
+
+  /* insight cards lado a lado */
+  .today-workspace > article.today-insight-card { width: 100%; }
+
+  /* dashboard grid */
   .today-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .today-overview-card--hero,
   .today-overview-card--wide { grid-column: span 2; }
 }
 
+/* Phone pequeno ≤ 560px */
 @media (max-width: 560px) {
-  .today-hero__right { flex-direction: column; align-items: stretch; gap: 16px; }
+  .today-hero__right { flex-direction: column; align-items: stretch; gap: 12px; }
   .today-hero__ring  { align-self: center; }
+  .today-next-action { flex: none; width: 100%; }
   .today-dashboard-grid { grid-template-columns: 1fr; }
   .today-overview-card--hero,
   .today-overview-card--wide { grid-column: span 1; }
