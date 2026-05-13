@@ -8,11 +8,11 @@
 .week-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(178px, 1fr));
-    gap: 10px;
+    gap: 0;
     width: 100%;
     min-height: calc(100vh - 132px);
     min-height: calc(100dvh - 132px);
-    padding: 16px 24px 28px;
+    padding: 0 24px 28px;
     overflow-x: auto;
     align-items: stretch;
     scroll-snap-type: x proximity;
@@ -30,19 +30,21 @@
     flex-direction: column;
     min-width: 0;
     min-height: 420px;
-    border: 1px solid rgba(255, 255, 255, 0.055);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.018);
-    overflow: hidden;
+    border-right: 1px solid rgba(255, 255, 255, 0.045);
+    background: transparent;
+    overflow: visible;
     position: relative;
     scroll-snap-align: start;
-    transition: background 140ms ease, border-color 140ms ease;
+    transition: background 140ms ease;
+}
+
+.day-column:last-child {
+    border-right: 0;
 }
 
 /* Hover sutil na coluna */
 .day-column:hover {
-    background: rgba(255, 255, 255, 0.026);
-    border-color: rgba(255, 255, 255, 0.085);
+    background: rgba(255, 255, 255, 0.012);
 }
 
 body.no-week-hover .day-column,
@@ -53,8 +55,7 @@ body.no-week-hover .day-column:hover {
 
 /* Hoje: destaque com borda no topo */
 .day-column.today-active {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.045);
-    border-color: rgba(var(--flowly-accent-primary-rgb), 0.2);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.024);
 }
 
 .day-column.today-active::before {
@@ -63,7 +64,6 @@ body.no-week-hover .day-column:hover {
     top: 0; left: 0; right: 0;
     height: 2px;
     background: var(--flowly-accent-primary);
-    border-radius: 0 0 2px 2px;
 }
 
 /* Dias passados: ligeiramente mais escuros */
@@ -77,16 +77,16 @@ body.no-week-hover .day-column:hover {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding: 14px 14px 12px;
+    padding: 14px 12px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     position: static;
-    background: rgba(8, 9, 14, 0.42);
+    background: transparent;
     z-index: 4;
     flex-shrink: 0;
 }
 
 .day-column.today-active .day-col-header {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.04);
+    background: transparent;
 }
 
 .day-col-name {
@@ -135,9 +135,9 @@ body.no-week-hover .day-column:hover {
 
 /* ---- TASK ITEMS na semana ---- */
 .day-column .task-item {
-    padding: 7px 10px;
-    margin: 4px 8px 2px;
-    border-radius: 8px;
+    padding: 6px 8px;
+    margin: 2px 6px 1px;
+    border-radius: 6px;
 }
 
 .day-column .task-item:hover {
@@ -166,24 +166,24 @@ body.no-week-hover .day-column:hover {
 
 .task-drop-zone.week-end-dropzone {
     flex: 1 1 auto;
-    min-height: 92px;
-    margin: 4px 8px 10px;
+    min-height: 72px;
+    margin: 2px 6px 8px;
     border: 1px dashed transparent;
-    border-radius: 12px;
+    border-radius: 8px;
     background: transparent;
     transition: background 140ms ease, border-color 140ms ease, min-height 140ms ease;
 }
 
 .day-column:hover .task-drop-zone.week-end-dropzone {
-    border-color: rgba(255, 255, 255, 0.07);
-    background: rgba(255, 255, 255, 0.012);
+    border-color: rgba(255, 255, 255, 0.055);
+    background: transparent;
 }
 
 .task-drop-zone.week-end-dropzone.show,
 .task-drop-zone.week-end-dropzone:hover {
-    min-height: 112px;
-    border-color: rgba(var(--flowly-accent-primary-rgb), 0.32);
-    background: rgba(var(--flowly-accent-primary-rgb), 0.055);
+    min-height: 88px;
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.24);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.035);
 }
 
 .day-column:hover .drop-zone {
@@ -204,7 +204,7 @@ body.no-week-hover .day-column:hover {
 
 /* ---- QUICK ADD STUB ---- */
 .quick-task-stub {
-    margin: 8px;
+    margin: 6px;
     flex-shrink: 0;
 }
 
@@ -225,8 +225,8 @@ body.no-week-hover .day-column:hover {
     .week-grid {
         grid-template-columns: repeat(7, minmax(172px, 76vw));
         min-height: calc(100dvh - 150px);
-        padding: 12px 12px 24px;
-        gap: 8px;
+        padding: 0 12px 24px;
+        gap: 0;
     }
 
     .week-grid.smart-week-5 {
