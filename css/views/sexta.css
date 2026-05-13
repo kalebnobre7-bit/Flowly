@@ -1,0 +1,113 @@
+/* =============================================================
+   FLOWLY — SEXTA VIEW (AI assistant)
+   Consolidação de flowly-design-system.css + bento-theme.css.
+   Depende de: _tokens.css, _components.css
+   ============================================================= */
+
+/* ---- HERO (layout) ---- */
+.sexta-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 16px;
+    align-items: start;
+}
+
+/* ---- CHAT BUBBLES ---- */
+.sexta-chat-bubble.ai {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.08);
+    border: 1px solid rgba(var(--flowly-accent-primary-rgb), 0.14);
+    border-radius: 0 var(--ds-r-lg) var(--ds-r-lg) var(--ds-r-lg);
+}
+
+.sexta-chat-bubble.human {
+    background: var(--ds-bg-glass-strong);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-r-lg) 0 var(--ds-r-lg) var(--ds-r-lg);
+}
+
+/* ---- CHAT TOKENS (avatares) ---- */
+.sexta-chat-token {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+
+.sexta-chat-token.ai {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.18);
+    color: rgb(var(--flowly-accent-primary-rgb));
+    border: 1px solid rgba(var(--flowly-accent-primary-rgb), 0.24);
+}
+
+.sexta-chat-token.human {
+    background: var(--ds-bg-glass-strong);
+    color: var(--ds-text-secondary);
+    border: 1px solid var(--ds-border);
+}
+
+/* ---- COMMAND CHIPS ---- */
+.sexta-chip {
+    display: inline-flex; align-items: center;
+    padding: 6px 14px; border-radius: 99px;
+    font-size: 12px; font-weight: 600;
+    border: 1px solid var(--ds-border);
+    background: transparent; color: var(--ds-text-secondary);
+    cursor: pointer; transition: all var(--ds-transition);
+}
+
+.sexta-chip:hover {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.1);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.24);
+    color: rgb(var(--flowly-accent-primary-rgb));
+}
+
+/* ---- TABS ---- */
+.sexta-tab-btn {
+    padding: 7px 16px; border-radius: var(--ds-r-md);
+    font-size: 13px; font-weight: 600;
+    border: 1px solid var(--ds-border); background: transparent;
+    color: var(--ds-text-secondary); cursor: pointer;
+    transition: all var(--ds-transition);
+}
+
+.sexta-tab-btn.is-active {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.14);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.28);
+    color: rgb(var(--flowly-accent-primary-rgb));
+}
+
+.sexta-tab-btn:hover:not(.is-active) {
+    background: var(--ds-bg-glass-strong);
+    color: var(--ds-text-primary);
+}
+
+/* ---- GRID / LAYOUT ---- */
+.sexta-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 16px;
+    align-items: start;
+}
+
+.sexta-command-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sexta-ops-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 768px) {
+    .sexta-hero,
+    .sexta-hero-side,
+    .sexta-grid,
+    .sexta-command-row,
+    .sexta-ops-grid {
+        grid-template-columns: 1fr;
+    }
+}

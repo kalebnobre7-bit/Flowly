@@ -135,8 +135,8 @@ function buildSettingsMarkup(ctx) {
 
   const permBadge =
     notifPerm === 'granted'
-      ? '<span class="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Ativo</span>'
-      : '<span class="inline-flex items-center rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-300">Inativo</span>';
+      ? '<span class="settings-perm-badge settings-perm-badge--on">Ativo</span>'
+      : '<span class="settings-perm-badge settings-perm-badge--off">Inativo</span>';
 
   const notifStatusText =
     notifPerm === 'granted'
@@ -553,7 +553,7 @@ function buildSettingsMarkup(ctx) {
           <span>Prompt base da Sexta</span>
           <textarea id="inputAiSystemPrompt" rows="4" class="w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none">${escapeProjectHtml(aiSettings.systemPrompt)}</textarea>
         </label>
-        <p class="text-[11px] text-gray-500">Hoje a Sexta já responde localmente com base nos dados do Flowly. Essa aba deixa o conector pronto para você plugar MiniMax, OpenAI ou outro backend depois.</p>
+        <p class="settings-note-muted">Hoje a Sexta já responde localmente com base nos dados do Flowly. Essa aba deixa o conector pronto para você plugar MiniMax, OpenAI ou outro backend depois.</p>
       </div>
     `
   );
@@ -638,7 +638,7 @@ function buildSettingsMarkup(ctx) {
       <div class="space-y-3">
         <div class="flex items-center justify-between gap-2">
           <span class="text-xs uppercase tracking-wide text-gray-400">Eventos recentes</span>
-          <button id="btnClearSyncLog" class="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-gray-200 hover:bg-white/10">Limpar log</button>
+          <button id="btnClearSyncLog" class="settings-sync-btn">Limpar log</button>
         </div>
         <div class="space-y-2">
           ${
@@ -649,12 +649,12 @@ function buildSettingsMarkup(ctx) {
                 <div class="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
                   <div class="flex items-center justify-between gap-3">
                     <strong class="text-xs uppercase tracking-wide text-gray-200">${item.type || 'sync'}</strong>
-                    <span class="text-[11px] text-gray-500">${new Date(item.at).toLocaleString('pt-BR')}</span>
+                    <span class="settings-sync-meta">${new Date(item.at).toLocaleString('pt-BR')}</span>
                   </div>
                   <div class="mt-1 text-sm text-gray-200">${item.message || ''}</div>
                   ${
                     item.meta && (item.meta.error || item.meta.to || item.meta.delay != null)
-                      ? `<div class="mt-1 text-[11px] text-gray-500">${item.meta.error || item.meta.to || `delay ${item.meta.delay}ms`}</div>`
+                      ? `<div class="mt-1 settings-sync-meta">${item.meta.error || item.meta.to || `delay ${item.meta.delay}ms`}</div>`
                       : ''
                   }
                 </div>

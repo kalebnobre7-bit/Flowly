@@ -482,3 +482,28 @@
         gap: var(--flowly-space-2);
     }
 }
+
+/* --- Config field --- */
+.projects-config-field {
+    display: flex; flex-direction: column; gap: 4px;
+}
+.projects-config-field span {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--ds-text-muted);
+}
+
+/* --- Status badges --- */
+.projects-badge--active {
+    background: var(--ds-accent-dim); border-color: rgba(var(--ds-accent-rgb), 0.22);
+    color: var(--ds-accent);
+}
+.projects-badge--late {
+    background: var(--ds-danger-dim); border-color: rgba(239,68,68,0.22); color: var(--ds-danger);
+}
+.projects-badge--paid {
+    background: var(--ds-success-dim); border-color: rgba(var(--ds-success-rgb), 0.22);
+    color: var(--ds-success);
+}
+.projects-badge--focus {
+    background: var(--ds-info-dim); border-color: rgba(59,130,246,0.22); color: var(--ds-info);
+}

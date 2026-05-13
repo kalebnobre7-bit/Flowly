@@ -1,0 +1,155 @@
+/* =============================================================
+   FLOWLY — ROUTINE VIEW (hábitos / rotina)
+   Consolidação de styles.css + bento-theme.css.
+   Depende de: _tokens.css, _components.css
+   ============================================================= */
+
+/* ---- CONTAINER ---- */
+.routine-container { display: flex; flex-direction: column; gap: 24px; }
+
+/* ---- HEADER ---- */
+.routine-header  { margin-bottom: 8px; }
+.routine-title   {
+    font-family: var(--flowly-font-display);
+    font-size: clamp(28px, 4vw, 34px);
+    font-weight: 900; letter-spacing: -0.05em;
+    color: var(--flowly-text-primary);
+}
+.routine-subtitle { font-size: 13px; color: var(--flowly-text-secondary); margin: 0; }
+
+.routine-date-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 16px;
+}
+
+/* ---- HERO SCORE CARD ---- */
+.routine-hero-card {
+    border-radius: var(--flowly-radius-lg);
+    background: linear-gradient(135deg, rgba(var(--flowly-accent-primary-rgb), 0.08) 0%, rgba(255,255,255,0.01) 100%);
+    border: 1px solid rgba(var(--flowly-accent-primary-rgb), 0.12);
+    box-shadow: var(--flowly-shadow-card);
+    padding: 20px;
+}
+
+.routine-score-card {
+    border-radius: var(--flowly-radius-xl);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.05);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.1);
+    box-shadow: var(--flowly-shadow-card);
+}
+
+/* ---- RING ---- */
+.routine-ring-wrap {
+    display: flex; align-items: center; justify-content: center;
+    width: 140px; height: 140px;
+}
+.routine-ring-pct {
+    font-family: var(--flowly-font-display);
+    font-size: 32px; font-weight: 900;
+    letter-spacing: -0.05em;
+}
+
+/* ---- METRICS ---- */
+.routine-hero-stats {
+    display: flex; gap: 20px; justify-content: space-around;
+}
+
+.routine-metric-card {
+    border-radius: var(--flowly-radius-lg);
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 12px 16px;
+    transition: transform 0.2s var(--flowly-ease-out), box-shadow 0.2s;
+}
+.routine-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(var(--flowly-accent-primary-rgb), 0.14);
+}
+
+.routine-metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px; margin: 20px 0;
+}
+
+/* ---- NUMBER VALUES ---- */
+.routine-score-count,
+.routine-ring-pct,
+.routine-metric-pill-val,
+.routine-period-fraction,
+.routine-habit-rate-v2,
+.routine-weekly-rate {
+    font-family: var(--flowly-font-display);
+    font-weight: 900;
+}
+
+/* ---- SECTION CARD ---- */
+.routine-section-card {
+    border-radius: var(--flowly-radius-lg);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 14px 16px 10px;
+}
+
+.routine-section-header {
+    display: flex; align-items: center;
+    justify-content: space-between; gap: 12px;
+    font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--flowly-text-tertiary);
+    margin-bottom: 10px;
+}
+
+.routine-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    padding: 2px 6px; border-radius: 4px;
+    background: rgba(var(--flowly-accent-primary-rgb), 0.12);
+    color: var(--flowly-accent-blue);
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+/* ---- HABIT ROW v2 ---- */
+.routine-habit-row-v2 {
+    border-radius: var(--flowly-radius-md);
+    font-family: var(--flowly-font-main);
+    transition: all 0.22s var(--flowly-ease-out);
+}
+.routine-habit-row-v2:hover {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.04);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.1);
+    transform: translateY(-1px);
+}
+
+.routine-habit-check-v2.done {
+    background: rgb(var(--flowly-accent-primary-rgb));
+    border-color: rgb(var(--flowly-accent-primary-rgb));
+    box-shadow: 0 0 14px rgba(var(--flowly-accent-primary-rgb), 0.32);
+}
+
+/* ---- WEEKLY DAY COLUMN ---- */
+.routine-weekly-day-col {
+    border-radius: var(--flowly-radius-md);
+    transition: all 0.22s var(--flowly-ease-out);
+}
+.routine-weekly-day-col.today {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.06);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.18);
+    box-shadow: 0 0 20px rgba(var(--flowly-accent-primary-rgb), 0.07);
+}
+
+/* ---- STREAK BADGES ---- */
+.routine-streak-badge.fire  { box-shadow: 0 0 16px rgba(255, 145, 0, 0.24); }
+.routine-streak-badge.green { box-shadow: 0 0 16px rgba(0, 230, 118, 0.18); }
+
+/* ---- BARS ---- */
+.routine-bars-row { display: flex; gap: 6px; }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 768px) {
+    .routine-hero-stats { flex-direction: column; gap: 12px; }
+    .routine-metrics-row { grid-template-columns: 1fr 1fr; }
+}

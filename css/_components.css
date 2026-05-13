@@ -1293,3 +1293,347 @@ input[type="checkbox"]:focus {
 .flowly-color-swatch[data-color="pink"]    { background: var(--flowly-tag-pink); }
 .flowly-color-swatch[data-color="purple"]  { background: var(--flowly-tag-purple); }
 .flowly-color-swatch[data-color="brown"]   { background: var(--flowly-tag-brown); }
+
+/* =============================================================
+   TASK SYSTEM — .task-item, .checkbox-custom, .task-label
+   Usado por todas as views (week, today, projects, etc.)
+   ============================================================= */
+.task-item {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin: 0 0 1px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    transition: background 0.1s ease, padding 0.15s ease;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.task-item:hover { background: rgba(255, 255, 255, 0.04); }
+
+.task-item.is-recurring::after {
+    content: '↻';
+    position: absolute;
+    right: 6px; top: 6px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.28);
+}
+
+.task-item--project-mirror {
+    border: 1px solid rgba(77, 107, 254, 0.18);
+    border-radius: 10px;
+    background: rgba(77, 107, 254, 0.04);
+    padding: 8px 10px;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.task-item--project-mirror:hover { background: rgba(77, 107, 254, 0.06); }
+
+.task-item.is-drop-target,
+.task-item--project-mirror.is-drop-target {
+    border-color: rgba(77, 107, 254, 0.46);
+    background: rgba(77, 107, 254, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(77, 107, 254, 0.18);
+}
+
+.task-item--project-mirror .checkbox-custom { opacity: 0.6; cursor: default; }
+
+.task-item--project-anchor {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 8px 10px;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.task-item--project-anchor:hover { background: rgba(255, 255, 255, 0.04); }
+.task-item--project-anchor .checkbox-custom { opacity: 0.65; cursor: default; }
+
+.task-project-anchor-checkbox {
+    width: 16px; height: 16px; border-radius: 4px;
+    border: 1.5px solid rgba(77, 107, 254, 0.45);
+    background: rgba(77, 107, 254, 0.08);
+    flex-shrink: 0; margin-top: 2px;
+}
+
+.task-project-anchor-body {
+    min-width: 0; width: 100%;
+    display: flex; flex-direction: column; gap: 2px; cursor: pointer;
+}
+
+.task-project-anchor-title-row {
+    display: flex; align-items: center;
+    justify-content: space-between; gap: 12px;
+}
+
+.task-project-anchor-title {
+    font-size: 14px; font-weight: 500;
+    color: rgba(255, 255, 255, 0.92); line-height: 1.45;
+}
+
+.task-project-anchor-meta {
+    font-size: 11px; color: rgba(255, 255, 255, 0.46); line-height: 1.4;
+}
+
+/* Checkbox */
+.checkbox-custom {
+    appearance: none;
+    width: 16px; height: 16px;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    cursor: pointer; flex-shrink: 0;
+    transition: all 0.15s ease;
+    margin-top: 2px; background: transparent;
+}
+
+.checkbox-custom:hover { border-color: rgba(255, 255, 255, 0.45); }
+
+.checkbox-custom:checked {
+    background: var(--flowly-accent-primary);
+    border-color: var(--flowly-accent-primary);
+}
+
+.checkbox-custom:checked::after {
+    content: '';
+    display: block;
+    width: 4px; height: 8px;
+    border: solid white;
+    border-width: 0 1.5px 1.5px 0;
+    margin: 2px auto 0;
+    transform: rotate(45deg);
+}
+
+/* Collapse button */
+.task-collapse-btn {
+    min-width: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 3px; margin-left: 4px;
+    color: rgba(255,255,255,0.38); flex-shrink: 0;
+    border: none; background: transparent; cursor: pointer;
+    font-size: 11px; font-weight: 700;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.task-collapse-btn:hover { color: #dbeafe; }
+.task-collapse-btn span  { font-size: 10px; opacity: 0.8; }
+
+/* Task label */
+.task-label {
+    font-size: 14px; line-height: 1.55;
+    color: rgba(255, 255, 255, 0.85);
+    width: 100%; cursor: text; transition: color 0.15s;
+}
+
+.task-label[data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(255, 255, 255, 0.2);
+    font-style: normal;
+}
+
+.task-completed {
+    color: rgba(255, 255, 255, 0.3);
+    text-decoration: line-through;
+}
+
+.task-label[contenteditable="true"] {
+    outline: none;
+    background: rgba(var(--flowly-accent-primary-rgb), 0.08);
+    border-radius: 3px; padding: 0 3px;
+    box-shadow: 0 0 0 1.5px rgba(var(--flowly-accent-primary-rgb), 0.25);
+}
+
+/* Color dot system */
+.task-label.color-default { --task-color: transparent; }
+.task-label.color-blue    { --task-color: var(--flowly-accent-info); }
+.task-label.color-green   { --task-color: #30d158; }
+.task-label.color-yellow  { --task-color: #ffd60a; }
+.task-label.color-orange  { --task-color: var(--flowly-accent-warning); }
+.task-label.color-red     { --task-color: #ff453a; }
+.task-label.color-purple  { --task-color: #bf5af2; }
+
+.task-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--task-color, transparent);
+    margin-right: 6px; vertical-align: middle; flex-shrink: 0;
+}
+
+.task-label.color-default::before { display: none; }
+
+/* Color fallback for non-label elements */
+.color-blue:not(.task-label)   { color: var(--flowly-accent-info); }
+.color-green:not(.task-label)  { color: #30d158; }
+.color-yellow:not(.task-label) { color: #ffd60a; }
+.color-orange:not(.task-label) { color: var(--flowly-accent-warning); }
+.color-red:not(.task-label)    { color: #ff453a; }
+.color-purple:not(.task-label) { color: #bf5af2; }
+
+/* Drag handle */
+.drag-handle {
+    position: absolute;
+    left: -14px; top: 50%;
+    transform: translateY(-50%);
+    width: 14px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; cursor: grab;
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.task-item:hover .drag-handle { opacity: 1; }
+
+/* Quick task input */
+.quick-task-input {
+    background: transparent; border: none;
+    padding: 6px 8px; color: white;
+    width: 100%; outline: none;
+    font-size: 14px; font-family: inherit;
+}
+
+.quick-task-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+.quick-task-container {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 8px; padding: 4px 8px;
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.quick-task-container:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.quick-task-container:focus-within {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--flowly-accent-primary-rgb), 0.35);
+}
+
+.quick-task-stub {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 8px; margin: 4px 0 6px;
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.015);
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 12px; cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    user-select: none;
+}
+
+.quick-task-stub:hover {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.06);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.28);
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.quick-task-stub__icon { width: 13px; height: 13px; stroke-width: 2; opacity: 0.8; }
+
+/* Modal overlay */
+.modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    display: none;
+    align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s; z-index: 9999;
+}
+
+.modal-overlay.show { display: flex; opacity: 1; pointer-events: all; }
+
+.modal-content {
+    background: #1c1c1e;
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: 20px; padding: 32px;
+    width: 90%; max-width: 400px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    transform: scale(0.95);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-overlay.show .modal-content { transform: scale(1); }
+
+/* =============================================================
+   FLOWLY-SHELL — wrapper de view com padding próprio
+   (usado por views que não herdaram diretamente .app-main)
+   ============================================================= */
+.flowly-shell {
+    padding: 28px 32px 48px;
+    min-height: 100%;
+    width: 100%;
+}
+.flowly-shell--wide { max-width: 100%; }
+
+@media (max-width: 768px) {
+    .flowly-shell { padding: 16px 16px 40px; }
+}
+
+/* =============================================================
+   FLOWLY-PAGE-HEADER — sub-elementos flat (Finance / Settings)
+   ============================================================= */
+.flowly-page-header-left  { flex: 1; min-width: 0; }
+.flowly-page-actions      { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.flowly-page-kicker {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ds-accent); margin-bottom: 4px;
+}
+.flowly-page-title {
+    font-family: var(--ds-font-display); font-size: clamp(24px, 3.5vw, 38px);
+    font-weight: 900; letter-spacing: -0.05em; color: var(--ds-text-primary);
+    margin: 0 0 4px; line-height: 1.1;
+}
+.flowly-page-subtitle {
+    font-size: 13px; color: var(--ds-text-secondary); margin: 0; line-height: 1.5;
+}
+.flowly-inline-pills {
+    display: flex; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap;
+}
+
+/* =============================================================
+   FLOWLY-SOFT-PILL — tag/badge leve
+   ============================================================= */
+.flowly-soft-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 99px;
+    font-size: 11px; font-weight: 600; border: 1px solid var(--ds-border);
+    background: var(--ds-bg-glass); color: var(--ds-text-secondary);
+}
+.flowly-soft-pill--accent {
+    background: rgba(var(--ds-accent-rgb), 0.12);
+    border-color: rgba(var(--ds-accent-rgb), 0.22); color: var(--ds-accent);
+}
+
+/* =============================================================
+   FLOWLY-ACCENT-BTN — botão CTA com cor do accent
+   ============================================================= */
+.flowly-accent-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: var(--ds-r-md);
+    font-family: var(--ds-font-body); font-size: 12px; font-weight: 600;
+    border: 1px solid rgba(var(--ds-accent-rgb), 0.28);
+    background: rgba(var(--ds-accent-rgb), 0.12); color: var(--ds-accent);
+    cursor: pointer; transition: all var(--ds-transition);
+}
+.flowly-accent-btn:hover {
+    background: rgba(var(--ds-accent-rgb), 0.2); transform: translateY(-1px);
+}
+.flowly-accent-btn--secondary {
+    background: var(--ds-bg-glass); border-color: var(--ds-border); color: var(--ds-text-secondary);
+}
+.flowly-accent-btn--secondary:hover {
+    background: var(--ds-bg-glass-strong); color: var(--ds-text-primary);
+}
+
+/* =============================================================
+   BTN-INLINE — variante inline de botão
+   ============================================================= */
+.btn-inline { padding: 8px 16px; font-size: 13px; }
