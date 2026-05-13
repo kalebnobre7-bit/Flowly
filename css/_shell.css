@@ -500,11 +500,14 @@ body.sidebar-pinned .app-sidebar .sidebar-nav-group.is-expanded .sidebar-nav-chi
     flex: 1;
     min-height: 48px;
     color: var(--flowly-text-tertiary);
-    transition: color var(--flowly-duration-fast) var(--flowly-ease-out);
+    transition: background var(--flowly-duration-fast) var(--flowly-ease-out),
+                color var(--flowly-duration-fast) var(--flowly-ease-out),
+                transform var(--flowly-duration-fast) var(--flowly-ease-out);
     background: transparent;
     border: none;
     cursor: pointer;
     padding: 0;
+    border-radius: var(--flowly-radius-lg);
 }
 
 .mobile-nav-btn i {
@@ -518,6 +521,11 @@ body.sidebar-pinned .app-sidebar .sidebar-nav-group.is-expanded .sidebar-nav-chi
     color: var(--flowly-accent-primary);
 }
 
+.mobile-nav-btn.active {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.12);
+    transform: translateY(-1px);
+}
+
 .mobile-nav-btn.active i {
     filter: drop-shadow(0 0 6px rgba(var(--flowly-accent-primary-rgb), 0.4));
 }
@@ -526,7 +534,7 @@ body.sidebar-pinned .app-sidebar .sidebar-nav-group.is-expanded .sidebar-nav-chi
    WEEK VIEW — full width, sem padding lateral do app-main
    :has() suportado Chrome 105+, Safari 15.4+, Firefox 121+
 ----------------------------------------------------------------- */
-.app-main:has(.week-grid) {
+.app-main:has(#weekGrid.week-grid:not(.hidden)) {
     padding-inline: 0;
     padding-top: 0;
 }

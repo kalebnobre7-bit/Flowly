@@ -61,15 +61,15 @@
     <!-- legacy removido -->
     <!-- 3. Módulos novos — carregados DEPOIS do legado para ganhar especificidade -->
     <link rel="stylesheet" href="css/_reset.css?v=1">
-    <link rel="stylesheet" href="css/_shell.css?v=10">
-    <link rel="stylesheet" href="css/_components.css?v=11">
+    <link rel="stylesheet" href="css/_shell.css?v=12">
+    <link rel="stylesheet" href="css/_components.css?v=13">
     <link rel="stylesheet" href="css/_animations.css?v=1">
     <link rel="stylesheet" href="css/_responsive.css?v=4">
     <!-- CSS específicos de view -->
     <link rel="stylesheet" href="css/views/projects.css?v=2">
     <link rel="stylesheet" href="css/views/watch-later.css?v=2">
-    <link rel="stylesheet" href="css/views/goals.css?v=2">
-    <link rel="stylesheet" href="css/views/today.css?v=6">
+    <link rel="stylesheet" href="css/views/goals.css?v=3">
+    <link rel="stylesheet" href="css/views/today.css?v=7">
     <link rel="stylesheet" href="css/views/week.css?v=3">
     <link rel="stylesheet" href="css/views/analytics.css?v=2">
     <link rel="stylesheet" href="css/views/finance.css?v=1">
@@ -208,22 +208,22 @@
     <!-- Mobile Bottom Navigation -->
     <nav id="mobileNav" class="flowly-bottom-nav" aria-label="Navegação mobile">
         <div class="flowly-bottom-nav__inner">
-            <button class="mobile-nav-btn" data-flowly-view="today" aria-label="Hoje">
+            <button id="btnMobileToday" class="mobile-nav-btn" data-flowly-view="today" aria-label="Hoje">
                 <i data-lucide="flame" aria-hidden="true"></i>
             </button>
-            <button class="mobile-nav-btn" data-flowly-view="week" aria-label="Semana">
+            <button id="btnMobileWeek" class="mobile-nav-btn" data-flowly-view="week" aria-label="Semana">
                 <i data-lucide="calendar" aria-hidden="true"></i>
             </button>
-            <button class="mobile-nav-btn" data-flowly-view="analytics" aria-label="Analytics">
+            <button id="btnMobileAnalytics" class="mobile-nav-btn" data-flowly-view="analytics" aria-label="Analytics">
                 <i data-lucide="bar-chart-3" aria-hidden="true"></i>
             </button>
-            <button class="mobile-nav-btn" data-flowly-view="finance" aria-label="Finanças">
+            <button id="btnMobileFinance" class="mobile-nav-btn" data-flowly-view="finance" aria-label="Finanças">
                 <i data-lucide="wallet-minimal" aria-hidden="true"></i>
             </button>
-            <button class="mobile-nav-btn" data-flowly-view="sexta" aria-label="Sexta">
+            <button id="btnMobileSexta" class="mobile-nav-btn" data-flowly-view="sexta" aria-label="Sexta">
                 <i data-lucide="wand-2" aria-hidden="true"></i>
             </button>
-            <button class="mobile-nav-btn" data-flowly-view="settings" aria-label="Ajustes">
+            <button id="btnMobileSettings" class="mobile-nav-btn" data-flowly-view="settings" aria-label="Ajustes">
                 <i data-lucide="settings" aria-hidden="true"></i>
             </button>
         </div>
@@ -247,7 +247,7 @@
     </div>
 
     <!-- Modals (Restored original Auth structure for app.js compatibility) -->
-    <div id="authModal" class="modal-overlay" style="z-index: 9999;" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <div id="authModal" class="modal-overlay" style="z-index: 9999;" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="authModalTitle">
         <div class="modal-content" style="max-width: 400px;" id="authBox">
             <h2 class="text-xl font-bold mb-4 text-center" id="authModalTitle">Login / Cadastro</h2>
             <div id="authMessage" role="status" aria-live="polite"></div>
@@ -329,7 +329,7 @@
     <script src="js/components/task-actions.js?v=1" defer></script>
     <script src="js/core/tasks-repo.js?v=7" defer></script>
     <script src="js/core/task-normalizer-runtime.js?v=1" defer></script>
-    <script src="js/core/auth-session.js?v=1" defer></script>
+    <script src="js/core/auth-session.js?v=2" defer></script>
     <script src="js/core/auth-runtime.js?v=1" defer></script>
     <script src="js/core/pwa.js?v=5" defer></script>
     <script src="js/core/app-runtime.js?v=1" defer></script>
@@ -348,12 +348,11 @@
     <script src="js/views/settings.js?v=2" defer></script>
     <script src="js/views/sexta.js?v=1" defer></script>
     <script src="js/views/watch-later.js?v=2" defer></script>
-    <script src="js/views/goals.js?v=3" defer></script>
+    <script src="js/views/goals.js?v=4" defer></script>
     <script src="js/views/today.js?v=3" defer></script>
-    <script src="js/views/month.js?v=2" defer></script>
+    <script src="js/views/month.js?v=3" defer></script>
     <script src="js/views/week.js?v=4" defer></script>
-    <script src="js/core/ui-bootstrap.js?v=2" defer></script>
+    <script src="js/core/ui-bootstrap.js?v=3" defer></script>
 </body>
 
 </html>
-

@@ -916,8 +916,13 @@
   background: rgba(34, 197, 94, 0.1);
   border-radius: 50%;
   margin-bottom: 14px;
-  font-size: 26px;
-  line-height: 1;
+}
+
+.goals-empty__icon i,
+.goals-empty__icon svg {
+  width: 26px;
+  height: 26px;
+  color: var(--ds-accent, #22c55e);
 }
 
 .goals-empty h3 {

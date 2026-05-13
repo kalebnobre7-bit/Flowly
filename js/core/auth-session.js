@@ -71,7 +71,7 @@
               isDataEmpty: isDataEmpty
             });
           } else if (!session) {
-            setAuthModalVisible(true);
+            setAuthModalVisible(false);
           }
           return;
         }
@@ -88,7 +88,7 @@
 
         if (event === 'SIGNED_OUT') {
           setCurrentUser(null);
-          setAuthModalVisible(true);
+          setAuthModalVisible(false);
           if (signOutInProgress) {
             signOutInProgress = false;
           }

@@ -474,7 +474,7 @@
         <form class="goals-quickadd" id="goalQuickAdd" autocomplete="off">
           <i data-lucide="plus" class="goals-quickadd__icon"></i>
           <input type="text" id="goalQuickInput" class="goals-quickadd__input"
-            placeholder="Nova meta e Enter — edite tudo no card depois" />
+            placeholder="Nova meta" />
         </form>
         <div class="goals-toolbar__right">
           <button type="button" class="goals-toolbar__btn" data-popover-anchor data-action="sort">
@@ -589,9 +589,9 @@
 
     const emptyState = `
       <div class="goals-empty">
-        <div class="goals-empty__icon">🎯</div>
+        <div class="goals-empty__icon"><i data-lucide="target" aria-hidden="true"></i></div>
         <h3>Defina sua primeira meta</h3>
-        <p>Digite acima e pressione Enter. Depois clique em qualquer coisa no card para editar — título, progresso, cor, emoji, tag, prazo, notas.</p>
+        <p>Organize metas com progresso, prazo, cor e contexto em um só lugar.</p>
       </div>`;
 
     view.innerHTML = `
@@ -599,7 +599,7 @@
         <header class="flowly-page-header">
           <div class="flowly-page-header__title">
             <h1>Metas</h1>
-            <p class="flowly-page-header__subtitle">Edite tudo inline. Clique, digite, arraste.</p>
+            <p class="flowly-page-header__subtitle">Metas, progresso e prazos no mesmo painel.</p>
           </div>
           <div class="goals-stats">
             <div class="goals-stat"><span class="goals-stat__value">${active.length}</span><span class="goals-stat__label">Ativas</span></div>

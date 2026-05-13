@@ -441,7 +441,7 @@ function renderMonth() {
       <header class="flowly-page-header mc-header">
         <div class="flowly-page-header__title">
           <h1>${monthNames[month]} <span class="mc-title-year">${year}</span></h1>
-          <p class="flowly-page-header__subtitle">Visão mensal · ← → dias · ↑ ↓ semanas · Alt+← → mês · T hoje</p>
+          <p class="flowly-page-header__subtitle">Calendário mensal, tarefas do dia e movimentações do período.</p>
         </div>
         <div class="flowly-page-header__actions">
           <div class="mc-legend">${legendHTML}</div>

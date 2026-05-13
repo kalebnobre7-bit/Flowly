@@ -371,6 +371,7 @@
     (function () {
       const inner = document.querySelector('#subProjects .sidebar-nav-children__inner');
       const toggle = document.querySelector('[data-group="navGroupProjects"]');
+      const list = document.getElementById('subProjects');
       if (!inner) return;
       const projects =
         typeof projectsState !== 'undefined' && projectsState && Array.isArray(projectsState.projects)
@@ -378,9 +379,12 @@
           : [];
       if (projects.length === 0) {
         if (toggle) toggle.style.display = 'none';
+        if (list) list.hidden = true;
+        inner.innerHTML = '';
         return;
       }
       if (toggle) toggle.style.display = '';
+      if (list) list.hidden = false;
       inner.innerHTML = projects.slice(0, 10).map(function (p) {
         const name = String(p.name || 'Projeto sem nome');
         const safe = name.replace(/[&<>"']/g, function (c) {
@@ -399,6 +403,7 @@
     (function () {
       const inner = document.querySelector('#subGoals .sidebar-nav-children__inner');
       const toggle = document.querySelector('[data-group="navGroupGoals"]');
+      const list = document.getElementById('subGoals');
       if (!inner) return;
       // goals são armazenadas em allGoalsState ou similar — tenta ler do localStorage
       let goals = [];
@@ -409,9 +414,12 @@
       } catch (_) {}
       if (goals.length === 0) {
         if (toggle) toggle.style.display = 'none';
+        if (list) list.hidden = true;
+        inner.innerHTML = '';
         return;
       }
       if (toggle) toggle.style.display = '';
+      if (list) list.hidden = false;
       inner.innerHTML = goals.slice(0, 8).map(function (g) {
         const name = String(g.title || g.name || 'Meta');
         const safe = name.replace(/[&<>"']/g, function (c) {
