@@ -128,7 +128,7 @@
     --flowly-shell-max: 1280px;
     --flowly-shell-max-narrow: 1120px;
     --flowly-shell-max-wide: 1400px;
-    --flowly-sidebar-width: 216px;
+    --flowly-sidebar-width: clamp(188px, 16vw, 212px);
     --flowly-sidebar-icon-width: 56px;
     --flowly-mobile-nav-height: 64px;
 

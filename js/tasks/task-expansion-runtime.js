@@ -709,9 +709,9 @@ window.toggleTaskExpansion = function (task, el) {
 
   requestAnimationFrame(() => {
     exp.style.opacity = '1';
-    exp.style.maxHeight = `${Math.max(280, exp.scrollHeight + 32)}px`;
-    exp.style.marginTop = '8px';
-    exp.style.marginBottom = '8px';
+    exp.style.maxHeight = `${exp.scrollHeight + 14}px`;
+    exp.style.marginTop = '4px';
+    exp.style.marginBottom = '6px';
   });
 };
 

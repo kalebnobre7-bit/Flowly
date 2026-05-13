@@ -166,7 +166,7 @@
   align-items: center;
   flex-wrap: nowrap;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 12px;
   flex: 1 1 auto;
   min-width: 0;
   max-width: none;
@@ -175,15 +175,20 @@
 }
 
 .today-task-list--dashboard .task-item .task-content-span {
-  order: 1; min-width: 0; flex: 1 1 auto;
+  order: 1; min-width: 0; flex: 0 1 auto;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
+.today-task-list--dashboard .task-item .task-item-timer-btn {
+  order: 3;
+  margin-left: 0;
+}
+
 .today-task-list--dashboard .task-item .task-time {
-  order: 4; margin-left: 6px !important; min-width: 72px;
+  order: 5; margin-left: 0 !important; min-width: 58px;
   padding-left: 0; flex: 0 0 auto;
   color: rgba(226,232,240,0.42); font-size: 11px; font-weight: 600;
-  text-align: right; white-space: nowrap;
+  text-align: left; white-space: nowrap;
 }
 
 .today-task-list--dashboard .task-item .task-project-meta {
@@ -191,8 +196,14 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-.today-task-list--dashboard .task-item .task-timer-meta { order: 3; flex: 0 0 auto; }
+.today-task-list--dashboard .task-item .task-timer-meta { order: 4; flex: 0 0 auto; }
 .today-task-list--dashboard .task-item .checkbox-custom  { margin-top: 0; }
+
+.today-task-list--dashboard + .task-expansion,
+.today-task-list--dashboard .task-expansion {
+  width: min(560px, calc(100% - 42px));
+  margin-left: 30px;
+}
 
 .today-task-list--dashboard .task-item--project-anchor,
 .today-task-list--dashboard .task-item--project-mirror {

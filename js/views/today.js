@@ -267,17 +267,6 @@ function renderToday() {
     ? 'today-task-list today-task-list--dashboard today-task-list--focus'
     : 'today-task-list today-task-list--dashboard';
 
-  // Inline quick-add at top
-  const quickAddTop = document.createElement('button');
-  quickAddTop.type = 'button';
-  quickAddTop.className = 'today-quick-add';
-  quickAddTop.innerHTML = '<i data-lucide="plus"></i><span>Adicionar tarefa</span>';
-  quickAddTop.addEventListener('click', (event) => {
-    event.stopPropagation();
-    insertQuickTaskInput(taskList, dateStr, 'Tarefas', taskList.firstElementChild);
-  });
-  taskList.appendChild(quickAddTop);
-
   allTasks.forEach(({ task, day, dateStr: entryDate, period, originalIndex }) => {
     taskList.appendChild(createTaskElement(day, entryDate, period, task, originalIndex));
   });

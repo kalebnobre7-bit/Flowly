@@ -46,6 +46,7 @@
     }
 
     .app-main {
+        margin-left: 0;
         padding: var(--flowly-space-4) var(--flowly-space-3);
         padding-bottom: calc(var(--flowly-mobile-nav-height) + var(--flowly-space-5));
         max-width: 100%;

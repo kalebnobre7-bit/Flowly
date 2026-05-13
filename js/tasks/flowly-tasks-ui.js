@@ -383,12 +383,7 @@ function createTaskElement(day, dateStr, period, task, index) {
         }
       })();
     };
-    const contentSpan = label.querySelector('.task-content-span');
-    if (contentSpan && contentSpan.textContent.trim() !== '') {
-      contentSpan.appendChild(timerBtn);
-    } else {
-      label.insertBefore(timerBtn, label.firstChild);
-    }
+    label.appendChild(timerBtn);
   }
 
   el.appendChild(label);

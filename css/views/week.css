@@ -7,21 +7,22 @@
 /* ---- WEEK GRID (container principal) ---- */
 .week-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(178px, 1fr));
+    grid-template-columns: repeat(var(--week-column-count, 7), minmax(0, 1fr));
     gap: 0;
     width: 100%;
     min-height: calc(100vh - 132px);
     min-height: calc(100dvh - 132px);
-    padding: 0 24px 28px;
+    padding: 0 clamp(12px, 2vw, 24px) 28px;
     overflow-x: auto;
     align-items: stretch;
     scroll-snap-type: x proximity;
     scrollbar-gutter: stable;
+    transition: grid-template-columns 260ms var(--flowly-ease-out);
 }
 
 /* Smart week: 5 colunas */
 .week-grid.smart-week-5 {
-    grid-template-columns: repeat(5, minmax(204px, 1fr));
+    grid-template-columns: repeat(var(--week-column-count, 5), minmax(0, 1fr));
 }
 
 /* ---- DAY COLUMN ---- */
@@ -30,9 +31,9 @@
     flex-direction: column;
     min-width: 0;
     min-height: 420px;
-    border-right: 1px solid rgba(255, 255, 255, 0.045);
+    border-right: 1px solid rgba(255, 255, 255, 0.038);
     background: transparent;
-    overflow: visible;
+    overflow: hidden;
     position: relative;
     scroll-snap-align: start;
     transition: background 140ms ease;
@@ -44,7 +45,7 @@
 
 /* Hover sutil na coluna */
 .day-column:hover {
-    background: rgba(255, 255, 255, 0.012);
+    background: rgba(255, 255, 255, 0.008);
 }
 
 body.no-week-hover .day-column,
@@ -55,7 +56,7 @@ body.no-week-hover .day-column:hover {
 
 /* Hoje: destaque com borda no topo */
 .day-column.today-active {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.024);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.018);
 }
 
 .day-column.today-active::before {
@@ -77,8 +78,8 @@ body.no-week-hover .day-column:hover {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding: 14px 12px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 12px 14px 11px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.042);
     position: static;
     background: transparent;
     z-index: 4;
@@ -90,7 +91,7 @@ body.no-week-hover .day-column:hover {
 }
 
 .day-col-name {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -99,7 +100,7 @@ body.no-week-hover .day-column:hover {
 }
 
 .day-col-num {
-    font-size: 24px;
+    font-size: 21px;
     font-weight: 800;
     letter-spacing: -0.04em;
     color: rgba(255, 255, 255, 0.65);
@@ -135,9 +136,13 @@ body.no-week-hover .day-column:hover {
 
 /* ---- TASK ITEMS na semana ---- */
 .day-column .task-item {
-    padding: 6px 8px;
-    margin: 2px 6px 1px;
-    border-radius: 6px;
+    padding: 6px 12px;
+    margin: 2px 8px;
+    border-radius: 7px;
+    min-width: 0;
+    overflow: hidden;
+    gap: 10px;
+    align-items: flex-start !important;
 }
 
 .day-column .task-item:hover {
@@ -145,8 +150,110 @@ body.no-week-hover .day-column:hover {
 }
 
 .day-column .task-item .task-label {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
     font-size: 12.5px;
-    line-height: 1.4;
+    line-height: 1.45;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    padding-top: 1px;
+}
+
+.day-column .task-item .task-content-span,
+.day-column .task-item .task-time,
+.day-column .task-item .task-project-meta,
+.day-column .task-item .task-timer-meta {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.day-column .task-item .task-content-span {
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: baseline;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.day-column .task-item .task-time,
+.day-column .task-item .task-timer-meta {
+    flex: 0 1 auto;
+    max-width: 72px;
+    margin-left: 2px !important;
+    opacity: 0.48 !important;
+}
+
+.day-column .task-item .task-project-meta {
+    flex: 0 1 36%;
+    max-width: 36%;
+    margin-left: 2px;
+    opacity: 0.55;
+}
+
+.day-column .task-item .checkbox-custom {
+    margin-top: 3px;
+}
+
+.day-column .task-item .task-item-timer-btn {
+    margin-left: 0;
+    opacity: 0.58;
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+}
+
+.day-column .task-item .task-collapse-btn {
+    margin-left: 6px !important;
+    opacity: 0.58;
+}
+
+/* ---- EXPANSÃO INLINE na semana ---- */
+.day-column .task-expansion {
+    width: calc(100% - 16px);
+    margin: 2px 8px 6px;
+    padding-left: 9px;
+}
+
+.day-column .task-expansion-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
+}
+
+.day-column .task-expansion-property-row {
+    grid-template-columns: 17px minmax(0, 1fr);
+    gap: 7px;
+}
+
+.day-column .task-expansion-property-content {
+    overflow: hidden;
+}
+
+.day-column .task-expansion-title-input {
+    height: 26px;
+    font-size: 12px;
+}
+
+.day-column .task-expansion-select,
+.day-column .task-prio-trigger {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.day-column .task-expansion-move-row,
+.day-column .task-expansion-actions,
+.day-column .task-expansion-days {
+    row-gap: 5px;
+}
+
+.day-column .task-choice-chip {
+    padding-inline: 7px;
 }
 
 /* ---- DROP ZONE ---- */
@@ -166,24 +273,24 @@ body.no-week-hover .day-column:hover {
 
 .task-drop-zone.week-end-dropzone {
     flex: 1 1 auto;
-    min-height: 72px;
-    margin: 2px 6px 8px;
+    min-height: 52px;
+    margin: 1px 8px 8px;
     border: 1px dashed transparent;
-    border-radius: 8px;
+    border-radius: 6px;
     background: transparent;
     transition: background 140ms ease, border-color 140ms ease, min-height 140ms ease;
 }
 
 .day-column:hover .task-drop-zone.week-end-dropzone {
-    border-color: rgba(255, 255, 255, 0.055);
+    border-color: rgba(255, 255, 255, 0.04);
     background: transparent;
 }
 
 .task-drop-zone.week-end-dropzone.show,
 .task-drop-zone.week-end-dropzone:hover {
-    min-height: 88px;
-    border-color: rgba(var(--flowly-accent-primary-rgb), 0.24);
-    background: rgba(var(--flowly-accent-primary-rgb), 0.035);
+    min-height: 68px;
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.2);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.025);
 }
 
 .day-column:hover .drop-zone {
@@ -204,8 +311,16 @@ body.no-week-hover .day-column:hover {
 
 /* ---- QUICK ADD STUB ---- */
 .quick-task-stub {
-    margin: 6px;
+    margin: 4px 8px;
     flex-shrink: 0;
+    border-color: transparent;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.28);
+}
+
+.day-column:hover .quick-task-stub {
+    border-color: rgba(255, 255, 255, 0.055);
+    color: rgba(255, 255, 255, 0.46);
 }
 
 /* ---- IS-TODAY accent no active dot ---- */
@@ -220,17 +335,24 @@ body.no-week-hover .day-column:hover {
     color: var(--flowly-accent-primary);
 }
 
+#btnWeekendsToggle.is-active,
+#btnSmartWeekToggle.is-active {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.12);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.22);
+    color: var(--flowly-accent-primary);
+}
+
 /* ---- RESPONSIVE ---- */
 @media (max-width: 768px) {
     .week-grid {
-        grid-template-columns: repeat(7, minmax(172px, 76vw));
+        grid-template-columns: repeat(var(--week-column-count, 7), minmax(154px, 76vw));
         min-height: calc(100dvh - 150px);
         padding: 0 12px 24px;
         gap: 0;
     }
 
     .week-grid.smart-week-5 {
-        grid-template-columns: repeat(5, minmax(172px, 76vw));
+        grid-template-columns: repeat(var(--week-column-count, 5), minmax(154px, 76vw));
     }
 
     .day-col-num  { font-size: 18px; }
@@ -241,10 +363,10 @@ body.no-week-hover .day-column:hover {
 
 @media (max-width: 480px) {
     .week-grid {
-        grid-template-columns: repeat(7, minmax(168px, 82vw));
+        grid-template-columns: repeat(var(--week-column-count, 7), minmax(150px, 82vw));
     }
 
     .week-grid.smart-week-5 {
-        grid-template-columns: repeat(5, minmax(168px, 82vw));
+        grid-template-columns: repeat(var(--week-column-count, 5), minmax(150px, 82vw));
     }
 }

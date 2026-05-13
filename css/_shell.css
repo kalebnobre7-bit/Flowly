@@ -13,15 +13,9 @@
    Pin: alarga a coluna da sidebar via transition.
 ----------------------------------------------------------------- */
 .app-shell {
-    display: grid;
-    grid-template-columns: var(--flowly-sidebar-icon-width) minmax(0, 1fr);
+    display: block;
     min-height: 100vh;
     min-height: 100dvh;
-    transition: grid-template-columns 0.24s var(--flowly-ease-out);
-}
-
-body.sidebar-pinned .app-shell {
-    grid-template-columns: var(--flowly-sidebar-width) minmax(0, 1fr);
 }
 
 /* ----------------------------------------------------------------
@@ -32,7 +26,15 @@ body.sidebar-pinned .app-shell {
 ----------------------------------------------------------------- */
 .app-main {
     min-width: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin-left: var(--flowly-sidebar-icon-width);
     padding: var(--flowly-space-6) clamp(var(--flowly-space-4), 2.5vw, var(--flowly-space-8));
+    transition: margin-left 0.24s var(--flowly-ease-out);
+}
+
+body.sidebar-pinned .app-main {
+    margin-left: var(--flowly-sidebar-width);
 }
 
 /* ----------------------------------------------------------------
@@ -43,8 +45,10 @@ body.sidebar-pinned .app-shell {
    - Pinned: coluna do grid vira 216px — sidebar não transborda
 ----------------------------------------------------------------- */
 .app-sidebar {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    bottom: 0;
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -61,11 +65,27 @@ body.sidebar-pinned .app-shell {
                 border-color 0.22s;
 }
 
+.app-sidebar::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 13px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--flowly-text-primary) url('../lightning.svg') center / 22px 22px no-repeat;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    opacity: 1;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+    z-index: 1;
+}
+
 /* Hover: expande com sombra, conteúdo não se move */
 .app-sidebar:hover {
     width: var(--flowly-sidebar-width);
     background: rgba(10, 11, 15, 1);
-    box-shadow: 8px 0 40px rgba(0, 0, 0, 0.55), 1px 0 0 rgba(255,255,255,0.06);
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.34), 1px 0 0 rgba(255,255,255,0.05);
     border-right-color: var(--flowly-border-subtle);
 }
 
@@ -75,6 +95,11 @@ body.sidebar-pinned .app-sidebar {
     box-shadow: none;
 }
 
+.app-sidebar:hover::before,
+body.sidebar-pinned .app-sidebar::before {
+    opacity: 0;
+}
+
 /* ----------------------------------------------------------------
    SIDEBAR TOPO: brand + toggle
 ----------------------------------------------------------------- */
@@ -82,16 +107,19 @@ body.sidebar-pinned .app-sidebar {
     display: flex;
     flex-direction: column;
     gap: var(--flowly-space-1);
-    padding: var(--flowly-space-4) var(--flowly-space-2) var(--flowly-space-2);
+    align-items: center;
+    padding: 16px 0 12px;
     flex-shrink: 0;
 }
 
 .sidebar-header-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    min-width: var(--flowly-sidebar-width);
-    padding: 0 var(--flowly-space-1);
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+    padding: 0;
     min-height: 36px;
 }
 
@@ -99,13 +127,18 @@ body.sidebar-pinned .app-sidebar {
 .sidebar-brand {
     display: flex;
     align-items: center;
-    gap: var(--flowly-space-3);
+    justify-content: center;
+    gap: 0;
     overflow: hidden;
-    flex: 1;
-    min-width: 0;
-    padding: var(--flowly-space-1);
+    flex: 0 0 40px;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    padding: 4px;
     border-radius: var(--flowly-radius-md);
-    transition: background var(--flowly-duration-fast);
+    opacity: 0;
+    pointer-events: none;
+    transition: background var(--flowly-duration-fast), opacity 0.12s ease;
 }
 
 .sidebar-brand:hover {
@@ -113,20 +146,45 @@ body.sidebar-pinned .app-sidebar {
 }
 
 .sidebar-brand-mark {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     display: grid;
     place-items: center;
-    border-radius: var(--flowly-radius-sm);
-    background: rgba(var(--flowly-accent-primary-rgb), 0.14);
-    border: 1px solid rgba(var(--flowly-accent-primary-rgb), 0.22);
+    border-radius: 8px;
+    background: var(--flowly-text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.88);
     flex-shrink: 0;
 }
 
 .sidebar-brand-mark svg,
 .sidebar-brand-mark img {
-    width: 16px;
-    height: 16px;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+.app-sidebar:hover .sidebar-top,
+body.sidebar-pinned .app-sidebar .sidebar-top {
+    align-items: stretch;
+    padding: 16px 10px 10px;
+}
+
+.app-sidebar:hover .sidebar-header-row,
+body.sidebar-pinned .app-sidebar .sidebar-header-row {
+    justify-content: space-between;
+}
+
+.app-sidebar:hover .sidebar-brand,
+body.sidebar-pinned .app-sidebar .sidebar-brand {
+    justify-content: flex-start;
+    gap: 12px;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    padding: var(--flowly-space-1);
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .sidebar-brand-copy {
@@ -144,11 +202,11 @@ body.sidebar-pinned .app-sidebar {
 .app-sidebar:hover .sidebar-brand-copy,
 body.sidebar-pinned .app-sidebar .sidebar-brand-copy {
     opacity: 1;
-    max-width: 160px;
+    max-width: 112px;
 }
 
 .sidebar-brand-copy strong {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--flowly-text-primary);
@@ -166,7 +224,8 @@ body.sidebar-pinned .app-sidebar .sidebar-brand-copy {
 
 /* Toggle (pin) button — só visível quando sidebar expandida */
 .sidebar-toggle {
-    flex-shrink: 0;
+    flex: 0 0 auto;
+    margin-left: auto;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.14s ease 0.06s;
@@ -184,12 +243,12 @@ body.sidebar-pinned .app-sidebar .sidebar-toggle {
 .sidebar-nav {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: var(--flowly-space-2) var(--flowly-space-2);
+    padding: var(--flowly-space-3) 8px;
     scrollbar-width: none;
 }
 
@@ -202,12 +261,12 @@ body.sidebar-pinned .app-sidebar .sidebar-toggle {
     justify-content: center;
     gap: 0;
     padding: 8px 6px;
-    border-radius: var(--flowly-radius-md);
+    border-radius: 10px;
     color: var(--flowly-text-secondary);
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 500;
-    transition: background 120ms ease, color 120ms ease;
-    min-height: 38px;
+    transition: background 140ms ease, color 140ms ease, opacity 140ms ease;
+    min-height: 40px;
     width: 100%;
     white-space: nowrap;
     position: relative;
@@ -219,7 +278,7 @@ body.sidebar-pinned .app-sidebar .sidebar-toggle {
 }
 
 .sidebar-nav-btn.active {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.1);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.075);
     color: var(--flowly-text-primary);
     font-weight: 600;
 }
@@ -228,18 +287,19 @@ body.sidebar-pinned .app-sidebar .sidebar-toggle {
 .sidebar-nav-btn.active::before {
     content: '';
     position: absolute;
-    left: -2px;
+    left: -5px;
     top: 50%;
     transform: translateY(-50%);
     width: 3px;
-    height: 16px;
-    border-radius: 0 2px 2px 0;
+    height: 18px;
+    border-radius: 999px;
     background: var(--flowly-accent-primary);
     opacity: 0;
     transition: opacity 0.22s;
 }
 
 /* Mostra dot só quando icon-only (não expandida) */
+.sidebar-nav-btn.active::before,
 body:not(.sidebar-pinned) .app-sidebar:not(:hover) .sidebar-nav-btn.active::before {
     opacity: 1;
 }
@@ -265,14 +325,21 @@ body:not(.sidebar-pinned) .app-sidebar:not(:hover) .sidebar-nav-btn.active::befo
 .app-sidebar:hover .sidebar-nav-btn,
 body.sidebar-pinned .app-sidebar .sidebar-nav-btn {
     justify-content: flex-start;
-    gap: 10px;
-    padding: 8px 12px;
+    gap: 12px;
+    padding: 8px 10px;
+}
+
+.app-sidebar:hover .sidebar-nav-btn i,
+body.sidebar-pinned .app-sidebar .sidebar-nav-btn i {
+    width: 22px;
+    height: 22px;
 }
 
 .app-sidebar:hover .sidebar-nav-btn span,
 body.sidebar-pinned .app-sidebar .sidebar-nav-btn span {
     opacity: 1;
-    max-width: 180px;
+    max-width: 138px;
+    text-align: left;
 }
 
 .sidebar-nav-btn--ghost {
@@ -435,7 +502,7 @@ body.sidebar-pinned .app-sidebar .sidebar-nav-group.is-expanded .sidebar-nav-chi
     display: flex;
     flex-direction: column;
     gap: var(--flowly-space-1);
-    padding: var(--flowly-space-2) var(--flowly-space-2) var(--flowly-space-4);
+    padding: var(--flowly-space-2) 8px var(--flowly-space-4);
     border-top: 1px solid var(--flowly-border-muted);
     flex-shrink: 0;
 }
@@ -479,6 +546,7 @@ body.sidebar-pinned .app-sidebar .sidebar-nav-group.is-expanded .sidebar-nav-chi
     }
 
     .app-main {
+        margin-left: 0;
         padding: var(--flowly-space-4) var(--flowly-space-3);
         padding-left: var(--flowly-space-3);
         padding-bottom: calc(var(--flowly-mobile-nav-height) + var(--flowly-space-5));

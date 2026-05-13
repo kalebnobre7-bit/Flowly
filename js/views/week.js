@@ -5,6 +5,14 @@ window.toggleSmartWeek = function() {
   renderView(); // Re-render the current view (week)
 };
 
+window.toggleWeekendsWeek = function() {
+  const settings = safeJSONParse(localStorage.getItem('flowly_view_settings'), {});
+  settings.showWeekends = settings.showWeekends === false;
+  localStorage.setItem('flowly_view_settings', JSON.stringify(settings));
+  currentWeekOffset = 0;
+  renderView();
+};
+
 function renderWeek() {
   const grid = document.getElementById('weekGrid');
   grid.className = 'week-grid';
@@ -12,13 +20,24 @@ function renderWeek() {
   grid.innerHTML = '';
 
   const isSmartWeek = localStorage.getItem('flowly_smart_week') === 'true';
+  const viewSettings = getViewSettings();
+  const showWeekends = viewSettings.showWeekends !== false;
   grid.classList.toggle('smart-week-5', isSmartWeek);
+  grid.classList.toggle('week-grid--workdays', !showWeekends || isSmartWeek);
 
   // Atualizar label da semana e botão de toggle
   const smartBtn = document.getElementById('btnSmartWeekToggle');
   if (smartBtn) {
     smartBtn.classList.toggle('is-active', isSmartWeek);
     smartBtn.setAttribute('aria-pressed', isSmartWeek ? 'true' : 'false');
+  }
+
+  const weekendsBtn = document.getElementById('btnWeekendsToggle');
+  if (weekendsBtn) {
+    weekendsBtn.classList.toggle('is-active', showWeekends);
+    weekendsBtn.setAttribute('aria-pressed', showWeekends ? 'true' : 'false');
+    const text = weekendsBtn.querySelector('span');
+    if (text) text.textContent = showWeekends ? 'Fim semana' : 'Só úteis';
   }
 
   document.getElementById('weekLabel').textContent = isSmartWeek ? 'Foco de 5 Dias' : getWeekLabel(currentWeekOffset);
@@ -40,6 +59,8 @@ function renderWeek() {
   } else {
     weekDates = getWeekDates(currentWeekOffset);
   }
+
+  grid.style.setProperty('--week-column-count', weekDates.length);
 
   // HIDRATAR A SEMANA: Garantir que as rotinas existam no banco para todos os dias visíveis
   weekDates.forEach(({ dateStr }) => hydrateRoutineForDate(dateStr));
@@ -155,6 +176,22 @@ function renderWeek() {
 
     grid.appendChild(col);
   });
+
+  const columns = Array.from(grid.querySelectorAll('.day-column'));
+  const resetColumns = () => {
+    grid.style.gridTemplateColumns = `repeat(${columns.length}, minmax(0, 1fr))`;
+  };
+  resetColumns();
+  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    columns.forEach((col, index) => {
+      col.addEventListener('mouseenter', () => {
+        const template = columns.map((_, i) => (i === index ? '1.32fr' : '0.94fr')).join(' ');
+        grid.style.gridTemplateColumns = template;
+      });
+      col.addEventListener('mouseleave', resetColumns);
+    });
+  }
+
   if (window.lucide) lucide.createIcons();
 }
 
