@@ -95,36 +95,6 @@
 }
 .kanban-column--readonly .kanban-column__title { color: var(--flowly-accent-danger, #ff453a); }
 
-/* Empty column — collapses, shows just label rotated */
-.kanban-column--empty {
-    flex: 0 0 48px;
-    min-width: 48px;
-    max-width: 48px;
-    padding: var(--flowly-space-3) var(--flowly-space-2);
-    opacity: 0.45;
-    cursor: default;
-}
-.kanban-column--empty .kanban-column__header {
-    border-bottom: none;
-    padding-bottom: 0;
-    height: 100%;
-    min-height: 60px;
-    justify-content: center;
-}
-.kanban-column--empty .kanban-column__title {
-    writing-mode: vertical-lr;
-    transform: rotate(180deg);
-    text-align: center;
-    font-size: 9px;
-    gap: 4px;
-}
-.kanban-column--empty .kanban-column__count {
-    display: none;
-}
-.kanban-column--empty .kanban-column__hint,
-.kanban-column--empty .kanban-column__body {
-    display: none;
-}
 
 .kanban-column__header {
     display: flex;
