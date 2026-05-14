@@ -161,75 +161,79 @@ function createTaskElement(day, dateStr, period, task, index) {
     };
   }
 
-  // ── Project block header (nova feature) ─────────────────────────────────
+  // ── Project block header — parece tarefa normal, colapsa sub-tasks ───────
   if (task.isProjectHeader) {
+    const collapseKey = 'ph:' + task.projectId;
+    const isCollapsed = typeof isTaskGroupCollapsed === 'function'
+      ? isTaskGroupCollapsed({ supabaseId: collapseKey })
+      : (localStorage.getItem('flowly_ph_' + task.projectId) === 'true');
+
     el.className = 'task-item task-item--project-header';
     el.draggable = true;
     el.dataset.period = 'Projetos';
     el.dataset.projectId = task.projectId || '';
 
-    // Diamond icon
+    // ◆ icon no lugar do checkbox
     const diamond = document.createElement('span');
     diamond.className = 'task-project-header-icon';
-    diamond.innerHTML = `<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0L12 6L6 12L0 6Z"/></svg>`;
+    diamond.innerHTML = `<svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" style="opacity:.7"><path d="M6 0L12 6L6 12L0 6Z"/></svg>`;
     el.appendChild(diamond);
 
-    const body = document.createElement('div');
-    body.className = 'task-project-header-body';
+    // Label: nome do projeto
+    const label = document.createElement('span');
+    label.className = 'task-project-header-name';
+    label.textContent = task.text || '';
+    el.appendChild(label);
 
-    const nameRow = document.createElement('div');
-    nameRow.className = 'task-project-header-name-row';
+    // Meta: deadline + pendentes
+    const pendentes = task.projectTaskCount - task.projectDoneCount;
+    const metaParts = [];
+    if (task.projectDeadlineText) metaParts.push(task.projectDeadlineText);
+    const meta = document.createElement('span');
+    meta.className = 'task-project-header-meta';
+    meta.textContent = metaParts.join(' · ');
+    el.appendChild(meta);
 
-    const name = document.createElement('span');
-    name.className = 'task-project-header-name';
-    name.textContent = task.text || '';
-    nameRow.appendChild(name);
+    // Collapse button — igual tarefas com filhos
+    const collapseBtn = document.createElement('button');
+    collapseBtn.type = 'button';
+    collapseBtn.className = 'task-collapse-btn';
+    collapseBtn.style.marginLeft = 'auto';
+    collapseBtn.innerHTML = `${isCollapsed ? '▶' : '▼'} <span>${pendentes}</span>`;
+    el.appendChild(collapseBtn);
 
-    if (task.projectDeadlineText) {
-      const deadline = document.createElement('span');
-      deadline.className = 'task-project-header-deadline';
-      deadline.textContent = task.projectDeadlineText;
-      nameRow.appendChild(deadline);
-    }
-    body.appendChild(nameRow);
+    // Toggle collapse ao clicar no header ou no botão
+    const toggleCollapse = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const now = localStorage.getItem('flowly_ph_' + task.projectId) === 'true';
+      localStorage.setItem('flowly_ph_' + task.projectId, String(!now));
+      // Mostra/oculta sub-tasks no DOM
+      let next = container.nextElementSibling;
+      while (next && next.querySelector('.task-item--project-mirror-sub')) {
+        const sub = next.querySelector('.task-item--project-mirror-sub');
+        if (sub) sub.closest('.task-item--project-mirror-sub')?.parentElement;
+        next.style.display = !now ? 'none' : '';
+        next = next.nextElementSibling;
+      }
+      collapseBtn.innerHTML = `${!now ? '▶' : '▼'} <span>${pendentes}</span>`;
+    };
+    el.addEventListener('click', toggleCollapse);
 
-    const metaParts = [task.projectClientName, task.projectServiceType].filter(Boolean);
-    if (metaParts.length > 0 || (task.projectDoneCount !== undefined)) {
-      const meta = document.createElement('div');
-      meta.className = 'task-project-header-meta';
-      const metaStr = metaParts.join(' · ');
-      const progress = `${task.projectDoneCount}/${task.projectTaskCount}`;
-      meta.textContent = [metaStr, progress].filter(Boolean).join('  ');
-      body.appendChild(meta);
-    }
-
-    el.appendChild(body);
     container.appendChild(el);
 
-    // Drag start para mover o bloco inteiro
+    // Drag
     el.addEventListener('dragstart', (e) => {
       if (window.draggedTask) return;
       window.draggedTask = {
-        task: task,
-        dateStr: dateStr,
-        period: 'Projetos',
-        index: normalizedIndex,
-        isProjectHeaderDrag: true,
-        projectId: task.projectId,
-        projectOrder: task.projectOrder
+        task, dateStr, period: 'Projetos', index: normalizedIndex,
+        isProjectHeaderDrag: true, projectId: task.projectId
       };
       el.classList.add('is-dragging');
-      if (e.dataTransfer) {
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', task.projectId);
-      }
+      if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', task.projectId); }
     });
-    el.addEventListener('dragend', () => {
-      el.classList.remove('is-dragging');
-      window.draggedTask = null;
-    });
+    el.addEventListener('dragend', () => { el.classList.remove('is-dragging'); window.draggedTask = null; });
 
-    if (window.lucide) lucide.createIcons();
     return container;
   }
 
