@@ -390,7 +390,8 @@
    ============================================================= */
 .task-expansion {
     box-sizing: border-box;
-    width: min(340px, calc(100% - 36px));
+    width: calc(100% - 36px);
+    max-width: 340px;
     margin: 4px 0 8px 32px;
     padding: 0;
     max-height: 0;
