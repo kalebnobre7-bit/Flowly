@@ -163,11 +163,9 @@ window.toggleTaskExpansion = function (task, el) {
 
     const labelContainer = document.createElement('div');
     labelContainer.className = 'task-expansion-property-label';
+    labelContainer.title = label;
     if (iconName) {
-      // Notion-style: ícone + texto label
-      labelContainer.innerHTML =
-        `<i data-lucide="${iconName}" style="width:13px;height:13px;"></i>` +
-        `<span>${label}</span>`;
+      labelContainer.innerHTML = `<i data-lucide="${iconName}" style="width:12px;height:12px;"></i>`;
     } else {
       labelContainer.textContent = label;
     }
@@ -557,95 +555,60 @@ window.toggleTaskExpansion = function (task, el) {
     const moveRow = document.createElement('div');
     moveRow.className = 'task-expansion-move-row';
 
+    // Input de data — oculto, acionado pelo botão de display
     const moveDateInput = document.createElement('input');
     moveDateInput.type = 'date';
     moveDateInput.value = dateStr;
-    moveDateInput.className = 'task-expansion-select task-expansion-move-date';
+    moveDateInput.style.cssText = 'position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;';
+
+    // Display só com dd/MM sem ano
+    const fmtShortDate = (iso) => {
+      if (!iso) return '—';
+      const parts = iso.split('-');
+      return `${parts[2]}/${parts[1]}`;
+    };
+    const dateDisplay = document.createElement('button');
+    dateDisplay.type = 'button';
+    dateDisplay.className = 'task-expansion-inline-button task-expansion-date-display';
+    dateDisplay.title = 'Alterar data';
+    dateDisplay.textContent = fmtShortDate(dateStr);
+    dateDisplay.onclick = (e) => {
+      e.stopPropagation();
+      moveDateInput.showPicker?.() || moveDateInput.click();
+    };
+    moveDateInput.addEventListener('change', () => {
+      dateDisplay.textContent = fmtShortDate(moveDateInput.value);
+    });
+
+    moveRow.appendChild(dateDisplay);
     moveRow.appendChild(moveDateInput);
 
     const todayDate = localDateStr();
     const tomorrowDate = localDateStr(new Date(Date.now() + 86400000));
     const nextWeekDate = localDateStr(new Date(Date.now() + 7 * 86400000));
+    const isToday = dateStr === todayDate;
+    const isTomorrow = dateStr === tomorrowDate;
 
     moveRow.appendChild(
-      createChoiceChip('Hoje', dateStr === todayDate, null, () => {
+      createChoiceChip('Hoje', isToday, isToday ? 'var(--flowly-accent-primary)' : null, () => {
         moveDateInput.value = todayDate;
+        dateDisplay.textContent = fmtShortDate(todayDate);
       })
     );
     moveRow.appendChild(
-      createChoiceChip('Amanhã', dateStr === tomorrowDate, null, () => {
+      createChoiceChip('Amanhã', isTomorrow, isTomorrow ? 'var(--flowly-accent-primary)' : null, () => {
         moveDateInput.value = tomorrowDate;
+        dateDisplay.textContent = fmtShortDate(tomorrowDate);
       })
     );
     moveRow.appendChild(
       createChoiceChip('+7d', false, null, () => {
         moveDateInput.value = nextWeekDate;
+        dateDisplay.textContent = fmtShortDate(nextWeekDate);
       })
     );
 
-    let selectedMovePeriod = period;
-    const sectionPicker = document.createElement('div');
-    sectionPicker.className = 'task-section-picker';
-
-    const sectionTrigger = document.createElement('button');
-    sectionTrigger.type = 'button';
-    sectionTrigger.className = 'task-section-trigger';
-    sectionTrigger.setAttribute('aria-haspopup', 'listbox');
-    sectionTrigger.setAttribute('aria-expanded', 'false');
-    sectionTrigger.title = `Seção: ${selectedMovePeriod}`;
-    sectionTrigger.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>`;
-    sectionPicker.appendChild(sectionTrigger);
-
-    const sectionMenu = document.createElement('div');
-    sectionMenu.className = 'task-section-menu';
-    sectionMenu.setAttribute('role', 'listbox');
-    sectionMenu.hidden = true;
-
-    const closeSectionMenu = () => {
-      sectionMenu.hidden = true;
-      sectionTrigger.setAttribute('aria-expanded', 'false');
-    };
-    const onDocClickForSection = (e) => {
-      if (!sectionPicker.contains(e.target)) {
-        closeSectionMenu();
-        document.removeEventListener('click', onDocClickForSection);
-      }
-    };
-
-    const sections = ['Tarefas', 'Later', 'Follow-up'];
-    sections.forEach((name) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `task-section-item${name === selectedMovePeriod ? ' is-active' : ''}`;
-      btn.setAttribute('role', 'option');
-      btn.setAttribute('aria-selected', name === selectedMovePeriod ? 'true' : 'false');
-      btn.textContent = name;
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        selectedMovePeriod = name;
-        sectionTrigger.title = `Seção: ${name}`;
-        sectionMenu.querySelectorAll('.task-section-item').forEach((n) => {
-          const active = n.textContent === name;
-          n.classList.toggle('is-active', active);
-          n.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
-        closeSectionMenu();
-        document.removeEventListener('click', onDocClickForSection);
-      };
-      sectionMenu.appendChild(btn);
-    });
-    sectionPicker.appendChild(sectionMenu);
-
-    sectionTrigger.onclick = (e) => {
-      e.stopPropagation();
-      const willOpen = sectionMenu.hidden;
-      sectionMenu.hidden = !willOpen;
-      sectionTrigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-      if (willOpen) document.addEventListener('click', onDocClickForSection);
-      else document.removeEventListener('click', onDocClickForSection);
-    };
-
-    moveRow.appendChild(sectionPicker);
+    const selectedMovePeriod = period;
 
     const applyMove = (targetDate, targetPeriod) => {
       const result = window.moveTaskToDate(dateStr, period, numericIndex, targetDate, targetPeriod);

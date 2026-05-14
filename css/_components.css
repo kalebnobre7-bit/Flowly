@@ -440,12 +440,12 @@
 
 .task-expansion-property-row {
     display: grid;
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: 28px minmax(0, 1fr);
     align-items: center;
-    min-height: 28px;
+    min-height: 27px;
     padding: 0 8px 0 10px;
     border-radius: 4px;
-    margin: 0 3px;
+    margin: 0 2px;
     transition: background 100ms ease;
 }
 .task-expansion-property-row:hover {
@@ -453,31 +453,27 @@
 }
 
 /* Projeto sem valor */
-.task-expansion-property-row--empty .task-expansion-property-label { opacity: 0.35; }
+.task-expansion-property-row--empty .task-expansion-property-label { opacity: 0.25; }
 .task-expansion-property-row--empty .task-expansion-select {
     color: var(--flowly-text-tertiary);
     font-style: italic;
 }
 
-/* Label col — ícone + texto, dim */
+/* Label col — ícone só */
 .task-expansion-property-label {
     display: flex;
     align-items: center;
-    gap: 5px;
-    width: 72px;
+    justify-content: center;
+    width: 28px;
     flex-shrink: 0;
     color: var(--flowly-text-tertiary);
-    font-size: 10.5px;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
+    opacity: 0.5;
     user-select: none;
-    opacity: 0.7;
 }
 .task-expansion-property-label i,
 .task-expansion-property-label svg {
-    width: 11px !important;
-    height: 11px !important;
+    width: 12px !important;
+    height: 12px !important;
     flex-shrink: 0;
     color: currentColor !important;
     stroke: currentColor !important;
@@ -603,9 +599,29 @@
 }
 
 .task-timer-toggle {
-    background: rgba(var(--flowly-accent-primary-rgb), 0.1);
-    border-color: rgba(var(--flowly-accent-primary-rgb), 0.16);
+    background: transparent;
+    border-color: transparent;
     color: var(--flowly-accent-primary);
+    opacity: 0.9;
+}
+.task-timer-toggle:hover {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.12) !important;
+    opacity: 1;
+}
+
+/* Data sem ano — estilo chip */
+.task-expansion-date-display {
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    color: var(--flowly-text-primary);
+    padding: 0 5px;
+    border-radius: 4px;
+}
+.task-expansion-date-display:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--flowly-text-primary);
 }
 
 .task-choice-chip.is-active,
