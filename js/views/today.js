@@ -34,7 +34,8 @@ function renderToday() {
       .replaceAll("'", '&#39;');
 
   const todayViewSettings = safeJSONParse(localStorage.getItem('flowly_today_view_settings'), {});
-  const focusOnlyMode = todayViewSettings.focusOnlyMode === true;
+  const focusOnlyMode   = todayViewSettings.focusOnlyMode   === true;
+  const hideCompleted   = todayViewSettings.hideCompleted    === true;
   const now = new Date();
   const dateLabel = now.toLocaleDateString('pt-BR', {
     day: 'numeric',
@@ -157,7 +158,29 @@ function renderToday() {
     localStorage.setItem('flowly_today_view_settings', JSON.stringify(currentSettings));
     renderView();
   };
-  pageHeader.querySelector('.flowly-page-header__actions').appendChild(focusToggleBtn);
+  // Botão ocultar/mostrar tarefas feitas
+  const hideBtn = document.createElement('button');
+  hideBtn.type = 'button';
+  hideBtn.className = hideCompleted
+    ? 'flowly-btn flowly-btn--ghost--subtle flowly-btn--sm flowly-btn--icon is-active'
+    : 'flowly-btn flowly-btn--ghost--subtle flowly-btn--sm flowly-btn--icon';
+  hideBtn.setAttribute('aria-label', hideCompleted ? 'Mostrar feitas' : 'Ocultar feitas');
+  hideBtn.setAttribute('title', hideCompleted ? 'Mostrar feitas' : 'Ocultar feitas');
+  hideBtn.innerHTML = hideCompleted
+    ? '<i data-lucide="eye-off" style="width:15px;height:15px;"></i>'
+    : '<i data-lucide="eye" style="width:15px;height:15px;"></i>';
+  hideBtn.onclick = (event) => {
+    event.stopPropagation();
+    const s = safeJSONParse(localStorage.getItem('flowly_today_view_settings'), {});
+    s.hideCompleted = !(s.hideCompleted === true);
+    localStorage.setItem('flowly_today_view_settings', JSON.stringify(s));
+    renderView();
+  };
+
+  const actions = pageHeader.querySelector('.flowly-page-header__actions');
+  actions.appendChild(hideBtn);
+  actions.appendChild(focusToggleBtn);
+  if (window.lucide) lucide.createIcons();
   grid.appendChild(pageHeader);
 
   // ========== HERO ==========
@@ -267,7 +290,11 @@ function renderToday() {
     ? 'today-task-list today-task-list--dashboard today-task-list--focus'
     : 'today-task-list today-task-list--dashboard';
 
-  allTasks.forEach(({ task, day, dateStr: entryDate, period, originalIndex }) => {
+  const visibleTasks = hideCompleted
+    ? allTasks.filter(({ task }) => !task.completed)
+    : allTasks;
+
+  visibleTasks.forEach(({ task, day, dateStr: entryDate, period, originalIndex }) => {
     taskList.appendChild(createTaskElement(day, entryDate, period, task, originalIndex));
   });
 
