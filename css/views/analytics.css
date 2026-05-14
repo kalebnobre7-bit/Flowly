@@ -10,16 +10,16 @@
 /* ---- TITLE ---- */
 .analytics-title-v2 {
     font-family: var(--flowly-font-display);
-    font-weight: 900;
-    font-size: clamp(28px, 4vw, 34px);
-    letter-spacing: -0.05em;
+    font-weight: var(--flowly-weight-bold);
+    font-size: var(--flowly-text-2xl);
+    letter-spacing: -0.04em;
     color: var(--flowly-text-primary);
 }
 
 .analytics-section-title,
 [class*="-section-title"] {
     font-family: var(--flowly-font-display);
-    font-size: 16px; font-weight: 700;
+    font-size: var(--flowly-text-base); font-weight: var(--flowly-weight-bold);
     letter-spacing: -0.03em;
     color: var(--flowly-text-primary);
     margin-bottom: var(--flowly-space-4);
@@ -27,10 +27,10 @@
 
 .analytics-section-label {
     font-family: var(--flowly-font-main);
-    font-weight: 800;
-    letter-spacing: 0.14em;
+    font-weight: var(--flowly-weight-semibold);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    font-size: 10px;
+    font-size: var(--flowly-text-2xs);
     color: var(--flowly-text-tertiary);
 }
 
@@ -81,9 +81,9 @@
 
 .analytics-chart-v2-title {
     font-family: var(--flowly-font-main);
-    font-weight: 800;
+    font-weight: var(--flowly-weight-semibold);
     letter-spacing: 0.1em; text-transform: uppercase;
-    font-size: 10px; color: var(--flowly-text-tertiary);
+    font-size: var(--flowly-text-2xs); color: var(--flowly-text-tertiary);
 }
 
 .analytics-chart-v2-badge {

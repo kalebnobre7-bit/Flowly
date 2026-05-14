@@ -424,7 +424,7 @@
     background: transparent;
     color: var(--flowly-text-primary);
     font: inherit;
-    font-size: 12.5px;
+    font-size: var(--flowly-text-sm);
     line-height: 28px;
     outline: none;
 }
@@ -485,7 +485,7 @@
     background: rgba(255, 255, 255, 0.025);
     color: var(--flowly-text-primary);
     font: inherit;
-    font-size: 11.5px;
+    font-size: var(--flowly-text-xs);
     outline: none;
 }
 
@@ -536,7 +536,7 @@
     background: transparent;
     color: var(--flowly-text-secondary);
     font: inherit;
-    font-size: 11.5px;
+    font-size: var(--flowly-text-xs);
     line-height: 1;
     white-space: nowrap;
     transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
@@ -1675,7 +1675,7 @@ input[type="checkbox"]:focus {
     content: '↻';
     position: absolute;
     right: 6px; top: 6px;
-    font-size: 10px;
+    font-size: var(--flowly-text-2xs);
     color: rgba(255,255,255,0.28);
 }
 
@@ -1764,7 +1764,7 @@ body.dragging-active .task-item {
 }
 
 .task-project-anchor-title {
-    font-size: 14px; font-weight: 500;
+    font-size: var(--flowly-text-sm); font-weight: 500;
     color: rgba(255, 255, 255, 0.92); line-height: 1.45;
 }
 
@@ -1812,11 +1812,11 @@ body.dragging-active .task-item {
 }
 
 .task-collapse-btn:hover { color: #dbeafe; }
-.task-collapse-btn span  { font-size: 10px; opacity: 0.8; }
+.task-collapse-btn span  { font-size: var(--flowly-text-2xs); opacity: 0.8; }
 
 /* Task label */
 .task-label {
-    font-size: 14px; line-height: 1.55;
+    font-size: var(--flowly-text-sm); line-height: 1.55;
     color: rgba(255, 255, 255, 0.85);
     width: 100%; cursor: text; transition: color 0.15s;
 }
@@ -1929,7 +1929,7 @@ body.dragging-active .task-item {
     background: transparent; border: none;
     padding: 6px 8px; color: white;
     width: 100%; outline: none;
-    font-size: 14px; font-family: inherit;
+    font-size: var(--flowly-text-sm); font-family: inherit;
 }
 
 .quick-task-input::placeholder { color: rgba(255, 255, 255, 0.3); }
@@ -2026,7 +2026,7 @@ body.dragging-active .task-item {
 .flowly-page-header-left  { flex: 1; min-width: 0; }
 .flowly-page-actions      { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .flowly-page-kicker {
-    font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+    font-size: var(--flowly-text-2xs); font-weight: 700; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--ds-accent); margin-bottom: 4px;
 }
 .flowly-page-title {
@@ -2184,7 +2184,7 @@ body.dragging-active .task-item {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: var(--flowly-text-2xs);
     font-weight: 700;
     padding: 2px 7px;
     border-radius: var(--flowly-radius-sm);
@@ -2260,7 +2260,7 @@ body.dragging-active .task-item {
     font-size: var(--flowly-text-sm);
 }
 .flowly-table th {
-    font-size: 10px;
+    font-size: var(--flowly-text-2xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
