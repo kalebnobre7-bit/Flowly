@@ -216,6 +216,50 @@ function isProjectSubtasksCollapsed(task) {
   return project ? project.collapseSubtasks !== false : false;
 }
 
+// ── Daily order: unified position for any task in Today view ─────────────────
+// ID estável pra qualquer tarefa na view de Hoje
+function getTaskDailyId(task, period) {
+  if (!task) return '';
+  if (task.isRoutine || task.isRecurring || period === 'Rotina') {
+    const rk = task.routineKey ||
+      (typeof getRoutineKey === 'function' ? getRoutineKey(task) : null) ||
+      task.text || '';
+    return 'r:' + rk;
+  }
+  return 't:' + (task.supabaseId || task.id || (String(period || '') + ':' + String(task.text || '').trim()));
+}
+
+function _hdpKey() { return 'flowly_hdp'; }
+
+function loadHabitDailyPositions() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(_hdpKey()) || '{}');
+    window.habitDailyPositions = saved;
+  } catch (_) {
+    window.habitDailyPositions = {};
+  }
+}
+
+function saveHabitDailyPositions() {
+  try {
+    const hdp = window.habitDailyPositions || {};
+    // Mantém só os últimos 14 dias pra não entupir localStorage
+    const now = new Date();
+    const cutoff = new Date(now);
+    cutoff.setDate(now.getDate() - 14);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const trimmed = {};
+    for (const [dateStr, val] of Object.entries(hdp)) {
+      if (dateStr >= cutoffStr) trimmed[dateStr] = val;
+    }
+    window.habitDailyPositions = trimmed;
+    localStorage.setItem(_hdpKey(), JSON.stringify(trimmed));
+  } catch (_) {}
+}
+
+// Inicializa ao carregar
+loadHabitDailyPositions();
+
 function unifiedTaskSort(taskList) {
   if (!taskList || taskList.length === 0) return [];
 
@@ -284,25 +328,25 @@ function unifiedTaskSort(taskList) {
     }
   });
 
+  // Obtém posição diária unificada (funciona pra qualquer tipo de tarefa)
+  const getUnifiedPos = (item) => {
+    const task = item.task;
+    const dateStr = item.dateStr || '';
+    const hdp = (window.habitDailyPositions || {})[dateStr] || {};
+    const dailyId = getTaskDailyId(task, item.period);
+    if (typeof hdp[dailyId] === 'number') return hdp[dailyId];
+    // Fallback: hábito sem dailyPosition usa índice negativo (flutua no topo),
+    // tarefa regular usa task.position
+    const isRoutine = task.isRoutine || task.isRecurring || item.period === 'Rotina';
+    if (isRoutine) return -10000 + (item.originalIndex || 0);
+    return task.position || 0;
+  };
+
   const sortFn = (a, b) => {
     const tA = a.task;
     const tB = b.task;
 
-    const isRoutineA = tA.isRoutine || tA.isRecurring || a.period === 'Rotina';
-    const isRoutineB = tB.isRoutine || tB.isRecurring || b.period === 'Rotina';
-    const hasDailyPosA = isRoutineA && typeof tA.dailyPosition === 'number';
-    const hasDailyPosB = isRoutineB && typeof tB.dailyPosition === 'number';
-
-    // Hábito SEM dailyPosition (não reordenado pelo user) flutua no topo
-    const isFloatingA = isRoutineA && !hasDailyPosA;
-    const isFloatingB = isRoutineB && !hasDailyPosB;
-    if (isFloatingA !== isFloatingB) return isFloatingA ? -1 : 1;
-    if (isFloatingA && isFloatingB) {
-      return (a.originalIndex || 0) - (b.originalIndex || 0);
-    }
-
-    // Ambos posicionados (regular OU hábito com dailyPosition).
-    // Concluídas em cima dentro deste grupo. (coerce p/ boolean evita bug undefined!==false)
+    // Concluídas em cima (dentro de qualquer grupo)
     const completedA = !!tA.completed;
     const completedB = !!tB.completed;
     if (completedA !== completedB) return completedA ? -1 : 1;
@@ -313,9 +357,9 @@ function unifiedTaskSort(taskList) {
       if (timeA !== timeB) return timeA - timeB;
     }
 
-    // Sort por position (hábito usa dailyPosition, regular usa position)
-    const posA = isRoutineA ? tA.dailyPosition : (tA.position || 0);
-    const posB = isRoutineB ? tB.dailyPosition : (tB.position || 0);
+    // Sort por posição unificada
+    const posA = getUnifiedPos(a);
+    const posB = getUnifiedPos(b);
     if (posA !== posB) return posA - posB;
     return (a.originalIndex || 0) - (b.originalIndex || 0);
   };

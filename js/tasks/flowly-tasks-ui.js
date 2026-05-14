@@ -701,61 +701,68 @@ function handleTaskItemDrop(e, el, target) {
   const targetIsHabit = isHabitOrRoutineTarget(target.task, el);
   const sourceIsHabit = Boolean(draggedTask.isRoutineDrag);
 
-  // Source hábito: reposiciona dentro do dia.
-  // Hábito → hábito: reorder via routineKey (ordem global).
-  // Hábito → regular: seta dailyPosition pra misturar entre regulares.
+  // ── Unified drop: usa dailyPosition pra QUALQUER tipo (habit OU regular) ──
+  if (!window.habitDailyPositions) window.habitDailyPositions = {};
+  const hdp = window.habitDailyPositions;
+  const dateStr = draggedTask.dateStr || target.dateStr || '';
+
+  // Determina posição do target no store unificado
+  const getStoredPos = (task, period) => {
+    const id = getTaskDailyId(task, period);
+    return hdp[dateStr]?.[id] ?? (
+      task.isRoutine || task.isRecurring || period === 'Rotina'
+        ? -10000 + 0 // valor padrão flutuante pra hábito sem pos
+        : (task.position || 0)
+    );
+  };
+
+  const targetPos = getStoredPos(target.task, target.period);
+  const newPos = dragAbove ? targetPos - 0.5 : targetPos + 0.5;
+
   if (sourceIsHabit) {
+    // Hábito: salva dailyPosition unificada
     const routineKey = draggedTask.routineKey || getRoutineKey(draggedTask.task);
-    // Acessa via window pra evitar ReferenceError em scripts isolados
-    if (!window.habitDailyPositions) window.habitDailyPositions = {};
-    const hdp = window.habitDailyPositions;
-
-    if (targetIsHabit) {
-      // Reorder dentro do grupo de hábitos
-      const habitItems = [...document.querySelectorAll('.task-item[data-period="Rotina"]')];
-      const targetIdx = habitItems.indexOf(el);
-      const insertAt = dragAbove ? targetIdx : targetIdx + 1;
-      if (typeof reorderRoutineTasksForDate === 'function') {
-        reorderRoutineTasksForDate(draggedTask.dateStr, routineKey, insertAt);
-      }
-      // Limpa dailyPosition (volta pra grupo flutuante)
-      if (hdp[draggedTask.dateStr]) {
-        delete hdp[draggedTask.dateStr][routineKey];
-      }
-    } else {
-      // Hábito sai do grupo de hábitos pra misturar entre regulares.
-      // Position = position do target ± 0.5 (fica entre regulares).
-      const targetPos = typeof target.task.position === 'number' ? target.task.position : 0;
-      const newPos = dragAbove ? targetPos - 0.5 : targetPos + 0.5;
-      if (!hdp[draggedTask.dateStr]) hdp[draggedTask.dateStr] = {};
-      hdp[draggedTask.dateStr][routineKey] = newPos;
-    }
-
+    const habitId = 'r:' + routineKey;
+    if (!hdp[dateStr]) hdp[dateStr] = {};
+    hdp[dateStr][habitId] = newPos;
+    // Também atualiza campo diretamente (compatibilidade com routine-service)
+    hdp[dateStr][routineKey] = newPos;
     saveToLocalStorage();
+    if (typeof saveHabitDailyPositions === 'function') saveHabitDailyPositions();
     draggedTask = null;
     renderView();
     return;
   }
 
-  // Target hábito (source regular): task vira root no period do source, no topo
-  if (targetIsHabit) {
-    const moveResult = moveTaskSubtree({
-      sourceDateStr: draggedTask.dateStr,
-      sourcePeriod: draggedTask.period,
-      sourceIndex: draggedTask.index,
-      targetDateStr: target.dateStr,
-      targetPeriod: draggedTask.period,
-      insertAt: 0,
-      forcedParentId: null
-    });
-    if (moveResult.moved) {
+  if (targetIsHabit || sourceIsHabit === false) {
+    // Regular arrastada: salva dailyPosition unificada
+    const sourceId = getTaskDailyId(draggedTask.task, draggedTask.period);
+    if (!hdp[dateStr]) hdp[dateStr] = {};
+    hdp[dateStr][sourceId] = newPos;
+
+    // Se cross-period, também move no allTasksData pra Supabase sync
+    if (draggedTask.period !== target.period && !targetIsHabit) {
+      const moveResult = moveTaskSubtree({
+        sourceDateStr: draggedTask.dateStr,
+        sourcePeriod: draggedTask.period,
+        sourceIndex: draggedTask.index,
+        targetDateStr: target.dateStr,
+        targetPeriod: target.period,
+        insertAt: dragAbove ? target.index : target.index + 1,
+        forcedParentId: target.task.parent_id || null
+      });
+      if (moveResult.moved) {
+        saveToLocalStorage();
+        (async () => {
+          for (const d of moveResult.datesToSync || []) await syncDateToSupabase(d);
+        })();
+      }
+    } else {
       saveToLocalStorage();
-      (async () => {
-        for (const d of moveResult.datesToSync || []) await syncDateToSupabase(d);
-      })();
     }
-    renderView();
+    if (typeof saveHabitDailyPositions === 'function') saveHabitDailyPositions();
     draggedTask = null;
+    renderView();
     return;
   }
 
@@ -797,6 +804,7 @@ function handleTaskItemDrop(e, el, target) {
     })();
   }
 
+  if (typeof saveHabitDailyPositions === 'function') saveHabitDailyPositions();
   renderView();
   draggedTask = null;
 }
