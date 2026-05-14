@@ -15,7 +15,9 @@ const ANON_KEY =
 const EMAIL    = process.env.FLOWLY_EMAIL    || '';
 const PASSWORD = process.env.FLOWLY_PASSWORD || '';
 
-let accessToken = process.env.FLOWLY_USER_TOKEN || '';
+let accessToken  = process.env.FLOWLY_USER_TOKEN || '';
+let refreshToken = '';
+let refreshTimer  = null;
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export async function signIn() {
@@ -28,7 +30,36 @@ export async function signIn() {
     }
   );
   if (!res.ok) throw new Error(`Auth failed: ${await res.text()}`);
-  accessToken = (await res.json()).access_token;
+  const data = await res.json();
+  accessToken  = data.access_token;
+  refreshToken = data.refresh_token || '';
+  scheduleRefresh(data.expires_in || 3600);
+}
+
+async function refreshSession() {
+  if (!refreshToken) { await signIn(); return; }
+  const res = await fetch(
+    `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    }
+  );
+  if (!res.ok) { await signIn(); return; } // refresh falhou, faz login completo
+  const data = await res.json();
+  accessToken  = data.access_token;
+  refreshToken = data.refresh_token || refreshToken;
+  scheduleRefresh(data.expires_in || 3600);
+  process.stdout.write('[flowly-data] Token renovado.\n');
+}
+
+function scheduleRefresh(expiresInSeconds) {
+  if (refreshTimer) clearTimeout(refreshTimer);
+  // Renova 60s antes de expirar (nunca mais de 50min)
+  const delay = Math.min(expiresInSeconds - 60, 3000) * 1000;
+  refreshTimer = setTimeout(() => refreshSession().catch(() => {}), delay);
+  refreshTimer.unref?.(); // não bloqueia shutdown do processo
 }
 
 export async function ensureAuth() {
@@ -54,7 +85,13 @@ export async function db(method, table, params = {}, body = null) {
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const opts = { method, headers: authHeaders() };
   if (body != null) opts.body = JSON.stringify(body);
-  const res  = await fetch(url.toString(), opts);
+  let res  = await fetch(url.toString(), opts);
+  // Token expirado — renova e tenta uma vez mais
+  if (res.status === 401 && (EMAIL || refreshToken)) {
+    await refreshSession();
+    opts.headers = authHeaders();
+    res = await fetch(url.toString(), opts);
+  }
   const text = await res.text();
   if (!res.ok) throw new Error(`Supabase ${res.status}: ${text.slice(0, 300)}`);
   return text ? JSON.parse(text) : null;
