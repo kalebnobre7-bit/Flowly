@@ -486,7 +486,7 @@
     gap: 3px;
     flex-wrap: nowrap;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .task-expansion-select,
