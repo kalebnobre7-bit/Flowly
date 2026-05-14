@@ -1869,8 +1869,8 @@ body.dragging-active .task-item {
 }
 
 .task-project-header-name {
-    font-size: var(--flowly-text-sm);
-    font-weight: 400;
+    font-size: var(--flowly-text-base);
+    font-weight: 500;
     color: var(--flowly-text-primary);
     white-space: nowrap;
     overflow: hidden;
