@@ -425,9 +425,12 @@ window.toggleTaskExpansion = function (task, el) {
   });
   prioPicker.appendChild(prioMenu);
 
+  const getExpansion = () => prioPicker.closest('.task-expansion');
   const closePrioMenu = () => {
     prioMenu.hidden = true;
     prioTrigger.setAttribute('aria-expanded', 'false');
+    const exp = getExpansion();
+    if (exp) exp.style.overflow = '';
   };
   const onDocClickForPrio = (e) => {
     if (!prioPicker.contains(e.target)) closePrioMenu();
@@ -437,6 +440,9 @@ window.toggleTaskExpansion = function (task, el) {
     const willOpen = prioMenu.hidden;
     prioMenu.hidden = !willOpen;
     prioTrigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    // Libera overflow do container animado pra dropdown não ser cortado
+    const exp = getExpansion();
+    if (exp) exp.style.overflow = willOpen ? 'visible' : '';
     if (willOpen) document.addEventListener('click', onDocClickForPrio);
     else document.removeEventListener('click', onDocClickForPrio);
   };
