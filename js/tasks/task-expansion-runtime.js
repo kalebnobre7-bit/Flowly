@@ -254,9 +254,8 @@ window.toggleTaskExpansion = function (task, el) {
   timerActions.className = 'task-expansion-actions';
   timerCard.appendChild(timerActions);
 
-  const timerValue = document.createElement('strong');
+  const timerValue = document.createElement('span');
   timerValue.className = 'task-expansion-timer-value';
-  timerValue.style.fontSize = '14px';
   timerActions.appendChild(timerValue);
 
   const timerToggleBtn = document.createElement('button');

@@ -388,6 +388,7 @@
 /* =============================================================
    4.1. TASK EXPANSION — detalhes inline de uma tarefa
    ============================================================= */
+/* ── Task expansion panel ─────────────────────────────────────────────────── */
 .task-expansion {
     box-sizing: border-box;
     width: calc(100% - 36px);
@@ -397,33 +398,26 @@
     max-height: 0;
     opacity: 0;
     overflow: hidden;
-    background: var(--flowly-bg-elevated);
-    border: 1px solid var(--flowly-border-subtle);
+    background: rgba(12, 13, 18, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: var(--flowly-radius-md);
     color: var(--flowly-text-secondary);
-    box-shadow: var(--flowly-shadow-sm);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.04) inset;
     transition: max-height 200ms var(--flowly-ease-out),
                 opacity 160ms var(--flowly-ease-out),
                 margin 160ms var(--flowly-ease-out);
 }
+.task-expansion--minimal { background: rgba(12, 13, 18, 0.96); }
 
-.task-expansion--minimal {
-    background: var(--flowly-bg-elevated);
-}
-
-/* Título — compacto, editável */
+/* Título */
 .task-expansion-head {
-    width: 100%;
-    min-width: 0;
-    padding: 7px 10px 6px;
-    border-bottom: 1px solid var(--flowly-border-subtle);
+    padding: 8px 12px 7px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-
 .task-expansion-title-input {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    height: auto;
     padding: 0;
     border: 0;
     background: transparent;
@@ -432,76 +426,71 @@
     font-size: var(--flowly-text-sm);
     font-weight: var(--flowly-weight-semibold);
     letter-spacing: var(--flowly-letter-snug);
-    line-height: 1.35;
+    line-height: 1.4;
     outline: none;
 }
-
 .task-expansion-title-input:focus { background: transparent; }
 
-/* Grid de propriedades — vertical compacto */
+/* Grid de propriedades */
 .task-expansion-grid {
     display: flex;
     flex-direction: column;
-    padding: 2px 0;
+    padding: 3px 0 2px;
 }
 
 .task-expansion-property-row {
     display: grid;
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-columns: 72px minmax(0, 1fr);
     align-items: center;
-    gap: 0;
-    min-width: 0;
-    min-height: 26px;
-    padding: 1px 6px 1px 10px;
-    transition: background 100ms ease;
-    cursor: default;
-}
-
-.task-expansion-property-row:hover {
-    background: rgba(255, 255, 255, 0.025);
+    min-height: 28px;
+    padding: 0 8px 0 10px;
     border-radius: 4px;
+    margin: 0 3px;
+    transition: background 100ms ease;
+}
+.task-expansion-property-row:hover {
+    background: rgba(255, 255, 255, 0.03);
 }
 
-/* Projeto sem valor: label mais apagada, select transparente */
-.task-expansion-property-row--empty .task-expansion-property-label {
-    opacity: 0.4;
-}
+/* Projeto sem valor */
+.task-expansion-property-row--empty .task-expansion-property-label { opacity: 0.35; }
 .task-expansion-property-row--empty .task-expansion-select {
     color: var(--flowly-text-tertiary);
-    background: transparent;
+    font-style: italic;
 }
 
-/* Label: ícone + texto curto, largura fixa */
+/* Label col — ícone + texto, dim */
 .task-expansion-property-label {
     display: flex;
     align-items: center;
     gap: 5px;
-    width: 76px;
+    width: 72px;
     flex-shrink: 0;
     color: var(--flowly-text-tertiary);
-    font-size: 11px;
-    font-weight: var(--flowly-weight-medium);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
     white-space: nowrap;
     user-select: none;
-    opacity: 0.75;
+    opacity: 0.7;
 }
-
 .task-expansion-property-label i,
 .task-expansion-property-label svg {
-    width: 12px !important;
-    height: 12px !important;
+    width: 11px !important;
+    height: 11px !important;
     flex-shrink: 0;
     color: currentColor !important;
     stroke: currentColor !important;
 }
 
+/* Value col */
 .task-expansion-property-content {
     display: flex;
     align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
+    gap: 3px;
+    flex-wrap: nowrap;
     min-width: 0;
-    padding: 1px 2px;
+    overflow: hidden;
 }
 
 .task-expansion-select,
@@ -509,8 +498,8 @@
     box-sizing: border-box;
     min-width: 0;
     max-width: 100%;
-    height: 22px;
-    padding: 0 5px;
+    height: 20px;
+    padding: 0 4px;
     border: 1px solid transparent;
     border-radius: 4px;
     background: transparent;
@@ -518,22 +507,41 @@
     font: inherit;
     font-size: 11px;
     outline: none;
-    transition: background 100ms ease;
+    transition: background 80ms ease;
 }
-
 .task-expansion-select:hover,
-.task-expansion-move-date:hover {
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.task-expansion-select {
-    flex: 1 1 100px;
-}
-
+.task-expansion-move-date:hover { background: rgba(255,255,255,0.04); }
+.task-expansion-select { flex: 1 1 80px; }
 .task-expansion-select:focus,
 .task-expansion-move-date:focus {
-    border-color: rgba(var(--flowly-accent-primary-rgb), 0.24);
-    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.2);
+    background: rgba(255,255,255,0.03);
+}
+
+/* Timer — display monospace proeminente */
+.task-expansion-timer-value {
+    font-family: var(--flowly-font-mono) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em;
+    color: var(--flowly-text-primary);
+    line-height: 1;
+    flex-shrink: 0;
+    min-width: 44px;
+}
+
+/* Move row — linha única sem wrap */
+.task-expansion-move-row {
+    flex-wrap: nowrap !important;
+    gap: 3px !important;
+    overflow: hidden;
+    width: 100%;
+}
+.task-expansion-move-date {
+    flex: 0 0 84px;
+    width: 84px;
+    color-scheme: dark;
+    font-size: 10.5px;
 }
 
 .task-expansion-actions,
@@ -565,18 +573,19 @@
     justify-content: center;
     gap: 3px;
     box-sizing: border-box;
-    min-width: 22px;
-    height: 22px;
+    min-width: 20px;
+    height: 20px;
     padding: 0 6px;
     border: 1px solid transparent;
     border-radius: 4px;
     background: transparent;
-    color: var(--flowly-text-secondary);
+    color: var(--flowly-text-tertiary);
     font: inherit;
-    font-size: 11px;
+    font-size: 10.5px;
     line-height: 1;
     white-space: nowrap;
-    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    flex-shrink: 0;
+    transition: background 100ms ease, color 100ms ease;
 }
 
 .task-expansion-inline-button:hover,
@@ -584,8 +593,7 @@
 .task-day-chip:hover,
 .task-prio-trigger:hover,
 .task-section-trigger:hover {
-    background: rgba(255, 255, 255, 0.045);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
     color: var(--flowly-text-primary);
 }
 
@@ -704,9 +712,9 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 3px;
-    padding: 4px 8px 6px;
-    border-top: 1px solid var(--flowly-border-subtle);
+    gap: 2px;
+    padding: 5px 9px 6px;
+    border-top: 1px solid rgba(255,255,255,0.06);
 }
 
 .task-expansion-delete {
