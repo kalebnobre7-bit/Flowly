@@ -79,22 +79,67 @@ function authHeaders() {
   };
 }
 
-export async function db(method, table, params = {}, body = null) {
+export async function db(method, table, params = {}, body = null, extraHeaders = {}) {
   await ensureAuth();
   const url = new URL(`${SUPABASE_URL}/rest/v1/${table}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const opts = { method, headers: authHeaders() };
+  const opts = { method, headers: { ...authHeaders(), ...extraHeaders } };
   if (body != null) opts.body = JSON.stringify(body);
   let res  = await fetch(url.toString(), opts);
   // Token expirado — renova e tenta uma vez mais
   if (res.status === 401 && (EMAIL || refreshToken)) {
     await refreshSession();
-    opts.headers = authHeaders();
+    opts.headers = { ...authHeaders(), ...extraHeaders };
     res = await fetch(url.toString(), opts);
   }
   const text = await res.text();
   if (!res.ok) throw new Error(`Supabase ${res.status}: ${text.slice(0, 300)}`);
   return text ? JSON.parse(text) : null;
+}
+
+// Extract user UUID from JWT access token (needed for habits_history inserts)
+function getUserId() {
+  if (!accessToken) return null;
+  try {
+    const payload = accessToken.split('.')[1];
+    return JSON.parse(Buffer.from(payload, 'base64url').toString()).sub || null;
+  } catch { return null; }
+}
+
+// Helper: fetch habits (RECURRING tasks with is_habit=true) active on a given date + completion status
+async function fetchHabitsForDate(dateStr) {
+  const dow = new Date(dateStr + 'T12:00:00').getDay(); // 0=Sun … 6=Sat
+  const recurring = await db('GET', 'tasks', {
+    day: 'eq.RECURRING',
+    is_habit: 'eq.true',
+    select: 'id,text,type,color,period',
+  }).catch(() => []);
+
+  const active = recurring.filter(h => {
+    try {
+      const meta = JSON.parse(h.period || '{}');
+      const days = meta.daysOfWeek || [];
+      return days.length === 0 || days.includes(dow);
+    } catch { return true; }
+  });
+
+  const completions = active.length > 0
+    ? await db('GET', 'habits_history', { date: `eq.${dateStr}`, select: 'habit_name,completed,completed_at' }).catch(() => [])
+    : [];
+
+  const doneSet = new Set(completions.filter(c => c.completed).map(c => c.habit_name));
+  const doneMap = Object.fromEntries(completions.filter(c => c.completed).map(c => [c.habit_name, c.completed_at || null]));
+
+  return active.map(h => ({
+    id: h.id,
+    text: h.text,
+    period: 'Rotina',
+    is_habit: true,
+    completed: doneSet.has(h.text),
+    completed_at: doneMap[h.text] || null,
+    type: h.type,
+    color: h.color,
+  }));
 }
 
 // ── Date utils ────────────────────────────────────────────────────────────────
@@ -124,18 +169,30 @@ export function registerTools(server) {
     {},
     async () => {
       const today = localDate();
-      const tasks = await db('GET', 'tasks', {
-        day: `eq.${today}`,
-        select: 'id,text,period,completed,priority,type,color,parent_id,completed_at,timer_total_ms,timer_sessions_count,created_at',
-        order: 'position.asc',
-      });
+      const [tasks, habitRows] = await Promise.all([
+        db('GET', 'tasks', {
+          day: `eq.${today}`,
+          select: 'id,text,period,completed,priority,type,color,parent_id,completed_at,timer_total_ms,timer_sessions_count,created_at',
+          order: 'position.asc',
+        }),
+        fetchHabitsForDate(today),
+      ]);
+
       const byPeriod = {};
       for (const t of tasks) (byPeriod[t.period] ??= []).push(t);
-      const done = tasks.filter(t => t.completed).length;
-      return text(JSON.stringify(
-        { date: today, summary: `${done}/${tasks.length} completed`, byPeriod },
-        null, 2
-      ));
+      if (habitRows.length > 0) byPeriod['Rotina'] = habitRows;
+
+      const tasksDone  = tasks.filter(t => t.completed).length;
+      const habitsDone = habitRows.filter(h => h.completed).length;
+      const total = tasks.length + habitRows.length;
+
+      return text(JSON.stringify({
+        date: today,
+        summary: `${tasksDone + habitsDone}/${total} completed`,
+        tasks: `${tasksDone}/${tasks.length}`,
+        habits: `${habitsDone}/${habitRows.length}`,
+        byPeriod,
+      }, null, 2));
     }
   );
 
@@ -662,6 +719,80 @@ export function registerTools(server) {
     async ({ id }) => {
       await db('DELETE', `tasks?id=eq.${id}`, {});
       return text(`Task ${id} deleted.`);
+    }
+  );
+
+  // ── Habits ────────────────────────────────────────────────────────────────
+  server.tool(
+    'flowly_habits',
+    'List all habit tasks with their completion status for a given date. Habits are recurring routines stored separately from regular tasks — use this tool to see them.',
+    {
+      date: z.string().optional().describe('Date YYYY-MM-DD — defaults to today'),
+    },
+    async ({ date }) => {
+      const target = date || localDate();
+      const habits = await fetchHabitsForDate(target);
+      const done = habits.filter(h => h.completed).length;
+      return text(JSON.stringify({
+        date: target,
+        summary: `${done}/${habits.length} habits completed`,
+        habits,
+      }, null, 2));
+    }
+  );
+
+  // ── Complete / uncomplete a habit ─────────────────────────────────────────
+  server.tool(
+    'flowly_complete_habit',
+    'Mark a habit as completed or uncompleted for a given date. Use flowly_habits to see available habits.',
+    {
+      habit_name: z.string().describe('Habit text — exact or partial match (case-insensitive)'),
+      date:       z.string().optional().describe('Date YYYY-MM-DD — defaults to today'),
+      completed:  z.boolean().default(true).describe('true = mark done, false = undo'),
+    },
+    async ({ habit_name, date, completed }) => {
+      const target = date || localDate();
+
+      // Find the habit
+      const matching = await db('GET', 'tasks', {
+        day:      'eq.RECURRING',
+        is_habit: 'eq.true',
+        text:     `ilike.*${habit_name}*`,
+        select:   'id,text',
+        limit:    '5',
+      });
+      if (!matching || matching.length === 0) {
+        return text(`No habit matching "${habit_name}". Use flowly_habits to list all habits.`);
+      }
+      const best = matching.find(h => h.text.toLowerCase() === habit_name.toLowerCase()) || matching[0];
+
+      if (completed) {
+        const userId = getUserId();
+        const body = {
+          habit_name:   best.text,
+          date:         target,
+          completed:    true,
+          completed_at: new Date().toISOString(),
+        };
+        if (userId) body.user_id = userId;
+
+        await db(
+          'POST', 'habits_history',
+          { on_conflict: 'user_id,habit_name,date' },
+          body,
+          { 'Prefer': 'resolution=merge-duplicates,return=representation' }
+        );
+      } else {
+        await db('DELETE', 'habits_history', {
+          habit_name: `eq.${best.text}`,
+          date:       `eq.${target}`,
+        });
+      }
+
+      const others = matching.length > 1
+        ? ` (ignored similar: ${matching.slice(1).map(h => `"${h.text}"`).join(', ')})`
+        : '';
+      return text(`✓ "${best.text}" → ${completed ? 'completed' : 'uncompleted'} for ${target}${others}`);
     }
   );
 }
