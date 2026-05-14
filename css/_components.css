@@ -1996,7 +1996,7 @@ body.dragging-active .task-item {
     overflow-y: auto;
     box-shadow: var(--flowly-shadow-xl);
     transform: scale(0.95);
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform var(--flowly-duration-base) var(--flowly-ease-out), opacity var(--flowly-duration-base) var(--flowly-ease-out);
 }
 
 .modal-overlay.show .modal-content { transform: scale(1); }
