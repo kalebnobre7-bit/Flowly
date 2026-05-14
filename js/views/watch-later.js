@@ -15,7 +15,63 @@
 
   function saveItems(items) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    syncWatchLaterToSupabase(items);
   }
+
+  let _syncWatchTimer = null;
+  function syncWatchLaterToSupabase(items) {
+    if (!window.supabaseClient || !window.currentUser) return;
+    clearTimeout(_syncWatchTimer);
+    _syncWatchTimer = setTimeout(async () => {
+      try {
+        const payload = (items || []).map((v) => ({
+          id: v.id,
+          user_id: window.currentUser.id,
+          kind: v.kind || 'youtube',
+          url: v.url || '',
+          title: v.title || '',
+          author: v.author || '',
+          thumbnail: v.thumbnail || '',
+          host: v.host || '',
+          favicon: v.favicon || '',
+          added_at: v.addedAt || new Date().toISOString(),
+          watched: v.watched || false,
+          updated_at: new Date().toISOString(),
+        }));
+        if (payload.length === 0) return;
+        await window.supabaseClient.from('watch_later').upsert(payload, { onConflict: 'id' });
+      } catch (_) {}
+    }, 800);
+  }
+
+  async function loadWatchLaterFromSupabase() {
+    if (!window.supabaseClient || !window.currentUser) return;
+    try {
+      const { data, error } = await window.supabaseClient
+        .from('watch_later')
+        .select('*')
+        .eq('user_id', window.currentUser.id)
+        .order('added_at', { ascending: false });
+      if (error && String(error.code) === '42P01') return; // table not yet created
+      if (error || !data) return;
+      if (data.length === 0) return;
+      const remote = data.map((row) => ({
+        id: row.id,
+        kind: row.kind,
+        url: row.url,
+        title: row.title,
+        author: row.author,
+        thumbnail: row.thumbnail,
+        host: row.host,
+        favicon: row.favicon,
+        addedAt: row.added_at,
+        watched: row.watched,
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+      if (typeof window.renderWatchView === 'function') window.renderWatchView();
+    } catch (_) {}
+  }
+  window.loadWatchLaterFromSupabase = loadWatchLaterFromSupabase;
 
   function parseYouTubeId(input) {
     if (!input) return null;

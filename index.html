@@ -21,9 +21,9 @@
     <meta property="og:image" content="logo_flowly.png">
     <meta property="og:locale" content="pt_BR">
     <meta name="twitter:card" content="summary">
-    <link rel="apple-touch-icon" href="lightning.svg">
+    <link rel="apple-touch-icon" href="favicon.svg">
     <link rel="manifest" href="manifest.json?v=6">
-    <link rel="icon" type="image/svg+xml" href="lightning.svg">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
     <!-- Boot error reporter: detecta tela preta no mobile, loga contexto rico para debug. -->
     <script>
@@ -69,6 +69,7 @@
     <link rel="stylesheet" href="css/views/projects.css?v=2">
     <link rel="stylesheet" href="css/views/watch-later.css?v=2">
     <link rel="stylesheet" href="css/views/goals.css?v=3">
+    <link rel="stylesheet" href="css/views/shopping.css?v=1">
     <link rel="stylesheet" href="css/views/today.css?v=10">
     <link rel="stylesheet" href="css/views/week.css?v=8">
     <link rel="stylesheet" href="css/views/analytics.css?v=2">
@@ -105,27 +106,56 @@
                     <span>Hoje</span>
                 </button>
                 <button id="btnWeek" class="sidebar-nav-btn" data-flowly-view="week">
-                    <i data-lucide="calendar" class="lucide-md" aria-hidden="true"></i>
+                    <i data-lucide="calendar-range" class="lucide-md" aria-hidden="true"></i>
                     <span>Semana</span>
                 </button>
                 <button id="btnMonth" class="sidebar-nav-btn" data-flowly-view="month">
-                    <i data-lucide="calendar-days" class="lucide-md" aria-hidden="true"></i>
+                    <i data-lucide="calendar-fold" class="lucide-md" aria-hidden="true"></i>
                     <span>Mês</span>
                 </button>
-                <button id="btnAnalytics" class="sidebar-nav-btn" data-flowly-view="analytics">
-                    <i data-lucide="bar-chart-3" class="lucide-md" aria-hidden="true"></i>
-                    <span>Analytics</span>
-                </button>
-                <button id="btnFinance" class="sidebar-nav-btn" data-flowly-view="finance">
-                    <i data-lucide="wallet-minimal" class="lucide-md" aria-hidden="true"></i>
-                    <span>Finanças</span>
-                </button>
+                <!-- Análises com sub-páginas -->
+                <div class="sidebar-nav-group" id="navGroupAnalytics">
+                    <div class="sidebar-nav-item">
+                        <button class="sidebar-nav-btn" data-flowly-view="analytics">
+                            <i data-lucide="activity" class="lucide-md" aria-hidden="true"></i>
+                            <span>Análises</span>
+                        </button>
+                        <button class="sidebar-nav-toggle" data-group="navGroupAnalytics" aria-label="Expandir Análises" tabindex="-1">
+                            <i data-lucide="chevron-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <ul class="sidebar-nav-children" id="subAnalytics">
+                        <li class="sidebar-nav-children__inner">
+                            <button id="btnRoutine" class="sidebar-nav-sub" data-flowly-view="routine">Rotina</button>
+                            <button id="btnAnalytics" class="sidebar-nav-sub" data-flowly-view="analytics">Analytics</button>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Finanças com sub-páginas -->
+                <div class="sidebar-nav-group" id="navGroupFinance">
+                    <div class="sidebar-nav-item">
+                        <button id="btnFinance" class="sidebar-nav-btn" data-flowly-view="finance">
+                            <i data-lucide="banknote" class="lucide-md" aria-hidden="true"></i>
+                            <span>Finanças</span>
+                        </button>
+                        <button class="sidebar-nav-toggle" data-group="navGroupFinance" aria-label="Expandir Finanças" tabindex="-1">
+                            <i data-lucide="chevron-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <ul class="sidebar-nav-children" id="subFinance">
+                        <li class="sidebar-nav-children__inner">
+                            <button class="sidebar-nav-sub" data-flowly-view="finance">Painel</button>
+                            <button id="btnShopping" class="sidebar-nav-sub" data-flowly-view="shopping">Lista de Compras</button>
+                        </li>
+                    </ul>
+                </div>
 
                 <!-- Projetos com sub-páginas -->
                 <div class="sidebar-nav-group" id="navGroupProjects">
                     <div class="sidebar-nav-item">
                         <button id="btnProjects" class="sidebar-nav-btn" data-flowly-view="projects">
-                            <i data-lucide="briefcase" class="lucide-md" aria-hidden="true"></i>
+                            <i data-lucide="kanban" class="lucide-md" aria-hidden="true"></i>
                             <span>Projetos</span>
                         </button>
                         <button class="sidebar-nav-toggle" data-group="navGroupProjects" aria-label="Expandir Projetos" tabindex="-1">
@@ -150,11 +180,11 @@
                 </div>
 
                 <button id="btnWatch" class="sidebar-nav-btn" data-flowly-view="watch">
-                    <i data-lucide="play-circle" class="lucide-md" aria-hidden="true"></i>
+                    <i data-lucide="clapperboard" class="lucide-md" aria-hidden="true"></i>
                     <span>Assistir</span>
                 </button>
                 <button id="btnSexta" class="sidebar-nav-btn" data-flowly-view="sexta">
-                    <i data-lucide="wand-2" class="lucide-md" aria-hidden="true"></i>
+                    <i data-lucide="sparkles" class="lucide-md" aria-hidden="true"></i>
                     <span>Sexta</span>
                 </button>
             </nav>
@@ -203,6 +233,7 @@
             <div id="sextaView" class="hidden"></div>
             <div id="watchView" class="hidden"></div>
             <div id="goalsView" class="hidden"></div>
+            <div id="shoppingView" class="hidden"></div>
             <div id="settingsView" class="hidden"></div>
             <div id="todayView" class="hidden"></div>
         </div>
@@ -353,6 +384,7 @@
     <script src="js/views/sexta.js?v=1" defer></script>
     <script src="js/views/watch-later.js?v=2" defer></script>
     <script src="js/views/goals.js?v=4" defer></script>
+    <script src="js/views/shopping.js?v=1" defer></script>
     <script src="js/views/today.js?v=4" defer></script>
     <script src="js/views/month.js?v=3" defer></script>
     <script src="js/views/week.js?v=5" defer></script>

@@ -2040,3 +2040,235 @@ input[type="checkbox"]:focus {
    BTN-INLINE — variante inline de botão
    ============================================================= */
 .btn-inline { padding: 8px 16px; font-size: 13px; }
+
+/* =============================================================
+   DESIGN SYSTEM — GUIA DE VIEWS
+   ─────────────────────────────────────────────────────────────
+   Como criar uma nova view no Flowly:
+
+   HTML mínimo:
+     <div class="flowly-shell flowly-shell--wide">
+       <header class="flowly-page-header">
+         <div class="flowly-page-header-left">
+           <div class="flowly-page-kicker">SEÇÃO</div>
+           <h1 class="flowly-page-title">Nome da View</h1>
+           <p class="flowly-page-subtitle">Descrição breve.</p>
+         </div>
+         <div class="flowly-page-actions">
+           <!-- botões de ação aqui -->
+         </div>
+       </header>
+
+       <!-- KPIs (4, 3 ou 2 colunas) -->
+       <div class="flowly-kpi-grid">
+         <div class="flowly-stat-card flowly-stat-card--primary">…</div>
+       </div>
+
+       <!-- Seção com card padrão -->
+       <div class="flowly-card">
+         <div class="flowly-card__header">
+           <span class="flowly-card__label">TÍTULO DA SEÇÃO</span>
+           <span class="flowly-badge">badge</span>
+         </div>
+         <div class="flowly-card__body">
+           <!-- conteúdo -->
+         </div>
+       </div>
+     </div>
+
+   Registrar a view:
+     1. Adicionar <div id="minhaView" class="hidden"> no index.html
+     2. Adicionar 'minhaView' no array views[] em navigation-runtime.js
+     3. Adicionar botão no sidebar (index.html) com data-flowly-view="minha"
+     4. Adicionar no btnMap em navigation-runtime.js: minha: 'btnMinha'
+     5. Adicionar case no renderView() em view-runtime.js ou dispatcher.js
+   ============================================================= */
+
+/* ---- FLOWLY-CARD — card genérico padrão ---- */
+.flowly-card {
+    border-radius: var(--flowly-radius-lg);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--flowly-border-subtle);
+    padding: var(--flowly-space-4);
+}
+
+.flowly-card--elevated {
+    background: var(--flowly-bg-elevated);
+    backdrop-filter: blur(var(--flowly-blur-panel));
+}
+
+.flowly-card--accent {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.05);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.12);
+}
+
+.flowly-card__header {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-2);
+    margin-bottom: var(--flowly-space-3);
+}
+
+.flowly-card__label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--flowly-text-tertiary);
+    flex: 1;
+}
+
+.flowly-card__body { /* conteúdo define o layout */ }
+
+/* ---- FLOWLY-KPI-GRID — grids de KPIs ---- */
+.flowly-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+.flowly-kpi-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.flowly-kpi-grid--2 { grid-template-columns: repeat(2, 1fr); }
+
+@media (max-width: 900px) {
+    .flowly-kpi-grid     { grid-template-columns: repeat(2, 1fr); }
+    .flowly-kpi-grid--3  { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+    .flowly-kpi-grid,
+    .flowly-kpi-grid--3,
+    .flowly-kpi-grid--2 { grid-template-columns: 1fr; }
+}
+
+/* ---- FLOWLY-BADGE — badge/pill genérico ---- */
+.flowly-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: var(--flowly-radius-sm);
+    background: rgba(var(--flowly-accent-primary-rgb), 0.12);
+    color: var(--flowly-accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+.flowly-badge--neutral {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--flowly-text-secondary);
+}
+.flowly-badge--success {
+    background: rgba(var(--flowly-accent-success-rgb), 0.12);
+    color: var(--flowly-accent-success);
+}
+.flowly-badge--warning {
+    background: rgba(var(--flowly-accent-warning-rgb), 0.12);
+    color: var(--flowly-accent-warning);
+}
+.flowly-badge--danger {
+    background: rgba(var(--flowly-accent-danger-rgb), 0.12);
+    color: var(--flowly-accent-danger);
+}
+
+/* ---- FLOWLY-DIVIDER ---- */
+.flowly-divider {
+    height: 1px;
+    background: var(--flowly-border-muted);
+    margin: var(--flowly-space-6) 0;
+    border: none;
+}
+
+/* ---- FLOWLY-EMPTY-STATE — estado vazio padrão ---- */
+.flowly-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--flowly-space-12) var(--flowly-space-8);
+    text-align: center;
+    gap: var(--flowly-space-3);
+    border-radius: var(--flowly-radius-lg);
+    border: 1px dashed var(--flowly-border-subtle);
+}
+.flowly-empty-state__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--flowly-radius-md);
+    background: var(--flowly-bg-glass);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--flowly-text-tertiary);
+}
+.flowly-empty-state__title {
+    font-size: var(--flowly-text-base);
+    font-weight: 600;
+    color: var(--flowly-text-primary);
+}
+.flowly-empty-state__desc {
+    font-size: var(--flowly-text-sm);
+    color: var(--flowly-text-tertiary);
+    max-width: 320px;
+    line-height: 1.5;
+}
+
+/* ---- FLOWLY-TABLE — tabela padrão ---- */
+.flowly-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--flowly-text-sm);
+}
+.flowly-table th {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--flowly-text-tertiary);
+    padding: var(--flowly-space-2) var(--flowly-space-3);
+    border-bottom: 1px solid var(--flowly-border-muted);
+    text-align: left;
+}
+.flowly-table td {
+    padding: var(--flowly-space-3);
+    border-bottom: 1px solid var(--flowly-border-muted);
+    color: var(--flowly-text-primary);
+}
+.flowly-table tr:last-child td { border-bottom: none; }
+.flowly-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+/* ---- FLOWLY-LIST — lista de itens padrão ---- */
+.flowly-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.flowly-list__item {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-3);
+    padding: var(--flowly-space-2) var(--flowly-space-3);
+    border-radius: var(--flowly-radius-md);
+    border: 1px solid transparent;
+    transition: background 0.14s, border-color 0.14s;
+    cursor: pointer;
+}
+.flowly-list__item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--flowly-border-subtle);
+}
+.flowly-list__item-title {
+    font-size: var(--flowly-text-sm);
+    font-weight: 500;
+    color: var(--flowly-text-primary);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.flowly-list__item-meta {
+    font-size: var(--flowly-text-xs);
+    color: var(--flowly-text-tertiary);
+    flex-shrink: 0;
+}

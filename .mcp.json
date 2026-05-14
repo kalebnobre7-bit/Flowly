@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "flowly": {
+      "command": "node",
+      "args": ["./mcp/flowly-data-mcp/src/server.js"],
+      "env": {
+        "FLOWLY_EMAIL": "kaleb.nobre7@gmail.com",
+        "FLOWLY_PASSWORD": "xsph6cy4"
+      }
+    }
+  }
+}

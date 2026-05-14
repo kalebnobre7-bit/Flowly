@@ -241,8 +241,19 @@
 }
 
 /* ---- HEATMAP ---- */
+.analytics-heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 6px;
+    padding: 8px 20px 20px;
+}
 .analytics-heatmap-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 7px;
+    font-size: 10px;
     font-weight: 800;
     font-family: var(--flowly-font-display);
     transition: transform 0.18s var(--flowly-ease-out), box-shadow 0.18s;
