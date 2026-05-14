@@ -62,6 +62,8 @@ function renderProjectsView() {
   const unpaidCount = allProjects.filter((p) => !p.isPaid && p.status !== 'archived').length;
   const deliveredUnpaidCount = allProjects.filter((p) => p.completionDate && !p.isPaid).length;
   const totalRevenue = allProjects.reduce((sum, p) => sum + (p.expectedValue || 0), 0);
+  const closedRevenue = allProjects.reduce((sum, p) => sum + (p.closedValue || 0), 0);
+  const awaitingRevenue = allProjects.filter((p) => p.completionDate && !p.isPaid).reduce((sum, p) => sum + (p.expectedValue || 0), 0);
 
   const heroInsight = (() => {
     if (lateCount > 0) return lateCount + ' projeto(s) em atraso. Precisam de resposta.';
@@ -100,7 +102,8 @@ function renderProjectsView() {
       : (project.expectedValue > 0 ? formatBRL(project.expectedValue) : '');
 
     const safeName = escapeProjectHtml(project.name);
-    const safeClient = escapeProjectHtml(project.clientName || project.serviceType || '');
+    const safeClient = escapeProjectHtml(project.clientName || '');
+    const safeType = escapeProjectHtml(project.serviceType || '');
 
     const progressVariant = isDone ? 'flowly-progress--success'
       : isLate ? 'flowly-progress--danger'
@@ -110,12 +113,29 @@ function renderProjectsView() {
     const avatarLabel = (project.clientName || project.serviceType || project.name || '?').trim();
     const initials = avatarLabel.split(/\s+/).slice(0, 2).map((p) => p.charAt(0)).join('').slice(0, 2).toUpperCase() || '?';
 
+    const colId = getProjectKanbanColumnId(project, today, progressPct);
+    const quickActions = (() => {
+      if (colId === 'todo' || colId === 'doing' || colId === 'late') {
+        return '<div class="kanban-card__actions">'
+          + '<button type="button" class="kanban-card__action-btn" data-project-quick-action="complete" data-project-id="' + project.id + '">Concluir →</button>'
+          + '</div>';
+      }
+      if (colId === 'awaiting-payment') {
+        return '<div class="kanban-card__actions">'
+          + '<button type="button" class="kanban-card__action-btn kanban-card__action-btn--paid" data-project-quick-action="paid" data-project-id="' + project.id + '">✓ Recebi</button>'
+          + '</div>';
+      }
+      return '';
+    })();
+
     return '<article class="kanban-card" draggable="true" data-project-card-id="' + project.id + '" data-project-id="' + project.id + '">'
       + '<div class="kanban-card__title">' + safeName + '</div>'
       + (safeClient ? '<div class="kanban-card__sub">' + safeClient + '</div>' : '')
+      + (safeType ? '<span class="kanban-card__badge">' + safeType + '</span>' : '')
       + (progressTotal > 0
           ? '<div class="kanban-card__progress"><div class="flowly-progress ' + progressVariant + '"><div class="flowly-progress__fill" style="width:' + progressPct + '%"></div></div><span>' + progress.done + '/' + progressTotal + '</span></div>'
           : '<div class="kanban-card__progress kanban-card__progress--empty">Sem tarefas</div>')
+      + quickActions
       + '<div class="kanban-card__foot">'
       +   '<span class="kanban-card__deadline' + (isLate ? ' is-late' : '') + '">' + deadlineText + '</span>'
       +   (amountLabel ? '<span class="kanban-card__amount">' + amountLabel + '</span>' : '')
@@ -143,8 +163,9 @@ function renderProjectsView() {
   const statsStrip = '<div class="flowly-stat-strip kanban-stats-strip">'
     + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--primary"><div class="flowly-stat-card__label">Ativos</div><div class="flowly-stat-card__value">' + activeCount + '</div></div>'
     + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (lateCount > 0 ? 'danger' : 'success') + '"><div class="flowly-stat-card__label">Atrasados</div><div class="flowly-stat-card__value">' + lateCount + '</div></div>'
-    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (deliveredUnpaidCount > 0 ? 'warning' : 'success') + '"><div class="flowly-stat-card__label">Aguardando pagamento</div><div class="flowly-stat-card__value">' + deliveredUnpaidCount + '</div></div>'
-    + '<div class="flowly-stat-card flowly-stat-card--inline"><div class="flowly-stat-card__label">Receita prevista</div><div class="flowly-stat-card__value">' + formatBRL(totalRevenue) + '</div></div>'
+    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (deliveredUnpaidCount > 0 ? 'warning' : 'success') + '"><div class="flowly-stat-card__label">A receber</div><div class="flowly-stat-card__value">' + formatBRL(awaitingRevenue) + '</div></div>'
+    + '<div class="flowly-stat-card flowly-stat-card--inline"><div class="flowly-stat-card__label">Previsto</div><div class="flowly-stat-card__value">' + formatBRL(totalRevenue) + '</div></div>'
+    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (closedRevenue > 0 ? 'success' : '') + '"><div class="flowly-stat-card__label">Recebido</div><div class="flowly-stat-card__value">' + formatBRL(closedRevenue) + '</div></div>'
     + '</div>';
 
   view.innerHTML = '<div class="flowly-shell flowly-shell--wide projects-shell-v2">'
@@ -225,6 +246,17 @@ function renderProjectsView() {
   view.querySelectorAll('[data-project-modal-close]').forEach((el) => {
     el.addEventListener('click', closeProjectDetailModal);
   });
+
+  // Ações rápidas nos cards (Concluir / Recebi)
+  view.querySelectorAll('[data-project-quick-action]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = btn.dataset.projectQuickAction;
+      const pid = btn.dataset.projectId;
+      if (action === 'complete' && pid) window.moveProjectToKanbanColumn(pid, 'awaiting-payment');
+      if (action === 'paid' && pid) window.moveProjectToKanbanColumn(pid, 'done');
+    });
+  });
 }
 
 // =============================================================
@@ -266,6 +298,7 @@ function openProjectDetailModal(projectId) {
     +     '<label class="projects-modal-field"><span>Cliente</span><input class="flowly-input" type="text" value="' + safeClient + '" placeholder="Nome do cliente" data-project-field="clientName" data-project-id="' + project.id + '"></label>'
     +     '<label class="projects-modal-field"><span>Tipo</span><input class="flowly-input" type="text" value="' + safeType + '" placeholder="LP, Shopify, etc" data-project-field="serviceType" data-project-id="' + project.id + '"></label>'
     +     '<label class="projects-modal-field"><span>Valor previsto</span><input class="flowly-input" type="number" min="0" step="0.01" value="' + Number(project.expectedValue || 0) + '" data-project-field="expectedValue" data-project-id="' + project.id + '"></label>'
+    +     '<label class="projects-modal-field"><span>Valor fechado</span><input class="flowly-input" type="number" min="0" step="0.01" value="' + Number(project.closedValue || 0) + '" placeholder="Valor real recebido" data-project-field="closedValue" data-project-id="' + project.id + '"></label>'
     +     '<label class="projects-modal-field"><span>Prazo</span><input class="flowly-input" type="date" value="' + (project.deadline || '') + '" data-project-field="deadline" data-project-id="' + project.id + '"></label>'
     +     '<label class="projects-modal-field"><span>Inicio</span><input class="flowly-input" type="date" value="' + (project.startDate || '') + '" data-project-field="startDate" data-project-id="' + project.id + '"></label>'
     +   '</div>'

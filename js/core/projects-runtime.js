@@ -492,7 +492,7 @@ function openProjectsPromptModal(options) {
       </div>
       ${
         requireValue
-          ? `<input id="projectsPromptInput" class="finance-input" type="text" placeholder="${escapeProjectHtml(inputPlaceholder)}" value="${escapeProjectHtml(inputValue)}">`
+          ? `<input id="projectsPromptInput" class="flowly-input" type="text" placeholder="${escapeProjectHtml(inputPlaceholder)}" value="${escapeProjectHtml(inputValue)}">`
           : ''
       }
       <div style="display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;">
@@ -586,32 +586,32 @@ window.openQuickProjectModal = function () {
       <div style="display:flex;flex-direction:column;gap:var(--flowly-space-3,12px)">
         <div>
           <label style="${labelStyle}">Nome do projeto *</label>
-          <input id="qpmName" class="finance-input" type="text" placeholder="Ex: Landing Page - Cliente X" autofocus style="${inputStyle}">
+          <input id="qpmName" class="flowly-input" type="text" placeholder="Ex: Landing Page - Cliente X" autofocus style="${inputStyle}">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--flowly-space-3,12px)">
           <div>
             <label style="${labelStyle}">Cliente</label>
-            <input id="qpmClient" class="finance-input" type="text" placeholder="Nome do cliente" style="${inputStyle}">
+            <input id="qpmClient" class="flowly-input" type="text" placeholder="Nome do cliente" style="${inputStyle}">
           </div>
           <div>
             <label style="${labelStyle}">Tipo</label>
-            <input id="qpmType" class="finance-input" type="text" placeholder="LP, Loja, etc" style="${inputStyle}">
+            <input id="qpmType" class="flowly-input" type="text" placeholder="LP, Loja, etc" style="${inputStyle}">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--flowly-space-3,12px)">
           <div>
             <label style="${labelStyle}">Valor (R$)</label>
-            <input id="qpmValue" class="finance-input" type="number" min="0" step="0.01" placeholder="650,00" style="${inputStyle}">
+            <input id="qpmValue" class="flowly-input" type="number" min="0" step="0.01" placeholder="650,00" style="${inputStyle}">
           </div>
           <div>
             <label style="${labelStyle}">Deadline</label>
-            <input id="qpmDeadline" class="finance-input" type="date" style="${inputStyle}">
+            <input id="qpmDeadline" class="flowly-input" type="date" style="${inputStyle}">
           </div>
         </div>
       </div>
       <div style="display:flex;gap:var(--flowly-space-3,12px);justify-content:flex-end">
-        <button type="button" data-projects-quick-close class="btn-secondary" style="width:auto;padding:13px 20px;border-radius:var(--flowly-radius-lg,16px)">Cancelar</button>
-        <button type="button" id="btnProjectsQuickCreate" class="btn-primary" style="width:auto;padding:13px 20px;border-radius:var(--flowly-radius-lg,16px)">Criar projeto</button>
+        <button type="button" data-projects-quick-close class="flowly-btn flowly-btn--ghost">Cancelar</button>
+        <button type="button" id="btnProjectsQuickCreate" class="flowly-btn flowly-btn--primary">Criar projeto</button>
       </div>
     </div>`;
 
