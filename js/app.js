@@ -77,10 +77,10 @@ function getTaskTypes() {
 
 function getDefaultTaskPriorities() {
   return [
-    { id: 'money', name: 'Dinheiro', color: '#30D158' },
-    { id: 'urgent', name: 'Urgente', color: '#FF453A' },
-    { id: 'important', name: 'Importante', color: '#FF9F0A' },
-    { id: 'simple', name: 'Simples', color: '#FFD60A' }
+    { id: 'money',     name: 'MONEY',   color: '#22c55e' },
+    { id: 'cliente',   name: 'CLIENTE', color: '#0A84FF' },
+    { id: 'vida',      name: 'VIDA',    color: '#a855f7' },
+    { id: 'manut',     name: 'MANUT',   color: '#8e8a98' }
   ];
 }
 
@@ -88,6 +88,9 @@ function getTaskPriorities() {
   if (customTaskPriorities && customTaskPriorities.length > 0) return customTaskPriorities;
   return getDefaultTaskPriorities();
 }
+
+// IDs que eram defaults antigos — não preservar como "extras" se o usuário não os criou
+const LEGACY_PRIORITY_IDS = new Set(['urgent', 'important', 'simple']);
 
 function ensureMoneyPriorityOption() {
   const defaults = getDefaultTaskPriorities();
@@ -100,11 +103,12 @@ function ensureMoneyPriorityOption() {
   const defaultIds = new Set(defaults.map((item) => String(item.id || '').toLowerCase()));
   const mergedDefaults = defaults.map((item) => {
     const existing = existingMap.get(String(item.id).toLowerCase());
-    return existing ? { ...existing, name: item.name, color: item.color } : { ...item };
+    // Se existe no Supabase com nome diferente do default, respeita o nome do usuário
+    return existing ? { ...existing } : { ...item };
   });
   const customExtras = customTaskPriorities.filter((item) => {
     const id = String((item && item.id) || '').toLowerCase();
-    return id && !defaultIds.has(id);
+    return id && !defaultIds.has(id) && !LEGACY_PRIORITY_IDS.has(id);
   });
 
   customTaskPriorities = [...mergedDefaults, ...customExtras];
