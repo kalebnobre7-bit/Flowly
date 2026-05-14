@@ -62,9 +62,10 @@ export async function db(method, table, params = {}, body = null) {
 
 // ── Date utils ────────────────────────────────────────────────────────────────
 export function localDate(offset = 0) {
+  const tz = process.env.FLOWLY_TIMEZONE || 'America/Sao_Paulo';
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  return d.toLocaleDateString('sv-SE');
+  return d.toLocaleDateString('sv-SE', { timeZone: tz });
 }
 
 export function weekDates() {
