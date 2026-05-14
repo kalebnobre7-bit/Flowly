@@ -798,4 +798,253 @@ export function registerTools(server) {
       return text(`✓ "${best.text}" → ${completed ? 'completed' : 'uncompleted'} for ${target}${others}`);
     }
   );
+
+  // ── FINANCE TRANSACTIONS ──────────────────────────────────────────────────
+
+  server.tool(
+    'flowly_finance_transactions',
+    'List finance transactions. Filter by month (YYYY-MM), type (income/expense) or category.',
+    {
+      month:    z.string().optional().describe('Month filter YYYY-MM (e.g. 2026-05). Defaults to current month.'),
+      type:     z.enum(['income', 'expense']).optional().describe('Filter by entry type'),
+      category: z.string().optional().describe('Filter by category name'),
+      limit:    z.number().optional().default(50),
+    },
+    async ({ month, type, category, limit }) => {
+      const m = month || localDate().slice(0, 7);
+      const params = {
+        select: 'id,entry_type,amount,description,category,occurred_on,source,notes,created_at',
+        order: 'occurred_on.desc',
+        limit: String(limit || 50),
+        occurred_on: `like.${m}%`,
+      };
+      if (type)     params.entry_type = `eq.${type}`;
+      if (category) params.category   = `ilike.*${category}*`;
+      const rows = await db('GET', 'finance_transactions', params);
+      const income  = rows.filter(r => r.entry_type === 'income').reduce((s, r) => s + r.amount, 0);
+      const expense = rows.filter(r => r.entry_type === 'expense').reduce((s, r) => s + r.amount, 0);
+      return text(JSON.stringify({
+        month: m,
+        summary: { income, expense, balance: income - expense, count: rows.length },
+        transactions: rows,
+      }, null, 2));
+    }
+  );
+
+  server.tool(
+    'flowly_add_transaction',
+    'Add an income or expense transaction to Flowly finance.',
+    {
+      type:        z.enum(['income', 'expense']).describe('Entry type'),
+      amount:      z.number().positive().describe('Amount in BRL'),
+      description: z.string().describe('Transaction description'),
+      category:    z.string().optional().default('Outros').describe('Category name'),
+      date:        z.string().optional().describe('Date YYYY-MM-DD — defaults to today'),
+      notes:       z.string().optional(),
+    },
+    async ({ type, amount, description, category, date, notes }) => {
+      const userId = getUserId();
+      if (!userId) return text('Error: could not get user ID from token.');
+      const row = {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        entry_type: type,
+        amount,
+        description,
+        category: category || 'Outros',
+        occurred_on: date || localDate(),
+        source: 'manual',
+        notes: notes || null,
+        metadata: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const result = await db('POST', 'finance_transactions', {}, row);
+      return text(`✓ ${type === 'income' ? '+' : '-'}R$${amount} "${description}" → ${row.occurred_on}`);
+    }
+  );
+
+  server.tool(
+    'flowly_delete_transaction',
+    'Delete a finance transaction by ID.',
+    { id: z.string().describe('Transaction UUID') },
+    async ({ id }) => {
+      await db('DELETE', `finance_transactions?id=eq.${id}`, {});
+      return text(`Transaction ${id} deleted.`);
+    }
+  );
+
+  // ── PROJECTS ──────────────────────────────────────────────────────────────
+
+  server.tool(
+    'flowly_projects',
+    'List all projects with status, deadline, value and progress.',
+    {
+      status: z.enum(['active', 'archived', 'all']).optional().default('active'),
+    },
+    async ({ status }) => {
+      const params = {
+        select: 'id,name,client_name,service_type,status,expected_value,closed_value,deadline,completion_date,is_paid,notes,created_at',
+        order: 'created_at.desc',
+        limit: '100',
+      };
+      if (status !== 'all') params.status = `eq.${status}`;
+      const rows = await db('GET', 'projects', params);
+      return text(JSON.stringify({ count: rows.length, projects: rows }, null, 2));
+    }
+  );
+
+  server.tool(
+    'flowly_update_project',
+    'Update a project — change status, deadline, value, mark as paid, add notes.',
+    {
+      id:            z.string().describe('Project UUID'),
+      name:          z.string().optional(),
+      status:        z.enum(['active', 'draft', 'archived']).optional(),
+      expected_value: z.number().optional(),
+      closed_value:  z.number().optional(),
+      deadline:      z.string().optional().describe('Date YYYY-MM-DD or empty string to clear'),
+      is_paid:       z.boolean().optional(),
+      completion_date: z.string().optional().describe('Date YYYY-MM-DD — set when project is delivered'),
+      notes:         z.string().optional(),
+    },
+    async (args) => {
+      const { id, ...fields } = args;
+      const patch = { updated_at: new Date().toISOString() };
+      for (const [k, v] of Object.entries(fields)) {
+        if (v !== undefined) patch[k] = v;
+      }
+      await db('PATCH', `projects?id=eq.${id}`, {}, patch);
+      return text(`Project ${id} updated: ${JSON.stringify(patch)}`);
+    }
+  );
+
+  // ── GOALS ─────────────────────────────────────────────────────────────────
+
+  server.tool(
+    'flowly_goals',
+    'List all goals with progress, target, deadline and category.',
+    {},
+    async () => {
+      const rows = await db('GET', 'goals', {
+        select: 'id,title,description,icon,color,target,current_value,unit,category,deadline,completed_at,created_at',
+        order: 'created_at.desc',
+      });
+      return text(JSON.stringify({ count: rows.length, goals: rows }, null, 2));
+    }
+  );
+
+  server.tool(
+    'flowly_update_goal',
+    'Update goal progress or any field. Use to log progress toward a goal.',
+    {
+      id:            z.string().describe('Goal UUID'),
+      current_value: z.number().optional().describe('Current progress value'),
+      title:         z.string().optional(),
+      target:        z.number().optional(),
+      deadline:      z.string().optional(),
+      completed_at:  z.string().nullable().optional().describe('ISO timestamp when completed, or null to reopen'),
+    },
+    async (args) => {
+      const { id, ...fields } = args;
+      const patch = { updated_at: new Date().toISOString() };
+      for (const [k, v] of Object.entries(fields)) {
+        if (v !== undefined) patch[k] = v;
+      }
+      await db('PATCH', `goals?id=eq.${id}`, {}, patch);
+      return text(`Goal ${id} updated: ${JSON.stringify(patch)}`);
+    }
+  );
+
+  // ── SHOPPING ──────────────────────────────────────────────────────────────
+
+  server.tool(
+    'flowly_shopping',
+    'List shopping goals/wishlist items with price, status and priority.',
+    { status: z.enum(['pending', 'bought', 'all']).optional().default('pending') },
+    async ({ status }) => {
+      const params = {
+        select: 'id,name,price,priority,category,status,deadline,notes,bought_at',
+        order: 'created_at.desc',
+        limit: '100',
+      };
+      if (status !== 'all') params.status = `eq.${status}`;
+      const rows = await db('GET', 'shopping_goals', params);
+      const total = rows.reduce((s, r) => s + (r.price || 0), 0);
+      return text(JSON.stringify({ count: rows.length, total_value: total, items: rows }, null, 2));
+    }
+  );
+
+  server.tool(
+    'flowly_add_shopping_item',
+    'Add an item to the shopping list/wishlist.',
+    {
+      name:     z.string().describe('Item name'),
+      price:    z.number().optional().default(0),
+      priority: z.enum(['high', 'medium', 'low']).optional().default('medium'),
+      category: z.string().optional(),
+      deadline: z.string().optional().describe('Date YYYY-MM-DD'),
+      notes:    z.string().optional(),
+    },
+    async ({ name, price, priority, category, deadline, notes }) => {
+      const userId = getUserId();
+      if (!userId) return text('Error: could not get user ID from token.');
+      const row = {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        name,
+        price: price || 0,
+        priority: priority || 'medium',
+        category: category || null,
+        status: 'pending',
+        deadline: deadline || null,
+        notes: notes || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      await db('POST', 'shopping_goals', {}, row);
+      return text(`✓ "${name}" added to shopping list${price ? ` — R$${price}` : ''}`);
+    }
+  );
+
+  // ── WATCH LATER ───────────────────────────────────────────────────────────
+
+  server.tool(
+    'flowly_watch_later',
+    'List watch later queue — videos and content saved to watch.',
+    { watched: z.boolean().optional().describe('true = show watched, false = show pending. Omit for all.') },
+    async ({ watched }) => {
+      const params = {
+        select: 'id,title,author,url,host,kind,watched,added_at',
+        order: 'added_at.desc',
+        limit: '100',
+      };
+      if (watched !== undefined) params.watched = `eq.${watched}`;
+      const rows = await db('GET', 'watch_later', params);
+      return text(JSON.stringify({ count: rows.length, items: rows }, null, 2));
+    }
+  );
+
+  server.tool(
+    'flowly_watch_done',
+    'Mark a watch-later item as watched (or unwatched) by title match.',
+    {
+      title:   z.string().describe('Title or partial title'),
+      watched: z.boolean().default(true),
+    },
+    async ({ title, watched }) => {
+      const rows = await db('GET', 'watch_later', {
+        title: `ilike.*${title}*`,
+        select: 'id,title',
+        limit: '5',
+      });
+      if (!rows?.length) return text(`No item matching "${title}" found.`);
+      const best = rows[0];
+      await db('PATCH', `watch_later?id=eq.${best.id}`, {}, {
+        watched,
+        updated_at: new Date().toISOString(),
+      });
+      return text(`${watched ? '✓ Watched' : '↩ Unwatched'}: "${best.title}"`);
+    }
+  );
 }
