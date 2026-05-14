@@ -706,6 +706,9 @@ function handleTaskItemDrop(e, el, target) {
   // Hábito → regular: seta dailyPosition pra misturar entre regulares.
   if (sourceIsHabit) {
     const routineKey = draggedTask.routineKey || getRoutineKey(draggedTask.task);
+    // Acessa via window pra evitar ReferenceError em scripts isolados
+    if (!window.habitDailyPositions) window.habitDailyPositions = {};
+    const hdp = window.habitDailyPositions;
 
     if (targetIsHabit) {
       // Reorder dentro do grupo de hábitos
@@ -716,16 +719,16 @@ function handleTaskItemDrop(e, el, target) {
         reorderRoutineTasksForDate(draggedTask.dateStr, routineKey, insertAt);
       }
       // Limpa dailyPosition (volta pra grupo flutuante)
-      if (habitDailyPositions[draggedTask.dateStr]) {
-        delete habitDailyPositions[draggedTask.dateStr][routineKey];
+      if (hdp[draggedTask.dateStr]) {
+        delete hdp[draggedTask.dateStr][routineKey];
       }
     } else {
       // Hábito sai do grupo de hábitos pra misturar entre regulares.
       // Position = position do target ± 0.5 (fica entre regulares).
       const targetPos = typeof target.task.position === 'number' ? target.task.position : 0;
       const newPos = dragAbove ? targetPos - 0.5 : targetPos + 0.5;
-      if (!habitDailyPositions[draggedTask.dateStr]) habitDailyPositions[draggedTask.dateStr] = {};
-      habitDailyPositions[draggedTask.dateStr][routineKey] = newPos;
+      if (!hdp[draggedTask.dateStr]) hdp[draggedTask.dateStr] = {};
+      hdp[draggedTask.dateStr][routineKey] = newPos;
     }
 
     saveToLocalStorage();

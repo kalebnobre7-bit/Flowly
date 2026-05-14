@@ -24,7 +24,8 @@ function saveToLocalStorage() {
   localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
   localStorage.setItem('routineCompletions', JSON.stringify(routineCompletions));
   localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
-  localStorage.setItem('habitDailyPositions', JSON.stringify(habitDailyPositions || {}));
+  const _hdp = (typeof window !== 'undefined' && window.habitDailyPositions) || (typeof habitDailyPositions !== 'undefined' ? habitDailyPositions : {});
+  localStorage.setItem('habitDailyPositions', JSON.stringify(_hdp || {}));
   persistFinanceStateLocal();
   persistProjectsStateLocal();
 
@@ -62,6 +63,7 @@ function loadFromLocalStorage() {
   );
   habitsHistory = parse(localStorage.getItem('habitsHistory'), habitsHistory || {});
   habitDailyPositions = parse(localStorage.getItem('habitDailyPositions'), habitDailyPositions || {});
+  if (typeof window !== 'undefined') window.habitDailyPositions = habitDailyPositions;
 
   if (typeof normalizeFinanceState === 'function') {
     financeState = normalizeFinanceState(

@@ -64,6 +64,7 @@ var habitsHistory = safeJSONParse(localStorage.getItem('habitsHistory'), {});
 var routineCompletions = safeJSONParse(localStorage.getItem('routineCompletions'), {});
 // Per-day positions for habits among regular tasks. Shape: { dateStr: { routineKey: sortIndex } }
 var habitDailyPositions = safeJSONParse(localStorage.getItem('habitDailyPositions'), {});
+if (typeof window !== 'undefined') window.habitDailyPositions = habitDailyPositions;
 var currentEditingTaskRef = null;
 
 window.FlowlyState = {
