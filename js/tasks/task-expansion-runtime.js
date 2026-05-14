@@ -244,6 +244,9 @@ window.toggleTaskExpansion = function (task, el) {
     };
     projectCard.appendChild(suggest);
   }
+  // Smart: Projeto sempre visível (é sempre útil poder associar)
+  // mas marcamos vazio pra CSS poder reduzir visibilidade
+  if (!task.projectId) projectCard.classList.add('task-expansion-property-row--empty');
   grid.appendChild(projectCard);
 
   const timerCard = createCard(isTimerEligible ? 'Tempo real' : 'Timer', 'play-circle');
@@ -545,7 +548,10 @@ window.toggleTaskExpansion = function (task, el) {
   });
   repeatCard.appendChild(repWrap);
 
-  grid.appendChild(repeatCard);
+  // Smart: só mostra Repetir se é tarefa recorrente OU se já tem dias configurados
+  if (isRecurring || activeDays.length > 0) {
+    grid.appendChild(repeatCard);
+  }
 
   if (!isRecurring) {
     const moveCard = createCard('Mover', 'calendar');
