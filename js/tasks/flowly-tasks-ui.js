@@ -414,7 +414,8 @@ function createTaskElement(day, dateStr, period, task, index) {
     }
   }
 
-  if (task.projectName) {
+  // Não mostra "em X" quando a tarefa já está sob um header de projeto
+  if (task.projectName && !task.isProjectMirror) {
     const projectMeta = document.createElement('span');
     projectMeta.className = 'task-project-meta';
     projectMeta.textContent = ` em ${task.projectName}`;
