@@ -45,7 +45,7 @@
   width: 30px; height: 30px; border-radius: var(--ds-r-sm);
   border: 1px solid var(--ds-border); background: transparent;
   color: var(--ds-text-secondary); font-size: 16px;
-  cursor: pointer; transition: all var(--ds-transition);
+  cursor: pointer; transition: background-color var(--ds-transition), color var(--ds-transition);
   display: flex; align-items: center; justify-content: center;
 }
 .mc-nav-btn:hover { background: var(--ds-bg-glass-strong); color: var(--ds-text-primary); }
@@ -53,7 +53,7 @@
   height: 30px; padding: 0 12px; border-radius: var(--ds-r-sm);
   border: 1px solid var(--ds-border); background: transparent;
   color: var(--ds-text-secondary); font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: all var(--ds-transition);
+  cursor: pointer; transition: background-color var(--ds-transition), border-color var(--ds-transition), color var(--ds-transition);
   font-family: var(--ds-font-body);
 }
 .mc-nav-today:hover { background: var(--ds-accent); border-color: var(--ds-accent); color: #fff; }
@@ -174,7 +174,7 @@
   width: 16px; height: 16px; border-radius: 3px;
   border: 1px solid var(--ds-border); background: var(--ds-bg-glass);
   color: var(--ds-text-muted); font-size: 12px; line-height: 1;
-  cursor: pointer; transition: all var(--ds-transition);
+  cursor: pointer; transition: background-color var(--ds-transition), border-color var(--ds-transition), color var(--ds-transition), opacity var(--ds-transition);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .mc-add-btn:hover {
@@ -261,7 +261,7 @@
   width: 28px; height: 28px; border-radius: var(--ds-r-sm);
   border: 1px solid var(--ds-border); background: transparent;
   color: var(--ds-text-muted); cursor: pointer;
-  transition: all var(--ds-transition);
+  transition: background-color var(--ds-transition), border-color var(--ds-transition), color var(--ds-transition);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .mc-agenda-open:hover {
@@ -370,7 +370,7 @@
 .mc-modal-close {
   background: transparent; border: none; color: var(--ds-text-muted);
   font-size: 14px; cursor: pointer; line-height: 1;
-  padding: 4px 6px; border-radius: 4px; transition: all var(--ds-transition);
+  padding: 4px 6px; border-radius: 4px; transition: background-color var(--ds-transition), color var(--ds-transition);
   display: flex; align-items: center; transform: rotate(45deg);
 }
 .mc-modal-close:hover { background: var(--ds-bg-glass); color: var(--ds-text-primary); }
@@ -422,7 +422,7 @@
   margin-left: auto; width: 20px; height: 20px;
   border-radius: 4px; border: 1px solid var(--ds-border);
   background: transparent; color: var(--ds-text-muted);
-  cursor: pointer; transition: all var(--ds-transition);
+  cursor: pointer; transition: background-color var(--ds-transition), border-color var(--ds-transition), color var(--ds-transition);
   display: flex; align-items: center; justify-content: center;
 }
 .mc-pop-add:hover {
@@ -591,7 +591,7 @@
   width: 16px; height: 16px; border-radius: 4px;
   border: 1px solid var(--ds-border); background: var(--ds-bg-glass);
   color: var(--ds-text-muted); cursor: pointer;
-  transition: all var(--ds-transition); flex-shrink: 0;
+  transition: background-color var(--ds-transition), border-color var(--ds-transition), color var(--ds-transition); flex-shrink: 0;
 }
 .month-add-event-btn:hover {
   background: rgba(var(--ds-accent-rgb), 0.14);

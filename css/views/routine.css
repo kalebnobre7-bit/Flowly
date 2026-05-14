@@ -266,7 +266,7 @@
     justify-content: center;
     flex-shrink: 0;
     color: transparent;
-    transition: all 0.18s;
+    transition: background-color var(--flowly-duration-fast) var(--flowly-ease-out), border-color var(--flowly-duration-fast) var(--flowly-ease-out), color var(--flowly-duration-fast) var(--flowly-ease-out);
     background: transparent;
 }
 
@@ -435,7 +435,7 @@
     padding: 10px 4px;
     border-radius: var(--flowly-radius-md);
     border: 1px solid transparent;
-    transition: all 0.22s var(--flowly-ease-out);
+    transition: background-color 0.22s var(--flowly-ease-out), border-color 0.22s var(--flowly-ease-out);
 }
 
 .routine-weekly-day-col.today {

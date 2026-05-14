@@ -326,7 +326,7 @@
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    transition: all var(--flowly-duration-fast) var(--flowly-ease-out);
+    transition: background-color var(--flowly-duration-fast) var(--flowly-ease-out), border-color var(--flowly-duration-fast) var(--flowly-ease-out);
 }
 
 .flowly-task-item__check:hover {
@@ -375,15 +375,15 @@
 }
 
 /* Cores de categoria (Notion-style) */
-.flowly-task-item[data-color="blue"]   { border-left: 3px solid var(--flowly-tag-blue); }
-.flowly-task-item[data-color="green"]  { border-left: 3px solid var(--flowly-tag-green); }
-.flowly-task-item[data-color="yellow"] { border-left: 3px solid var(--flowly-tag-yellow); }
-.flowly-task-item[data-color="orange"] { border-left: 3px solid var(--flowly-tag-orange); }
-.flowly-task-item[data-color="red"]    { border-left: 3px solid var(--flowly-tag-red); }
-.flowly-task-item[data-color="pink"]   { border-left: 3px solid var(--flowly-tag-pink); }
-.flowly-task-item[data-color="purple"] { border-left: 3px solid var(--flowly-tag-purple); }
-.flowly-task-item[data-color="brown"]  { border-left: 3px solid var(--flowly-tag-brown); }
-.flowly-task-item[data-color="gray"]   { border-left: 3px solid var(--flowly-tag-gray); }
+.flowly-task-item[data-color="blue"]   { border-color: rgba(10, 132, 255, 0.22);  background-color: rgba(10, 132, 255, 0.04); }
+.flowly-task-item[data-color="green"]  { border-color: rgba(34, 197, 94, 0.22);   background-color: rgba(34, 197, 94, 0.04); }
+.flowly-task-item[data-color="yellow"] { border-color: rgba(255, 214, 10, 0.22);  background-color: rgba(255, 214, 10, 0.04); }
+.flowly-task-item[data-color="orange"] { border-color: rgba(255, 159, 10, 0.22);  background-color: rgba(255, 159, 10, 0.04); }
+.flowly-task-item[data-color="red"]    { border-color: rgba(255, 92, 77, 0.22);   background-color: rgba(255, 92, 77, 0.04); }
+.flowly-task-item[data-color="pink"]   { border-color: rgba(236, 72, 153, 0.22);  background-color: rgba(236, 72, 153, 0.04); }
+.flowly-task-item[data-color="purple"] { border-color: rgba(168, 85, 247, 0.22);  background-color: rgba(168, 85, 247, 0.04); }
+.flowly-task-item[data-color="brown"]  { border-color: rgba(167, 122, 76, 0.22);  background-color: rgba(167, 122, 76, 0.04); }
+.flowly-task-item[data-color="gray"]   { border-color: rgba(142, 138, 152, 0.22); background-color: rgba(142, 138, 152, 0.04); }
 
 /* =============================================================
    4.1. TASK EXPANSION — detalhes inline de uma tarefa
@@ -1779,7 +1779,7 @@ body.dragging-active .task-item {
     border: 1.5px solid rgba(255, 255, 255, 0.25);
     border-radius: 4px;
     cursor: pointer; flex-shrink: 0;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
     margin-top: 2px; background: transparent;
 }
 
@@ -2064,7 +2064,7 @@ body.dragging-active .task-item {
     font-family: var(--ds-font-body); font-size: 12px; font-weight: 600;
     border: 1px solid rgba(var(--ds-accent-rgb), 0.28);
     background: rgba(var(--ds-accent-rgb), 0.12); color: var(--ds-accent);
-    cursor: pointer; transition: all var(--ds-transition);
+    cursor: pointer; transition: opacity var(--ds-transition), transform var(--ds-transition), background-color var(--ds-transition), border-color var(--ds-transition), color var(--ds-transition);
 }
 .flowly-accent-btn:hover {
     background: rgba(var(--ds-accent-rgb), 0.2); transform: translateY(-1px);

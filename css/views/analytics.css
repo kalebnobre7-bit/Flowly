@@ -50,7 +50,7 @@
     backdrop-filter: blur(20px);
     position: relative;
     overflow: hidden;
-    transition: all 0.2s;
+    transition: transform 200ms var(--flowly-ease-out, cubic-bezier(0.16, 1, 0.3, 1)), border-color 200ms, background-color 200ms;
 }
 
 .analytics-kpi-v2:hover {
@@ -60,11 +60,7 @@
 }
 
 .analytics-kpi-v2-glow {
-    position: absolute;
-    bottom: -30px; right: -30px;
-    width: 90px; height: 90px;
-    border-radius: 50%;
-    pointer-events: none;
+    display: none;
 }
 
 .analytics-kpi-v2-label {
@@ -113,9 +109,7 @@
 
 /* ---- GLOW DECORATION ---- */
 .analytics-glow {
-    width: 120px; height: 120px;
-    filter: blur(20px);
-    pointer-events: none;
+    display: none;
 }
 
 /* ---- CHART CARD ---- */

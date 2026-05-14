@@ -138,27 +138,29 @@
   max-width: none;
 }
 
-.today-task-list--dashboard .task-item {
+#todayView .today-task-list--dashboard .task-item,
+#weekGrid .today-task-list--dashboard .task-item {
   width: 100%;
   align-items: center;
   gap: 14px;
   margin: 0;
   padding: 9px 0 9px 2px;
-  border: none !important;
+  border: none;
   border-radius: 0;
-  background: transparent !important;
-  box-shadow: none !important;
+  background: transparent;
+  box-shadow: none;
   transition: background 0.16s ease;
 }
 
-.today-task-list--dashboard .task-item:hover {
+#todayView .today-task-list--dashboard .task-item:hover,
+#weekGrid .today-task-list--dashboard .task-item:hover {
   margin: 0;
   padding: 9px 0 9px 2px;
-  border: none !important;
+  border: none;
   border-radius: 0;
-  background: transparent !important;
+  background: transparent;
   transform: none;
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 .today-task-list--dashboard .task-item .task-label {
@@ -184,8 +186,9 @@
   margin-left: 0;
 }
 
-.today-task-list--dashboard .task-item .task-time {
-  order: 5; margin-left: 0 !important; min-width: 58px;
+#todayView .today-task-list--dashboard .task-item .task-time,
+#weekGrid .today-task-list--dashboard .task-item .task-time {
+  order: 5; margin-left: 0; min-width: 58px;
   padding-left: 0; flex: 0 0 auto;
   color: rgba(226,232,240,0.42); font-size: 11px; font-weight: 600;
   text-align: left; white-space: nowrap;
@@ -205,27 +208,32 @@
   margin-left: 30px;
 }
 
-.today-task-list--dashboard .task-item--project-anchor,
-.today-task-list--dashboard .task-item--project-mirror {
+#todayView .today-task-list--dashboard .task-item--project-anchor,
+#todayView .today-task-list--dashboard .task-item--project-mirror,
+#weekGrid .today-task-list--dashboard .task-item--project-anchor,
+#weekGrid .today-task-list--dashboard .task-item--project-mirror {
   padding: 10px 12px;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.05) !important;
-  background: rgba(255,255,255,0.018) !important;
+  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.018);
 }
 
-.today-task-list--dashboard .task-item--project-mirror {
-  border-color: rgba(255,255,255,0.06) !important;
-  background: rgba(255,255,255,0.022) !important;
+#todayView .today-task-list--dashboard .task-item--project-mirror,
+#weekGrid .today-task-list--dashboard .task-item--project-mirror {
+  border-color: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.022);
 }
 
 /* ---- TASK LIST — focus variant ---- */
 .today-task-list--focus .task-item,
 .today-task-list--focus .task-item:hover { padding: 9px 0; }
 .today-task-list--focus .task-item .task-label { font-size: 18px; }
-.today-task-list--focus .task-item--project-anchor,
-.today-task-list--focus .task-item--project-mirror {
-  border-color: rgba(255,255,255,0.04) !important;
-  background: rgba(255,255,255,0.014) !important;
+#todayView .today-task-list--focus .task-item--project-anchor,
+#todayView .today-task-list--focus .task-item--project-mirror,
+#weekGrid .today-task-list--focus .task-item--project-anchor,
+#weekGrid .today-task-list--focus .task-item--project-mirror {
+  border-color: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.014);
 }
 
 /* ---- END DROPZONE ---- */
