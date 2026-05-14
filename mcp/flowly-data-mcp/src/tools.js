@@ -126,7 +126,7 @@ export function registerTools(server) {
       const today = localDate();
       const tasks = await db('GET', 'tasks', {
         day: `eq.${today}`,
-        select: 'id,text,period,completed,priority,type,color,parent_id',
+        select: 'id,text,period,completed,priority,type,color,parent_id,completed_at,timer_total_ms,timer_sessions_count,created_at',
         order: 'position.asc',
       });
       const byPeriod = {};
@@ -148,7 +148,7 @@ export function registerTools(server) {
       for (const day of weekDates()) {
         const tasks = await db('GET', 'tasks', {
           day: `eq.${day}`,
-          select: 'id,text,period,completed,priority,type',
+          select: 'id,text,period,completed,priority,type,completed_at,timer_total_ms',
           order: 'position.asc',
         });
         result[day] = {
@@ -230,7 +230,7 @@ export function registerTools(server) {
     async ({ q, limit }) => {
       const tasks = await db('GET', 'tasks', {
         text:   `ilike.*${q}*`,
-        select: 'id,text,day,period,completed,priority,type',
+        select: 'id,text,day,period,completed,priority,type,completed_at,timer_total_ms,created_at',
         order:  'day.desc',
         limit:  String(limit),
       });
@@ -508,6 +508,60 @@ export function registerTools(server) {
         maxStreak30d: `${maxStreak} dias`,
         byDayOfWeek: dowStats,
         byPeriod: periodStats,
+      }, null, 2));
+    }
+  );
+
+  // ── Timeline ──────────────────────────────────────────────────────────────
+  server.tool(
+    'flowly_timeline',
+    'Show chronological task activity for a day — when each task was created, completed, and how long it took. Reveals your actual work rhythm.',
+    {
+      day: z.string().optional().describe('Date YYYY-MM-DD — defaults to today'),
+    },
+    async ({ day }) => {
+      const target = day || localDate();
+      const tasks = await db('GET', 'tasks', {
+        day: `eq.${target}`,
+        select: 'id,text,period,completed,priority,type,completed_at,timer_total_ms,timer_sessions_count,timer_started_at,timer_last_stopped_at,created_at',
+        order: 'completed_at.asc.nullslast',
+      });
+
+      const fmtTime = (iso) => {
+        if (!iso) return null;
+        const tz = process.env.FLOWLY_TIMEZONE || 'America/Sao_Paulo';
+        return new Date(iso).toLocaleTimeString('pt-BR', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
+      };
+      const fmtDuration = (ms) => {
+        if (!ms || ms < 1000) return null;
+        const m = Math.round(ms / 60000);
+        return m < 60 ? `${m}min` : `${Math.floor(m/60)}h${m%60 > 0 ? `${m%60}min` : ''}`;
+      };
+
+      const timeline = tasks.map(t => ({
+        text: t.text,
+        period: t.period,
+        priority: t.priority || null,
+        completed: t.completed,
+        completed_at: fmtTime(t.completed_at),
+        timer: fmtDuration(t.timer_total_ms),
+        timer_sessions: t.timer_sessions_count || 0,
+        created_at: fmtTime(t.created_at),
+      }));
+
+      const completedTasks = timeline.filter(t => t.completed && t.completed_at);
+      const withTimer = timeline.filter(t => t.timer);
+      const totalTrackedMs = tasks.reduce((s, t) => s + (t.timer_total_ms || 0), 0);
+
+      return text(JSON.stringify({
+        date: target,
+        summary: {
+          total: tasks.length,
+          completed: tasks.filter(t => t.completed).length,
+          total_tracked_time: fmtDuration(totalTrackedMs),
+          tasks_with_timer: withTimer.length,
+        },
+        timeline,
       }, null, 2));
     }
   );
