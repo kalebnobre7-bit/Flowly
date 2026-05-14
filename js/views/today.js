@@ -61,7 +61,18 @@ function renderToday() {
     allTasks.push({ task, day: today, dateStr, period: 'Rotina', originalIndex: routineIndex });
   });
 
-  getProjectMirrorEntriesForDate(dateStr, today).forEach((entry) => {
+  const mirrorEntries = getProjectMirrorEntriesForDate(dateStr, today);
+
+  // Coleta IDs de tarefas que já aparecem sob um project block
+  // para não duplicar na lista principal
+  const mirroredTaskIds = new Set(
+    mirrorEntries
+      .filter(e => e.task?.isProjectMirror)
+      .map(e => e.task?.mirrorSourceTaskId)
+      .filter(Boolean)
+  );
+
+  mirrorEntries.forEach((entry) => {
     allTasks.push(entry);
   });
 
@@ -69,6 +80,12 @@ function renderToday() {
     if (period === 'Rotina' || !Array.isArray(tasks)) return;
     tasks.forEach((task, index) => {
       if (!task || typeof task !== 'object') return;
+      // Não duplica tarefa que já aparece sob um project block
+      const taskId = task.supabaseId || task.id || '';
+      if (taskId && mirroredTaskIds.has(taskId)) {
+        todayPersistedTasks.push(task);
+        return;
+      }
       allTasks.push({ task, day: today, dateStr, period, originalIndex: index });
       todayPersistedTasks.push(task);
     });
