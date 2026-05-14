@@ -206,17 +206,57 @@ export function registerTools(server) {
 
   server.tool(
     'flowly_complete_task',
-    'Mark a task as complete or reopen it',
+    'Mark a task as complete or reopen it by UUID. Prefer flowly_complete_by_text when you only know the name.',
     {
       id:        z.string().describe('Task UUID'),
       completed: z.boolean().default(true),
     },
     async ({ id, completed }) => {
-      await db('PATCH', `tasks?id=eq.${id}`, {}, {
+      const result = await db('PATCH', `tasks?id=eq.${id}`, {}, {
         completed,
         completed_at: completed ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
       });
-      return text(`Task ${id} → ${completed ? '✓ completed' : '↩ reopened'}`);
+      const rows = Array.isArray(result) ? result : (result ? [result] : []);
+      if (rows.length === 0) return text(`No task found with id=${id}. Use flowly_search_tasks to find the correct UUID.`);
+      return text(`✓ "${rows[0].text}" → ${completed ? 'completed' : 'reopened'}`);
+    }
+  );
+
+  server.tool(
+    'flowly_complete_by_text',
+    'Complete (or reopen) a task by name — no UUID needed. Finds best text match for today or a given date.',
+    {
+      text:      z.string().describe('Task name or partial name (case-insensitive)'),
+      day:       z.string().optional().describe('Date YYYY-MM-DD — defaults to today'),
+      completed: z.boolean().default(true),
+    },
+    async ({ text: query, day, completed }) => {
+      const target = day || localDate();
+      const tasks = await db('GET', 'tasks', {
+        day:    `eq.${target}`,
+        text:   `ilike.*${query}*`,
+        select: 'id,text,period,completed',
+        limit:  '5',
+      });
+      if (!tasks || tasks.length === 0) {
+        return text(`No task matching "${query}" found on ${target}. Try flowly_search_tasks for other dates.`);
+      }
+      // Prefer exact or closest match
+      const best = tasks.find(t => t.text.toLowerCase() === query.toLowerCase()) || tasks[0];
+      if (best.completed === completed) {
+        return text(`"${best.text}" already ${completed ? 'completed' : 'pending'} — no change.`);
+      }
+      await db('PATCH', `tasks?id=eq.${best.id}`, {}, {
+        completed,
+        completed_at: completed ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      });
+      if (tasks.length > 1) {
+        const others = tasks.slice(1).map(t => `"${t.text}"`).join(', ');
+        return text(`✓ "${best.text}" → ${completed ? 'completed' : 'reopened'}.\nOther matches ignored: ${others}`);
+      }
+      return text(`✓ "${best.text}" → ${completed ? 'completed' : 'reopened'}`);
     }
   );
 
