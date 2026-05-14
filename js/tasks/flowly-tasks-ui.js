@@ -176,7 +176,7 @@ function createTaskElement(day, dateStr, period, task, index) {
     // ◆ icon no lugar do checkbox
     const diamond = document.createElement('span');
     diamond.className = 'task-project-header-icon';
-    diamond.innerHTML = `<svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" style="opacity:.7"><path d="M6 0L12 6L6 12L0 6Z"/></svg>`;
+    diamond.innerHTML = `<svg width="9" height="9" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1L11 6L6 11L1 6Z"/></svg>`;
     el.appendChild(diamond);
 
     // Label: nome do projeto

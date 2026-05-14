@@ -1854,8 +1854,8 @@ body.dragging-active .task-item {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--flowly-accent-info);
-    margin-top: 1px; /* mesmo alinhamento visual do checkbox */
+    color: rgba(10, 132, 255, 0.55);
+    margin-top: 1px;
 }
 
 /* Nome com mesma tipografia do .task-label */
