@@ -175,7 +175,7 @@ export function registerTools(server) {
       const [tasks, habitRows] = await Promise.all([
         db('GET', 'tasks', {
           day: `eq.${today}`,
-          select: 'id,text,period,completed,priority,type,color,parent_id,completed_at,timer_total_ms,timer_sessions_count,created_at',
+          select: 'id,text,period,completed,priority,type,color,parent_id',
           order: 'position.asc',
         }),
         fetchHabitsForDate(today),
@@ -208,7 +208,7 @@ export function registerTools(server) {
       for (const day of weekDates()) {
         const tasks = await db('GET', 'tasks', {
           day: `eq.${day}`,
-          select: 'id,text,period,completed,priority,type,completed_at,timer_total_ms',
+          select: 'id,text,period,completed,priority,type',
           order: 'position.asc',
         });
         result[day] = {
@@ -274,7 +274,6 @@ export function registerTools(server) {
     async ({ id, completed }) => {
       const result = await db('PATCH', `tasks?id=eq.${id}`, {}, {
         completed,
-        completed_at: completed ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       });
       const rows = Array.isArray(result) ? result : (result ? [result] : []);
@@ -309,7 +308,6 @@ export function registerTools(server) {
       }
       await db('PATCH', `tasks?id=eq.${best.id}`, {}, {
         completed,
-        completed_at: completed ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       });
       if (tasks.length > 1) {
@@ -330,7 +328,7 @@ export function registerTools(server) {
     async ({ q, limit }) => {
       const tasks = await db('GET', 'tasks', {
         text:   `ilike.*${q}*`,
-        select: 'id,text,day,period,completed,priority,type,completed_at,timer_total_ms,created_at',
+        select: 'id,text,day,period,completed,priority,type',
         order:  'day.desc',
         limit:  String(limit),
       });
@@ -465,7 +463,7 @@ export function registerTools(server) {
           day: `eq.${d}`,
           select: 'text,day,timer_total_ms,timer_sessions_count,completed,type',
           timer_total_ms: 'gt.0',
-        });
+        }).catch(() => []);
         allTasks.push(...t);
       }
       const totalMs = allTasks.reduce((s, t) => s + (t.timer_total_ms || 0), 0);
@@ -621,11 +619,21 @@ export function registerTools(server) {
     },
     async ({ day }) => {
       const target = day || localDate();
-      const tasks = await db('GET', 'tasks', {
-        day: `eq.${target}`,
-        select: 'id,text,period,completed,priority,type,completed_at,timer_total_ms,timer_sessions_count,timer_started_at,timer_last_stopped_at,created_at',
-        order: 'completed_at.asc.nullslast',
-      });
+      // Try full select first; fall back to basic if timer columns missing
+      let tasks;
+      try {
+        tasks = await db('GET', 'tasks', {
+          day: `eq.${target}`,
+          select: 'id,text,period,completed,priority,type,completed_at,timer_total_ms,timer_sessions_count,created_at',
+          order: 'created_at.asc',
+        });
+      } catch (_) {
+        tasks = await db('GET', 'tasks', {
+          day: `eq.${target}`,
+          select: 'id,text,period,completed,priority,type',
+          order: 'position.asc',
+        });
+      }
 
       const fmtTime = (iso) => {
         if (!iso) return null;
