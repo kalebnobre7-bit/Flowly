@@ -242,10 +242,10 @@ window.toggleTaskExpansion = function (task, el) {
     };
     projectCard.appendChild(suggest);
   }
-  // Smart: Projeto sempre visível (é sempre útil poder associar)
-  // mas marcamos vazio pra CSS poder reduzir visibilidade
   if (!task.projectId) projectCard.classList.add('task-expansion-property-row--empty');
-  grid.appendChild(projectCard);
+  // Hábito puro sem projeto e sem sugestão → não mostra linha de projeto
+  const hideProject = isRecurring && !task.projectId && !repeatedMatch;
+  if (!hideProject) grid.appendChild(projectCard);
 
   const timerCard = createCard(isTimerEligible ? 'Tempo real' : 'Timer', 'play-circle');
   const timerActions = document.createElement('div');
@@ -362,7 +362,10 @@ window.toggleTaskExpansion = function (task, el) {
   exp._cleanup = () => {
     if (timerInterval) clearInterval(timerInterval);
   };
-  grid.appendChild(timerCard);
+  // Timer não disponível em rotinas — não mostra a linha
+  if (isTimerEligible) {
+    grid.appendChild(timerCard);
+  }
 
   const prioCard = createCard('Prioridade', 'flag');
   ensureMoneyPriorityOption();
