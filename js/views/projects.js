@@ -183,7 +183,7 @@ function renderProjectsView() {
     + '</header>'
     + statsStrip
     + '<div class="kanban-board" data-projects-kanban>'
-    +   PROJECTS_KANBAN_COLUMNS.filter(col => (projectsByColumn[col.id] || []).length > 0).map(renderKanbanColumn).join('')
+    +   PROJECTS_KANBAN_COLUMNS.map(renderKanbanColumn).join('')
     + '</div>'
     + '</div>'
     + '<div class="flowly-modal" id="projectDetailModal" role="dialog" aria-modal="true">'
