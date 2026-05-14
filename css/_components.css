@@ -2076,7 +2076,8 @@ body.dragging-active .task-item {
 }
 
 .task-item:hover .drag-handle,
-.task-item:focus-within .drag-handle { opacity: 0.6; }
+.task-item:focus-within .drag-handle,
+.task-item--project-header:hover .drag-handle { opacity: 0.6; }
 .drag-handle:hover { opacity: 1 !important; color: rgba(255, 255, 255, 0.85); background: rgba(255,255,255,0.05); }
 .drag-handle:active { cursor: grabbing; }
 
