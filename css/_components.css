@@ -226,11 +226,11 @@
 .flowly-stat-card--danger .flowly-stat-card__value { color: var(--flowly-accent-danger); }
 .flowly-stat-card--primary .flowly-stat-card__value { color: var(--flowly-accent-primary); }
 
-/* Accent border-top — pair with semantic modifiers when used as KPI strip */
-.flowly-stat-card--success { border-top: 2px solid var(--flowly-accent-success); }
-.flowly-stat-card--warning { border-top: 2px solid var(--flowly-accent-warning); }
-.flowly-stat-card--danger  { border-top: 2px solid var(--flowly-accent-danger); }
-.flowly-stat-card--primary { border-top: 2px solid var(--flowly-accent-primary); }
+/* Semantic tint — background hint matching value color */
+.flowly-stat-card--success { background: color-mix(in srgb, var(--flowly-bg-elevated) 92%, var(--flowly-accent-success)); }
+.flowly-stat-card--warning { background: color-mix(in srgb, var(--flowly-bg-elevated) 92%, var(--flowly-accent-warning)); }
+.flowly-stat-card--danger  { background: color-mix(in srgb, var(--flowly-bg-elevated) 92%, var(--flowly-accent-danger)); }
+.flowly-stat-card--primary { background: color-mix(in srgb, var(--flowly-bg-elevated) 92%, var(--flowly-accent-primary)); }
 
 /* Delta chip — up/down indicator inside a stat card */
 .flowly-stat-card__delta {

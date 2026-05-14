@@ -845,29 +845,30 @@ function renderAnalyticsView() {
             </div>
         </div>
 
-        <!-- KPI Grid -->
-        <div class="analytics-kpi-grid-v2">
-            <div class="flowly-stat-card flowly-stat-card--${todayRate >= 70 ? 'success' : todayRate >= 40 ? 'warning' : 'danger'}">
-                <div class="flowly-stat-card__label"><i data-lucide="activity" style="width:12px;height:12px;vertical-align:-2px"></i> Performance hoje</div>
-                <div class="flowly-stat-card__value">${todayPerformanceScore}%</div>
-                <div class="flowly-stat-card__hint">${todayCompletedVolume} concluídas • média ${analyticsSafe(avgCompletedBaseline)}</div>
-                ${todayCompletedVolume > 0 ? `<span class="flowly-stat-card__delta flowly-stat-card__delta--${volumeDelta >= 0 ? 'up' : 'down'}">${volumeDelta >= 0 ? '↑' : '↓'} ${Math.abs(volumeDelta)} vs média</span>` : ''}
+        <!-- KPI Strip -->
+        <div class="flowly-stat-strip">
+            <div class="flowly-stat-card flowly-stat-card--inline">
+                <div class="flowly-stat-card__label">Performance hoje</div>
+                <div class="flowly-stat-card__value" style="color:${todayPerformanceScore >= 110 ? 'var(--flowly-accent-success)' : todayPerformanceScore >= 85 ? 'var(--flowly-accent-info)' : 'var(--flowly-accent-warning)'}">${todayPerformanceScore}%</div>
+                <div class="flowly-stat-card__hint">${todayCompletedVolume} concluídas · média ${analyticsSafe(avgCompletedBaseline)}</div>
             </div>
-            <div class="flowly-stat-card flowly-stat-card--${weeklyDeltaTasks > 0 ? 'success' : weeklyDeltaTasks < 0 ? 'danger' : 'primary'}">
-                <div class="flowly-stat-card__label"><i data-lucide="bar-chart-3" style="width:12px;height:12px;vertical-align:-2px"></i> Ritmo semanal</div>
-                <div class="flowly-stat-card__value">${weeklyPerformanceScore}%</div>
-                <div class="flowly-stat-card__hint">${recent7Completed} concluídas nos últimos 7 dias</div>
-                <span class="flowly-stat-card__delta flowly-stat-card__delta--${trendClass === 'up' ? 'up' : trendClass === 'down' ? 'down' : 'up'}" title="${trendTooltip}">${trendLabel} vs 7 dias anteriores</span>
+            <div class="flowly-stat-strip__divider"></div>
+            <div class="flowly-stat-card flowly-stat-card--inline">
+                <div class="flowly-stat-card__label">Ritmo semanal</div>
+                <div class="flowly-stat-card__value" style="color:${weeklyDeltaTasks > 0 ? 'var(--flowly-accent-success)' : weeklyDeltaTasks < 0 ? 'var(--flowly-accent-danger)' : 'var(--flowly-text-primary)'}">${weeklyPerformanceScore}%</div>
+                <div class="flowly-stat-card__hint">${trendLabel} vs 7 dias anteriores</div>
             </div>
-            <div class="flowly-stat-card flowly-stat-card--${consistencyDays >= 15 ? 'success' : consistencyDays >= 8 ? 'primary' : 'warning'}">
-                <div class="flowly-stat-card__label"><i data-lucide="gauge" style="width:12px;height:12px;vertical-align:-2px"></i> Consistência</div>
+            <div class="flowly-stat-strip__divider"></div>
+            <div class="flowly-stat-card flowly-stat-card--inline">
+                <div class="flowly-stat-card__label">Consistência 30d</div>
                 <div class="flowly-stat-card__value">${activeHistory.length > 0 ? Math.round((consistencyDays / activeHistory.length) * 100) : 0}%</div>
-                <div class="flowly-stat-card__hint">${consistencyDays} dias na/acima da média em 30 dias</div>
+                <div class="flowly-stat-card__hint">${consistencyDays} dias na ou acima da média</div>
             </div>
-            <div class="flowly-stat-card flowly-stat-card--${bestVolumeDay && bestVolumeDay.completed >= 8 ? 'warning' : bestVolumeDay ? 'success' : 'primary'}">
-                <div class="flowly-stat-card__label"><i data-lucide="zap" style="width:12px;height:12px;vertical-align:-2px"></i> Capacidade</div>
+            <div class="flowly-stat-strip__divider"></div>
+            <div class="flowly-stat-card flowly-stat-card--inline">
+                <div class="flowly-stat-card__label">Capacidade máx.</div>
                 <div class="flowly-stat-card__value">${bestVolumeDay ? bestVolumeDay.completed : 0}</div>
-                <div class="flowly-stat-card__hint">${bestVolumeDay ? `melhor dia: ${bestVolumeDay.dateStr}` : 'sem histórico suficiente'}</div>
+                <div class="flowly-stat-card__hint">${bestVolumeDay ? `melhor: ${bestVolumeDay.dateStr}` : 'sem histórico'}</div>
             </div>
         </div>
 
