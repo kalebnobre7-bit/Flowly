@@ -24,6 +24,7 @@ function saveToLocalStorage() {
   localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
   localStorage.setItem('routineCompletions', JSON.stringify(routineCompletions));
   localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
+  localStorage.setItem('habitDailyPositions', JSON.stringify(habitDailyPositions || {}));
   persistFinanceStateLocal();
   persistProjectsStateLocal();
 
@@ -60,6 +61,7 @@ function loadFromLocalStorage() {
     routineCompletions || {}
   );
   habitsHistory = parse(localStorage.getItem('habitsHistory'), habitsHistory || {});
+  habitDailyPositions = parse(localStorage.getItem('habitDailyPositions'), habitDailyPositions || {});
 
   if (typeof normalizeFinanceState === 'function') {
     financeState = normalizeFinanceState(

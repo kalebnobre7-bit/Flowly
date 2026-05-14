@@ -91,14 +91,10 @@ function createTaskElement(day, dateStr, period, task, index) {
   }
   const actionTask = sourceList[actionIndex] || task;
 
-  // Top Drop Zone
-  if (normalizedIndex >= 0 && !isProjectMirror) {
-    container.appendChild(createDropZone(day, dateStr, period, normalizedIndex));
-  }
-
   const el = document.createElement('div');
   el.className = `task-item ${task.isHabit ? 'is-habit' : ''} `;
-  el.draggable = actionIndex >= 0 && !(isRoutineTask && !task.mirrorSourceDateStr);
+  // Habits/routines também são draggable (reorder via routineKey)
+  el.draggable = actionIndex >= 0 || isRoutineTask;
   el.dataset.day = day;
   el.dataset.date = dateStr;
   el.dataset.period = period;
@@ -642,8 +638,8 @@ function handleDragEnd(e) {
   document.body.classList.remove('dragging-active');
   this.classList.remove('opacity-50');
   document.querySelectorAll('.day-column').forEach((c) => c.classList.remove('drag-over'));
-  document.querySelectorAll('.task-item.is-drop-target').forEach((node) =>
-    node.classList.remove('is-drop-target')
+  document.querySelectorAll('.task-item').forEach((node) =>
+    node.classList.remove('is-drop-target', 'drag-above', 'drag-into', 'drag-below')
   );
 }
 
@@ -651,41 +647,155 @@ function handleDragOver(e) {
   e.preventDefault();
 }
 
+function isHabitOrRoutineTarget(targetTask, el) {
+  if (!targetTask) return false;
+  const period = el?.dataset?.period || el?.dataset?.sourcePeriod;
+  return Boolean(targetTask.isHabit || targetTask.isRoutine || targetTask.isRecurring || period === 'Rotina');
+}
+
 function handleTaskItemDragOver(e, el, targetTask) {
-  if (!draggedTask || draggedTask.isRoutineDrag || !targetTask) return;
+  if (!draggedTask || !targetTask) return;
   const samePointer =
     draggedTask.dateStr === (el.dataset.sourceDate || el.dataset.date) &&
     draggedTask.period === (el.dataset.sourcePeriod || el.dataset.period) &&
     draggedTask.index === Number(el.dataset.sourceIndex || el.dataset.index);
   if (samePointer) return;
   e.preventDefault();
-  el.classList.add('is-drop-target');
+  e.stopPropagation();
+
+  const rect = el.getBoundingClientRect();
+  const relY = (e.clientY - rect.top) / rect.height;
+  const targetIsHabit = isHabitOrRoutineTarget(targetTask, el);
+  const sourceIsHabit = Boolean(draggedTask.isRoutineDrag);
+
+  el.classList.remove('drag-above', 'drag-into', 'drag-below');
+  // Hábito (source ou target) não aceita aninhar — sem drag-into.
+  if (targetIsHabit || sourceIsHabit) {
+    el.classList.add(relY < 0.5 ? 'drag-above' : 'drag-below');
+    return;
+  }
+  // 3 zonas Y para tarefas regulares
+  if (relY < 0.35) {
+    el.classList.add('drag-above');
+  } else if (relY > 0.65) {
+    el.classList.add('drag-below');
+  } else {
+    el.classList.add('drag-into');
+  }
 }
 
 function handleTaskItemDragLeave(el) {
-  el.classList.remove('is-drop-target');
+  el.classList.remove('drag-above', 'drag-into', 'drag-below');
 }
 
 function handleTaskItemDrop(e, el, target) {
   e.preventDefault();
   e.stopPropagation();
-  el.classList.remove('is-drop-target');
-  if (!draggedTask || draggedTask.isRoutineDrag || !target || !target.task) return;
 
-  const result =
-    typeof window.moveTaskUnderParent === 'function'
-      ? window.moveTaskUnderParent({
-          sourceDateStr: draggedTask.dateStr,
-          sourcePeriod: draggedTask.period,
-          sourceIndex: draggedTask.index,
-          parentDateStr: target.dateStr,
-          parentPeriod: target.period,
-          parentIndex: target.index
-        })
-      : null;
+  const dragAbove = el.classList.contains('drag-above');
+  const dragInto  = el.classList.contains('drag-into');
+  el.classList.remove('drag-above', 'drag-into', 'drag-below');
 
+  if (!draggedTask || !target || !target.task) return;
+
+  const targetIsHabit = isHabitOrRoutineTarget(target.task, el);
+  const sourceIsHabit = Boolean(draggedTask.isRoutineDrag);
+
+  // Source hábito: reposiciona dentro do dia.
+  // Hábito → hábito: reorder via routineKey (ordem global).
+  // Hábito → regular: seta dailyPosition pra misturar entre regulares.
+  if (sourceIsHabit) {
+    const routineKey = draggedTask.routineKey || getRoutineKey(draggedTask.task);
+
+    if (targetIsHabit) {
+      // Reorder dentro do grupo de hábitos
+      const habitItems = [...document.querySelectorAll('.task-item[data-period="Rotina"]')];
+      const targetIdx = habitItems.indexOf(el);
+      const insertAt = dragAbove ? targetIdx : targetIdx + 1;
+      if (typeof reorderRoutineTasksForDate === 'function') {
+        reorderRoutineTasksForDate(draggedTask.dateStr, routineKey, insertAt);
+      }
+      // Limpa dailyPosition (volta pra grupo flutuante)
+      if (habitDailyPositions[draggedTask.dateStr]) {
+        delete habitDailyPositions[draggedTask.dateStr][routineKey];
+      }
+    } else {
+      // Hábito sai do grupo de hábitos pra misturar entre regulares.
+      // Position = position do target ± 0.5 (fica entre regulares).
+      const targetPos = typeof target.task.position === 'number' ? target.task.position : 0;
+      const newPos = dragAbove ? targetPos - 0.5 : targetPos + 0.5;
+      if (!habitDailyPositions[draggedTask.dateStr]) habitDailyPositions[draggedTask.dateStr] = {};
+      habitDailyPositions[draggedTask.dateStr][routineKey] = newPos;
+    }
+
+    saveToLocalStorage();
+    draggedTask = null;
+    renderView();
+    return;
+  }
+
+  // Target hábito (source regular): task vira root no period do source, no topo
+  if (targetIsHabit) {
+    const moveResult = moveTaskSubtree({
+      sourceDateStr: draggedTask.dateStr,
+      sourcePeriod: draggedTask.period,
+      sourceIndex: draggedTask.index,
+      targetDateStr: target.dateStr,
+      targetPeriod: draggedTask.period,
+      insertAt: 0,
+      forcedParentId: null
+    });
+    if (moveResult.moved) {
+      saveToLocalStorage();
+      (async () => {
+        for (const d of moveResult.datesToSync || []) await syncDateToSupabase(d);
+      })();
+    }
+    renderView();
+    draggedTask = null;
+    return;
+  }
+
+  if (dragInto) {
+    // Nest as child of target
+    const result =
+      typeof window.moveTaskUnderParent === 'function'
+        ? window.moveTaskUnderParent({
+            sourceDateStr: draggedTask.dateStr,
+            sourcePeriod: draggedTask.period,
+            sourceIndex: draggedTask.index,
+            parentDateStr: target.dateStr,
+            parentPeriod: target.period,
+            parentIndex: target.index
+          })
+        : null;
+    draggedTask = null;
+    if (!result) renderView();
+    return;
+  }
+
+  // Reorder: drag-above → insert before, drag-below → insert after.
+  // Tarefa arrastada herda parent_id do target → vira sibling no mesmo nível.
+  const insertAt = dragAbove ? target.index : target.index + 1;
+  const moveResult = moveTaskSubtree({
+    sourceDateStr: draggedTask.dateStr,
+    sourcePeriod: draggedTask.period,
+    sourceIndex: draggedTask.index,
+    targetDateStr: target.dateStr,
+    targetPeriod: target.period,
+    insertAt,
+    forcedParentId: target.task.parent_id || null
+  });
+
+  if (moveResult.moved) {
+    saveToLocalStorage();
+    (async () => {
+      for (const d of moveResult.datesToSync || []) await syncDateToSupabase(d);
+    })();
+  }
+
+  renderView();
   draggedTask = null;
-  if (!result) renderView();
 }
 
 function handleDropZoneDrop(e, dz) {
@@ -705,12 +815,8 @@ function handleDropZoneDrop(e, dz) {
   const sourceIndex = draggedTask.index;
 
   if (draggedTask.isRoutineDrag) {
-    if (targetPeriod !== 'Rotina') {
-      draggedTask = null;
-      renderView();
-      return;
-    }
-
+    // Habit drop em qualquer drop zone: reorder hábitos via routineKey.
+    // targetPeriod === 'Rotina' não é mais obrigatório — accept end-drop em Tarefas e reordena hábitos do dia.
     const routineKey = draggedTask.routineKey || getRoutineKey(draggedTask.task);
     const movedOnTarget = reorderRoutineTasksForDate(targetDateStr, routineKey, insertAt);
     if (!movedOnTarget) {

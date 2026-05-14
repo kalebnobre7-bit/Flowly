@@ -222,13 +222,24 @@ function reorderRoutineTasksForDate(dateStr, sourceRoutineKey, insertAt) {
 function columnDropFallback(e) {
   e.preventDefault();
   e.stopPropagation();
-  if (!draggedTask || draggedTask.isRoutineDrag) return;
+  if (!draggedTask) return;
 
   const col = e.target.closest('.day-column');
   if (!col) return;
 
   const targetDateStr = col.dataset.date;
   const targetPeriod = 'Tarefas';
+
+  // Source hábito: reorder hábito naquele dia
+  if (draggedTask.isRoutineDrag) {
+    const routineKey = draggedTask.routineKey || getRoutineKey(draggedTask.task);
+    if (typeof reorderRoutineTasksForDate === 'function') {
+      reorderRoutineTasksForDate(targetDateStr, routineKey, 0);
+    }
+    draggedTask = null;
+    renderView();
+    return;
+  }
   const sourceDateStr = draggedTask.dateStr;
   const sourcePeriod = draggedTask.period;
   const sourceIndex = draggedTask.index;

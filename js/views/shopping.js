@@ -1,5 +1,6 @@
 (function () {
   const STORAGE_KEY = 'flowly.shopping.v1';
+  const SYNC_READY_KEY = 'flowly.shopping.syncReady.v1';
 
   const PRIORITY_META = {
     alta:  { label: 'Alta',  dot: '🔴', color: '#ef4444' },
@@ -22,13 +23,56 @@
     syncToSupabase(items);
   }
 
+  function reportShoppingSyncError(error, message) {
+    console.error('[ShoppingSync]', message, error);
+    if (typeof window.recordSyncEvent === 'function') {
+      window.recordSyncEvent('error', message, {
+        error: error && error.message ? error.message : String(error || '')
+      });
+    }
+    if (typeof window.setSyncStatus === 'function') {
+      window.setSyncStatus('error', 'Falha ao sincronizar lista de compras');
+    }
+  }
+
+  function markShoppingSynced() {
+    localStorage.setItem(SYNC_READY_KEY, 'true');
+  }
+
+  function hasShoppingSyncedBefore() {
+    return localStorage.getItem(SYNC_READY_KEY) === 'true';
+  }
+
+  async function deleteRemoteShoppingMissingFrom(localIds) {
+    const { data, error } = await window.supabaseClient
+      .from('shopping_goals')
+      .select('id')
+      .eq('user_id', window.currentUser.id);
+    if (error) throw error;
+
+    const staleIds = (data || [])
+      .map((row) => row.id)
+      .filter((id) => id && !localIds.has(id));
+
+    if (staleIds.length > 0) {
+      const { error: deleteError } = await window.supabaseClient
+        .from('shopping_goals')
+        .delete()
+        .eq('user_id', window.currentUser.id)
+        .in('id', staleIds);
+      if (deleteError) throw deleteError;
+    }
+  }
+
   let _syncTimer = null;
   function syncToSupabase(items) {
     if (!window.supabaseClient || !window.currentUser) return;
     clearTimeout(_syncTimer);
     _syncTimer = setTimeout(async () => {
       try {
-        const payload = (items || []).map((item) => ({
+        const normalizedItems = Array.isArray(items) ? items.map(normalize) : [];
+        const localIds = new Set(normalizedItems.map((item) => item.id).filter(Boolean));
+        const payload = normalizedItems.map((item) => ({
           id:         item.id,
           user_id:    window.currentUser.id,
           name:       item.name,
@@ -42,11 +86,17 @@
           bought_at:  item.boughtAt || null,
           updated_at: new Date().toISOString(),
         }));
-        if (payload.length === 0) return;
-        await window.supabaseClient
-          .from('shopping_goals')
-          .upsert(payload, { onConflict: 'id' });
-      } catch (_) {}
+        if (payload.length > 0) {
+          const { error } = await window.supabaseClient
+            .from('shopping_goals')
+            .upsert(payload, { onConflict: 'id' });
+          if (error) throw error;
+        }
+        await deleteRemoteShoppingMissingFrom(localIds);
+        markShoppingSynced();
+      } catch (error) {
+        reportShoppingSyncError(error, 'Erro ao sincronizar lista de compras');
+      }
     }, 800);
   }
 
@@ -60,7 +110,15 @@
         .order('created_at', { ascending: false });
       if (error && String(error.code) === '42P01') return;
       if (error || !data) return;
-      if (data.length === 0) return;
+      if (data.length === 0) {
+        if (hasShoppingSyncedBefore()) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+          if (typeof renderShoppingView === 'function') renderShoppingView();
+        } else if (load().length > 0) {
+          syncToSupabase(load());
+        }
+        return;
+      }
       const remote = data.map((row) =>
         normalize({
           id:        row.id,
@@ -76,8 +134,11 @@
         })
       );
       localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+      markShoppingSynced();
       if (typeof renderShoppingView === 'function') renderShoppingView();
-    } catch (_) {}
+    } catch (error) {
+      reportShoppingSyncError(error, 'Erro ao carregar lista de compras');
+    }
   }
   window.loadShoppingFromSupabase = loadFromSupabase;
 

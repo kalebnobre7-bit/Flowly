@@ -37,7 +37,10 @@ function initFlowlyAppRuntime() {
       'routineCompletions',
       'habitsHistory',
       'flowlyFinanceState',
-      'flowlyProjectsState'
+      'flowlyProjectsState',
+      'flowly.goals.v2',
+      'flowly.watchLater.v1',
+      'flowly.shopping.v1'
     ]);
 
     if (!event || !event.key) return;

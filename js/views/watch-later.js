@@ -1,5 +1,6 @@
 (function () {
   const STORAGE_KEY = 'flowly.watchLater.v1';
+  const SYNC_READY_KEY = 'flowly.watchLater.syncReady.v1';
 
   function loadItems() {
     try {
@@ -18,13 +19,56 @@
     syncWatchLaterToSupabase(items);
   }
 
+  function reportWatchSyncError(error, message) {
+    console.error('[WatchLaterSync]', message, error);
+    if (typeof window.recordSyncEvent === 'function') {
+      window.recordSyncEvent('error', message, {
+        error: error && error.message ? error.message : String(error || '')
+      });
+    }
+    if (typeof window.setSyncStatus === 'function') {
+      window.setSyncStatus('error', 'Falha ao sincronizar assistir depois');
+    }
+  }
+
+  function markWatchSynced() {
+    localStorage.setItem(SYNC_READY_KEY, 'true');
+  }
+
+  function hasWatchSyncedBefore() {
+    return localStorage.getItem(SYNC_READY_KEY) === 'true';
+  }
+
+  async function deleteRemoteWatchMissingFrom(localIds) {
+    const { data, error } = await window.supabaseClient
+      .from('watch_later')
+      .select('id')
+      .eq('user_id', window.currentUser.id);
+    if (error) throw error;
+
+    const staleIds = (data || [])
+      .map((row) => row.id)
+      .filter((id) => id && !localIds.has(id));
+
+    if (staleIds.length > 0) {
+      const { error: deleteError } = await window.supabaseClient
+        .from('watch_later')
+        .delete()
+        .eq('user_id', window.currentUser.id)
+        .in('id', staleIds);
+      if (deleteError) throw deleteError;
+    }
+  }
+
   let _syncWatchTimer = null;
   function syncWatchLaterToSupabase(items) {
     if (!window.supabaseClient || !window.currentUser) return;
     clearTimeout(_syncWatchTimer);
     _syncWatchTimer = setTimeout(async () => {
       try {
-        const payload = (items || []).map((v) => ({
+        const localItems = Array.isArray(items) ? items : [];
+        const localIds = new Set(localItems.map((v) => v && v.id).filter(Boolean));
+        const payload = localItems.map((v) => ({
           id: v.id,
           user_id: window.currentUser.id,
           kind: v.kind || 'youtube',
@@ -38,9 +82,17 @@
           watched: v.watched || false,
           updated_at: new Date().toISOString(),
         }));
-        if (payload.length === 0) return;
-        await window.supabaseClient.from('watch_later').upsert(payload, { onConflict: 'id' });
-      } catch (_) {}
+        if (payload.length > 0) {
+          const { error } = await window.supabaseClient
+            .from('watch_later')
+            .upsert(payload, { onConflict: 'id' });
+          if (error) throw error;
+        }
+        await deleteRemoteWatchMissingFrom(localIds);
+        markWatchSynced();
+      } catch (error) {
+        reportWatchSyncError(error, 'Erro ao sincronizar assistir depois');
+      }
     }, 800);
   }
 
@@ -54,7 +106,15 @@
         .order('added_at', { ascending: false });
       if (error && String(error.code) === '42P01') return; // table not yet created
       if (error || !data) return;
-      if (data.length === 0) return;
+      if (data.length === 0) {
+        if (hasWatchSyncedBefore()) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+          if (typeof window.renderWatchView === 'function') window.renderWatchView();
+        } else if (loadItems().length > 0) {
+          syncWatchLaterToSupabase(loadItems());
+        }
+        return;
+      }
       const remote = data.map((row) => ({
         id: row.id,
         kind: row.kind,
@@ -68,8 +128,11 @@
         watched: row.watched,
       }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+      markWatchSynced();
       if (typeof window.renderWatchView === 'function') window.renderWatchView();
-    } catch (_) {}
+    } catch (error) {
+      reportWatchSyncError(error, 'Erro ao carregar assistir depois');
+    }
   }
   window.loadWatchLaterFromSupabase = loadWatchLaterFromSupabase;
 

@@ -2,6 +2,7 @@
   const STORAGE_KEY = 'flowly.goals.v2';
   const V1_KEY = 'flowly.goals.v1';
   const UI_KEY = 'flowly.goals.ui.v1';
+  const SYNC_READY_KEY = 'flowly.goals.syncReady.v1';
 
   const COLORS = [
     { id: 'green', hex: '#22c55e' },
@@ -89,13 +90,57 @@
     syncGoalsToSupabase(goals);
   }
 
+  function reportGoalsSyncError(error, message) {
+    console.error('[GoalsSync]', message, error);
+    if (typeof window.recordSyncEvent === 'function') {
+      window.recordSyncEvent('error', message, {
+        error: error && error.message ? error.message : String(error || '')
+      });
+    }
+    if (typeof window.setSyncStatus === 'function') {
+      window.setSyncStatus('error', 'Falha ao sincronizar metas');
+    }
+  }
+
+  function markGoalsSynced() {
+    localStorage.setItem(SYNC_READY_KEY, 'true');
+  }
+
+  function hasGoalsSyncedBefore() {
+    return localStorage.getItem(SYNC_READY_KEY) === 'true';
+  }
+
+  async function deleteRemoteGoalsMissingFrom(localIds) {
+    const query = window.supabaseClient
+      .from('goals')
+      .select('id')
+      .eq('user_id', window.currentUser.id);
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const staleIds = (data || [])
+      .map((row) => row.id)
+      .filter((id) => id && !localIds.has(id));
+
+    if (staleIds.length > 0) {
+      const { error: deleteError } = await window.supabaseClient
+        .from('goals')
+        .delete()
+        .eq('user_id', window.currentUser.id)
+        .in('id', staleIds);
+      if (deleteError) throw deleteError;
+    }
+  }
+
   let _syncGoalsTimer = null;
   function syncGoalsToSupabase(goals) {
     if (!window.supabaseClient || !window.currentUser) return;
     clearTimeout(_syncGoalsTimer);
     _syncGoalsTimer = setTimeout(async () => {
       try {
-        const payload = (goals || []).map((g) => ({
+        const normalizedGoals = Array.isArray(goals) ? goals.map(normalize) : [];
+        const localIds = new Set(normalizedGoals.map((g) => g.id).filter(Boolean));
+        const payload = normalizedGoals.map((g) => ({
           id: g.id,
           user_id: window.currentUser.id,
           icon: g.icon,
@@ -112,9 +157,15 @@
           completed_at: g.completedAt || null,
           updated_at: new Date().toISOString(),
         }));
-        if (payload.length === 0) return;
-        await window.supabaseClient.from('goals').upsert(payload, { onConflict: 'id' });
-      } catch (_) {}
+        if (payload.length > 0) {
+          const { error } = await window.supabaseClient.from('goals').upsert(payload, { onConflict: 'id' });
+          if (error) throw error;
+        }
+        await deleteRemoteGoalsMissingFrom(localIds);
+        markGoalsSynced();
+      } catch (error) {
+        reportGoalsSyncError(error, 'Erro ao sincronizar metas');
+      }
     }, 800);
   }
 
@@ -128,7 +179,15 @@
         .order('order', { ascending: true });
       if (error && String(error.code) === '42P01') return; // table not yet created
       if (error || !data) return;
-      if (data.length === 0) return;
+      if (data.length === 0) {
+        if (hasGoalsSyncedBefore()) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+          if (typeof window.renderGoalsView === 'function') window.renderGoalsView();
+        } else if (load().length > 0) {
+          syncGoalsToSupabase(load());
+        }
+        return;
+      }
       const remote = data.map((row) => normalize({
         id: row.id,
         icon: row.icon,
@@ -145,8 +204,11 @@
         completedAt: row.completed_at,
       }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+      markGoalsSynced();
       if (typeof window.renderGoalsView === 'function') window.renderGoalsView();
-    } catch (_) {}
+    } catch (error) {
+      reportGoalsSyncError(error, 'Erro ao carregar metas');
+    }
   }
   window.loadGoalsFromSupabase = loadGoalsFromSupabase;
 

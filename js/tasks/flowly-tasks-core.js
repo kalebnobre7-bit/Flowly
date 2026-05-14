@@ -75,7 +75,8 @@ function moveTaskSubtree({
   insertAt,
   indentIntent = false,
   outdentIntent = false,
-  forcedParentTask = null
+  forcedParentTask = null,
+  forcedParentId // undefined = não forçar; null/string = setar explicitamente
 }) {
   if (!allTasksData[sourceDateStr]) allTasksData[sourceDateStr] = {};
   if (!allTasksData[targetDateStr]) allTasksData[targetDateStr] = {};
@@ -101,7 +102,7 @@ function moveTaskSubtree({
   const firstSubtreeIndex = subtreeIndexes[0];
   const lastSubtreeIndex = subtreeIndexes[subtreeIndexes.length - 1];
 
-  const hasReparentIntent = Boolean(forcedParentTask) || indentIntent || outdentIntent;
+  const hasReparentIntent = Boolean(forcedParentTask) || indentIntent || outdentIntent || forcedParentId !== undefined;
   if (
     movingWithinSameList &&
     !hasReparentIntent &&
@@ -136,6 +137,8 @@ function moveTaskSubtree({
       task.projectId = forcedParentTask.projectId || null;
       task.projectName = forcedParentTask.projectName || '';
     });
+  } else if (forcedParentId !== undefined) {
+    movedRootTask.parent_id = forcedParentId || null;
   } else if (indentIntent && normalizedInsertAt > 0) {
     const prevTask = destinationList[normalizedInsertAt - 1];
     if (prevTask && !subtreeSet.has(prevTask) && (prevTask.depth || 0) < 2) {
@@ -285,42 +288,35 @@ function unifiedTaskSort(taskList) {
     const tA = a.task;
     const tB = b.task;
 
-    // 1. Rotinas sempre no topo absoluto
     const isRoutineA = tA.isRoutine || tA.isRecurring || a.period === 'Rotina';
     const isRoutineB = tB.isRoutine || tB.isRecurring || b.period === 'Rotina';
-    if (isRoutineA !== isRoutineB) return isRoutineA ? -1 : 1;
-    if (isRoutineA && isRoutineB) {
-      // Dentro de rotinas: concluídas primeiro, depois por ordem original
-      if (tA.completed !== tB.completed) return tA.completed ? -1 : 1;
+    const hasDailyPosA = isRoutineA && typeof tA.dailyPosition === 'number';
+    const hasDailyPosB = isRoutineB && typeof tB.dailyPosition === 'number';
+
+    // Hábito SEM dailyPosition (não reordenado pelo user) flutua no topo
+    const isFloatingA = isRoutineA && !hasDailyPosA;
+    const isFloatingB = isRoutineB && !hasDailyPosB;
+    if (isFloatingA !== isFloatingB) return isFloatingA ? -1 : 1;
+    if (isFloatingA && isFloatingB) {
       return (a.originalIndex || 0) - (b.originalIndex || 0);
     }
 
-    const isProjectAnchorA = false;
-    const isProjectAnchorB = false;
-    if (isProjectAnchorA !== isProjectAnchorB) return isProjectAnchorA ? -1 : 1;
-    if (isProjectAnchorA && isProjectAnchorB) {
-      const scheduleA = String(tA.projectScheduleText || '');
-      const scheduleB = String(tB.projectScheduleText || '');
-      const scheduleCmp = scheduleA.localeCompare(scheduleB);
-      if (scheduleCmp !== 0) return scheduleCmp;
-      return String(tA.text || '').localeCompare(String(tB.text || ''));
-    }
+    // Ambos posicionados (regular OU hábito com dailyPosition).
+    // Concluídas em cima dentro deste grupo. (coerce p/ boolean evita bug undefined!==false)
+    const completedA = !!tA.completed;
+    const completedB = !!tB.completed;
+    if (completedA !== completedB) return completedA ? -1 : 1;
 
-    // 2. Concluídas em cima, pendentes embaixo
-    if (tA.completed !== tB.completed) return tA.completed ? -1 : 1;
-
-    // 3. Dentro de concluídas: ordenar por completedAt (mais antiga primeiro = ordem de conclusão)
-    if (tA.completed && tB.completed) {
+    if (completedA && completedB) {
       const timeA = tA.completedAt ? new Date(tA.completedAt).getTime() : 0;
       const timeB = tB.completedAt ? new Date(tB.completedAt).getTime() : 0;
-      if (timeA !== timeB) return timeA - timeB; // mais antiga primeiro
+      if (timeA !== timeB) return timeA - timeB;
     }
 
-    // 4. Dentro de pendentes: por position, depois originalIndex
-    if (tA.position !== tB.position && (tA.position !== 0 || tB.position !== 0)) {
-      return tA.position - tB.position;
-    }
-
+    // Sort por position (hábito usa dailyPosition, regular usa position)
+    const posA = isRoutineA ? tA.dailyPosition : (tA.position || 0);
+    const posB = isRoutineB ? tB.dailyPosition : (tB.position || 0);
+    if (posA !== posB) return posA - posB;
     return (a.originalIndex || 0) - (b.originalIndex || 0);
   };
 

@@ -52,23 +52,30 @@
         const historyValue = habitsHistory[habit.text] && habitsHistory[habit.text][dateStr];
         const completedAt = typeof historyValue === 'string' ? historyValue : null;
 
+        const routineKeyValue =
+          typeof getRecurringTaskIdentity === 'function'
+            ? getRecurringTaskIdentity(habit)
+            : habit.routineId || habit.supabaseId || habit.text;
+        const dailyPosMap =
+          ((typeof window !== 'undefined' && window.habitDailyPositions && window.habitDailyPositions[dateStr]) ||
+           (typeof habitDailyPositions !== 'undefined' && habitDailyPositions && habitDailyPositions[dateStr]) ||
+           {});
+        const dailyPosVal = dailyPosMap[routineKeyValue];
         tasks.push({
           text: habit.text,
           routineId:
             typeof ensureRecurringTaskIdentity === 'function'
               ? ensureRecurringTaskIdentity(habit)
               : habit.routineId || habit.supabaseId || habit.text,
-          routineKey:
-            typeof getRecurringTaskIdentity === 'function'
-              ? getRecurringTaskIdentity(habit)
-              : habit.routineId || habit.supabaseId || habit.text,
+          routineKey: routineKeyValue,
           completed: !!historyValue,
           completedAt: completedAt,
           color: habit.color || 'default',
           priority: habit.priority || 'none',
           isRecurring: true,
           isHabit: true,
-          recurrence: habit.daysOfWeek
+          recurrence: habit.daysOfWeek,
+          dailyPosition: typeof dailyPosVal === 'number' ? dailyPosVal : null
         });
       });
 
