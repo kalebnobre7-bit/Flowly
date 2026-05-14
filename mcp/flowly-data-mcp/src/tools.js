@@ -186,7 +186,7 @@ export function registerTools(server) {
       text:     z.string().describe('Task description'),
       day:      z.string().optional().describe('Date YYYY-MM-DD — defaults to today'),
       period:   z.enum(['Manhã', 'Tarde', 'Noite', 'Rotina']).optional().default('Manhã'),
-      priority: z.enum(['money', 'urgent', 'important', 'simple']).optional(),
+      priority: z.enum(['money', 'cliente', 'vida', 'manut', 'urgent', 'important', 'simple']).optional().describe('Priority ID — use money/cliente/vida/manut for new tasks'),
       type:     z.enum(['MONEY', 'BODY', 'MIND', 'SPIRIT', 'OPERATIONAL']).optional(),
     },
     async ({ text: taskText, day, period, priority, type }) => {
@@ -509,6 +509,65 @@ export function registerTools(server) {
         byDayOfWeek: dowStats,
         byPeriod: periodStats,
       }, null, 2));
+    }
+  );
+
+  // ── Update task ────────────────────────────────────────────────────────────
+  server.tool(
+    'flowly_update_task',
+    'Edit an existing task — change text, priority, type, period or date. Pass only the fields to change.',
+    {
+      id:       z.string().describe('Task UUID (from search or today/week results)'),
+      text:     z.string().optional().describe('New task description'),
+      priority: z.enum(['money', 'cliente', 'vida', 'manut', 'urgent', 'important', 'simple']).nullable().optional().describe('New priority ID, or null to clear'),
+      type:     z.enum(['MONEY', 'BODY', 'MIND', 'SPIRIT', 'OPERATIONAL']).nullable().optional(),
+      period:   z.enum(['Manhã', 'Tarde', 'Noite', 'Rotina']).optional().describe('Move to different time period on same day'),
+      day:      z.string().optional().describe('Move to different date YYYY-MM-DD'),
+    },
+    async ({ id, text: newText, priority, type, period, day }) => {
+      const patch = {};
+      if (newText   !== undefined) patch.text     = newText;
+      if (priority  !== undefined) patch.priority = priority;
+      if (type      !== undefined) patch.type     = type;
+      if (period    !== undefined) patch.period   = period;
+      if (day       !== undefined) patch.day      = day;
+      if (Object.keys(patch).length === 0) return text('Nothing to update — pass at least one field.');
+      patch.updated_at = new Date().toISOString();
+      await db('PATCH', `tasks?id=eq.${id}`, {}, patch);
+      return text(`Task ${id} updated: ${JSON.stringify(patch)}`);
+    }
+  );
+
+  // ── Move task ─────────────────────────────────────────────────────────────
+  server.tool(
+    'flowly_move_task',
+    'Move a task to a different date and/or period. Shorthand for the most common rescheduling action.',
+    {
+      id:     z.string().describe('Task UUID'),
+      day:    z.string().optional().describe('Target date YYYY-MM-DD. Omit to keep same day.'),
+      period: z.enum(['Manhã', 'Tarde', 'Noite', 'Rotina']).optional().describe('Target period. Omit to keep same period.'),
+    },
+    async ({ id, day, period }) => {
+      if (!day && !period) return text('Provide day and/or period to move the task.');
+      const patch = { updated_at: new Date().toISOString() };
+      if (day)    patch.day    = day;
+      if (period) patch.period = period;
+      await db('PATCH', `tasks?id=eq.${id}`, {}, patch);
+      const where = [day && `day → ${day}`, period && `period → ${period}`].filter(Boolean).join(', ');
+      return text(`Task ${id} moved: ${where}`);
+    }
+  );
+
+  // ── Delete task ───────────────────────────────────────────────────────────
+  server.tool(
+    'flowly_delete_task',
+    'Permanently delete a task. Use with care — cannot be undone.',
+    {
+      id: z.string().describe('Task UUID'),
+    },
+    async ({ id }) => {
+      await db('DELETE', `tasks?id=eq.${id}`, {});
+      return text(`Task ${id} deleted.`);
     }
   );
 }
