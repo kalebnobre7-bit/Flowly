@@ -173,11 +173,11 @@ function createTaskElement(day, dateStr, period, task, index) {
     el.dataset.period = 'Projetos';
     el.dataset.projectId = task.projectId || '';
 
-    // Spacer com order:-1 igual ao drag-handle das tarefas normais
-    // garante que ◆ fique na mesma posição horizontal que o checkbox
+    // Drag-handle idêntico ao das tarefas normais
     const handleSpacer = document.createElement('span');
     handleSpacer.className = 'drag-handle';
     handleSpacer.setAttribute('aria-hidden', 'true');
+    handleSpacer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="2" r="1.2"/><circle cx="7" cy="2" r="1.2"/><circle cx="3" cy="7" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="3" cy="12" r="1.2"/><circle cx="7" cy="12" r="1.2"/></svg>`;
     el.appendChild(handleSpacer);
 
     // ◆ icon no lugar do checkbox
