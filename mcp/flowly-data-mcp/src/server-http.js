@@ -23,11 +23,17 @@ const app = express();
 app.use(express.json());
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-app.use((_req, res, next) => {
+app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id');
-  if (_req.method === 'OPTIONS') { res.sendStatus(204); return; }
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
+  if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
+
+  // Normalize Accept: */* → SDK requires explicit content types
+  const accept = req.headers['accept'] || '';
+  if (accept.includes('*/*') && !accept.includes('text/event-stream')) {
+    req.headers['accept'] = 'application/json, text/event-stream';
+  }
   next();
 });
 
