@@ -29,10 +29,18 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id, MCP-Protocol-Version');
   if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
 
-  // Normalize Accept: */* → SDK requires explicit content types
+  // Normalize Accept: */* — Hono reads rawHeaders, SDK needs explicit types
   const accept = req.headers['accept'] || '';
   if (accept.includes('*/*') && !accept.includes('text/event-stream')) {
-    req.headers['accept'] = 'application/json, text/event-stream';
+    const fixed = 'application/json, text/event-stream';
+    req.headers['accept'] = fixed;
+    if (Array.isArray(req.rawHeaders)) {
+      for (let i = 0; i < req.rawHeaders.length - 1; i += 2) {
+        if (req.rawHeaders[i].toLowerCase() === 'accept') {
+          req.rawHeaders[i + 1] = fixed;
+        }
+      }
+    }
   }
   next();
 });
