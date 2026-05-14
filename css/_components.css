@@ -1858,17 +1858,18 @@ body.dragging-active .task-item {
     margin-top: 1px;
 }
 
-/* Nome com mesma tipografia do .task-label */
+/* Nome — mesma tipografia exata do .task-label */
 .task-project-header-name {
     flex: 1;
     min-width: 0;
     font-size: var(--flowly-text-sm);
-    font-weight: var(--flowly-weight-regular);
+    font-weight: 400;
     color: var(--flowly-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.45;
+    letter-spacing: -0.005em;
 }
 
 /* Meta (deadline) — discreto, alinhado à direita */
@@ -1881,9 +1882,14 @@ body.dragging-active .task-item {
     line-height: 1.45;
 }
 
-/* Sub-tasks do projeto: leve indent */
+/* Sub-tasks do projeto — mesmo estilo de inlead (barra lateral, sem card) */
 .task-item--project-mirror-sub {
-    margin-left: 14px;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    margin-left: 28px !important;
+    padding: 6px 8px 6px 12px !important;
+    border-left: 2px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 .task-item--project-anchor:hover { background: rgba(255, 255, 255, 0.04); }
