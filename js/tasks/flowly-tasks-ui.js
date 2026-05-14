@@ -186,22 +186,28 @@ function createTaskElement(day, dateStr, period, task, index) {
     diamond.innerHTML = `<svg width="13" height="13" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1L11 6L6 11L1 6Z"/></svg>`;
     el.appendChild(diamond);
 
-    // Label: nome do projeto
+    // Grupo: nome + meta inline (sem flex:1 no nome, tudo junto à esquerda)
+    const nameGroup = document.createElement('span');
+    nameGroup.className = 'task-project-header-name-group';
+
     const label = document.createElement('span');
     label.className = 'task-project-header-name';
     label.textContent = task.text || '';
-    el.appendChild(label);
+    nameGroup.appendChild(label);
 
-    // Meta: deadline + pendentes
     const pendentes = task.projectTaskCount - task.projectDoneCount;
     const metaParts = [];
     if (task.projectDeadlineText) metaParts.push(task.projectDeadlineText);
+    metaParts.push(`${task.projectDoneCount}/${task.projectTaskCount}`);
+
     const meta = document.createElement('span');
     meta.className = 'task-project-header-meta';
-    meta.textContent = metaParts.join(' · ');
-    el.appendChild(meta);
+    meta.textContent = metaParts.join('  ');
+    nameGroup.appendChild(meta);
 
-    // Collapse button — igual tarefas com filhos
+    el.appendChild(nameGroup);
+
+    // Collapse button — empurrado pra direita
     const collapseBtn = document.createElement('button');
     collapseBtn.type = 'button';
     collapseBtn.className = 'task-collapse-btn';

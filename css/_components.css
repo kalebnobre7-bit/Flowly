@@ -1858,10 +1858,17 @@ body.dragging-active .task-item {
     margin-top: 1px;
 }
 
-/* Nome — mesma tipografia exata do .task-label */
-.task-project-header-name {
+/* Grupo inline: nome + meta juntos à esquerda */
+.task-project-header-name-group {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
     flex: 1;
     min-width: 0;
+    overflow: hidden;
+}
+
+.task-project-header-name {
     font-size: var(--flowly-text-sm);
     font-weight: 400;
     color: var(--flowly-text-primary);
@@ -1870,16 +1877,16 @@ body.dragging-active .task-item {
     text-overflow: ellipsis;
     line-height: 1.45;
     letter-spacing: -0.005em;
+    flex-shrink: 0;
 }
 
-/* Meta (deadline) — discreto, alinhado à direita */
 .task-project-header-meta {
     font-size: 11px;
-    color: var(--flowly-accent-info);
-    opacity: 0.65;
-    flex-shrink: 0;
+    color: var(--flowly-text-tertiary);
+    opacity: 0.7;
     white-space: nowrap;
     line-height: 1.45;
+    flex-shrink: 0;
 }
 
 /* Sub-tasks do projeto — mesmo estilo de inlead (barra lateral, sem card) */
