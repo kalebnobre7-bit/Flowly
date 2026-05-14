@@ -231,4 +231,246 @@ export function registerTools(server) {
       }, null, 2));
     }
   );
+
+  // ── History — last N days ──────────────────────────────────────────────────
+  server.tool(
+    'flowly_history',
+    'Completion rate for each of the last N days (default 30). Shows daily trends and patterns.',
+    { days: z.number().optional().default(30).describe('Number of past days to show') },
+    async ({ days }) => {
+      const n = Math.min(days ?? 30, 90);
+      const result = [];
+      for (let i = n - 1; i >= 0; i--) {
+        const d = localDate(-i);
+        const tasks = await db('GET', 'tasks', { day: `eq.${d}`, select: 'completed,type,priority' });
+        const done = tasks.filter(t => t.completed).length;
+        result.push({
+          date: d,
+          total: tasks.length,
+          completed: done,
+          rate: tasks.length > 0 ? Math.round(done / tasks.length * 100) : null,
+        });
+      }
+      const active = result.filter(d => d.total > 0);
+      const avgRate = active.length > 0
+        ? Math.round(active.reduce((s, d) => s + d.rate, 0) / active.length)
+        : 0;
+      const perfectDays = active.filter(d => d.rate === 100).length;
+      return text(JSON.stringify({ summary: { activeDays: active.length, avgRate: `${avgRate}%`, perfectDays }, days: result }, null, 2));
+    }
+  );
+
+  // ── Breakdown by type ──────────────────────────────────────────────────────
+  server.tool(
+    'flowly_by_type',
+    'Task completion breakdown by type (MONEY/BODY/MIND/SPIRIT/OPERATIONAL) for the last 30 days',
+    {},
+    async () => {
+      const dates = Array.from({ length: 30 }, (_, i) => localDate(-i));
+      const allTasks = [];
+      for (const d of dates) {
+        const t = await db('GET', 'tasks', { day: `eq.${d}`, select: 'completed,type,priority,text' });
+        allTasks.push(...t);
+      }
+      const byType = {};
+      for (const t of allTasks) {
+        const key = t.type || 'SEM_TIPO';
+        if (!byType[key]) byType[key] = { total: 0, completed: 0 };
+        byType[key].total++;
+        if (t.completed) byType[key].completed++;
+      }
+      const result = Object.entries(byType)
+        .map(([type, s]) => ({ type, ...s, rate: s.total > 0 ? `${Math.round(s.completed / s.total * 100)}%` : '—' }))
+        .sort((a, b) => b.total - a.total);
+      return text(JSON.stringify(result, null, 2));
+    }
+  );
+
+  // ── Breakdown by priority ──────────────────────────────────────────────────
+  server.tool(
+    'flowly_by_priority',
+    'Task completion breakdown by priority (money/urgent/important/simple) for the last 30 days',
+    {},
+    async () => {
+      const dates = Array.from({ length: 30 }, (_, i) => localDate(-i));
+      const allTasks = [];
+      for (const d of dates) {
+        const t = await db('GET', 'tasks', { day: `eq.${d}`, select: 'completed,priority,text' });
+        allTasks.push(...t);
+      }
+      const byPrio = {};
+      for (const t of allTasks) {
+        const key = t.priority || 'SEM_PRIORIDADE';
+        if (!byPrio[key]) byPrio[key] = { total: 0, completed: 0 };
+        byPrio[key].total++;
+        if (t.completed) byPrio[key].completed++;
+      }
+      const order = ['money', 'urgent', 'important', 'simple', 'SEM_PRIORIDADE'];
+      const result = Object.entries(byPrio)
+        .map(([priority, s]) => ({ priority, ...s, rate: s.total > 0 ? `${Math.round(s.completed / s.total * 100)}%` : '—' }))
+        .sort((a, b) => order.indexOf(a.priority) - order.indexOf(b.priority));
+      return text(JSON.stringify(result, null, 2));
+    }
+  );
+
+  // ── Timer / time tracking ──────────────────────────────────────────────────
+  server.tool(
+    'flowly_timers',
+    'Time tracking data — tasks with tracked time, total hours, top time-consuming tasks',
+    { days: z.number().optional().default(30).describe('Number of past days') },
+    async ({ days }) => {
+      const n = Math.min(days ?? 30, 90);
+      const dates = Array.from({ length: n }, (_, i) => localDate(-i));
+      const allTasks = [];
+      for (const d of dates) {
+        const t = await db('GET', 'tasks', {
+          day: `eq.${d}`,
+          select: 'text,day,timer_total_ms,timer_sessions_count,completed,type',
+          timer_total_ms: 'gt.0',
+        });
+        allTasks.push(...t);
+      }
+      const totalMs = allTasks.reduce((s, t) => s + (t.timer_total_ms || 0), 0);
+      const fmtHrs = ms => `${(ms / 3600000).toFixed(1)}h`;
+      const top = allTasks
+        .sort((a, b) => (b.timer_total_ms || 0) - (a.timer_total_ms || 0))
+        .slice(0, 10)
+        .map(t => ({ text: t.text, day: t.day, time: fmtHrs(t.timer_total_ms), sessions: t.timer_sessions_count, type: t.type }));
+      return text(JSON.stringify({
+        totalTracked: fmtHrs(totalMs),
+        tasksWithTimer: allTasks.length,
+        avgPerTask: allTasks.length > 0 ? fmtHrs(totalMs / allTasks.length) : '0h',
+        top10: top,
+      }, null, 2));
+    }
+  );
+
+  // ── Overdue ────────────────────────────────────────────────────────────────
+  server.tool(
+    'flowly_overdue',
+    'Incomplete tasks from past days (not just this week) — tasks left behind',
+    { days: z.number().optional().default(14).describe('How many past days to look back') },
+    async ({ days }) => {
+      const n = Math.min(days ?? 14, 60);
+      const today = localDate();
+      const overdue = [];
+      for (let i = 1; i <= n; i++) {
+        const d = localDate(-i);
+        const tasks = await db('GET', 'tasks', {
+          day: `eq.${d}`,
+          completed: 'eq.false',
+          is_habit: 'eq.false',
+          select: 'id,text,day,period,priority,type',
+        });
+        overdue.push(...tasks);
+      }
+      const byPriority = { money: [], urgent: [], important: [], simple: [], other: [] };
+      for (const t of overdue) {
+        const k = byPriority[t.priority] ? t.priority : 'other';
+        byPriority[k].push(t);
+      }
+      return text(JSON.stringify({ total: overdue.length, byPriority }, null, 2));
+    }
+  );
+
+  // ── Finance ────────────────────────────────────────────────────────────────
+  server.tool(
+    'flowly_finance',
+    'Finance summary — income, expenses, balance and top categories for a given month',
+    { month: z.string().optional().describe('YYYY-MM format, defaults to current month') },
+    async ({ month }) => {
+      const now = new Date();
+      const m = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const [y, mo] = m.split('-');
+      const start = `${y}-${mo}-01`;
+      const endDate = new Date(Number(y), Number(mo), 0);
+      const end = `${y}-${mo}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+      const transactions = await db('GET', 'finance_transactions', {
+        occurred_on: `gte.${start}`,
+        select: 'entry_type,amount,description,category,occurred_on',
+        order: 'occurred_on.desc',
+        limit: '200',
+      }).catch(() => []);
+
+      const filtered = (transactions || []).filter(t => t.occurred_on <= end);
+      const income   = filtered.filter(t => t.entry_type === 'income');
+      const expenses = filtered.filter(t => t.entry_type === 'expense');
+      const totalIn  = income.reduce((s, t) => s + Number(t.amount), 0);
+      const totalOut = expenses.reduce((s, t) => s + Number(t.amount), 0);
+
+      const byCat = {};
+      for (const t of filtered) {
+        if (!byCat[t.category]) byCat[t.category] = { income: 0, expense: 0 };
+        if (t.entry_type === 'income') byCat[t.category].income += Number(t.amount);
+        else byCat[t.category].expense += Number(t.amount);
+      }
+      const categories = Object.entries(byCat)
+        .map(([cat, v]) => ({ category: cat, ...v }))
+        .sort((a, b) => (b.income + b.expense) - (a.income + a.expense));
+
+      const fmt = n => `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+      return text(JSON.stringify({
+        month: m,
+        income: fmt(totalIn),
+        expenses: fmt(totalOut),
+        balance: fmt(totalIn - totalOut),
+        transactions: filtered.length,
+        categories,
+      }, null, 2));
+    }
+  );
+
+  // ── Productivity patterns ──────────────────────────────────────────────────
+  server.tool(
+    'flowly_patterns',
+    'Productivity patterns — best day of week, best time period, completion streaks, 30-day trend',
+    {},
+    async () => {
+      const days30 = Array.from({ length: 30 }, (_, i) => localDate(-i));
+      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const byDow = Array.from({ length: 7 }, () => ({ total: 0, completed: 0, days: 0 }));
+      const byPeriod = {};
+      let streak = 0;
+      let maxStreak = 0;
+      let curStreak = 0;
+
+      for (const d of days30) {
+        const tasks = await db('GET', 'tasks', { day: `eq.${d}`, select: 'completed,period' });
+        if (tasks.length === 0) continue;
+        const dow = new Date(d + 'T12:00:00').getDay();
+        byDow[dow].total += tasks.length;
+        byDow[dow].completed += tasks.filter(t => t.completed).length;
+        byDow[dow].days++;
+        for (const t of tasks) {
+          const p = t.period || 'Sem período';
+          if (!byPeriod[p]) byPeriod[p] = { total: 0, completed: 0 };
+          byPeriod[p].total++;
+          if (t.completed) byPeriod[p].completed++;
+        }
+        const rate = Math.round(tasks.filter(t => t.completed).length / tasks.length * 100);
+        if (rate >= 50) { curStreak++; maxStreak = Math.max(maxStreak, curStreak); }
+        else curStreak = 0;
+      }
+      streak = curStreak;
+
+      const dowStats = byDow.map((s, i) => ({
+        day: dayNames[i],
+        avgRate: s.days > 0 ? `${Math.round(s.completed / s.total * 100)}%` : '—',
+        activeDays: s.days,
+      }));
+      const periodStats = Object.entries(byPeriod).map(([period, s]) => ({
+        period,
+        total: s.total,
+        rate: `${Math.round(s.completed / s.total * 100)}%`,
+      })).sort((a, b) => b.total - a.total);
+
+      return text(JSON.stringify({
+        currentStreak: `${streak} dias`,
+        maxStreak30d: `${maxStreak} dias`,
+        byDayOfWeek: dowStats,
+        byPeriod: periodStats,
+      }, null, 2));
+    }
+  );
 }
