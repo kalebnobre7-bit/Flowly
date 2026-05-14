@@ -548,10 +548,8 @@ window.toggleTaskExpansion = function (task, el) {
   });
   repeatCard.appendChild(repWrap);
 
-  // Smart: só mostra Repetir se é tarefa recorrente OU se já tem dias configurados
-  if (isRecurring || activeDays.length > 0) {
-    grid.appendChild(repeatCard);
-  }
+  // Mostra sempre — permite tornar qualquer tarefa em hábito
+  grid.appendChild(repeatCard);
 
   if (!isRecurring) {
     const moveCard = createCard('Mover', 'calendar');
