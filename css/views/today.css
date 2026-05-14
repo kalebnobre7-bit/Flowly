@@ -222,6 +222,46 @@ body:not(.dragging-active) .today-end-dropzone:hover::after { opacity: 1; }
 body:not(.dragging-active) .today-end-dropzone:hover::after { color: rgba(248,250,252,0.72); }
 body.dragging-active .today-end-dropzone { height: 16px; min-height: 16px; }
 
+/* ---- EMPTY STATE ---- */
+.today-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 32px 0 24px;
+  cursor: text;
+  border-radius: var(--flowly-radius-md);
+  transition: background-color var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.today-empty:hover { background: rgba(255, 255, 255, 0.018); }
+
+.today-empty__title {
+  font-size: var(--flowly-text-xl);
+  font-weight: var(--flowly-weight-bold);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: rgba(255, 255, 255, 0.2);
+  margin: 0;
+  transition: color var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.today-empty__action {
+  font-size: var(--flowly-text-sm);
+  font-weight: var(--flowly-weight-medium);
+  color: rgba(255, 255, 255, 0.32);
+  margin: 4px 0 0;
+  transition: color var(--flowly-duration-fast) var(--flowly-ease-out);
+}
+
+.today-empty__alt {
+  font-size: var(--flowly-text-xs);
+  color: rgba(255, 255, 255, 0.18);
+  margin: 0;
+}
+
+.today-empty:hover .today-empty__title { color: rgba(255, 255, 255, 0.52); }
+.today-empty:hover .today-empty__action { color: var(--flowly-accent-primary); }
+
 /* ---- HERO (painel com grid: left + right) ---- */
 .today-hero {
   display: grid;

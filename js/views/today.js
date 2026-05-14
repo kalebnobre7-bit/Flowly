@@ -285,14 +285,20 @@ function renderToday() {
   if (allTasks.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'today-empty';
+    empty.setAttribute('role', 'button');
+    empty.setAttribute('tabindex', '0');
+    empty.setAttribute('aria-label', 'Adicionar primeira tarefa do dia');
     empty.innerHTML = `
-      <p>Tela limpa. Bom sinal.</p>
-      <p>Clique para lançar a primeira tarefa ou arrasta algo da semana.</p>
+      <p class="today-empty__title">Tela limpa.</p>
+      <p class="today-empty__action">Clique para adicionar a primeira tarefa do dia</p>
+      <p class="today-empty__alt">ou arrasta algo da Semana para distribuir o dia</p>
     `;
-    empty.addEventListener('click', () => {
+    const activate = () => {
       insertQuickTaskInput(taskList, dateStr, 'Tarefas', endDropZone);
       empty.remove();
-    });
+    };
+    empty.addEventListener('click', activate);
+    empty.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
     taskList.insertBefore(empty, endDropZone);
   }
 

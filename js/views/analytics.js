@@ -80,8 +80,7 @@ function renderHabitsView() {
   const view = document.getElementById('habitsView'),
     habits = getAllHabits();
   if (habits.length === 0) {
-    view.innerHTML =
-      '<div class="text-center py-20"><p class="text-gray-400 text-lg">Nenhum hábito rastreado ainda.</p><p class="text-gray-600 text-sm mt-2">Marque tasks como hábitos no menu de contexto (botão direito).</p></div>';
+    view.innerHTML = '<div class="flowly-shell flowly-shell--narrow"><div class="analytics-habits-empty analytics-habits-empty--full"><span class="analytics-habits-empty__title">Nenhum hábito rastreado.</span><span class="analytics-habits-empty__hint">Clique com botão direito em qualquer tarefa e marque como hábito para começar a acompanhar.</span></div></div>';
     return;
   }
 
@@ -545,7 +544,7 @@ function renderAnalyticsView() {
 
   const habitRankingHTML =
     habitRanking.length === 0
-      ? `<div style="padding:20px 0;text-align:center;color:var(--text-tertiary);font-size:13px;line-height:1.6">Nenhum hábito rastreado ainda.<br>Adicione hábitos na visão Semana.</div>`
+      ? `<div class="analytics-habits-empty"><span class="analytics-habits-empty__title">Nenhum hábito rastreado.</span><span class="analytics-habits-empty__hint">Marque tarefas como hábito na visão Semana.</span></div>`
       : habitRanking
           .slice(0, 8)
           .map((h, i) => {
@@ -780,9 +779,9 @@ function renderAnalyticsView() {
   if (insights.length === 0)
     insights.push({
       color: 'blue',
-      icon: '??',
-      title: 'Comece Hoje',
-      text: 'Adicione tarefas e hábitos para ver seus insights aqui.'
+      icon: '→',
+      title: 'Sem dados ainda',
+      text: 'Adicione tarefas e hábitos para ver insights aqui.'
     });
 
   const insightsHTML = insights
