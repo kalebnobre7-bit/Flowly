@@ -2,12 +2,10 @@
 // Lógica de dados preservada (mesmos data-* attributes do runtime).
 
 const PROJECTS_KANBAN_COLUMNS = [
-  { id: 'todo', label: 'A fazer', hint: 'Ainda não começou' },
-  { id: 'doing', label: 'Em andamento', hint: 'Com tarefas abertas' },
-  { id: 'late', label: 'Em atraso', hint: 'Passou do prazo', readonly: true },
-  { id: 'awaiting-payment', label: 'Aguardando pagamento', hint: 'Entregue, falta receber' },
-  { id: 'done', label: 'Concluído', hint: 'Entregue e pago' },
-  { id: 'archived', label: 'Arquivado', hint: 'Fora do radar' }
+  { id: 'todo',    label: 'A fazer',       hint: 'Ainda não começou' },
+  { id: 'doing',   label: 'Em andamento',  hint: 'Com tarefas abertas' },
+  { id: 'late',    label: 'Em atraso',     hint: 'Passou do prazo', readonly: true },
+  { id: 'done',    label: 'Concluído',     hint: 'Entregue e pago' },
 ];
 
 function getProjectKanbanColumnId(project, today, progressRate) {
@@ -120,11 +118,6 @@ function renderProjectsView() {
       if (colId === 'todo' || colId === 'doing' || colId === 'late') {
         return '<div class="kanban-card__actions">'
           + '<button type="button" class="kanban-card__action-btn" data-project-quick-action="complete" data-project-id="' + project.id + '">Concluir →</button>'
-          + '</div>';
-      }
-      if (colId === 'awaiting-payment') {
-        return '<div class="kanban-card__actions">'
-          + '<button type="button" class="kanban-card__action-btn kanban-card__action-btn--paid" data-project-quick-action="paid" data-project-id="' + project.id + '">✓ Recebi</button>'
           + '</div>';
       }
       return '';
@@ -256,8 +249,7 @@ function renderProjectsView() {
       e.stopPropagation();
       const action = btn.dataset.projectQuickAction;
       const pid = btn.dataset.projectId;
-      if (action === 'complete' && pid) window.moveProjectToKanbanColumn(pid, 'awaiting-payment');
-      if (action === 'paid' && pid) window.moveProjectToKanbanColumn(pid, 'done');
+      if (action === 'complete' && pid) window.moveProjectToKanbanColumn(pid, 'done');
     });
   });
 }

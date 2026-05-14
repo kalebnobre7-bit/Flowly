@@ -62,26 +62,22 @@
 }
 
 .kanban-board {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--flowly-space-3);
     align-items: start;
-    overflow-x: auto;
-    padding-bottom: var(--flowly-space-3);
-    -webkit-overflow-scrolling: touch;
 }
 
 .kanban-column {
-    flex: 1 1 220px;
-    min-width: 220px;
-    max-width: 300px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--flowly-border-subtle, rgba(255, 255, 255, 0.08));
     border-radius: var(--flowly-radius-lg, 12px);
     padding: var(--flowly-space-3);
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: var(--flowly-space-3);
-    transition: background 0.15s ease, border-color 0.15s ease, flex-basis 0.2s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .kanban-column.is-drop-target {
@@ -95,28 +91,6 @@
 }
 .kanban-column--readonly .kanban-column__title { color: var(--flowly-accent-danger, #ff453a); }
 
-/* Coluna vazia — estreita e discreta, mas aceita drag-drop */
-.kanban-column--empty {
-    flex: 0 1 140px;
-    min-width: 100px;
-    max-width: 160px;
-    opacity: 0.5;
-}
-.kanban-column--empty .kanban-column__body {
-    border: 1.5px dashed rgba(255, 255, 255, 0.07);
-    border-radius: var(--flowly-radius-md);
-    min-height: 64px;
-    background: transparent;
-}
-.kanban-column--empty .kanban-column__hint { display: none; }
-.kanban-column--empty .kanban-column__empty { display: none; }
-.kanban-column--empty.is-drop-target {
-    opacity: 1;
-}
-.kanban-column--empty.is-drop-target .kanban-column__body {
-    border-color: rgba(var(--flowly-accent-primary-rgb), 0.45);
-    background: rgba(var(--flowly-accent-primary-rgb), 0.04);
-}
 
 .kanban-column__header {
     display: flex;
