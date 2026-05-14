@@ -15,31 +15,73 @@
    Kanban Board (Projetos)
    ============================================================= */
 .kanban-stats-strip {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: var(--flowly-space-3);
-    margin: var(--flowly-space-5) 0;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: var(--flowly-space-4) 0;
+    background: var(--flowly-bg-elevated);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+    overflow: hidden;
+}
+
+.kanban-stats-strip .flowly-stat-card--inline {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 14px;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--flowly-border-subtle);
+    min-width: 0;
+}
+.kanban-stats-strip .flowly-stat-card--inline:last-child {
+    border-right: none;
+}
+.kanban-stats-strip .flowly-stat-card__label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--flowly-text-tertiary);
+    white-space: nowrap;
+}
+.kanban-stats-strip .flowly-stat-card__value {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--flowly-font-display);
+    color: var(--flowly-text-primary);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .kanban-board {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(240px, 1fr));
+    display: flex;
     gap: var(--flowly-space-3);
     align-items: start;
     overflow-x: auto;
     padding-bottom: var(--flowly-space-3);
+    -webkit-overflow-scrolling: touch;
 }
 
 .kanban-column {
+    flex: 1 1 220px;
+    min-width: 220px;
+    max-width: 300px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--flowly-border-subtle, rgba(255, 255, 255, 0.08));
     border-radius: var(--flowly-radius-lg, 12px);
     padding: var(--flowly-space-3);
-    min-width: 240px;
     display: flex;
     flex-direction: column;
     gap: var(--flowly-space-3);
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, flex-basis 0.2s ease;
 }
 
 .kanban-column.is-drop-target {
@@ -52,6 +94,37 @@
     opacity: 0.92;
 }
 .kanban-column--readonly .kanban-column__title { color: var(--flowly-accent-danger, #ff453a); }
+
+/* Empty column — collapses, shows just label rotated */
+.kanban-column--empty {
+    flex: 0 0 48px;
+    min-width: 48px;
+    max-width: 48px;
+    padding: var(--flowly-space-3) var(--flowly-space-2);
+    opacity: 0.45;
+    cursor: default;
+}
+.kanban-column--empty .kanban-column__header {
+    border-bottom: none;
+    padding-bottom: 0;
+    height: 100%;
+    min-height: 60px;
+    justify-content: center;
+}
+.kanban-column--empty .kanban-column__title {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    text-align: center;
+    font-size: 9px;
+    gap: 4px;
+}
+.kanban-column--empty .kanban-column__count {
+    display: none;
+}
+.kanban-column--empty .kanban-column__hint,
+.kanban-column--empty .kanban-column__body {
+    display: none;
+}
 
 .kanban-column__header {
     display: flex;
@@ -225,8 +298,21 @@
     color: var(--flowly-accent-success);
 }
 
-@media (max-width: 1400px) {
-    .kanban-stats-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) {
+    .kanban-stats-strip { flex-wrap: wrap; }
+    .kanban-stats-strip .flowly-stat-card--inline {
+        flex: 1 1 45%;
+        border-right: 1px solid var(--flowly-border-subtle);
+        border-bottom: 1px solid var(--flowly-border-subtle);
+    }
+}
+
+@media (max-width: 600px) {
+    .kanban-board { flex-direction: column; }
+    .kanban-column { flex: unset; min-width: unset; max-width: unset; width: 100%; }
+    .kanban-column--empty { flex: unset; min-width: unset; max-width: unset; width: 100%; writing-mode: unset; transform: none; }
+    .kanban-column--empty .kanban-column__title { writing-mode: unset; transform: none; }
+    .kanban-column--empty .kanban-column__body { display: flex; }
 }
 
 .projects-layout-v2 {

@@ -66,10 +66,11 @@ function renderProjectsView() {
   const awaitingRevenue = allProjects.filter((p) => p.completionDate && !p.isPaid).reduce((sum, p) => sum + (p.expectedValue || 0), 0);
 
   const heroInsight = (() => {
-    if (lateCount > 0) return lateCount + ' projeto(s) em atraso. Precisam de resposta.';
-    if (deliveredUnpaidCount > 0) return deliveredUnpaidCount + ' entrega(s) concluídas aguardando pagamento.';
-    if (taskBacklogCount > 0) return taskBacklogCount + ' tarefa(s) soltas podem virar projeto.';
-    return 'Operação sob controle. Organize as próximas entregas.';
+    if (lateCount > 0) return `${lateCount} projeto(s) em atraso — ação urgente.`;
+    if (deliveredUnpaidCount > 0) return `${deliveredUnpaidCount} entrega(s) aguardando pagamento — cobrar agora.`;
+    if (activeCount === 0) return 'Nenhum projeto ativo. Hora de abrir um novo.';
+    if (taskBacklogCount > 0) return `${taskBacklogCount} tarefa(s) soltas podem virar projeto.`;
+    return 'Operação sob controle.';
   })();
 
   // Agrupa projetos por coluna
@@ -100,6 +101,7 @@ function renderProjectsView() {
     const amountLabel = project.closedValue > 0
       ? formatBRL(project.closedValue)
       : (project.expectedValue > 0 ? formatBRL(project.expectedValue) : '');
+    const amountColor = project.closedValue > 0 ? 'style="color:var(--flowly-accent-success)"' : '';
 
     const safeName = escapeProjectHtml(project.name);
     const safeClient = escapeProjectHtml(project.clientName || '');
@@ -138,7 +140,7 @@ function renderProjectsView() {
       + quickActions
       + '<div class="kanban-card__foot">'
       +   '<span class="kanban-card__deadline' + (isLate ? ' is-late' : '') + '">' + deadlineText + '</span>'
-      +   (amountLabel ? '<span class="kanban-card__amount">' + amountLabel + '</span>' : '')
+      +   (amountLabel ? '<span class="kanban-card__amount" ' + amountColor + '>' + amountLabel + '</span>' : '')
       +   '<span class="flowly-avatar flowly-avatar--sm kanban-card__avatar">' + escapeProjectHtml(initials) + '</span>'
       + '</div>'
       + '</article>';
@@ -146,7 +148,8 @@ function renderProjectsView() {
 
   const renderKanbanColumn = (col) => {
     const items = projectsByColumn[col.id] || [];
-    return '<section class="kanban-column' + (col.readonly ? ' kanban-column--readonly' : '') + '" data-kanban-column="' + col.id + '">'
+    const isEmpty = items.length === 0;
+    return '<section class="kanban-column' + (col.readonly ? ' kanban-column--readonly' : '') + (isEmpty ? ' kanban-column--empty' : '') + '" data-kanban-column="' + col.id + '">'
       + '<header class="kanban-column__header">'
       +   '<div class="kanban-column__title">'
       +     '<span>' + col.label + '</span>'
