@@ -386,6 +386,15 @@ function createTaskElement(day, dateStr, period, task, index) {
     label.appendChild(timerBtn);
   }
 
+  // Drag handle — visível no hover, antes do label
+  if (el.draggable) {
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.setAttribute('aria-hidden', 'true');
+    handle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="2" r="1.2"/><circle cx="7" cy="2" r="1.2"/><circle cx="3" cy="7" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="3" cy="12" r="1.2"/><circle cx="7" cy="12" r="1.2"/></svg>';
+    el.appendChild(handle);
+  }
+
   el.appendChild(label);
   if (collapseBtn) {
     collapseBtn.style.marginLeft = 'auto';

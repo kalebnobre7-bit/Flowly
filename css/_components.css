@@ -1873,16 +1873,19 @@ input[type="checkbox"]:focus {
 
 /* Drag handle */
 .drag-handle {
-    position: absolute;
-    left: -14px; top: 50%;
-    transform: translateY(-50%);
+    flex-shrink: 0;
     width: 14px; height: 20px;
     display: flex; align-items: center; justify-content: center;
     opacity: 0; cursor: grab;
-    color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.25);
+    margin-right: 2px;
+    transition: opacity 120ms ease;
+    order: -1;
 }
 
-.task-item:hover .drag-handle { opacity: 1; }
+.task-item:hover .drag-handle,
+.task-item:focus-within .drag-handle { opacity: 1; }
+.drag-handle:active { cursor: grabbing; }
 
 /* Quick task input */
 .quick-task-input {
