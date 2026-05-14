@@ -8,6 +8,7 @@ function renderView() {
       renderSextaView,
       renderWatchView: typeof renderWatchView === 'function' ? renderWatchView : null,
       renderGoalsView: typeof renderGoalsView === 'function' ? renderGoalsView : null,
+      renderShoppingView: typeof renderShoppingView === 'function' ? renderShoppingView : null,
       renderSettingsView,
       renderWeek,
       renderToday

@@ -20,6 +20,7 @@
         const sextaView = hideIfExists('sextaView');
         const watchView = hideIfExists('watchView');
         const goalsView = hideIfExists('goalsView');
+        const shoppingView = hideIfExists('shoppingView');
         const settingsView = hideIfExists('settingsView');
         const weekNav = document.getElementById('weekNav');
         if (weekNav) weekNav.classList.add('hidden');
@@ -82,6 +83,15 @@
         if (currentView === 'settings') {
           if (settingsView) settingsView.classList.remove('hidden');
           handlers.renderSettingsView();
+          return;
+        }
+
+        if (currentView === 'shopping') {
+          const shoppingView = hideIfExists('shoppingView');
+          if (shoppingView) shoppingView.classList.remove('hidden');
+          if (typeof handlers.renderShoppingView === 'function') {
+            handlers.renderShoppingView();
+          }
           return;
         }
 

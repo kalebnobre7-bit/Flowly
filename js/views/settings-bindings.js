@@ -173,6 +173,14 @@ function bindSettingsInteractions() {
       };
       if (this.value === 'manifest' && typeof getFlowlyManifestAiPreset === 'function') {
         nextSettings = getFlowlyManifestAiPreset(current);
+      } else if (this.value === 'anthropic') {
+        nextSettings = {
+          ...current,
+          enabled: true,
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-6',
+          endpoint: ''
+        };
       } else if (this.value === 'local') {
         nextSettings = {
           ...current,
@@ -203,6 +211,14 @@ function bindSettingsInteractions() {
             };
       saveFlowlyAISettings(next);
       renderSettingsView();
+    };
+  }
+
+  const aiApiKeyInput = document.getElementById('inputAiApiKey');
+  if (aiApiKeyInput) {
+    aiApiKeyInput.onchange = function () {
+      const current = getFlowlyAISettings();
+      saveFlowlyAISettings({ ...current, apiKey: this.value.trim() });
     };
   }
 

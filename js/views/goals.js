@@ -86,7 +86,69 @@
 
   function save(goals) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
+    syncGoalsToSupabase(goals);
   }
+
+  let _syncGoalsTimer = null;
+  function syncGoalsToSupabase(goals) {
+    if (!window.supabaseClient || !window.currentUser) return;
+    clearTimeout(_syncGoalsTimer);
+    _syncGoalsTimer = setTimeout(async () => {
+      try {
+        const payload = (goals || []).map((g) => ({
+          id: g.id,
+          user_id: window.currentUser.id,
+          icon: g.icon,
+          color: g.color,
+          title: g.title,
+          description: g.description,
+          target: g.target,
+          current_value: g.current,
+          unit: g.unit,
+          deadline: g.deadline || null,
+          category: g.category,
+          order: g.order,
+          created_at: g.createdAt,
+          completed_at: g.completedAt || null,
+          updated_at: new Date().toISOString(),
+        }));
+        if (payload.length === 0) return;
+        await window.supabaseClient.from('goals').upsert(payload, { onConflict: 'id' });
+      } catch (_) {}
+    }, 800);
+  }
+
+  async function loadGoalsFromSupabase() {
+    if (!window.supabaseClient || !window.currentUser) return;
+    try {
+      const { data, error } = await window.supabaseClient
+        .from('goals')
+        .select('*')
+        .eq('user_id', window.currentUser.id)
+        .order('order', { ascending: true });
+      if (error && String(error.code) === '42P01') return; // table not yet created
+      if (error || !data) return;
+      if (data.length === 0) return;
+      const remote = data.map((row) => normalize({
+        id: row.id,
+        icon: row.icon,
+        color: row.color,
+        title: row.title,
+        description: row.description,
+        target: row.target,
+        current: row.current_value,
+        unit: row.unit,
+        deadline: row.deadline,
+        category: row.category,
+        order: row.order,
+        createdAt: row.created_at,
+        completedAt: row.completed_at,
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+      if (typeof window.renderGoalsView === 'function') window.renderGoalsView();
+    } catch (_) {}
+  }
+  window.loadGoalsFromSupabase = loadGoalsFromSupabase;
 
   function uid() {
     return 'g_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);

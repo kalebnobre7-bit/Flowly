@@ -184,7 +184,7 @@ body.no-week-hover .day-column:hover {
 .day-column .task-item .task-time,
 .day-column .task-item .task-timer-meta {
     flex: 0 1 auto;
-    max-width: 72px;
+    max-width: 84px;
     margin-left: 2px !important;
     opacity: 0.48 !important;
 }

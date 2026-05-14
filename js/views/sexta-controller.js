@@ -400,6 +400,50 @@ async function requestSextaExternalReply(userPrompt) {
       .map((item) => item.text),
     profile: getSextaProfile()
   };
+  // Direct Anthropic path — bypasses edge function, calls Claude API from browser
+  if (provider === 'anthropic') {
+    if (!aiSettings.apiKey) throw new Error('Claude: configure sua API key em Ajustes → IA → Chave de API.');
+    const snapshot = getSextaOperationalSnapshot();
+    const contextSummary = buildSextaContextSummary(snapshot);
+    const profileSummary = typeof getSextaProfileSummary === 'function' ? getSextaProfileSummary() : '';
+    const systemContent = [
+      aiSettings.systemPrompt || 'Você é a Sexta, assistente de produtividade inteligente do Flowly. Seja direto, prático e orientado a ação.',
+      profileSummary ? `\nPreferências do usuário:\n${profileSummary}` : '',
+      `\nContexto atual do Flowly:\n${JSON.stringify(contextSummary, null, 0)}`
+    ].filter(Boolean).join('\n').trim();
+
+    const claudeMessages = [
+      ...baseHistory,
+      { role: 'user', content: String(userPrompt || '').trim() }
+    ];
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': aiSettings.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true'
+      },
+      body: JSON.stringify({
+        model: aiSettings.model || 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: systemContent,
+        messages: claudeMessages
+      })
+    });
+
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text();
+      throw new Error(`Claude ${claudeRes.status}: ${errText.slice(0, 220)}`);
+    }
+
+    const claudeData = await claudeRes.json();
+    const reply = claudeData?.content?.[0]?.text;
+    if (!reply) throw new Error('Claude: resposta vazia.');
+    return { reply: reply.trim() };
+  }
+
   const edgeEndpoint = getSextaEdgeEndpoint();
 
   if (/^https?:\/\//i.test(edgeEndpoint)) {

@@ -1,5 +1,6 @@
 function setView(view) {
   const previousView = currentView;
+  const originalView = view;
 
   if (view === 'routine') {
     const analyticsView = document.getElementById('analyticsView');
@@ -25,6 +26,7 @@ function setView(view) {
     'sextaView',
     'watchView',
     'goalsView',
+    'shoppingView',
     'settingsView'
   ];
 
@@ -34,7 +36,7 @@ function setView(view) {
   });
 
   document
-    .querySelectorAll('.segment-btn, .sidebar-nav-btn')
+    .querySelectorAll('.segment-btn, .sidebar-nav-btn, .sidebar-nav-sub')
     .forEach((btn) => btn.classList.remove('active'));
 
   const btnMap = {
@@ -42,16 +44,25 @@ function setView(view) {
     week: 'btnWeek',
     today: 'btnToday',
     analytics: 'btnAnalytics',
+    routine: 'btnRoutine',
     finance: 'btnFinance',
     projects: 'btnProjects',
     sexta: 'btnSexta',
     watch: 'btnWatch',
     goals: 'btnGoals',
+    shopping: 'btnShopping',
     settings: 'btnSettings'
   };
 
-  const activeBtn = document.getElementById(btnMap[view]);
-  if (activeBtn) activeBtn.classList.add('active');
+  const activeBtn = document.getElementById(btnMap[originalView] || btnMap[view]);
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+    const parentGroup = activeBtn.closest('.sidebar-nav-group');
+    if (parentGroup) {
+      parentGroup.classList.add('is-expanded');
+      try { localStorage.setItem('flowly_sidebar_group_' + parentGroup.id, 'true'); } catch (_) {}
+    }
+  }
 
   document.querySelectorAll('.mobile-nav-btn').forEach((btn) => btn.classList.remove('active'));
 

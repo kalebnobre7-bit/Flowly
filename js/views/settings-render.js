@@ -536,6 +536,7 @@ function buildSettingsMarkup(ctx) {
             <span>Provedor</span>
             <select id="selectAiProvider" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none">
               <option value="local" ${aiSettings.provider === 'local' ? 'selected' : ''}>Local Flowly</option>
+              <option value="anthropic" ${aiSettings.provider === 'anthropic' ? 'selected' : ''}>Claude (Anthropic)</option>
               <option value="manifest" ${aiSettings.provider === 'manifest' ? 'selected' : ''}>Manifest</option>
               <option value="custom" ${aiSettings.provider === 'custom' ? 'selected' : ''}>Custom</option>
             </select>
@@ -544,16 +545,21 @@ function buildSettingsMarkup(ctx) {
             <span>Modelo</span>
             <input id="inputAiModel" type="text" value="${escapeProjectHtml(aiSettings.model)}" placeholder="Ex.: manifest/auto" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
           </label>
+          ${aiSettings.provider === 'anthropic' ? `
+          <label class="settings-theme-field settings-theme-field--wide">
+            <span>Chave de API (Anthropic)</span>
+            <input id="inputAiApiKey" type="password" value="${escapeProjectHtml(aiSettings.apiKey || '')}" placeholder="sk-ant-..." autocomplete="off" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none font-mono" />
+          </label>` : `
           <label class="settings-theme-field settings-theme-field--wide">
             <span>Endpoint / Edge Function</span>
             <input id="inputAiEndpoint" type="text" value="${escapeProjectHtml(aiSettings.endpoint)}" placeholder="sexta-ai ou https://.../functions/v1/sexta-ai" class="w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white outline-none" />
-          </label>
+          </label>`}
         </div>
         <label class="settings-theme-field settings-theme-field--wide">
           <span>Prompt base da Sexta</span>
           <textarea id="inputAiSystemPrompt" rows="4" class="w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none">${escapeProjectHtml(aiSettings.systemPrompt)}</textarea>
         </label>
-        <p class="settings-note-muted">Hoje a Sexta já responde localmente com base nos dados do Flowly. Essa aba deixa o conector pronto para você plugar MiniMax, OpenAI ou outro backend depois.</p>
+        <p class="settings-note-muted">${aiSettings.provider === 'anthropic' ? 'Chave armazenada localmente no navegador. A Sexta chamará a API do Claude diretamente. Obtenha sua chave em console.anthropic.com.' : 'Hoje a Sexta já responde localmente com base nos dados do Flowly. Essa aba deixa o conector pronto para você plugar Claude, OpenAI ou outro backend depois.'}</p>
       </div>
     `
   );

@@ -54,6 +54,9 @@ async function loadDataFromSupabase() {
   await tasksRepo.loadDataFromSupabase();
   await loadFinanceStateFromSupabase();
   await loadProjectsStateFromSupabase();
+  if (typeof window.loadGoalsFromSupabase === 'function') await window.loadGoalsFromSupabase();
+  if (typeof window.loadWatchLaterFromSupabase === 'function') await window.loadWatchLaterFromSupabase();
+  if (typeof window.loadShoppingFromSupabase === 'function') await window.loadShoppingFromSupabase();
 }
 
 async function syncDailyRoutineToSupabase() {
