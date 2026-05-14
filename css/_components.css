@@ -1836,41 +1836,49 @@ body.dragging-active .task-item {
     margin-bottom: 4px;
 }
 
-/* ── Project block header — parece tarefa normal ── */
+/* ── Project block header — alinhamento idêntico ao task-item ── */
 .task-item--project-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    /* Mesmo layout exato do .task-item */
+    padding: 6px 8px;
+    gap: 8px;
+    align-items: flex-start;
     cursor: grab;
 }
 .task-item--project-header.is-dragging { opacity: 0.5; }
 
+/* ◆ fica no lugar exato do checkbox (16×16, mesmo offset) */
 .task-project-header-icon {
-    color: var(--flowly-accent-info);
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    width: 16px;
-    height: 16px;
+    justify-content: center;
+    color: var(--flowly-accent-info);
+    margin-top: 1px; /* mesmo alinhamento visual do checkbox */
 }
 
+/* Nome com mesma tipografia do .task-label */
 .task-project-header-name {
     flex: 1;
     min-width: 0;
     font-size: var(--flowly-text-sm);
-    font-weight: var(--flowly-weight-medium);
+    font-weight: var(--flowly-weight-regular);
     color: var(--flowly-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.45;
 }
 
+/* Meta (deadline) — discreto, alinhado à direita */
 .task-project-header-meta {
     font-size: 11px;
     color: var(--flowly-accent-info);
-    opacity: 0.7;
+    opacity: 0.65;
     flex-shrink: 0;
     white-space: nowrap;
+    line-height: 1.45;
 }
 
 /* Sub-tasks do projeto: leve indent */
