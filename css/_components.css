@@ -390,79 +390,101 @@
    ============================================================= */
 .task-expansion {
     box-sizing: border-box;
-    width: min(620px, calc(100% - 42px));
-    margin: 2px 0 6px 32px;
-    padding: 6px 0 5px 12px;
+    width: min(560px, calc(100% - 36px));
+    margin: 4px 0 8px 32px;
+    padding: 0;
     max-height: 0;
     opacity: 0;
     overflow: hidden;
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--flowly-bg-elevated);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
     color: var(--flowly-text-secondary);
-    transition: max-height 180ms var(--flowly-ease-out),
-                opacity 150ms var(--flowly-ease-out),
-                margin 150ms var(--flowly-ease-out);
+    box-shadow: var(--flowly-shadow-sm);
+    transition: max-height 200ms var(--flowly-ease-out),
+                opacity 160ms var(--flowly-ease-out),
+                margin 160ms var(--flowly-ease-out);
 }
 
 .task-expansion--minimal {
-    background: transparent;
+    background: var(--flowly-bg-elevated);
 }
 
+/* Título — mais proeminente, Notion-style */
 .task-expansion-head {
     width: 100%;
     min-width: 0;
-    margin-bottom: 4px;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid var(--flowly-border-subtle);
 }
 
 .task-expansion-title-input {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    height: 28px;
-    padding: 0 6px;
+    height: auto;
+    padding: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: 0;
     background: transparent;
     color: var(--flowly-text-primary);
     font: inherit;
-    font-size: var(--flowly-text-sm);
-    line-height: 28px;
+    font-size: var(--flowly-text-base);
+    font-weight: var(--flowly-weight-semibold);
+    letter-spacing: var(--flowly-letter-snug);
+    line-height: 1.4;
     outline: none;
 }
 
 .task-expansion-title-input:focus {
-    background: rgba(255, 255, 255, 0.04);
+    background: transparent;
 }
 
+/* Grid de propriedades — vertical, Notion-style */
 .task-expansion-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-    gap: 3px 12px;
-    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
 }
 
 .task-expansion-property-row {
     display: grid;
-    grid-template-columns: 16px minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
     align-items: center;
-    gap: 7px;
+    gap: 0;
     min-width: 0;
-    padding: 1px 0;
+    min-height: 30px;
+    padding: 2px 4px 2px 12px;
+    border-radius: 0;
+    transition: background 100ms ease;
 }
 
+.task-expansion-property-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Label: ícone + texto, largura fixa */
 .task-expansion-property-label {
-    display: grid;
-    place-items: center;
-    width: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 96px;
+    flex-shrink: 0;
     color: var(--flowly-text-tertiary);
-    opacity: 0.58;
+    font-size: var(--flowly-text-xs);
+    font-weight: var(--flowly-weight-medium);
+    white-space: nowrap;
+    user-select: none;
 }
 
 .task-expansion-property-label i,
 .task-expansion-property-label svg {
     width: 13px !important;
     height: 13px !important;
+    flex-shrink: 0;
     color: currentColor !important;
     stroke: currentColor !important;
+    opacity: 0.7;
 }
 
 .task-expansion-property-content {
@@ -471,6 +493,8 @@
     gap: 5px;
     flex-wrap: wrap;
     min-width: 0;
+    padding: 2px 4px;
+    border-radius: var(--flowly-radius-sm);
 }
 
 .task-expansion-select,
@@ -666,8 +690,11 @@
 .task-expansion-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 5px;
-    margin-top: 4px;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px 8px;
+    border-top: 1px solid var(--flowly-border-subtle);
+    margin-top: 0;
 }
 
 .task-expansion-delete {

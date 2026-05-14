@@ -164,8 +164,10 @@ window.toggleTaskExpansion = function (task, el) {
     const labelContainer = document.createElement('div');
     labelContainer.className = 'task-expansion-property-label';
     if (iconName) {
-      labelContainer.innerHTML = `<i data-lucide="${iconName}" style="width:16px;height:16px;color:#fff;"></i>`;
-      labelContainer.title = label;
+      // Notion-style: ícone + texto label
+      labelContainer.innerHTML =
+        `<i data-lucide="${iconName}" style="width:13px;height:13px;"></i>` +
+        `<span>${label}</span>`;
     } else {
       labelContainer.textContent = label;
     }
