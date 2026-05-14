@@ -84,9 +84,18 @@ function getDefaultTaskPriorities() {
   ];
 }
 
-function getTaskPriorities() {
-  if (customTaskPriorities && customTaskPriorities.length > 0) return customTaskPriorities;
-  return getDefaultTaskPriorities();
+// Aliases legados: tarefas antigas ainda mostram cor correta, mas não aparecem no picker
+const LEGACY_PRIORITIES = [
+  { id: 'urgent',    name: 'Urgente',    color: '#FF453A', legacy: true },
+  { id: 'important', name: 'Importante', color: '#FF9F0A', legacy: true },
+  { id: 'simple',    name: 'Simples',    color: '#FFD60A', legacy: true },
+];
+
+function getTaskPriorities({ includeLegacy = false } = {}) {
+  const active = (customTaskPriorities && customTaskPriorities.length > 0)
+    ? customTaskPriorities
+    : getDefaultTaskPriorities();
+  return includeLegacy ? [...active, ...LEGACY_PRIORITIES] : active;
 }
 
 // IDs que eram defaults antigos — não preservar como "extras" se o usuário não os criou

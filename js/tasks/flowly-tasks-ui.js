@@ -224,7 +224,7 @@ function createTaskElement(day, dateStr, period, task, index) {
 
   // Cor da DIFICULDADE (Prioridade) - sobrepõe rotina se existir
   if (task.priority && task.priority !== 'none' && task.priority !== 'null') {
-    const customPrio = getTaskPriorities().find((p) => p.id === task.priority);
+    const customPrio = getTaskPriorities({ includeLegacy: true }).find((p) => p.id === task.priority);
     if (customPrio) {
       label.style.color = customPrio.color;
     }

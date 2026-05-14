@@ -364,7 +364,8 @@ window.toggleTaskExpansion = function (task, el) {
 
   const prioCard = createCard('Prioridade', 'flag');
   ensureMoneyPriorityOption();
-  const prios = getTaskPriorities();
+  // Inclui prioridade legada do item atual caso exista, para mostrar no picker
+  const allPrios = getTaskPriorities({ includeLegacy: true });
   let currentPrio = task.priority || null;
   if (isRecurring && recDefinition && recDefinition.priority) currentPrio = recDefinition.priority;
 
@@ -378,7 +379,11 @@ window.toggleTaskExpansion = function (task, el) {
     persistTaskChanges({ reopen: true });
   };
 
-  const currentPrioObj = prios.find((p) => p.id === currentPrio) || null;
+  const currentPrioObj = allPrios.find((p) => p.id === currentPrio) || null;
+  // Picker mostra prioridades ativas + a legada atual (se houver)
+  const prios = currentPrioObj?.legacy
+    ? [currentPrioObj, ...getTaskPriorities()]
+    : getTaskPriorities();
   const prioPicker = document.createElement('div');
   prioPicker.className = 'task-prio-picker';
 
