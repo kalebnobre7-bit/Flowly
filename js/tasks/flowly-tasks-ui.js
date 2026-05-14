@@ -173,6 +173,13 @@ function createTaskElement(day, dateStr, period, task, index) {
     el.dataset.period = 'Projetos';
     el.dataset.projectId = task.projectId || '';
 
+    // Spacer com order:-1 igual ao drag-handle das tarefas normais
+    // garante que ◆ fique na mesma posição horizontal que o checkbox
+    const handleSpacer = document.createElement('span');
+    handleSpacer.className = 'drag-handle';
+    handleSpacer.setAttribute('aria-hidden', 'true');
+    el.appendChild(handleSpacer);
+
     // ◆ icon no lugar do checkbox
     const diamond = document.createElement('span');
     diamond.className = 'task-project-header-icon';
