@@ -3,6 +3,12 @@ function saveToLocalStorage() {
     allRecurringTasks = normalizeRecurringTasksList(allRecurringTasks);
   }
 
+  // Sempre persiste habitDailyPositions direto via localStorage (não está no localStore.saveCoreState)
+  try {
+    const _hdp = (typeof window !== 'undefined' && window.habitDailyPositions) || (typeof habitDailyPositions !== 'undefined' ? habitDailyPositions : {});
+    localStorage.setItem('habitDailyPositions', JSON.stringify(_hdp || {}));
+  } catch (_) {}
+
   if (localStore) {
     localStore.saveCoreState({
       allTasksData,
@@ -24,8 +30,6 @@ function saveToLocalStorage() {
   localStorage.setItem('allRecurringTasks', JSON.stringify(allRecurringTasks));
   localStorage.setItem('routineCompletions', JSON.stringify(routineCompletions));
   localStorage.setItem('habitsHistory', JSON.stringify(habitsHistory));
-  const _hdp = (typeof window !== 'undefined' && window.habitDailyPositions) || (typeof habitDailyPositions !== 'undefined' ? habitDailyPositions : {});
-  localStorage.setItem('habitDailyPositions', JSON.stringify(_hdp || {}));
   persistFinanceStateLocal();
   persistProjectsStateLocal();
 
