@@ -100,7 +100,7 @@ function createTaskElement(day, dateStr, period, task, index) {
   el.dataset.period = period;
   el.dataset.index = normalizedIndex;
   if (isProjectMirror) {
-    el.classList.add('task-item--project-mirror');
+    el.classList.add('task-item--project-mirror', 'task-item--project-mirror-sub');
     el.dataset.sourceDate = actionDateStr;
     el.dataset.sourcePeriod = actionPeriod;
     el.dataset.sourceIndex = String(actionIndex);
@@ -159,6 +159,78 @@ function createTaskElement(day, dateStr, period, task, index) {
       }
       window.toggleTaskChildrenCollapse(dateStr, period, normalizedIndex);
     };
+  }
+
+  // ── Project block header (nova feature) ─────────────────────────────────
+  if (task.isProjectHeader) {
+    el.className = 'task-item task-item--project-header';
+    el.draggable = true;
+    el.dataset.period = 'Projetos';
+    el.dataset.projectId = task.projectId || '';
+
+    // Diamond icon
+    const diamond = document.createElement('span');
+    diamond.className = 'task-project-header-icon';
+    diamond.innerHTML = `<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0L12 6L6 12L0 6Z"/></svg>`;
+    el.appendChild(diamond);
+
+    const body = document.createElement('div');
+    body.className = 'task-project-header-body';
+
+    const nameRow = document.createElement('div');
+    nameRow.className = 'task-project-header-name-row';
+
+    const name = document.createElement('span');
+    name.className = 'task-project-header-name';
+    name.textContent = task.text || '';
+    nameRow.appendChild(name);
+
+    if (task.projectDeadlineText) {
+      const deadline = document.createElement('span');
+      deadline.className = 'task-project-header-deadline';
+      deadline.textContent = task.projectDeadlineText;
+      nameRow.appendChild(deadline);
+    }
+    body.appendChild(nameRow);
+
+    const metaParts = [task.projectClientName, task.projectServiceType].filter(Boolean);
+    if (metaParts.length > 0 || (task.projectDoneCount !== undefined)) {
+      const meta = document.createElement('div');
+      meta.className = 'task-project-header-meta';
+      const metaStr = metaParts.join(' · ');
+      const progress = `${task.projectDoneCount}/${task.projectTaskCount}`;
+      meta.textContent = [metaStr, progress].filter(Boolean).join('  ');
+      body.appendChild(meta);
+    }
+
+    el.appendChild(body);
+    container.appendChild(el);
+
+    // Drag start para mover o bloco inteiro
+    el.addEventListener('dragstart', (e) => {
+      if (window.draggedTask) return;
+      window.draggedTask = {
+        task: task,
+        dateStr: dateStr,
+        period: 'Projetos',
+        index: normalizedIndex,
+        isProjectHeaderDrag: true,
+        projectId: task.projectId,
+        projectOrder: task.projectOrder
+      };
+      el.classList.add('is-dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', task.projectId);
+      }
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('is-dragging');
+      window.draggedTask = null;
+    });
+
+    if (window.lucide) lucide.createIcons();
+    return container;
   }
 
   if (task.isProjectAnchor) {

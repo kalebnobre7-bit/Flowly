@@ -1836,6 +1836,73 @@ body.dragging-active .task-item {
     margin-bottom: 4px;
 }
 
+/* ── Project block header ── */
+.task-item--project-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px 7px 12px;
+    background: rgba(10, 132, 255, 0.04);
+    border: 1px solid rgba(10, 132, 255, 0.14);
+    border-radius: 8px;
+    margin: 4px 0 2px;
+    cursor: grab;
+    transition: background 150ms ease, border-color 150ms ease;
+}
+.task-item--project-header:hover {
+    background: rgba(10, 132, 255, 0.07);
+    border-color: rgba(10, 132, 255, 0.22);
+}
+.task-item--project-header.is-dragging { opacity: 0.5; }
+
+.task-project-header-icon {
+    color: rgba(10, 132, 255, 0.85);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+}
+
+.task-project-header-body {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 1px;
+}
+
+.task-project-header-name-row {
+    display: flex; align-items: baseline; gap: 8px;
+}
+
+.task-project-header-name {
+    font-size: var(--flowly-text-sm);
+    font-weight: var(--flowly-weight-semibold);
+    color: var(--flowly-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-project-header-deadline {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: rgba(10, 132, 255, 0.8);
+    flex-shrink: 0;
+}
+
+.task-project-header-meta {
+    font-size: 10.5px;
+    color: var(--flowly-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Sub-tasks do projeto: leve indent */
+.task-item--project-mirror-sub {
+    margin-left: 14px;
+}
+
 .task-item--project-anchor:hover { background: rgba(255, 255, 255, 0.04); }
 .task-item--project-anchor .checkbox-custom { opacity: 0.65; cursor: default; }
 

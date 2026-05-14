@@ -955,7 +955,41 @@ function getProjectMirrorEntriesForDate(dateStr, dayLabel = '') {
     roots.forEach((entry) => visit(entry));
 
     const renderIndexBase = 100000 + order * 10000;
-    return flattened.map((entry, index) => {
+
+    // Header sintético do projeto — aparece antes das tarefas
+    const deadlineDiff = getProjectDeadlineDiff(project.deadline, dateStr);
+    const deadlineText = (() => {
+      if (project.completionDate) return 'Entregue';
+      if (deadlineDiff === null) return '';
+      if (deadlineDiff < 0) return `${Math.abs(deadlineDiff)}d atraso`;
+      if (deadlineDiff === 0) return 'Hoje';
+      if (deadlineDiff === 1) return 'Amanhã';
+      return `em ${deadlineDiff}d`;
+    })();
+
+    const headerEntry = {
+      task: {
+        isProjectHeader: true,
+        isProjectMirror: false,
+        projectId: project.id,
+        projectOrder: order,
+        text: project.name,
+        projectClientName: project.clientName || '',
+        projectServiceType: project.serviceType || '',
+        projectDeadlineText: deadlineText,
+        projectTaskCount: flattened.length,
+        projectDoneCount: flattened.filter(e => e.task?.completed).length,
+        completed: false,
+        color: 'default',
+        position: renderIndexBase - 1
+      },
+      day: dayLabel,
+      dateStr,
+      period: 'Projetos',
+      originalIndex: renderIndexBase - 1
+    };
+
+    const subEntries = flattened.map((entry, index) => {
       const entryTask = entry.task;
       const taskId = getTaskTreeId(entryTask);
       return {
@@ -963,15 +997,14 @@ function getProjectMirrorEntriesForDate(dateStr, dayLabel = '') {
           ...entryTask,
           isProjectMirror: true,
           projectId: project.id,
+          projectOrder: order,
           projectName: entryTask.projectName || project.name,
           mirrorSourceDateStr: entry.dateStr,
           mirrorSourcePeriod: entry.period,
           mirrorSourceIndex: entry.index,
           mirrorSourceTaskId: taskId,
-          projectScheduleText:
-            entryTask === sourceEntry.task ? getProjectAnchorScheduleText(project, dateStr) : '',
-          projectStatusLabel:
-            entryTask === sourceEntry.task ? getProjectStatus(project, dateStr).label : '',
+          projectScheduleText: '',
+          projectStatusLabel: '',
           renderChildrenCount: childCountMap.get(taskId) || 0
         },
         day: dayLabel,
@@ -980,6 +1013,8 @@ function getProjectMirrorEntriesForDate(dateStr, dayLabel = '') {
         originalIndex: renderIndexBase + index
       };
     });
+
+    return [headerEntry, ...subEntries];
   });
 }
 

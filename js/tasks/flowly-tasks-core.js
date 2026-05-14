@@ -220,6 +220,7 @@ function isProjectSubtasksCollapsed(task) {
 // ID estável pra qualquer tarefa na view de Hoje
 function getTaskDailyId(task, period) {
   if (!task) return '';
+  if (task.isProjectHeader) return 'p:' + task.projectId;
   if (task.isRoutine || task.isRecurring || period === 'Rotina') {
     const rk = task.routineKey ||
       (typeof getRoutineKey === 'function' ? getRoutineKey(task) : null) ||
@@ -335,6 +336,17 @@ function unifiedTaskSort(taskList) {
     const hdp = (window.habitDailyPositions || {})[dateStr] || {};
     const dailyId = getTaskDailyId(task, item.period);
     if (typeof hdp[dailyId] === 'number') return hdp[dailyId];
+
+    // Project mirror tasks: seguem o header (p:projectId) + offset pelo índice
+    if (task.isProjectMirror && task.projectId) {
+      const headerPos = hdp['p:' + task.projectId];
+      if (typeof headerPos === 'number') {
+        const relIdx = (item.originalIndex || 0) % 10000;
+        return headerPos + 0.001 * (relIdx + 1);
+      }
+      return item.originalIndex || 0;
+    }
+
     // Fallback: hábito sem dailyPosition usa índice negativo (flutua no topo),
     // tarefa regular usa task.position
     const isRoutine = task.isRoutine || task.isRecurring || item.period === 'Rotina';
