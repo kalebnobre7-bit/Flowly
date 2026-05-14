@@ -54,7 +54,7 @@ app.get('/sse', requireSecret, async (req, res) => {
 });
 
 // ── Messages endpoint — client sends tool calls here ─────────────────────────
-app.post('/messages', requireSecret, async (req, res) => {
+app.post('/messages', async (req, res) => {
   const id        = req.query.sessionId;
   const transport = transports.get(id);
   if (!transport) {
