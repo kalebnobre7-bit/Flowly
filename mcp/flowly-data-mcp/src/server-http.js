@@ -1,19 +1,18 @@
 #!/usr/bin/env node
 /**
- * Flowly Data MCP — HTTP server (StreamableHTTP + SSE fallback)
- * Deploy on Railway and connect via Claude.ai → custom connector.
+ * Flowly Data MCP — StreamableHTTP stateless server (JSON mode)
+ * Recommended by MCP guide for remote servers (no session state, JSON responses).
  *
  * Required env vars:
- *   FLOWLY_EMAIL      your Flowly login email
- *   FLOWLY_PASSWORD   your Flowly password
- *   FLOWLY_SECRET     random secret token (openssl rand -hex 32)
+ *   FLOWLY_EMAIL      Flowly login email
+ *   FLOWLY_PASSWORD   Flowly password
+ *   FLOWLY_SECRET     random secret (openssl rand -hex 32)
  * Optional:
  *   PORT              default 3000 (Railway sets this automatically)
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import express from 'express';
 import { registerTools, signIn } from './tools.js';
 
@@ -23,7 +22,7 @@ const SECRET = process.env.FLOWLY_SECRET || '';
 const app = express();
 app.use(express.json());
 
-// ── CORS — allow Claude.ai and all origins ────────────────────────────────────
+// ── CORS ──────────────────────────────────────────────────────────────────────
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -32,7 +31,7 @@ app.use((_req, res, next) => {
   next();
 });
 
-// ── Auth middleware ───────────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────────────────────
 function requireSecret(req, res, next) {
   if (!SECRET) return next();
   const auth  = req.headers['authorization'] || '';
@@ -41,36 +40,27 @@ function requireSecret(req, res, next) {
   next();
 }
 
-// ── StreamableHTTP transport (primary — what Claude.ai uses) ─────────────────
-const streamTransport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-const streamServer    = new McpServer({ name: 'flowly-data', version: '1.0.0' });
-registerTools(streamServer);
-
+// ── StreamableHTTP — stateless JSON mode (one transport per request) ──────────
 app.all('/mcp', requireSecret, async (req, res) => {
-  await streamTransport.handleRequest(req, res, req.body);
-});
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined, // stateless
+    enableJsonResponse: true,      // plain JSON, no SSE streaming
+  });
 
-// ── SSE transport (legacy fallback) ──────────────────────────────────────────
-const sseTransports = new Map();
-
-app.get('/sse', requireSecret, async (req, res) => {
-  const server    = new McpServer({ name: 'flowly-data', version: '1.0.0' });
+  const server = new McpServer({ name: 'flowly-data', version: '1.0.0' });
   registerTools(server);
-  const transport = new SSEServerTransport('/messages', res);
-  sseTransports.set(transport.sessionId, transport);
-  res.on('close', () => sseTransports.delete(transport.sessionId));
-  await server.connect(transport);
+
+  try {
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } finally {
+    await server.close().catch(() => {});
+  }
 });
 
-app.post('/messages', async (req, res) => {
-  const transport = sseTransports.get(req.query.sessionId);
-  if (!transport) { res.status(404).json({ error: 'Session not found' }); return; }
-  await transport.handlePostMessage(req, res);
-});
-
-// ── Health check ──────────────────────────────────────────────────────────────
+// ── Health ────────────────────────────────────────────────────────────────────
 app.get('/', (_req, res) => {
-  res.json({ status: 'ok', name: 'flowly-data-mcp', version: '1.0.0', transports: ['streamableHttp:/mcp', 'sse:/sse'] });
+  res.json({ status: 'ok', name: 'flowly-data-mcp', version: '1.0.0' });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
@@ -83,12 +73,9 @@ async function main() {
     process.stdout.write('[flowly-data] WARNING: No credentials set.\n');
   }
 
-  await streamServer.connect(streamTransport);
-
   app.listen(PORT, () => {
-    process.stdout.write(`[flowly-data] HTTP server ready on port ${PORT}\n`);
-    process.stdout.write(`[flowly-data] StreamableHTTP: /mcp?secret=TOKEN\n`);
-    process.stdout.write(`[flowly-data] SSE:            /sse?secret=TOKEN\n`);
+    process.stdout.write(`[flowly-data] Ready on port ${PORT}\n`);
+    process.stdout.write(`[flowly-data] Connect URL: https://YOUR-APP.up.railway.app/mcp?secret=TOKEN\n`);
   });
 }
 
