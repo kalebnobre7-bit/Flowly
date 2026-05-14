@@ -1,6 +1,9 @@
 /**
  * Shared Flowly tools — registered on any McpServer instance.
  * Used by both server.js (stdio/Claude Code) and server-http.js (Railway/Claude.ai).
+ * Tools: today, week, pending, create, complete, complete_by_text, search, stats,
+ *        history, by_type, by_priority, timers, overdue, finance, patterns,
+ *        timeline, update, move, delete, habits, complete_habit (21 total)
  */
 import { z } from 'zod';
 
