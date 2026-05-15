@@ -245,9 +245,9 @@ function renderProjectsView() {
   const lateCount = allProjects.filter((p) => !p.completionDate && p.deadline && p.deadline < today).length;
   const unpaidCount = allProjects.filter((p) => !p.isPaid && p.status !== 'archived').length;
   const deliveredUnpaidCount = allProjects.filter((p) => p.completionDate && !p.isPaid).length;
-  const totalRevenue = allProjects.reduce((sum, p) => sum + (p.expectedValue || 0), 0);
   const closedRevenue = allProjects.reduce((sum, p) => sum + (p.closedValue || 0), 0);
-  const awaitingRevenue = allProjects.filter((p) => p.completionDate && !p.isPaid).reduce((sum, p) => sum + (p.expectedValue || 0), 0);
+  // Pendente = tudo que ainda falta receber (contrato - já recebido), em todos os projetos ativos
+  const pendingRevenue = allProjects.reduce((sum, p) => sum + Math.max(0, (p.expectedValue || 0) - (p.closedValue || 0)), 0);
 
   const heroInsight = (() => {
     if (lateCount > 0) return `${lateCount} projeto(s) em atraso — ação urgente.`;
@@ -345,8 +345,7 @@ function renderProjectsView() {
   const statsStrip = '<div class="flowly-stat-strip kanban-stats-strip">'
     + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--primary"><div class="flowly-stat-card__label">Ativos</div><div class="flowly-stat-card__value">' + activeCount + '</div></div>'
     + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (lateCount > 0 ? 'danger' : 'success') + '"><div class="flowly-stat-card__label">Atrasados</div><div class="flowly-stat-card__value">' + lateCount + '</div></div>'
-    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (deliveredUnpaidCount > 0 ? 'warning' : 'success') + '"><div class="flowly-stat-card__label">A receber</div><div class="flowly-stat-card__value">' + formatBRL(awaitingRevenue) + '</div></div>'
-    + '<div class="flowly-stat-card flowly-stat-card--inline"><div class="flowly-stat-card__label">Previsto</div><div class="flowly-stat-card__value">' + formatBRL(totalRevenue) + '</div></div>'
+    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (pendingRevenue > 0 ? 'warning' : 'success') + '"><div class="flowly-stat-card__label">Pendente</div><div class="flowly-stat-card__value">' + formatBRL(pendingRevenue) + '</div></div>'
     + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (closedRevenue > 0 ? 'success' : '') + '"><div class="flowly-stat-card__label">Recebido</div><div class="flowly-stat-card__value">' + formatBRL(closedRevenue) + '</div></div>'
     + '</div>';
 
