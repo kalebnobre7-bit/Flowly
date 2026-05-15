@@ -36,7 +36,7 @@ window.moveProjectToKanbanColumn = function (projectId, columnId) {
       return project;
     }
     if (columnId === 'done') {
-      if (!project.completionDate) project.completionDate = today;
+      project.completionDate = today;
       project.isPaid = true;
       return project;
     }
@@ -222,7 +222,7 @@ function autoArchiveOldProjects() {
   cutoff.setDate(cutoff.getDate() - 7);
   const cutoffStr = localDateStr(cutoff);
   getProjectOptions()
-    .filter((p) => p.completionDate && p.isPaid && p.status !== 'archived' && !p.isDraft && p.completionDate <= cutoffStr)
+    .filter((p) => p.completionDate && p.isPaid && p.status !== 'archived' && !p.isDraft && p.completionDate < cutoffStr)
     .forEach((p) => {
       updateProjectRecord(p.id, (proj) => { proj.status = 'archived'; return proj; });
     });
