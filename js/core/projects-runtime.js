@@ -29,6 +29,7 @@ function normalizeProjectsState(state) {
       deadline: item.deadline ? String(item.deadline) : '',
       completionDate: item.completionDate ? String(item.completionDate) : '',
       isPaid: item.isPaid === true,
+      paymentMode: item.paymentMode || (item.isPaid === true ? 'full' : (Number(item.closedValue || 0) > 0 ? 'half' : 'none')),
       isDraft: item.isDraft === true || String(item.status || '').trim() === 'draft',
       templateTasks: normalizeTemplateTasks(item.templateTasks),
       collapseSubtasks: item.collapseSubtasks !== false,
@@ -322,9 +323,30 @@ window.createProjectWithLinks = function () {
 
 window.updateProjectField = function (projectId, field, value) {
   updateProjectRecord(projectId, (project) => {
-    if (field === 'expectedValue' || field === 'closedValue') project[field] = Number(value || 0) || 0;
-    else if (field === 'isDraft' || field === 'collapseSubtasks' || field === 'isPaid') project[field] = value === true || value === 'true';
-    else project[field] = String(value || '').trim();
+    if (field === 'expectedValue') {
+      project.expectedValue = Number(value || 0) || 0;
+      // Ressincroniza closedValue com o modo de pagamento atual
+      if (project.paymentMode === 'full') project.closedValue = project.expectedValue;
+      else if (project.paymentMode === 'half') project.closedValue = Math.round(project.expectedValue / 2 * 100) / 100;
+    } else if (field === 'closedValue') {
+      project.closedValue = Number(value || 0) || 0;
+    } else if (field === 'paymentMode') {
+      project.paymentMode = value;
+      if (value === 'full') {
+        project.isPaid = true;
+        project.closedValue = project.expectedValue;
+      } else if (value === 'half') {
+        project.isPaid = false;
+        project.closedValue = Math.round(project.expectedValue / 2 * 100) / 100;
+      } else {
+        project.isPaid = false;
+        project.closedValue = 0;
+      }
+    } else if (field === 'isDraft' || field === 'collapseSubtasks' || field === 'isPaid') {
+      project[field] = value === true || value === 'true';
+    } else {
+      project[field] = String(value || '').trim();
+    }
 
     if (field === 'isDraft') {
       project.status = project.isDraft ? 'draft' : 'active';

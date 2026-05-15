@@ -469,6 +469,34 @@ function renderProjectsView() {
   });
 }
 
+// Atualiza o texto de resumo do pagamento dentro do modal
+function updatePaymentSummary(content, pid, expectedVal, formatBRLInput, modeOverride) {
+  const seg = content.querySelector('#projPaySeg_' + pid);
+  if (!seg) return;
+  const activeBtn = modeOverride
+    ? seg.querySelector('[data-pay-mode="' + modeOverride + '"]')
+    : seg.querySelector('.is-active');
+  const mode = modeOverride || (activeBtn ? activeBtn.dataset.payMode : 'none');
+  const val = Number(expectedVal) || 0;
+  const half = Math.round(val / 2 * 100) / 100;
+
+  // Remove summary existente
+  const existing = content.querySelector('.proj-payment-summary');
+  if (existing) existing.remove();
+
+  if (mode === 'half' && half > 0) {
+    const span = document.createElement('span');
+    span.className = 'proj-payment-summary';
+    span.textContent = formatBRLInput(half) + ' recebido · ' + formatBRLInput(half) + ' pendente';
+    seg.insertAdjacentElement('afterend', span);
+  } else if (mode === 'full' && val > 0) {
+    const span = document.createElement('span');
+    span.className = 'proj-payment-summary proj-payment-summary--paid';
+    span.textContent = 'Valor total recebido';
+    seg.insertAdjacentElement('afterend', span);
+  }
+}
+
 // =============================================================
 // MODAL DE DETALHES DO PROJETO — redesign 2026
 // =============================================================
@@ -589,7 +617,7 @@ function openProjectDetailModal(projectId) {
       +   '<input class="proj-modal-prop__input" type="text" value="' + safe(project.serviceType) + '" placeholder="LP, Shopify, etc." data-project-field="serviceType" data-project-id="' + pid + '">'
       + '</div>'
 
-      // Valor + Pago inline
+      // Valor
       + '<div class="proj-modal-prop">'
       +   '<span class="proj-modal-prop__label">Valor</span>'
       +   '<div class="proj-modal-value-row">'
@@ -597,13 +625,30 @@ function openProjectDetailModal(projectId) {
       +     '<input class="proj-modal-prop__input proj-modal-prop__input--number proj-brl-input" type="text" inputmode="decimal" '
       +       'value="' + formatBRLInput(project.expectedValue) + '" placeholder="0,00" '
       +       'data-project-field="expectedValue" data-project-id="' + pid + '" id="projVal_' + pid + '">'
-      +     '<label class="proj-modal-paid-label' + (project.isPaid ? ' is-paid' : '') + '">'
-      +       '<input type="checkbox" class="proj-modal-paid-check"' + (project.isPaid ? ' checked' : '') + ' '
-      +       'data-project-field="isPaid" data-project-id="' + pid + '">'
-      +       '<span>Pago</span>'
-      +     '</label>'
       +   '</div>'
       + '</div>'
+
+      // Pagamento: seletor segmentado
+      + ((() => {
+          const mode = project.paymentMode || (project.isPaid ? 'full' : (project.closedValue > 0 ? 'half' : 'none'));
+          const half = project.expectedValue > 0 ? Math.round(project.expectedValue / 2 * 100) / 100 : 0;
+          const summaryText = mode === 'half' && half > 0
+            ? '<span class="proj-payment-summary">' + formatBRLInput(half) + ' recebido · ' + formatBRLInput(half) + ' pendente</span>'
+            : mode === 'full' && project.expectedValue > 0
+            ? '<span class="proj-payment-summary proj-payment-summary--paid">Valor total recebido</span>'
+            : '';
+          return '<div class="proj-modal-prop proj-modal-prop--payment">'
+            +   '<span class="proj-modal-prop__label">Pagamento</span>'
+            +   '<div class="proj-payment-col">'
+            +     '<div class="proj-payment-seg" id="projPaySeg_' + pid + '">'
+            +       '<button type="button" class="proj-payment-seg__btn' + (mode === 'none' ? ' is-active' : '') + '" data-pay-mode="none" data-project-id="' + pid + '">Não pago</button>'
+            +       '<button type="button" class="proj-payment-seg__btn' + (mode === 'half' ? ' is-active' : '') + '" data-pay-mode="half" data-project-id="' + pid + '">Meio a meio</button>'
+            +       '<button type="button" class="proj-payment-seg__btn' + (mode === 'full' ? ' is-active' : '') + '" data-pay-mode="full" data-project-id="' + pid + '">Pago</button>'
+            +     '</div>'
+            +     summaryText
+            +   '</div>'
+            + '</div>';
+        })())
 
       // Datas: Prazo + Início side-by-side
       + '<div class="proj-modal-prop proj-modal-prop--dates">'
@@ -694,26 +739,33 @@ function openProjectDetailModal(projectId) {
         value = field.type === 'checkbox' ? field.checked : field.value;
       }
       updateProjectField(fid, fname, value);
-
-      // Sincroniza closedValue com expectedValue quando Pago está ativo
-      if (fname === 'isPaid') {
-        const valInput = content.querySelector('#projVal_' + fid);
-        const currentVal = valInput ? parseBRLInput(valInput.value) : Number(project.expectedValue || 0);
-        updateProjectField(fid, 'closedValue', value ? currentVal : 0);
-        field.closest('.proj-modal-paid-label').classList.toggle('is-paid', !!value);
-      }
-      if (fname === 'expectedValue') {
-        const paidCheck = content.querySelector('[data-project-field="isPaid"][data-project-id="' + fid + '"]');
-        if (paidCheck && paidCheck.checked) {
-          updateProjectField(fid, 'closedValue', value);
-        }
-      }
       // Atualiza label do botão de data
       if (fname === 'deadline' || fname === 'startDate') {
         const btnId = fname === 'deadline' ? deadlineInputId : startInputId;
         const btn = content.querySelector('[data-date-for="' + btnId + '"]');
         if (btn) btn.textContent = shortDate(value) || '—';
       }
+      // Quando valor muda, atualiza o resumo de pagamento
+      if (fname === 'expectedValue') {
+        updatePaymentSummary(content, pid, value, formatBRLInput);
+      }
+    };
+  });
+
+  // ── Event: seletor de pagamento ───────────────────────────
+  content.querySelectorAll('[data-pay-mode]').forEach((btn) => {
+    btn.onclick = () => {
+      const mode = btn.dataset.payMode;
+      const fid = btn.dataset.projectId;
+      // Atualiza visual do seletor
+      const seg = content.querySelector('#projPaySeg_' + fid);
+      if (seg) seg.querySelectorAll('.proj-payment-seg__btn').forEach((b) => b.classList.toggle('is-active', b.dataset.payMode === mode));
+      // Salva
+      updateProjectField(fid, 'paymentMode', mode);
+      // Atualiza resumo
+      const valInput = content.querySelector('#projVal_' + fid);
+      const val = valInput ? parseBRLInput(valInput.value) : 0;
+      updatePaymentSummary(content, fid, val, formatBRLInput, mode);
     };
   });
 

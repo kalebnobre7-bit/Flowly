@@ -655,6 +655,64 @@
 }
 .proj-modal-paid-check { display: none; }
 
+/* Pagamento segmentado */
+.proj-modal-prop--payment { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
+.proj-payment-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.proj-payment-seg {
+    display: flex;
+    gap: 2px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-md);
+    padding: 3px;
+}
+.proj-payment-seg__btn {
+    flex: 1;
+    padding: 5px 10px;
+    border-radius: calc(var(--flowly-radius-md) - 2px);
+    border: none;
+    background: transparent;
+    color: var(--flowly-text-tertiary);
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family: var(--flowly-font-main);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--flowly-duration-fast), color var(--flowly-duration-fast), box-shadow var(--flowly-duration-fast);
+}
+.proj-payment-seg__btn:hover:not(.is-active) {
+    color: var(--flowly-text-secondary);
+    background: rgba(255,255,255,0.04);
+}
+.proj-payment-seg__btn.is-active {
+    background: var(--flowly-bg-elevated);
+    color: var(--flowly-text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+/* Verde quando "Pago" está ativo */
+.proj-payment-seg__btn[data-pay-mode="full"].is-active {
+    background: rgba(var(--flowly-accent-success-rgb, 48,209,88), 0.15);
+    color: var(--flowly-accent-success);
+}
+/* Laranja para "Meio a meio" */
+.proj-payment-seg__btn[data-pay-mode="half"].is-active {
+    background: rgba(245,158,11,0.12);
+    color: #f59e0b;
+}
+
+.proj-payment-summary {
+    font-size: 11px;
+    color: #f59e0b;
+    font-weight: 500;
+}
+.proj-payment-summary--paid {
+    color: var(--flowly-accent-success);
+}
+
 /* Datas */
 .proj-modal-prop--dates { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
 .proj-modal-dates-row {
