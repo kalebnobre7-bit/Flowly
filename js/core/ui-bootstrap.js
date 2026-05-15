@@ -422,6 +422,13 @@
       if (toggle) toggle.style.display = '';
       if (list) list.hidden = false;
       inner.innerHTML = tabsHtml + projectsHtml;
+
+      // Auto-expande grupo Projetos (como Análises e Finanças)
+      var group = document.getElementById('navGroupProjects');
+      if (group && !group.classList.contains('is-expanded')) {
+        group.classList.add('is-expanded');
+        try { localStorage.setItem('flowly_sidebar_group_navGroupProjects', 'true'); } catch (_) {}
+      }
     })();
 
     // Metas (goals)
