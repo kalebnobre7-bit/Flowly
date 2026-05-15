@@ -497,6 +497,19 @@ function openProjectDetailModal(projectId) {
   const formatBRL = (v) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v || 0));
 
+  // Formata número como "1.200,00" sem símbolo R$ (para o input)
+  const formatBRLInput = (v) => {
+    const n = Number(v || 0);
+    if (!n) return '';
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  // Parseia "1.200,00" → 1200 (float)
+  const parseBRLInput = (str) => {
+    const cleaned = String(str || '').trim().replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : Math.max(0, n);
+  };
+
   // ── Status line ───────────────────────────────────────────
   const today = localDateStr();
   const progress = getProjectProgressRate(pid);
@@ -581,8 +594,8 @@ function openProjectDetailModal(projectId) {
       +   '<span class="proj-modal-prop__label">Valor</span>'
       +   '<div class="proj-modal-value-row">'
       +     '<span class="proj-modal-currency">R$</span>'
-      +     '<input class="proj-modal-prop__input proj-modal-prop__input--number" type="number" min="0" step="0.01" '
-      +       'value="' + Number(project.expectedValue || 0) + '" placeholder="0" '
+      +     '<input class="proj-modal-prop__input proj-modal-prop__input--number proj-brl-input" type="text" inputmode="decimal" '
+      +       'value="' + formatBRLInput(project.expectedValue) + '" placeholder="0,00" '
       +       'data-project-field="expectedValue" data-project-id="' + pid + '" id="projVal_' + pid + '">'
       +     '<label class="proj-modal-paid-label' + (project.isPaid ? ' is-paid' : '') + '">'
       +       '<input type="checkbox" class="proj-modal-paid-check"' + (project.isPaid ? ' checked' : '') + ' '
@@ -653,26 +666,46 @@ function openProjectDetailModal(projectId) {
     +   '<button type="button" class="flowly-btn flowly-btn--primary" data-project-card-action="add-task" data-project-id="' + pid + '">+ Tarefa</button>'
     + '</footer>';
 
+  // ── Event: input BRL — formata no blur ───────────────────
+  content.querySelectorAll('.proj-brl-input').forEach((input) => {
+    input.addEventListener('blur', () => {
+      const parsed = parseBRLInput(input.value);
+      input.value = formatBRLInput(parsed);
+    });
+    // Seleciona tudo no foco pra facilitar edição
+    input.addEventListener('focus', () => {
+      setTimeout(() => input.select(), 0);
+    });
+  });
+
   // ── Event: campos de projeto ──────────────────────────────
   content.querySelectorAll('[data-project-field]').forEach((field) => {
     field.onchange = () => {
       const fid = field.dataset.projectId;
       const fname = field.dataset.projectField;
       if (!fid || !fname) return;
-      const value = field.type === 'checkbox' ? field.checked : field.value;
+
+      // Valor monetário: parseia formato BR antes de salvar
+      let value;
+      if (field.classList.contains('proj-brl-input')) {
+        value = parseBRLInput(field.value);
+        field.value = formatBRLInput(value); // re-formata imediatamente
+      } else {
+        value = field.type === 'checkbox' ? field.checked : field.value;
+      }
       updateProjectField(fid, fname, value);
 
       // Sincroniza closedValue com expectedValue quando Pago está ativo
       if (fname === 'isPaid') {
         const valInput = content.querySelector('#projVal_' + fid);
-        const currentVal = valInput ? Number(valInput.value) : Number(project.expectedValue || 0);
+        const currentVal = valInput ? parseBRLInput(valInput.value) : Number(project.expectedValue || 0);
         updateProjectField(fid, 'closedValue', value ? currentVal : 0);
         field.closest('.proj-modal-paid-label').classList.toggle('is-paid', !!value);
       }
       if (fname === 'expectedValue') {
         const paidCheck = content.querySelector('[data-project-field="isPaid"][data-project-id="' + fid + '"]');
         if (paidCheck && paidCheck.checked) {
-          updateProjectField(fid, 'closedValue', Number(value));
+          updateProjectField(fid, 'closedValue', value);
         }
       }
       // Atualiza label do botão de data
