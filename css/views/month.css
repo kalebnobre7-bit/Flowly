@@ -87,7 +87,8 @@
 /* ---- CALENDAR BODY ---- */
 .mc-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  /* Painel lateral cresce em viewports maiores até no máx 360px. */
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 22vw, 360px);
   gap: 14px; flex: 1; min-height: 0;
 }
 .mc-calendar { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
