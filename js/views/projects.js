@@ -45,9 +45,96 @@ window.moveProjectToKanbanColumn = function (projectId, columnId) {
   if (currentView === 'projects') renderProjectsView();
 };
 
+function renderArchivedProjectsSection(allProjects, formatBRL, today) {
+  const archived = allProjects
+    .filter((p) => p.status === 'archived')
+    .sort((a, b) => (b.completionDate || '').localeCompare(a.completionDate || ''));
+
+  if (archived.length === 0) {
+    return '<div class="projects-archived-empty">'
+      + '<p>Nenhum projeto arquivado ainda.</p>'
+      + '<p class="projects-archived-empty__hint">Projetos concluídos e pagos há mais de 7 dias são arquivados automaticamente.</p>'
+      + '</div>';
+  }
+
+  const totalRevenue = archived.reduce((s, p) => s + (p.closedValue || p.expectedValue || 0), 0);
+  const avgDurationDays = (() => {
+    const withDates = archived.filter((p) => p.startDate && p.completionDate);
+    if (!withDates.length) return null;
+    const avg = withDates.reduce((s, p) => {
+      const diff = (new Date(p.completionDate) - new Date(p.startDate)) / 86400000;
+      return s + Math.max(0, diff);
+    }, 0) / withDates.length;
+    return Math.round(avg);
+  })();
+
+  const statsHtml = '<div class="flowly-stat-strip kanban-stats-strip" style="margin-bottom:var(--flowly-space-4)">'
+    + '<div class="flowly-stat-card flowly-stat-card--inline"><div class="flowly-stat-card__label">Arquivados</div><div class="flowly-stat-card__value">' + archived.length + '</div></div>'
+    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--success"><div class="flowly-stat-card__label">Receita total</div><div class="flowly-stat-card__value">' + formatBRL(totalRevenue) + '</div></div>'
+    + (avgDurationDays !== null ? '<div class="flowly-stat-card flowly-stat-card--inline"><div class="flowly-stat-card__label">Duração média</div><div class="flowly-stat-card__value">' + avgDurationDays + ' dias</div></div>' : '')
+    + '</div>';
+
+  const cardsHtml = archived.map((project) => {
+    const safeName = escapeProjectHtml(project.name);
+    const safeClient = escapeProjectHtml(project.clientName || '');
+    const safeType = escapeProjectHtml(project.serviceType || '');
+    const amount = project.closedValue > 0 ? formatBRL(project.closedValue) : (project.expectedValue > 0 ? formatBRL(project.expectedValue) : '');
+    const completedText = project.completionDate ? formatProjectDateShort(project.completionDate) : '—';
+    const durationText = (() => {
+      if (!project.startDate || !project.completionDate) return null;
+      const days = Math.max(0, Math.round((new Date(project.completionDate) - new Date(project.startDate)) / 86400000));
+      return days + ' dias';
+    })();
+    const progress = getProjectProgressRate(project.id);
+    const tasksText = progress && progress.total > 0 ? progress.done + '/' + progress.total + ' tarefas' : '';
+
+    return '<article class="projects-archive-card" data-project-id="' + project.id + '">'
+      + '<div class="projects-archive-card__head">'
+      +   '<div class="projects-archive-card__title">' + safeName + '</div>'
+      +   (safeClient ? '<div class="projects-archive-card__client">' + safeClient + '</div>' : '')
+      + '</div>'
+      + '<div class="projects-archive-card__meta">'
+      +   (safeType ? '<span class="kanban-card__badge">' + safeType + '</span>' : '')
+      +   (durationText ? '<span class="projects-archive-card__meta-item">' + durationText + '</span>' : '')
+      +   (tasksText ? '<span class="projects-archive-card__meta-item">' + tasksText + '</span>' : '')
+      + '</div>'
+      + '<div class="projects-archive-card__foot">'
+      +   '<span class="projects-archive-card__date">Fechado ' + completedText + '</span>'
+      +   (amount ? '<span class="projects-archive-card__amount" style="color:var(--flowly-accent-success)">' + amount + '</span>' : '')
+      + '</div>'
+      + '<button type="button" class="projects-archive-card__restore flowly-btn flowly-btn--ghost flowly-btn--sm" data-projects-action="restore-project" data-project-id="' + project.id + '">Restaurar</button>'
+      + '</article>';
+  }).join('');
+
+  return statsHtml + '<div class="projects-archive-grid">' + cardsHtml + '</div>';
+}
+
+// Retorna tab ativo: 'active' | 'archived'
+function getProjectsTab() {
+  return localStorage.getItem('flowly_projects_tab') || 'active';
+}
+function setProjectsTab(tab) {
+  localStorage.setItem('flowly_projects_tab', tab);
+}
+
+// Auto-arquiva projetos concluídos (isPaid) há mais de 7 dias
+function autoArchiveOldProjects() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+  const cutoffStr = localDateStr(cutoff);
+  getProjectOptions()
+    .filter((p) => p.completionDate && p.isPaid && p.status !== 'archived' && !p.isDraft && p.completionDate <= cutoffStr)
+    .forEach((p) => {
+      updateProjectRecord(p.id, (proj) => { proj.status = 'archived'; return proj; });
+    });
+}
+
 function renderProjectsView() {
   const view = document.getElementById('projectsView');
   if (!view) return;
+
+  // Auto-arquiva projetos antigos antes de renderizar
+  autoArchiveOldProjects();
 
   const analytics = buildProjectsAnalytics();
   const formatBRL = (value) =>
@@ -164,20 +251,29 @@ function renderProjectsView() {
     + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--' + (closedRevenue > 0 ? 'success' : '') + '"><div class="flowly-stat-card__label">Recebido</div><div class="flowly-stat-card__value">' + formatBRL(closedRevenue) + '</div></div>'
     + '</div>';
 
+  const activeTab = getProjectsTab();
+
+  const tabBar = '<div class="projects-tab-bar">'
+    + '<button type="button" class="projects-tab-btn' + (activeTab === 'active' ? ' is-active' : '') + '" data-projects-tab="active">Ativos</button>'
+    + '<button type="button" class="projects-tab-btn' + (activeTab === 'archived' ? ' is-active' : '') + '" data-projects-tab="archived">Arquivados</button>'
+    + '</div>';
+
+  const mainContent = activeTab === 'archived'
+    ? renderArchivedProjectsSection(analytics.projects, formatBRL, today)
+    : statsStrip + '<div class="kanban-board" data-projects-kanban>' + PROJECTS_KANBAN_COLUMNS.map(renderKanbanColumn).join('') + '</div>';
+
   view.innerHTML = '<div class="flowly-shell flowly-shell--wide projects-shell-v2">'
     + '<header class="flowly-page-header">'
     +   '<div class="flowly-page-header__title"><h1 class="flowly-page-title">Projetos</h1><p class="flowly-page-subtitle">' + heroInsight + '</p></div>'
     +   '<div class="flowly-page-header__actions">'
+    +     tabBar
     +     '<button type="button" class="flowly-btn flowly-btn--primary" data-projects-action="open-quick-modal">'
     +       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>'
     +       '<span>Novo projeto</span>'
     +     '</button>'
     +   '</div>'
     + '</header>'
-    + statsStrip
-    + '<div class="kanban-board" data-projects-kanban>'
-    +   PROJECTS_KANBAN_COLUMNS.map(renderKanbanColumn).join('')
-    + '</div>'
+    + mainContent
     + '</div>'
     + '<div class="flowly-modal" id="projectDetailModal" role="dialog" aria-modal="true">'
     +   '<div class="flowly-modal__backdrop" data-project-modal-close></div>'
@@ -187,10 +283,21 @@ function renderProjectsView() {
   if (window.lucide) lucide.createIcons();
 
   // --- Event listeners ---
+  view.querySelectorAll('[data-projects-tab]').forEach((btn) => {
+    btn.onclick = () => {
+      setProjectsTab(btn.dataset.projectsTab);
+      renderProjectsView();
+    };
+  });
+
   view.querySelectorAll('[data-projects-action]').forEach((btn) => {
     btn.onclick = () => {
       const action = btn.dataset.projectsAction;
       if (action === 'open-quick-modal') openQuickProjectModal();
+      if (action === 'restore-project') {
+        const pid = btn.dataset.projectId;
+        if (pid) window.moveProjectToKanbanColumn(pid, 'todo');
+      }
     };
   });
 
@@ -198,6 +305,15 @@ function renderProjectsView() {
     card.addEventListener('click', (e) => {
       if (e.target.closest('button, input, textarea, select, label, a')) return;
       const pid = card.dataset.projectCardId;
+      if (pid) openProjectDetailModal(pid);
+    });
+  });
+
+  // Cards da view arquivada também abrem modal
+  view.querySelectorAll('.projects-archive-card').forEach((card) => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button, input, a')) return;
+      const pid = card.dataset.projectId;
       if (pid) openProjectDetailModal(pid);
     });
   });
