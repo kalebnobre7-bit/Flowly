@@ -52,61 +52,160 @@ function renderArchivedProjectsSection(allProjects, formatBRL, today) {
 
   if (archived.length === 0) {
     return '<div class="projects-archived-empty">'
-      + '<p>Nenhum projeto arquivado ainda.</p>'
+      + '<div class="projects-archived-empty__icon">'
+      +   '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>'
+      + '</div>'
+      + '<p class="projects-archived-empty__title">Arquivo vazio</p>'
       + '<p class="projects-archived-empty__hint">Projetos concluídos e pagos há mais de 7 dias são arquivados automaticamente.</p>'
       + '</div>';
   }
 
+  // ── Métricas ──────────────────────────────────────────────
   const totalRevenue = archived.reduce((s, p) => s + (p.closedValue || p.expectedValue || 0), 0);
-  const avgDurationDays = (() => {
-    const withDates = archived.filter((p) => p.startDate && p.completionDate);
-    if (!withDates.length) return null;
-    const avg = withDates.reduce((s, p) => {
-      const diff = (new Date(p.completionDate) - new Date(p.startDate)) / 86400000;
-      return s + Math.max(0, diff);
-    }, 0) / withDates.length;
-    return Math.round(avg);
-  })();
+  const withValue = archived.filter((p) => (p.closedValue || p.expectedValue) > 0);
+  const avgTicket = withValue.length > 0
+    ? totalRevenue / withValue.length : 0;
+  const withDates = archived.filter((p) => p.startDate && p.completionDate);
+  const avgDuration = withDates.length > 0
+    ? Math.round(withDates.reduce((s, p) => {
+        return s + Math.max(0, (new Date(p.completionDate) - new Date(p.startDate)) / 86400000);
+      }, 0) / withDates.length)
+    : null;
+  const allTaskStats = archived.map((p) => getProjectProgressRate(p.id)).filter(Boolean);
+  const totalTasksDone = allTaskStats.reduce((s, t) => s + t.done, 0);
+  const totalTasksAll = allTaskStats.reduce((s, t) => s + t.total, 0);
+  const taskRatePct = totalTasksAll > 0 ? Math.round((totalTasksDone / totalTasksAll) * 100) : null;
+  const bestProject = [...archived].sort((a, b) =>
+    (b.closedValue || b.expectedValue || 0) - (a.closedValue || a.expectedValue || 0)
+  )[0];
 
-  const statsHtml = '<div class="flowly-stat-strip kanban-stats-strip" style="margin-bottom:var(--flowly-space-4)">'
-    + '<div class="flowly-stat-card flowly-stat-card--inline"><div class="flowly-stat-card__label">Arquivados</div><div class="flowly-stat-card__value">' + archived.length + '</div></div>'
-    + '<div class="flowly-stat-card flowly-stat-card--inline flowly-stat-card--success"><div class="flowly-stat-card__label">Receita total</div><div class="flowly-stat-card__value">' + formatBRL(totalRevenue) + '</div></div>'
-    + (avgDurationDays !== null ? '<div class="flowly-stat-card flowly-stat-card--inline"><div class="flowly-stat-card__label">Duração média</div><div class="flowly-stat-card__value">' + avgDurationDays + ' dias</div></div>' : '')
+  const statsHtml = '<div class="arch-stats">'
+    + '<div class="arch-stat">'
+    +   '<div class="arch-stat__value">' + archived.length + '</div>'
+    +   '<div class="arch-stat__label">Entregues</div>'
+    + '</div>'
+    + '<div class="arch-stat arch-stat--success">'
+    +   '<div class="arch-stat__value">' + formatBRL(totalRevenue) + '</div>'
+    +   '<div class="arch-stat__label">Receita total</div>'
+    + '</div>'
+    + (avgTicket > 0
+      ? '<div class="arch-stat">'
+        +   '<div class="arch-stat__value">' + formatBRL(avgTicket) + '</div>'
+        +   '<div class="arch-stat__label">Ticket médio</div>'
+        + '</div>'
+      : '')
+    + (avgDuration !== null
+      ? '<div class="arch-stat">'
+        +   '<div class="arch-stat__value">' + avgDuration + '<small>d</small></div>'
+        +   '<div class="arch-stat__label">Duração média</div>'
+        + '</div>'
+      : '')
+    + (taskRatePct !== null
+      ? '<div class="arch-stat">'
+        +   '<div class="arch-stat__value">' + taskRatePct + '<small>%</small></div>'
+        +   '<div class="arch-stat__label">Tarefas fechadas</div>'
+        + '</div>'
+      : '')
     + '</div>';
 
-  const cardsHtml = archived.map((project) => {
+  // ── Agrupar por ano ──────────────────────────────────────
+  const byYear = {};
+  archived.forEach((p) => {
+    const year = p.completionDate ? p.completionDate.slice(0, 4) : 'Sem data';
+    if (!byYear[year]) byYear[year] = [];
+    byYear[year].push(p);
+  });
+  const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a));
+
+  // ── Valor → cor do indicador ─────────────────────────────
+  const accentForValue = (v) => {
+    if (v >= 5000) return 'var(--flowly-accent-success)';
+    if (v >= 2000) return 'var(--flowly-accent-primary)';
+    if (v > 0) return 'var(--flowly-text-tertiary)';
+    return 'rgba(255,255,255,0.12)';
+  };
+
+  // ── Render de uma linha de projeto ───────────────────────
+  const renderRow = (project) => {
+    const value = project.closedValue || project.expectedValue || 0;
+    const accentColor = accentForValue(value);
     const safeName = escapeProjectHtml(project.name);
     const safeClient = escapeProjectHtml(project.clientName || '');
     const safeType = escapeProjectHtml(project.serviceType || '');
-    const amount = project.closedValue > 0 ? formatBRL(project.closedValue) : (project.expectedValue > 0 ? formatBRL(project.expectedValue) : '');
-    const completedText = project.completionDate ? formatProjectDateShort(project.completionDate) : '—';
-    const durationText = (() => {
-      if (!project.startDate || !project.completionDate) return null;
-      const days = Math.max(0, Math.round((new Date(project.completionDate) - new Date(project.startDate)) / 86400000));
-      return days + ' dias';
-    })();
-    const progress = getProjectProgressRate(project.id);
-    const tasksText = progress && progress.total > 0 ? progress.done + '/' + progress.total + ' tarefas' : '';
+    const amountStr = value > 0 ? formatBRL(value) : '';
+    const isPaid = project.closedValue > 0;
 
-    return '<article class="projects-archive-card" data-project-id="' + project.id + '">'
-      + '<div class="projects-archive-card__head">'
-      +   '<div class="projects-archive-card__title">' + safeName + '</div>'
-      +   (safeClient ? '<div class="projects-archive-card__client">' + safeClient + '</div>' : '')
+    const completedText = (() => {
+      if (!project.completionDate) return '—';
+      const d = new Date(project.completionDate + 'T00:00:00');
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+    })();
+
+    const durationDays = (() => {
+      if (!project.startDate || !project.completionDate) return null;
+      return Math.max(0, Math.round((new Date(project.completionDate) - new Date(project.startDate)) / 86400000));
+    })();
+
+    const progress = getProjectProgressRate(project.id);
+    const hasProgress = progress && progress.total > 0;
+    const progressPct = hasProgress ? progress.pct : 0;
+
+    const isBest = bestProject && bestProject.id === project.id && value > 0;
+
+    return '<div class="arch-row" data-project-id="' + project.id + '">'
+      // Indicador colorido
+      + '<div class="arch-row__indicator" style="background:' + accentColor + '"></div>'
+      // Identidade
+      + '<div class="arch-row__identity">'
+      +   '<span class="arch-row__name">' + safeName + (isBest ? ' <span class="arch-row__best-badge">★ top</span>' : '') + '</span>'
+      +   (safeClient ? '<span class="arch-row__client">' + safeClient + '</span>' : '')
       + '</div>'
-      + '<div class="projects-archive-card__meta">'
-      +   (safeType ? '<span class="kanban-card__badge">' + safeType + '</span>' : '')
-      +   (durationText ? '<span class="projects-archive-card__meta-item">' + durationText + '</span>' : '')
-      +   (tasksText ? '<span class="projects-archive-card__meta-item">' + tasksText + '</span>' : '')
+      // Chips: tipo + duração
+      + '<div class="arch-row__chips">'
+      +   (safeType ? '<span class="arch-row__chip arch-row__chip--type">' + safeType + '</span>' : '')
+      +   (durationDays !== null ? '<span class="arch-row__chip">' + durationDays + 'd</span>' : '')
       + '</div>'
-      + '<div class="projects-archive-card__foot">'
-      +   '<span class="projects-archive-card__date">Fechado ' + completedText + '</span>'
-      +   (amount ? '<span class="projects-archive-card__amount" style="color:var(--flowly-accent-success)">' + amount + '</span>' : '')
+      // Progress tasks
+      + '<div class="arch-row__tasks">'
+      +   (hasProgress
+          ? '<div class="arch-row__progress-wrap">'
+            +   '<div class="arch-row__progress-bar"><div class="arch-row__progress-fill" style="width:' + progressPct + '%;background:' + accentColor + '"></div></div>'
+            +   '<span class="arch-row__progress-label">' + progress.done + '/' + progress.total + '</span>'
+            + '</div>'
+          : '<span class="arch-row__no-tasks">—</span>')
       + '</div>'
-      + '<button type="button" class="projects-archive-card__restore flowly-btn flowly-btn--ghost flowly-btn--sm" data-projects-action="restore-project" data-project-id="' + project.id + '">Restaurar</button>'
-      + '</article>';
+      // Valor
+      + '<div class="arch-row__value">'
+      +   (amountStr
+          ? '<span class="arch-row__amount' + (isPaid ? ' arch-row__amount--paid' : '') + '">' + amountStr + '</span>'
+          : '<span class="arch-row__amount arch-row__amount--empty">—</span>')
+      + '</div>'
+      // Data
+      + '<div class="arch-row__date">' + completedText + '</div>'
+      // Ação
+      + '<div class="arch-row__actions">'
+      +   '<button type="button" class="arch-row__restore flowly-btn flowly-btn--ghost flowly-btn--sm" data-projects-action="restore-project" data-project-id="' + project.id + '">↩ Restaurar</button>'
+      + '</div>'
+      + '</div>';
+  };
+
+  // ── Render de grupos por ano ─────────────────────────────
+  const groupsHtml = years.map((year) => {
+    const yearProjects = byYear[year];
+    const yearRevenue = yearProjects.reduce((s, p) => s + (p.closedValue || p.expectedValue || 0), 0);
+    return '<div class="arch-group">'
+      + '<div class="arch-group__header">'
+      +   '<span class="arch-group__year">' + year + '</span>'
+      +   '<span class="arch-group__divider"></span>'
+      +   '<span class="arch-group__summary">' + yearProjects.length + ' projeto' + (yearProjects.length > 1 ? 's' : '') + (yearRevenue > 0 ? ' · ' + formatBRL(yearRevenue) : '') + '</span>'
+      + '</div>'
+      + '<div class="arch-group__rows">'
+      +   yearProjects.map(renderRow).join('')
+      + '</div>'
+      + '</div>';
   }).join('');
 
-  return statsHtml + '<div class="projects-archive-grid">' + cardsHtml + '</div>';
+  return '<div class="arch-shell">' + statsHtml + groupsHtml + '</div>';
 }
 
 // Retorna tab ativo: 'active' | 'archived'
