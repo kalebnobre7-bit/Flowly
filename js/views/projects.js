@@ -240,7 +240,7 @@ function renderProjectsView() {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
   const taskBacklogCount = collectProjectTaskCandidates({ includeLinked: false, max: 999 }).length;
   const today = localDateStr();
-  const allProjects = analytics.projects.filter((p) => !p.isDraft && p.status !== 'draft');
+  const allProjects = analytics.projects.filter((p) => !p.isDraft && p.status !== 'draft' && p.status !== 'archived');
   const activeCount = allProjects.filter((p) => !p.completionDate && p.status !== 'archived').length;
   const lateCount = allProjects.filter((p) => !p.completionDate && p.deadline && p.deadline < today).length;
   const unpaidCount = allProjects.filter((p) => !p.isPaid && p.status !== 'archived').length;
