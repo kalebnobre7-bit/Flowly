@@ -997,7 +997,7 @@
 .arch-row {
     display: grid;
     /* indicator | identity | chips | tasks | value | date | actions */
-    grid-template-columns: 3px 1fr auto auto 110px 58px 0px;
+    grid-template-columns: 3px 1fr auto auto 110px 58px auto;
     align-items: center;
     gap: 0 12px;
     padding: 10px 12px 10px 0;
@@ -1011,7 +1011,6 @@
     background: rgba(255,255,255,0.03);
 }
 .arch-row:hover .arch-row__actions {
-    width: 90px;
     opacity: 1;
 }
 
@@ -1141,18 +1140,19 @@
     white-space: nowrap;
 }
 
-/* Botão restaurar — slide-in no hover */
+/* Botão restaurar — sempre visível */
 .arch-row__actions {
-    width: 0;
-    overflow: hidden;
-    opacity: 0;
-    transition: width var(--flowly-duration-fast) ease, opacity var(--flowly-duration-fast) ease;
     display: flex;
     justify-content: flex-end;
 }
 .arch-row__restore {
     white-space: nowrap;
     font-size: 11px;
+    opacity: 0.55;
+    transition: opacity var(--flowly-duration-fast) ease;
+}
+.arch-row:hover .arch-row__restore {
+    opacity: 1;
 }
 
 /* ── Empty state ─────────────────────────────────────────── */
