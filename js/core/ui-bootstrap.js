@@ -346,7 +346,13 @@
       const viewBtn = event.target.closest('[data-flowly-view]');
       if (viewBtn) {
         const targetView = viewBtn.dataset.flowlyView;
+        const projectsTab = viewBtn.dataset.projectsTab;
+        if (projectsTab) {
+          try { localStorage.setItem('flowly_projects_tab', projectsTab); } catch (_) {}
+        }
         if (targetView) setView(targetView);
+        // Re-aplica active no sub-item de tab depois que setView limpa tudo
+        if (projectsTab) viewBtn.classList.add('active');
         return;
       }
 
@@ -373,30 +379,49 @@
       const toggle = document.querySelector('[data-group="navGroupProjects"]');
       const list = document.getElementById('subProjects');
       if (!inner) return;
-      const projects =
+
+      let currentTab = 'active';
+      try { currentTab = localStorage.getItem('flowly_projects_tab') || 'active'; } catch (_) {}
+
+      const activeProjects =
         typeof projectsState !== 'undefined' && projectsState && Array.isArray(projectsState.projects)
-          ? projectsState.projects.filter(function (p) { return p && !p.isDraft && p.status !== 'draft'; })
+          ? projectsState.projects.filter(function (p) { return p && !p.isDraft && p.status !== 'archived' && p.status !== 'draft'; })
           : [];
-      if (projects.length === 0) {
-        if (toggle) toggle.style.display = 'none';
-        if (list) list.hidden = true;
-        inner.innerHTML = '';
-        return;
-      }
+      const archivedCount =
+        typeof projectsState !== 'undefined' && projectsState && Array.isArray(projectsState.projects)
+          ? projectsState.projects.filter(function (p) { return p && p.status === 'archived'; }).length
+          : 0;
+
+      // Tabs fixas: Ativos + Arquivados
+      const tabsHtml = '<button class="sidebar-nav-sub' + (currentTab === 'active' ? ' active' : '') + '" data-flowly-view="projects" data-projects-tab="active">'
+        + '<span style="flex:1">Ativos</span>'
+        + (activeProjects.length > 0 ? '<span class="sidebar-nav-sub__badge">' + activeProjects.length + '</span>' : '')
+        + '</button>'
+        + '<button class="sidebar-nav-sub' + (currentTab === 'archived' ? ' active' : '') + '" data-flowly-view="projects" data-projects-tab="archived">'
+        + '<span style="flex:1">Arquivados</span>'
+        + (archivedCount > 0 ? '<span class="sidebar-nav-sub__badge">' + archivedCount + '</span>' : '')
+        + '</button>';
+
+      // Projetos individuais ativos (máx 8, apenas quando tab ativa)
+      const projectsHtml = currentTab === 'active' && activeProjects.length > 0
+        ? '<div class="sidebar-nav-sub-divider"></div>'
+          + activeProjects.slice(0, 8).map(function (p) {
+              const name = String(p.name || 'Projeto sem nome');
+              const safe = name.replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+              });
+              const tasks = typeof p.taskCount === 'number' ? p.taskCount : '';
+              return '<button class="sidebar-nav-sub sidebar-nav-sub--project" data-flowly-view="projects" data-project-id="'
+                + encodeURIComponent(p.id || '') + '" title="' + safe + '">'
+                + '<span style="overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1">' + safe + '</span>'
+                + (tasks ? '<span class="sidebar-nav-sub__badge">' + tasks + '</span>' : '')
+                + '</button>';
+            }).join('')
+        : '';
+
       if (toggle) toggle.style.display = '';
       if (list) list.hidden = false;
-      inner.innerHTML = projects.slice(0, 10).map(function (p) {
-        const name = String(p.name || 'Projeto sem nome');
-        const safe = name.replace(/[&<>"']/g, function (c) {
-          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-        });
-        const tasks = typeof p.taskCount === 'number' ? p.taskCount : '';
-        return '<button class="sidebar-nav-sub" data-flowly-view="projects" data-project-id="' +
-          encodeURIComponent(p.id || '') + '" title="' + safe + '">' +
-          '<span style="overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1">' + safe + '</span>' +
-          (tasks ? '<span class="sidebar-nav-sub__badge">' + tasks + '</span>' : '') +
-          '</button>';
-      }).join('');
+      inner.innerHTML = tabsHtml + projectsHtml;
     })();
 
     // Metas (goals)

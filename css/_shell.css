@@ -498,6 +498,29 @@ body.sidebar-pinned .app-sidebar .sidebar-nav-group.is-expanded .sidebar-nav-chi
     opacity: 0.6;
 }
 
+/* Divider entre tabs e projetos individuais no sub-nav */
+.sidebar-nav-sub-divider {
+    height: 1px;
+    background: var(--flowly-border-subtle);
+    margin: 4px 0;
+    opacity: 0.5;
+}
+
+/* Projetos individuais: dot menor, fonte mais leve */
+.sidebar-nav-sub--project {
+    font-weight: 400;
+    font-size: 11.5px;
+    color: var(--flowly-text-muted, rgba(255,255,255,0.32));
+}
+.sidebar-nav-sub--project::before {
+    width: 4px;
+    height: 4px;
+    opacity: 0.2;
+}
+.sidebar-nav-sub--project:hover {
+    color: var(--flowly-text-tertiary);
+}
+
 /* ----------------------------------------------------------------
    SIDEBAR FOOTER
 ----------------------------------------------------------------- */
