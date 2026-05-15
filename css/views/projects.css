@@ -477,65 +477,295 @@
     display: none;
 }
 
-/* --- Modal de detalhes: form organizado --- */
-.projects-modal-form {
+/* =============================================================
+   MODAL REDESIGN 2026 — proj-modal-*
+   ============================================================= */
+
+/* Reset padding do modal base — layout próprio por seção */
+#projectDetailModalContent {
+    padding: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: var(--flowly-space-4);
+}
+#projectDetailModalContent .flowly-modal__close {
+    top: var(--flowly-space-4);
+    right: var(--flowly-space-4);
 }
 
-.projects-modal-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--flowly-space-3);
-}
-
-@media (max-width: 540px) {
-    .projects-modal-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.projects-modal-field {
+/* ── Hero: título + status ─────────────────────────────────── */
+.proj-modal-hero {
+    padding: var(--flowly-space-5) var(--flowly-space-5) var(--flowly-space-3);
     display: flex;
     flex-direction: column;
-    gap: var(--flowly-space-1);
-    min-width: 0;
+    gap: var(--flowly-space-2);
 }
 
-.projects-modal-field > span {
-    font-size: var(--flowly-text-xs);
-    font-weight: 600;
-    color: var(--flowly-text-secondary);
-    letter-spacing: var(--flowly-letter-snug);
+.proj-modal-name {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--flowly-font-display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--flowly-text-primary);
+    padding: 0;
+    line-height: 1.2;
 }
-
-.projects-modal-toggles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--flowly-space-4);
-    padding: var(--flowly-space-3) 0;
-    border-top: 1px solid var(--flowly-border-subtle);
-    border-bottom: 1px solid var(--flowly-border-subtle);
+.proj-modal-name:focus {
+    color: var(--flowly-text-primary);
 }
+.proj-modal-name::placeholder { color: var(--flowly-text-muted, rgba(255,255,255,0.25)); }
 
-.projects-modal-toggle {
+.proj-modal-status-line {
     display: flex;
     align-items: center;
-    gap: var(--flowly-space-2);
-    font-size: var(--flowly-text-sm);
-    color: var(--flowly-text-secondary);
-    cursor: pointer;
+    gap: 7px;
+}
+
+/* Status dot */
+.proj-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.proj-dot--done  { background: var(--flowly-accent-success); }
+.proj-dot--late  { background: var(--flowly-accent-danger); box-shadow: 0 0 6px rgba(255,69,58,0.5); }
+.proj-dot--doing { background: var(--flowly-accent-primary); }
+.proj-dot--idle  { background: var(--flowly-text-muted, rgba(255,255,255,0.3)); }
+
+.proj-modal-status-text {
+    font-size: 12px;
+    color: var(--flowly-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Progress ──────────────────────────────────────────────── */
+.proj-modal-progress {
+    padding: 0 var(--flowly-space-5) var(--flowly-space-3);
+}
+.proj-modal-progress__bar {
+    height: 3px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 99px;
+    overflow: hidden;
+}
+.proj-modal-progress__fill {
+    height: 100%;
+    background: var(--flowly-accent-primary);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+}
+
+/* ── Body ──────────────────────────────────────────────────── */
+.proj-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0 var(--flowly-space-5) var(--flowly-space-4);
+    overflow-y: auto;
+    max-height: calc(80vh - 200px);
+}
+
+/* ── Props list ────────────────────────────────────────────── */
+.proj-modal-props {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--flowly-space-4);
+}
+
+.proj-modal-prop {
+    display: grid;
+    grid-template-columns: 76px 1fr;
+    align-items: center;
+    min-height: 40px;
+    border-bottom: 1px solid var(--flowly-border-subtle);
+    padding: 6px 12px;
+    gap: var(--flowly-space-3);
+}
+.proj-modal-prop:last-child { border-bottom: none; }
+
+.proj-modal-prop__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--flowly-text-tertiary);
+    white-space: nowrap;
     user-select: none;
 }
 
-.projects-modal-toggle input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--flowly-accent-primary);
+.proj-modal-prop__input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--flowly-text-primary);
+    font-family: var(--flowly-font-main);
+    padding: 2px 0;
+    min-width: 0;
+}
+.proj-modal-prop__input::placeholder { color: var(--flowly-text-muted, rgba(255,255,255,0.22)); font-weight: 400; }
+.proj-modal-prop__input:focus { color: var(--flowly-text-primary); }
+.proj-modal-prop__input--number { font-family: var(--flowly-font-display); }
+
+/* Valor row: R$ prefix + input + Pago toggle */
+.proj-modal-value-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.proj-modal-currency {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--flowly-text-tertiary);
+    flex-shrink: 0;
+}
+.proj-modal-paid-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    flex-shrink: 0;
+    padding: 3px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--flowly-border-subtle);
+    background: rgba(255,255,255,0.03);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--flowly-text-tertiary);
     cursor: pointer;
+    user-select: none;
+    transition: background var(--flowly-duration-fast), border-color var(--flowly-duration-fast), color var(--flowly-duration-fast);
+}
+.proj-modal-paid-label.is-paid {
+    background: rgba(var(--flowly-accent-success-rgb, 48,209,88), 0.12);
+    border-color: rgba(var(--flowly-accent-success-rgb, 48,209,88), 0.3);
+    color: var(--flowly-accent-success);
+}
+.proj-modal-paid-check { display: none; }
+
+/* Datas */
+.proj-modal-prop--dates { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
+.proj-modal-dates-row {
+    display: flex;
+    gap: var(--flowly-space-4);
+}
+.proj-modal-date-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    position: relative;
+}
+.proj-modal-date-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--flowly-text-muted, rgba(255,255,255,0.28));
+}
+.proj-modal-date-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--flowly-border-subtle);
+    border-radius: var(--flowly-radius-sm);
+    color: var(--flowly-text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--flowly-font-display);
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: background var(--flowly-duration-fast), border-color var(--flowly-duration-fast);
+    white-space: nowrap;
+}
+.proj-modal-date-btn:hover {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.1);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.3);
+}
+.proj-modal-date-hidden {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
 }
 
+/* Opções chips */
+.proj-modal-prop--options { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
+.proj-modal-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.proj-modal-chip-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--flowly-border-subtle);
+    background: rgba(255,255,255,0.03);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--flowly-text-tertiary);
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--flowly-duration-fast), color var(--flowly-duration-fast);
+}
+.proj-modal-chip-toggle:has(input:checked) {
+    background: rgba(var(--flowly-accent-primary-rgb), 0.1);
+    border-color: rgba(var(--flowly-accent-primary-rgb), 0.25);
+    color: var(--flowly-accent-primary);
+}
+.proj-modal-chip-toggle input { display: none; }
+
+/* ── Sections (Notas, Checklist, Tarefas) ───────────────────── */
+.proj-modal-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--flowly-space-2);
+    margin-bottom: var(--flowly-space-4);
+}
+.proj-modal-section__header {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--flowly-text-tertiary);
+}
+.proj-modal-textarea {
+    font-size: 13px;
+    min-height: 72px;
+    resize: vertical;
+}
+
+/* ── Footer ────────────────────────────────────────────────── */
+.proj-modal-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--flowly-space-2);
+    padding: var(--flowly-space-3) var(--flowly-space-5);
+    border-top: 1px solid var(--flowly-border-subtle);
+    background: rgba(0,0,0,0.15);
+}
+.proj-modal-footer__danger {
+    color: var(--flowly-accent-danger) !important;
+    padding: 6px 8px !important;
+    opacity: 0.7;
+}
+.proj-modal-footer__danger:hover { opacity: 1; }
+.proj-modal-footer__spacer { flex: 1; }
+
+/* ── Linked items (mantém) ─────────────────────────────────── */
 .projects-linked-item-v2 {
     display: flex;
     align-items: center;
@@ -546,7 +776,6 @@
     border: 1px solid var(--flowly-border-subtle);
     border-radius: var(--flowly-radius-md);
 }
-
 .projects-linked-item-v2 strong {
     display: block;
     font-size: var(--flowly-text-sm);
@@ -554,22 +783,9 @@
     font-weight: 500;
     margin-bottom: 2px;
 }
-
 .projects-linked-item-v2 p {
     font-size: var(--flowly-text-xs);
     color: var(--flowly-text-tertiary);
-}
-
-.projects-modal-actions-v2 {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--flowly-space-2);
-    padding-top: var(--flowly-space-3);
-    border-top: 1px solid var(--flowly-border-subtle);
-}
-
-.projects-modal-actions-v2 .flowly-btn--danger {
-    margin-left: auto;
 }
 
 /* --- Mobile adjustments --- */

@@ -470,7 +470,7 @@ function renderProjectsView() {
 }
 
 // =============================================================
-// MODAL DE DETALHES DO PROJETO
+// MODAL DE DETALHES DO PROJETO — redesign 2026
 // =============================================================
 function openProjectDetailModal(projectId) {
   const project = getProjectOptions().find((p) => p.id === projectId);
@@ -479,76 +479,233 @@ function openProjectDetailModal(projectId) {
   const content = document.getElementById('projectDetailModalContent');
   if (!modal || !content) return;
 
-  const linkedTasks = collectProjectTaskCandidates({ includeLinked: true, max: 20, projectId: project.id });
-  const templateTextareaId = 'projectTemplate_' + project.id;
-  const notesValue = escapeProjectHtml(project.notes || '');
-  const templateValue = escapeProjectHtml((project.templateTasks || []).join('\n'));
-  const safeName = escapeProjectHtml(project.name);
-  const safeClient = escapeProjectHtml(project.clientName || '');
-  const safeType = escapeProjectHtml(project.serviceType || '');
+  const pid = project.id;
+  const linkedTasks = collectProjectTaskCandidates({ includeLinked: true, max: 20, projectId: pid });
+  const templateTextareaId = 'projectTemplate_' + pid;
+  const deadlineInputId   = 'projDeadline_' + pid;
+  const startInputId      = 'projStart_' + pid;
 
-  const linkedTasksHtml = linkedTasks.length > 0
-    ? '<div><span style="display:block;font-size:var(--flowly-text-xs);font-weight:600;color:var(--flowly-text-secondary);margin-bottom:var(--flowly-space-2)">Tarefas vinculadas</span><div style="display:flex;flex-direction:column;gap:var(--flowly-space-2)">'
-      + linkedTasks.map((item) => '<div class="projects-linked-item-v2"><div><strong>' + escapeProjectHtml(item.task.text) + '</strong><p>' + item.dateStr + ' · ' + item.period + (item.task.completed ? ' · concluida' : '') + '</p></div><button type="button" class="flowly-btn flowly-btn--ghost flowly-btn--sm" data-project-card-action="unlink-task" data-project-task-date="' + item.dateStr + '" data-project-task-period="' + item.period + '" data-project-task-index="' + item.index + '">Desvincular</button></div>').join('')
+  // ── Helpers ──────────────────────────────────────────────
+  const safe = (v) => escapeProjectHtml(String(v == null ? '' : v));
+
+  const shortDate = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+  };
+
+  const formatBRL = (v) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v || 0));
+
+  // ── Status line ───────────────────────────────────────────
+  const today = localDateStr();
+  const progress = getProjectProgressRate(pid);
+  const hasTasks = progress && progress.total > 0;
+  const progressPct = hasTasks ? progress.pct : 0;
+  const deadlineDiff = getProjectDeadlineDiff(project.deadline, today);
+  const isLate = !project.completionDate && deadlineDiff !== null && deadlineDiff < 0;
+  const isDone = !!project.completionDate;
+
+  const statusDot = isDone ? 'proj-dot--done' : isLate ? 'proj-dot--late' : deadlineDiff !== null ? 'proj-dot--doing' : 'proj-dot--idle';
+  const statusParts = [];
+  if (isDone) {
+    statusParts.push('Entregue ' + shortDate(project.completionDate));
+    statusParts.push(project.isPaid ? '✓ Pago' : 'Aguardando pagamento');
+  } else if (isLate) {
+    statusParts.push(Math.abs(deadlineDiff) + 'd em atraso');
+  } else if (deadlineDiff !== null) {
+    statusParts.push(deadlineDiff === 0 ? 'Prazo hoje' : deadlineDiff === 1 ? 'Prazo amanhã' : deadlineDiff + 'd restantes');
+  } else {
+    statusParts.push('Sem prazo definido');
+  }
+  if (hasTasks) statusParts.push(progress.done + '/' + progress.total + ' tarefas');
+
+  // ── Tarefas vinculadas ────────────────────────────────────
+  const linkedHtml = linkedTasks.length > 0
+    ? '<div class="proj-modal-section">'
+      + '<div class="proj-modal-section__header">Tarefas vinculadas</div>'
+      + '<div style="display:flex;flex-direction:column;gap:var(--flowly-space-2)">'
+      + linkedTasks.map((item) =>
+          '<div class="projects-linked-item-v2">'
+          + '<div><strong>' + safe(item.task.text) + '</strong>'
+          + '<p>' + item.dateStr + ' · ' + item.period + (item.task.completed ? ' · concluída' : '') + '</p></div>'
+          + '<button type="button" class="flowly-btn flowly-btn--ghost flowly-btn--sm" '
+          + 'data-project-card-action="unlink-task" data-project-task-date="' + item.dateStr + '" '
+          + 'data-project-task-period="' + item.period + '" data-project-task-index="' + item.index + '">Desvincular</button>'
+          + '</div>'
+        ).join('')
       + '</div></div>'
     : '';
 
-  content.innerHTML = '<button type="button" class="flowly-modal__close" data-project-modal-close aria-label="Fechar">'
-    + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>'
+  // ── HTML ──────────────────────────────────────────────────
+  content.innerHTML =
+    '<button type="button" class="flowly-modal__close" data-project-modal-close aria-label="Fechar">'
+    + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
     + '</button>'
-    + '<header class="flowly-modal__header">'
-    +   '<div>'
-    +     '<h2 class="flowly-modal__title">' + safeName + '</h2>'
-    +     '<p class="flowly-modal__subtitle">Detalhes do projeto</p>'
+
+    // Hero: nome editável + status
+    + '<div class="proj-modal-hero">'
+    +   '<input class="proj-modal-name" type="text" value="' + safe(project.name) + '" placeholder="Nome do projeto" data-project-field="name" data-project-id="' + pid + '">'
+    +   '<div class="proj-modal-status-line">'
+    +     '<span class="proj-dot ' + statusDot + '"></span>'
+    +     '<span class="proj-modal-status-text">' + statusParts.join(' · ') + '</span>'
     +   '</div>'
-    + '</header>'
-    + '<div class="flowly-modal__body">'
-    +   '<div class="projects-modal-grid">'
-    +     '<label class="projects-modal-field"><span>Nome</span><input class="flowly-input" type="text" value="' + safeName + '" data-project-field="name" data-project-id="' + project.id + '"></label>'
-    +     '<label class="projects-modal-field"><span>Cliente</span><input class="flowly-input" type="text" value="' + safeClient + '" placeholder="Nome do cliente" data-project-field="clientName" data-project-id="' + project.id + '"></label>'
-    +     '<label class="projects-modal-field"><span>Tipo</span><input class="flowly-input" type="text" value="' + safeType + '" placeholder="LP, Shopify, etc" data-project-field="serviceType" data-project-id="' + project.id + '"></label>'
-    +     '<label class="projects-modal-field"><span>Valor previsto</span><input class="flowly-input" type="number" min="0" step="0.01" value="' + Number(project.expectedValue || 0) + '" data-project-field="expectedValue" data-project-id="' + project.id + '"></label>'
-    +     '<label class="projects-modal-field"><span>Valor fechado</span><input class="flowly-input" type="number" min="0" step="0.01" value="' + Number(project.closedValue || 0) + '" placeholder="Valor real recebido" data-project-field="closedValue" data-project-id="' + project.id + '"></label>'
-    +     '<label class="projects-modal-field"><span>Prazo</span><input class="flowly-input" type="date" value="' + (project.deadline || '') + '" data-project-field="deadline" data-project-id="' + project.id + '"></label>'
-    +     '<label class="projects-modal-field"><span>Inicio</span><input class="flowly-input" type="date" value="' + (project.startDate || '') + '" data-project-field="startDate" data-project-id="' + project.id + '"></label>'
-    +   '</div>'
-    +   '<div class="projects-modal-toggles">'
-    +     '<label class="projects-modal-toggle"><input type="checkbox"' + (project.isPaid ? ' checked' : '') + ' data-project-field="isPaid" data-project-id="' + project.id + '"><span>Pago</span></label>'
-    +     '<label class="projects-modal-toggle"><input type="checkbox"' + (project.isDraft ? ' checked' : '') + ' data-project-field="isDraft" data-project-id="' + project.id + '"><span>Template</span></label>'
-    +     '<label class="projects-modal-toggle"><input type="checkbox"' + (project.collapseSubtasks !== false ? ' checked' : '') + ' data-project-field="collapseSubtasks" data-project-id="' + project.id + '"><span>Recolher subtarefas</span></label>'
-    +   '</div>'
-    +   '<label class="projects-modal-field"><span>Notas operacionais</span><textarea class="flowly-textarea" data-project-field="notes" data-project-id="' + project.id + '" placeholder="Proximo passo, observacoes...">' + notesValue + '</textarea></label>'
-    +   '<label class="projects-modal-field"><span>Checklist padrao</span><textarea id="' + templateTextareaId + '" class="flowly-textarea" placeholder="Uma tarefa por linha">' + templateValue + '</textarea></label>'
-    +   linkedTasksHtml
     + '</div>'
-    + '<footer class="flowly-modal__footer">'
-    +   '<button type="button" class="flowly-btn flowly-btn--danger" data-project-card-action="delete" data-project-id="' + project.id + '">Remover</button>'
-    +   (project.status !== 'archived' ? '<button type="button" class="flowly-btn flowly-btn--ghost" data-project-card-action="archive" data-project-id="' + project.id + '">Arquivar</button>' : '')
-    +   '<button type="button" class="flowly-btn flowly-btn--secondary" data-project-card-action="save-template" data-project-id="' + project.id + '" data-project-template-id="' + templateTextareaId + '">Salvar checklist</button>'
-    +   '<button type="button" class="flowly-btn flowly-btn--primary" data-project-card-action="add-task" data-project-id="' + project.id + '">+ Tarefa</button>'
+
+    // Progress bar (só se tem tarefas)
+    + (hasTasks
+      ? '<div class="proj-modal-progress">'
+        + '<div class="proj-modal-progress__bar"><div class="proj-modal-progress__fill" style="width:' + progressPct + '%"></div></div>'
+        + '</div>'
+      : '')
+
+    + '<div class="proj-modal-body">'
+
+    // Propriedades
+    + '<div class="proj-modal-props">'
+
+      // Cliente
+      + '<div class="proj-modal-prop">'
+      +   '<span class="proj-modal-prop__label">Cliente</span>'
+      +   '<input class="proj-modal-prop__input" type="text" value="' + safe(project.clientName) + '" placeholder="—" data-project-field="clientName" data-project-id="' + pid + '">'
+      + '</div>'
+
+      // Tipo
+      + '<div class="proj-modal-prop">'
+      +   '<span class="proj-modal-prop__label">Tipo</span>'
+      +   '<input class="proj-modal-prop__input" type="text" value="' + safe(project.serviceType) + '" placeholder="LP, Shopify, etc." data-project-field="serviceType" data-project-id="' + pid + '">'
+      + '</div>'
+
+      // Valor + Pago inline
+      + '<div class="proj-modal-prop">'
+      +   '<span class="proj-modal-prop__label">Valor</span>'
+      +   '<div class="proj-modal-value-row">'
+      +     '<span class="proj-modal-currency">R$</span>'
+      +     '<input class="proj-modal-prop__input proj-modal-prop__input--number" type="number" min="0" step="0.01" '
+      +       'value="' + Number(project.expectedValue || 0) + '" placeholder="0" '
+      +       'data-project-field="expectedValue" data-project-id="' + pid + '" id="projVal_' + pid + '">'
+      +     '<label class="proj-modal-paid-label' + (project.isPaid ? ' is-paid' : '') + '">'
+      +       '<input type="checkbox" class="proj-modal-paid-check"' + (project.isPaid ? ' checked' : '') + ' '
+      +       'data-project-field="isPaid" data-project-id="' + pid + '">'
+      +       '<span>Pago</span>'
+      +     '</label>'
+      +   '</div>'
+      + '</div>'
+
+      // Datas: Prazo + Início side-by-side
+      + '<div class="proj-modal-prop proj-modal-prop--dates">'
+      +   '<span class="proj-modal-prop__label">Datas</span>'
+      +   '<div class="proj-modal-dates-row">'
+      +     '<div class="proj-modal-date-field">'
+      +       '<span class="proj-modal-date-label">Prazo</span>'
+      +       '<button type="button" class="proj-modal-date-btn" data-date-for="' + deadlineInputId + '">' + shortDate(project.deadline) + '</button>'
+      +       '<input type="date" class="proj-modal-date-hidden" value="' + (project.deadline || '') + '" id="' + deadlineInputId + '" data-project-field="deadline" data-project-id="' + pid + '">'
+      +     '</div>'
+      +     '<div class="proj-modal-date-field">'
+      +       '<span class="proj-modal-date-label">Início</span>'
+      +       '<button type="button" class="proj-modal-date-btn" data-date-for="' + startInputId + '">' + shortDate(project.startDate) + '</button>'
+      +       '<input type="date" class="proj-modal-date-hidden" value="' + (project.startDate || '') + '" id="' + startInputId + '" data-project-field="startDate" data-project-id="' + pid + '">'
+      +     '</div>'
+      +   '</div>'
+      + '</div>'
+
+      // Opções secundárias (compactas)
+      + '<div class="proj-modal-prop proj-modal-prop--options">'
+      +   '<span class="proj-modal-prop__label">Opções</span>'
+      +   '<div class="proj-modal-chips-row">'
+      +     '<label class="proj-modal-chip-toggle">'
+      +       '<input type="checkbox"' + (project.isDraft ? ' checked' : '') + ' data-project-field="isDraft" data-project-id="' + pid + '"> Template'
+      +     '</label>'
+      +     '<label class="proj-modal-chip-toggle">'
+      +       '<input type="checkbox"' + (project.collapseSubtasks !== false ? ' checked' : '') + ' data-project-field="collapseSubtasks" data-project-id="' + pid + '"> Recolher subtarefas'
+      +     '</label>'
+      +   '</div>'
+      + '</div>'
+
+    + '</div>' // /proj-modal-props
+
+    // Notas
+    + '<div class="proj-modal-section">'
+    +   '<div class="proj-modal-section__header">Notas</div>'
+    +   '<textarea class="flowly-textarea proj-modal-textarea" data-project-field="notes" data-project-id="' + pid + '" placeholder="Próximo passo, observações...">' + safe(project.notes || '') + '</textarea>'
+    + '</div>'
+
+    // Checklist padrão
+    + '<div class="proj-modal-section">'
+    +   '<div class="proj-modal-section__header">Checklist padrão</div>'
+    +   '<textarea id="' + templateTextareaId + '" class="flowly-textarea proj-modal-textarea" placeholder="Uma tarefa por linha">' + safe((project.templateTasks || []).join('\n')) + '</textarea>'
+    + '</div>'
+
+    + linkedHtml
+
+    + '</div>' // /proj-modal-body
+
+    // Footer
+    + '<footer class="proj-modal-footer">'
+    +   '<button type="button" class="proj-modal-footer__danger flowly-btn flowly-btn--ghost" data-project-card-action="delete" data-project-id="' + pid + '">'
+    +     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>'
+    +   '</button>'
+    +   (project.status !== 'archived'
+      ? '<button type="button" class="flowly-btn flowly-btn--ghost" data-project-card-action="archive" data-project-id="' + pid + '">Arquivar</button>'
+      : '<button type="button" class="flowly-btn flowly-btn--ghost" data-project-card-action="restore" data-project-id="' + pid + '">↩ Restaurar</button>')
+    +   '<div class="proj-modal-footer__spacer"></div>'
+    +   '<button type="button" class="flowly-btn flowly-btn--ghost" data-project-card-action="save-template" data-project-id="' + pid + '" data-project-template-id="' + templateTextareaId + '">Salvar checklist</button>'
+    +   '<button type="button" class="flowly-btn flowly-btn--primary" data-project-card-action="add-task" data-project-id="' + pid + '">+ Tarefa</button>'
     + '</footer>';
 
+  // ── Event: campos de projeto ──────────────────────────────
   content.querySelectorAll('[data-project-field]').forEach((field) => {
     field.onchange = () => {
-      const pid = field.dataset.projectId;
-      const pfield = field.dataset.projectField;
-      if (!pid || !pfield) return;
+      const fid = field.dataset.projectId;
+      const fname = field.dataset.projectField;
+      if (!fid || !fname) return;
       const value = field.type === 'checkbox' ? field.checked : field.value;
-      updateProjectField(pid, pfield, value);
+      updateProjectField(fid, fname, value);
+
+      // Sincroniza closedValue com expectedValue quando Pago está ativo
+      if (fname === 'isPaid') {
+        const valInput = content.querySelector('#projVal_' + fid);
+        const currentVal = valInput ? Number(valInput.value) : Number(project.expectedValue || 0);
+        updateProjectField(fid, 'closedValue', value ? currentVal : 0);
+        field.closest('.proj-modal-paid-label').classList.toggle('is-paid', !!value);
+      }
+      if (fname === 'expectedValue') {
+        const paidCheck = content.querySelector('[data-project-field="isPaid"][data-project-id="' + fid + '"]');
+        if (paidCheck && paidCheck.checked) {
+          updateProjectField(fid, 'closedValue', Number(value));
+        }
+      }
+      // Atualiza label do botão de data
+      if (fname === 'deadline' || fname === 'startDate') {
+        const btnId = fname === 'deadline' ? deadlineInputId : startInputId;
+        const btn = content.querySelector('[data-date-for="' + btnId + '"]');
+        if (btn) btn.textContent = shortDate(value) || '—';
+      }
     };
   });
 
+  // ── Event: botões de data (abre picker) ───────────────────
+  content.querySelectorAll('[data-date-for]').forEach((btn) => {
+    btn.onclick = () => {
+      const input = document.getElementById(btn.dataset.dateFor);
+      if (!input) return;
+      try { input.showPicker(); } catch (_) { input.focus(); input.click(); }
+    };
+  });
+
+  // ── Event: ações do modal ─────────────────────────────────
   content.querySelectorAll('[data-project-card-action]').forEach((btn) => {
     btn.onclick = (e) => {
       e.stopPropagation();
       const action = btn.dataset.projectCardAction;
-      const pid = btn.dataset.projectId;
-      if (action === 'add-task' && pid) { addTaskInsideProject(pid); return; }
-      if (action === 'archive' && pid) { archiveProject(pid); closeProjectDetailModal(); return; }
-      if (action === 'delete' && pid) { deleteProject(pid); closeProjectDetailModal(); return; }
+      const fid = btn.dataset.projectId;
+      if (action === 'add-task' && fid) { addTaskInsideProject(fid); return; }
+      if (action === 'archive' && fid) { archiveProject(fid); closeProjectDetailModal(); return; }
+      if (action === 'restore' && fid) { window.moveProjectToKanbanColumn(fid, 'todo'); closeProjectDetailModal(); return; }
+      if (action === 'delete' && fid) { deleteProject(fid); closeProjectDetailModal(); return; }
       if (action === 'save-template') {
         const textareaId = btn.dataset.projectTemplateId;
-        if (pid && textareaId) saveProjectTemplateTasks(pid, textareaId);
+        if (fid && textareaId) saveProjectTemplateTasks(fid, textareaId);
         return;
       }
       if (action === 'unlink-task') {
