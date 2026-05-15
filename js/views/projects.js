@@ -10,7 +10,7 @@ const PROJECTS_KANBAN_COLUMNS = [
 
 function getProjectKanbanColumnId(project, today, progressRate) {
   if (project.status === 'archived') return 'archived';
-  if (project.completionDate) return project.isPaid ? 'done' : 'awaiting-payment';
+  if (project.completionDate) return 'done';
   if (project.deadline && project.deadline < today) return 'late';
   const rate = progressRate != null ? progressRate : (getProjectProgressRate(project.id)?.pct || 0);
   return rate > 0 ? 'doing' : 'todo';
