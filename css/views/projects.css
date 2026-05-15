@@ -1193,6 +1193,27 @@
     .arch-row__value,
     .arch-row__date,
     .arch-row__actions { display: none; }
+
+    /* Kanban: scroll horizontal em vez de 4 colunas espremidas em 375px. */
+    .kanban-board {
+        grid-template-columns: repeat(4, 78vw);
+        overflow-x: auto;
+        overflow-y: visible;
+        scroll-snap-type: x mandatory;
+        gap: var(--flowly-space-3);
+        padding-bottom: var(--flowly-space-2);
+        -webkit-overflow-scrolling: touch;
+    }
+    .kanban-column {
+        scroll-snap-align: start;
+        min-width: 0;
+    }
+    .kanban-stats-strip {
+        flex-wrap: wrap;
+    }
+    .kanban-stats-strip .flowly-stat-card--inline {
+        flex: 1 1 45%;
+    }
 }
 
 /* --- Config field --- */

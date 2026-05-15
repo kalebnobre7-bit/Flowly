@@ -45,11 +45,22 @@
         display: block; /* sem grid — sidebar oculto */
     }
 
-    .app-main {
+    .app-sidebar {
+        display: none !important;
+    }
+
+    /* Override `body.sidebar-pinned .app-main { margin-left }` que tem maior especificidade. */
+    .app-main,
+    body.sidebar-pinned .app-main {
         margin-left: 0;
         padding: var(--flowly-space-4) var(--flowly-space-3);
         padding-bottom: calc(var(--flowly-mobile-nav-height) + var(--flowly-space-5));
         max-width: 100%;
+    }
+
+    /* Override `.flowly-bottom-nav { display: none }` default em _components.css (cascade depois de _shell.css). */
+    .flowly-bottom-nav {
+        display: block;
     }
 
     .flowly-panel {
